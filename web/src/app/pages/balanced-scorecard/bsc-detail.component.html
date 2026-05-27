@@ -1,0 +1,132 @@
+@if (bsc(); as b) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/bsc" class="back">← Scorecards</a>
+      <h1>{{ b.name }}</h1>
+      <p class="muted">FY {{ b.fiscalYear }}</p>
+    </div>
+    <span class="pill">{{ b.status }}</span>
+  </header>
+
+  @if (performance(); as perf) {
+    <div class="performance-summary">
+      <div class="performance-overall">
+        <span class="label">Overall Performance</span>
+        <span class="value" [class]="getPercentageClass(perf.overall)">{{ perf.overall | number: '1.0-0' }}%</span>
+      </div>
+      <div class="performance-perspective">
+        <span class="label">Financial</span>
+        <span class="value" [class]="getPercentageClass(perf.byPerspective.financial)">
+          {{ perf.byPerspective.financial | number: '1.0-0' }}%
+        </span>
+      </div>
+      <div class="performance-perspective">
+        <span class="label">Customer</span>
+        <span class="value" [class]="getPercentageClass(perf.byPerspective.customer)">
+          {{ perf.byPerspective.customer | number: '1.0-0' }}%
+        </span>
+      </div>
+      <div class="performance-perspective">
+        <span class="label">Internal Process</span>
+        <span class="value" [class]="getPercentageClass(perf.byPerspective.internal)">
+          {{ perf.byPerspective.internal | number: '1.0-0' }}%
+        </span>
+      </div>
+      <div class="performance-perspective">
+        <span class="label">Learning & Growth</span>
+        <span class="value" [class]="getPercentageClass(perf.byPerspective.learning)">
+          {{ perf.byPerspective.learning | number: '1.0-0' }}%
+        </span>
+      </div>
+    </div>
+  }
+
+  <div class="tabs">
+    <button type="button" [class.active]="tab() === 'financial'" (click)="setTab('financial')">
+      💰 Financial
+    </button>
+    <button type="button" [class.active]="tab() === 'customer'" (click)="setTab('customer')">
+      👥 Customer
+    </button>
+    <button type="button" [class.active]="tab() === 'internal'" (click)="setTab('internal')">
+      ⚙️ Internal Process
+    </button>
+    <button type="button" [class.active]="tab() === 'learning'" (click)="setTab('learning')">
+      🎓 Learning & Growth
+    </button>
+  </div>
+
+  <section class="panel">
+    @if (isMEOfficer()) {
+      <h2>Add Objective to {{ getPerspectiveEmoji(tab()) }} {{ tab() | titlecase }}</h2>
+      <form class="form-grid" (ngSubmit)="addObjective()">
+        <label>Objective Title<input [(ngModel)]="objectiveForm.title" name="title" required /></label>
+        <label>Weight (%)<input type="number" [(ngModel)]="objectiveForm.weight" name="weight" min="0" max="100" /></label>
+        <label>Target Value<input type="number" [(ngModel)]="objectiveForm.target" name="target" /></label>
+        <label class="full">Description<textarea [(ngModel)]="objectiveForm.description" name="description" rows="2"></textarea></label>
+        <button type="submit" class="primary">Add Objective</button>
+      </form>
+    }
+
+    <h2>Objectives</h2>
+    @if (b.perspectives; as perspectives) {
+      @for (perspective of perspectives; let perspIdx = $index; track perspIdx) {
+        @if (perspective.perspective === tab()) {
+          @if (perspective.objectives.length > 0) {
+            <div class="objectives-list">
+              @for (objective of perspective.objectives; let objIdx = $index; track objIdx) {
+                <div class="objective-card">
+                  <div class="objective-header">
+                    <h3>{{ objective.title }}</h3>
+                    <select
+                      [(ngModel)]="objective.status"
+                      (change)="updateObjectiveStatus(perspIdx, objIdx, objective.status)"
+                      class="small-select"
+                    >
+                      <option value="on_track">On Track</option>
+                      <option value="at_risk">At Risk</option>
+                      <option value="off_track">Off Track</option>
+                    </select>
+                  </div>
+                  @if (objective.description) {
+                    <p class="description">{{ objective.description }}</p>
+                  }
+                  <div class="objective-metrics">
+                    <div class="metric">
+                      <label>Weight</label>
+                      <span>{{ objective.weight }}%</span>
+                    </div>
+                    <div class="metric">
+                      <label>Target</label>
+                      <span>{{ objective.target }}</span>
+                    </div>
+                    <div class="metric">
+                      <label>Current Progress</label>
+                      <input
+                        type="number"
+                        [(ngModel)]="objective.current"
+                        (change)="updateObjectiveProgress(perspIdx, objIdx, objective.current)"
+                        class="progress-input"
+                      />
+                    </div>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress" [style.width.%]="(objective.current / objective.target) * 100"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="muted">No objectives yet.</p>
+          }
+        }
+      }
+    }
+  </section>
+} @else {
+  @if (!loading()) {
+    <p class="muted">Scorecard not found.</p>
+  } @else {
+    <p class="muted">Loading scorecard...</p>
+  }
+}

@@ -1,0 +1,85 @@
+<header class="page-header">
+  <div>
+    <a routerLink="/dashboard" class="back">← Dashboard</a>
+    <h1>Team & roles</h1>
+    <p class="muted">Invite colleagues with role-based access to your organisation's data.</p>
+  </div>
+</header>
+
+@if (error()) {
+  <p class="banner error">{{ error() }}</p>
+}
+
+@if (canManage) {
+  <section class="panel">
+    <h2>Invite member</h2>
+    <form class="invite-form" (ngSubmit)="invite()">
+      <input type="email" [(ngModel)]="inviteEmail" name="email" placeholder="colleague@ngo.org" required />
+      <select [(ngModel)]="inviteRole" name="role">
+        @for (r of roles; track r) {
+          <option [value]="r">{{ roleLabel(r) }}</option>
+        }
+      </select>
+      <button type="submit" class="primary">Send invite</button>
+    </form>
+    @if (lastInviteLink()) {
+      <p class="invite-link">
+        Share this link (valid 7 days):<br />
+        <code>{{ lastInviteLink() }}</code>
+      </p>
+    }
+  </section>
+}
+
+<section class="panel">
+  <h2>Members</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        @if (canManage) {
+          <th></th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (m of members(); track m.id) {
+        <tr>
+          <td>{{ m.name }}</td>
+          <td>{{ m.email }}</td>
+          <td>
+            @if (canManage && m.role !== 'owner') {
+              <select [ngModel]="m.role" (ngModelChange)="changeRole(m.id, $event)" [name]="'role-' + m.id">
+                @for (r of roles; track r) {
+                  <option [value]="r">{{ roleLabel(r) }}</option>
+                }
+              </select>
+            } @else {
+              {{ roleLabel(m.role) }}
+            }
+          </td>
+          @if (canManage) {
+            <td>
+              @if (m.role !== 'owner') {
+                <button type="button" class="link-btn" (click)="remove(m.id)">Remove</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<section class="panel roles-help">
+  <h2>Role permissions</h2>
+  <ul>
+    <li><strong>Owner / Admin</strong> — billing, team, projects, approvals</li>
+    <li><strong>M&E Officer</strong> — indicators, reports, approve field data</li>
+    <li><strong>Field Officer</strong> — log activities (pending approval)</li>
+    <li><strong>Finance</strong> — donors, view reports</li>
+    <li><strong>Viewer</strong> — read-only access</li>
+  </ul>
+</section>

@@ -1,0 +1,336 @@
+@if (project(); as p) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/projects" class="back">← Projects</a>
+      <h1>{{ p.name }}</h1>
+      @if (p.donor) {
+        <p class="muted">Funded by {{ p.donor }}</p>
+      }
+      <p class="project-description">{{ p.description || 'No project summary available yet.' }}</p>
+    </div>
+    <div class="header-right">
+      <span class="pill">{{ p.status }}</span>
+      @if (p.startDate || p.endDate) {
+        <div class="timeline">
+          <span>{{ p.startDate ? (p.startDate | date: 'mediumDate') : 'TBA' }}</span>
+          <span>→</span>
+          <span>{{ p.endDate ? (p.endDate | date: 'mediumDate') : 'TBA' }}</span>
+        </div>
+      }
+    </div>
+  </header>
+
+  <section class="panel overview-panel">
+    <div class="overview-grid">
+      <article class="overview-card">
+        <h3>Indicators</h3>
+        <strong>{{ indicatorCount() }}</strong>
+        <p>Measured outcomes and outputs for this project.</p>
+      </article>
+      <article class="overview-card">
+        <h3>Activities</h3>
+        <strong>{{ activityCount() }}</strong>
+        <p>Logged field actions, events, and progress notes.</p>
+      </article>
+      <article class="overview-card">
+        <h3>Avg. progress</h3>
+        <strong>{{ indicatorProgress() }}%</strong>
+        <p>Average achievement against indicator targets.</p>
+      </article>
+      <article class="overview-card">
+        <h3>Health</h3>
+        <strong>{{ projectHealth() }}</strong>
+        <p>{{ daysRemaining() !== null ? (daysRemaining() + ' days left') : 'No end date set' }}</p>
+      </article>
+      <article class="overview-card">
+        <h3>Data freshness</h3>
+        <strong>@if (dataFreshnessDays() !== null) { {{ dataFreshnessDays() }} days } @else { No updates }</strong>
+        <p>{{ healthDetail() }}</p>
+      </article>
+    </div>
+    @if (timelineProgress() !== null) {
+      <div class="progress-row">
+        <label>Timeline progress</label>
+        <div class="progress-bar lighter">
+          <div class="progress-fill" [style.width.%]="timelineProgress()"></div>
+        </div>
+        <small>{{ timelineProgress() }}% of project time elapsed</small>
+      </div>
+    }
+    @if (indicatorCount() > 0) {
+      <div class="progress-row">
+        <label>Overall indicator progress</label>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="indicatorProgress()"></div>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="panel recent-activities-panel">
+    <h2>Recent project activity</h2>
+    @if (recentActivities().length > 0) {
+      <ul class="recent-activity-list">
+        @for (activity of recentActivities(); track activity._id) {
+          <li>
+            <div>
+              <strong>{{ activity.title }}</strong>
+              <p class="muted">{{ activity.activityDate | date: 'mediumDate' }} · {{ activity.location || 'No location' }}</p>
+            </div>
+            <span class="status-pill">{{ activity.status || 'completed' }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="muted">No recent activity logged yet.</p>
+    }
+  </section>
+
+  <div class="tabs">
+    <button type="button" [class.active]="tab() === 'framework'" (click)="setTab('framework')">Results framework</button>
+    <button type="button" [class.active]="tab() === 'indicators'" (click)="setTab('indicators')">Indicators</button>
+    <button type="button" [class.active]="tab() === 'activities'" (click)="setTab('activities')">Activities</button>
+    <button type="button" [class.active]="tab() === 'report'" (click)="setTab('report')">Donor report</button>
+  </div>
+
+  @if (tab() === 'framework') {
+    <section class="panel">
+      <h2>Results framework</h2>
+      <div class="overview-grid compact">
+        <article class="overview-card">
+          <h3>Health</h3>
+          <strong>{{ projectHealth() }}</strong>
+          <p>{{ healthDetail() }}</p>
+        </article>
+        <article class="overview-card">
+          <h3>Data freshness</h3>
+          <strong>@if (dataFreshnessDays() !== null) { {{ dataFreshnessDays() }} days } @else { No updates }</strong>
+          <p>Last submitted activity age and delivery cadence.</p>
+        </article>
+        <article class="overview-card">
+          <h3>Avg. progress</h3>
+          <strong>{{ indicatorProgress() }}%</strong>
+          <p>Average achievement against indicator targets.</p>
+        </article>
+      </div>
+
+      @if (qualityAlerts().length > 0) {
+        <div class="alert-list">
+          @for (alert of qualityAlerts(); track alert.title + alert.message) {
+            <div class="alert-card alert-{{ alert.severity }}">
+              <strong>{{ alert.title }}</strong>
+              <p>{{ alert.message }}</p>
+            </div>
+          }
+        </div>
+      }
+
+      @if (frameworkRoots().length > 0) {
+        <ul class="framework-tree">
+          @for (root of frameworkRoots(); track root._id) {
+            <li>
+              <div class="framework-node">
+                <div>
+                  <strong>{{ root.code }}</strong> {{ root.title }}
+                  <p class="muted">Level: {{ root.level || 'output' }} · Progress: {{ root.percentComplete }}%</p>
+                </div>
+                <span class="status-pill">{{ root.status }}</span>
+              </div>
+              @if (root.children.length > 0) {
+                <ul>
+                  @for (child of root.children; track child._id) {
+                    <li>
+                      <div class="framework-node nested">
+                        <div>
+                          <strong>{{ child.code }}</strong> {{ child.title }}
+                          <p class="muted">Level: {{ child.level || 'output' }} · Progress: {{ child.percentComplete }}%</p>
+                        </div>
+                        <span class="status-pill">{{ child.status }}</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">No indicators defined yet. Add indicators to build a project results framework.</p>
+      }
+    </section>
+  }
+
+  @if (tab() === 'indicators') {
+    <section class="panel">
+      <h2>Logframe indicators</h2>
+      @if (canManageIndicators) {
+        <form class="inline-form" (ngSubmit)="addIndicator()">
+          <select [(ngModel)]="indicatorForm.level" name="level">
+            <option value="goal">Goal</option>
+            <option value="outcome">Outcome</option>
+            <option value="output">Output</option>
+            <option value="activity">Activity</option>
+          </select>
+          <input [(ngModel)]="indicatorForm.code" name="code" placeholder="Code (e.g. O1)" required />
+          <input [(ngModel)]="indicatorForm.title" name="title" placeholder="Indicator title" required class="grow" />
+          <input [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
+          <input type="number" [(ngModel)]="indicatorForm.baseline" name="baseline" placeholder="Baseline" />
+          <input type="number" [(ngModel)]="indicatorForm.target" name="target" placeholder="Target" required />
+          <button type="submit" class="primary">Add</button>
+        </form>
+      }
+      <table>
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Code</th>
+            <th>Indicator</th>
+            <th>Progress</th>
+            <th>Trend</th>
+            <th>Last update</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (summary of indicatorSummaries(); track summary._id) {
+            <tr>
+              <td>{{ summary.level ?? 'output' }}</td>
+              <td><strong>{{ summary.code }}</strong></td>
+              <td>
+                {{ summary.title }}
+                @if (summary.unit) { <span class="muted">({{ summary.unit }})</span> }
+                @if (summary.parentId) { <div class="muted">Parent: {{ summary.parentId }}</div> }
+              </td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar" [style.width.%]="summary.percentComplete"></div>
+                </div>
+                {{ summary.percentComplete }}%
+              </td>
+              <td>{{ summary.trend }}</td>
+              <td>@if (summary.lastActivityDate) { {{ summary.lastActivityDate | date: 'mediumDate' }} } @else { None }</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="muted">No indicators defined yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  @if (tab() === 'activities') {
+    <section class="panel">
+      <h2>Field activities</h2>
+      @if (canLogActivities) {
+      <form class="form-grid" (ngSubmit)="addActivity()">
+        <label>Title<input [(ngModel)]="activityForm.title" name="title" required /></label>
+        <label>Date<input type="date" [(ngModel)]="activityForm.activityDate" name="activityDate" required /></label>
+        <label>Linked indicator
+          <select [(ngModel)]="activityForm.indicatorId" name="indicatorId">
+            <option value="">— None —</option>
+            @for (i of indicatorOptions(); track i._id) {
+              <option [value]="i._id">{{ i.code }} — {{ i.title }}</option>
+            }
+          </select>
+        </label>
+        <label>Status
+          <select [(ngModel)]="activityForm.status" name="status">
+            <option value="submitted">Submit for review</option>
+            <option value="draft">Save as draft</option>
+          </select>
+        </label>
+        <label>Location<input [(ngModel)]="activityForm.location" name="location" /></label>
+        <label>Participants<input type="number" [(ngModel)]="activityForm.participants" name="participants" /></label>
+        <label>Quantity (progress)<input type="number" [(ngModel)]="activityForm.quantity" name="quantity" /></label>
+        <label class="full">Notes<textarea [(ngModel)]="activityForm.notes" name="notes" rows="2"></textarea></label>
+        <button type="submit" class="primary">Log activity</button>
+      </form>
+      }
+      <ul class="activity-list">
+        @for (a of activities(); track a._id) {
+          <li>
+            <div>
+              <strong>{{ a.title }}</strong>
+              <span class="muted">{{ a.activityDate | date: 'mediumDate' }}</span>
+              @if (a.location) { <span class="muted"> · {{ a.location }}</span> }
+            </div>
+            <div class="meta">
+              <span class="status-pill">{{ a.status ?? 'approved' }}</span>
+              @if (a.quantity) { <span>Qty {{ a.quantity }}</span> }
+              @if (a.participants) { <span>{{ a.participants }} participants</span> }
+              @if (canApprove && a.status === 'submitted') {
+                <button type="button" class="approve-btn" (click)="reviewActivity(a._id, 'approved')">Approve</button>
+                <button type="button" class="reject-btn" (click)="reviewActivity(a._id, 'rejected')">Reject</button>
+              }
+            </div>
+          </li>
+        } @empty {
+          <li class="muted">No activities logged yet.</li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (tab() === 'report') {
+    <section class="panel report-panel">
+      <div class="report-filters no-print">
+        <label>From <input type="date" [(ngModel)]="reportFrom" name="reportFrom" /></label>
+        <label>To <input type="date" [(ngModel)]="reportTo" name="reportTo" /></label>
+        <button type="button" class="primary" (click)="loadReport()">Generate report</button>
+      </div>
+      @if (report(); as r) {
+        <div class="report-actions no-print">
+          <button type="button" class="primary" (click)="printReport()">Print / Save as PDF</button>
+        </div>
+        <article class="report-doc">
+          <header class="report-head">
+            <p class="eyebrow">Donor progress report</p>
+            <h2>{{ r.project.name }}</h2>
+            <p>{{ r.organization?.name }} · Generated {{ r.generatedAt | date: 'medium' }}</p>
+          </header>
+          <div class="stats">
+            <div><span>{{ r.summary.indicatorCount }}</span><small>Indicators</small></div>
+            <div><span>{{ r.summary.activityCount }}</span><small>Activities</small></div>
+            <div><span>{{ r.summary.totalParticipants }}</span><small>Participants reached</small></div>
+            <div><span>{{ r.summary.averageProgress }}%</span><small>Avg. progress</small></div>
+          </div>
+          <h3>Indicator performance</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Indicator</th>
+                <th>Achieved</th>
+                <th>Target</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of r.indicators; track row.id) {
+                <tr>
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.achieved }} @if (row.unit) { {{ row.unit }} }</td>
+                  <td>{{ row.target }}</td>
+                  <td>
+                    <div class="bar-wrap">
+                      <div class="bar" [style.width.%]="row.percentComplete"></div>
+                    </div>
+                    {{ row.percentComplete }}%
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <h3>Recent activities</h3>
+          <ul>
+            @for (a of r.recentActivities; track a.id) {
+              <li>{{ a.title }} — {{ a.activityDate | date: 'mediumDate' }} (qty {{ a.quantity }})</li>
+            }
+          </ul>
+        </article>
+      } @else {
+        <p class="muted">Loading report…</p>
+      }
+    </section>
+  }
+}

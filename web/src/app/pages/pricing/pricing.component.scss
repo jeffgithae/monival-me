@@ -1,0 +1,100 @@
+.pricing-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+
+  h1 {
+    color: #2d2866;
+    margin: 0.5rem 0;
+  }
+
+  p {
+    color: #5c5678;
+  }
+}
+
+.back {
+  font-size: 0.85rem;
+  color: #3c3489;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e8e6f0;
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  &.featured {
+    border-color: #3c3489;
+    box-shadow: 0 12px 32px rgba(60, 52, 137, 0.12);
+  }
+
+  h2 {
+    margin: 0;
+    color: #2d2866;
+  }
+
+  .desc {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #5c5678;
+    flex: 1;
+  }
+
+  .price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3c3489;
+    margin: 0;
+
+    span {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #5c5678;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    color: #5c5678;
+  }
+
+  .cta {
+    text-align: center;
+    padding: 0.6rem;
+    background: #3c3489;
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+}
+
+.trial-note {
+  text-align: center;
+  margin-top: 2rem;
+  color: #5c5678;
+  font-size: 0.9rem;
+
+  a {
+    color: #3c3489;
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,53 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { APP_GUARD } from '@nestjs/core';
+import { ActivitiesModule } from './activities/activities.module';
+import { AuthModule } from './auth/auth.module';
+import { BillingModule } from './billing/billing.module';
+import { BudgetModule } from './budget/budget.module';
+import { BalancedScorecardModule } from './bsc/bsc.module';
+import { OKRsModule } from './okrs/okrs.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { DonorsModule } from './donors/donors.module';
+import { GrantsModule } from './grants/grants.module';
+import { HealthController } from './health/health.controller';
+import { RolesGuard } from './common/guards/roles.guard';
+import { SubscriptionGuard } from './common/guards/subscription.guard';
+import { IndicatorsModule } from './indicators/indicators.module';
+import { MembersModule } from './members/members.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { Organization, OrganizationSchema } from './organizations/schemas/organization.schema';
+import { ProjectsModule } from './projects/projects.module';
+import { ReportsModule } from './reports/reports.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get<string>('MONGODB_URI', 'mongodb://localhost:27017/monival-me'),
+      }),
+    }),
+    MongooseModule.forFeature([{ name: Organization.name, schema: OrganizationSchema }]),
+    AuthModule,
+    OrganizationsModule,
+    MembersModule,
+    BillingModule,
+    ProjectsModule,
+    IndicatorsModule,
+    ActivitiesModule,
+    ReportsModule,
+    DonorsModule,
+    GrantsModule,
+    BudgetModule,
+    BalancedScorecardModule,
+    OKRsModule,
+    DashboardModule,
+  ],
+  controllers: [HealthController],
+  providers: [SubscriptionGuard, RolesGuard],
+})
+export class AppModule {}

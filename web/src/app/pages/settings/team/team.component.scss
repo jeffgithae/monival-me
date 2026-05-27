@@ -1,0 +1,98 @@
+.page-header {
+  margin-bottom: 1rem;
+  h1 { margin: 0.25rem 0 0; color: #2d2866; }
+}
+.back { font-size: 0.8rem; color: #3c3489; text-decoration: none; }
+.muted { color: #5c5678; font-size: 0.88rem; }
+.panel {
+  background: #fff;
+  border: 1px solid #e8e6f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  h2 { margin: 0 0 0.75rem; font-size: 1rem; color: #2d2866; }
+}
+.primary {
+  background: #3c3489;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.invite-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+
+  input,
+  select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #ddd9ec;
+    border-radius: 8px;
+  }
+
+  input {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.invite-link {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: #5c5678;
+
+  code {
+    display: block;
+    margin-top: 0.35rem;
+    word-break: break-all;
+    font-size: 0.75rem;
+    color: #3c3489;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.55rem 0.4rem;
+    border-bottom: 1px solid #f0eef8;
+  }
+
+  th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: #5c5678;
+  }
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #b42318;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.banner.error {
+  background: #faece7;
+  color: #712b13;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.roles-help ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  color: #5c5678;
+  line-height: 1.6;
+}

@@ -1,0 +1,48 @@
+<header class="page-header">
+  <div>
+    <h1>📊 Balanced Scorecard</h1>
+    <p class="muted">Strategic management framework with 4 perspectives</p>
+  </div>
+</header>
+
+@if (error(); as err) {
+  <div class="alert alert-error">{{ err }}</div>
+}
+
+@if (isMEOfficer()) {
+  <section class="panel">
+    <h2>Create New Balanced Scorecard</h2>
+    <form class="form-grid" (ngSubmit)="createScorecard()">
+      <label>Scorecard Name<input [(ngModel)]="newBSCForm.name" name="name" required /></label>
+      <label>Fiscal Year<input type="number" [(ngModel)]="newBSCForm.fiscalYear" name="year" /></label>
+      <button type="submit" class="primary">Create Scorecard</button>
+    </form>
+  </section>
+}
+
+<section class="panel">
+  <h2>Strategic Scorecards</h2>
+  @if (loading()) {
+    <p class="muted">Loading scorecards...</p>
+  } @else {
+    <div class="card-grid">
+      @for (bsc of scorecards(); track bsc._id) {
+        <div class="card">
+          <div class="card-header">
+            <h3><a [routerLink]="['/bsc', bsc._id]">{{ bsc.name }}</a></h3>
+            <span class="pill">{{ bsc.status }}</span>
+          </div>
+          <div class="card-body">
+            <p class="muted">FY {{ bsc.fiscalYear }}</p>
+            <p class="muted">{{ getPerspectiveCount(bsc) }} objectives across 4 perspectives</p>
+          </div>
+          <div class="card-footer">
+            <a [routerLink]="['/bsc', bsc._id]" class="link">View Details →</a>
+          </div>
+        </div>
+      } @empty {
+        <p class="muted">No scorecards created yet.</p>
+      }
+    </div>
+  }
+</section>

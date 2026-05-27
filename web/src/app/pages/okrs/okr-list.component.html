@@ -1,0 +1,70 @@
+<header class="page-header">
+  <div>
+    <h1>🎯 OKRs (Objectives & Key Results)</h1>
+    <p class="muted">Quarterly goal-setting with measurable key results</p>
+  </div>
+</header>
+
+@if (error(); as err) {
+  <div class="alert alert-error">{{ err }}</div>
+}
+
+<section class="panel">
+  <h2>Quarter Selection</h2>
+  <div class="quarter-selector">
+    <label>Year<input type="number" [(ngModel)]="selectedYear" name="year" (change)="loadOKRs()" /></label>
+    <div class="quarter-buttons">
+      <button [class.active]="selectedQuarter() === 1" (click)="setQuarter(1)">Q1</button>
+      <button [class.active]="selectedQuarter() === 2" (click)="setQuarter(2)">Q2</button>
+      <button [class.active]="selectedQuarter() === 3" (click)="setQuarter(3)">Q3</button>
+      <button [class.active]="selectedQuarter() === 4" (click)="setQuarter(4)">Q4</button>
+    </div>
+  </div>
+</section>
+
+@if (isMEOfficer()) {
+  <section class="panel">
+    <h2>Create New OKR</h2>
+    <form class="form-grid" (ngSubmit)="createOKR()">
+      <label>Objective Title<input [(ngModel)]="newOKRForm.title" name="title" required /></label>
+      <button type="submit" class="primary">Create OKR</button>
+    </form>
+  </section>
+}
+
+<section class="panel">
+  <h2>OKRs for Q{{ selectedQuarter() }} {{ selectedYear() }}</h2>
+  @if (loading()) {
+    <p class="muted">Loading OKRs...</p>
+  } @else {
+    <div class="okr-list">
+      @for (okr of okrs(); track okr._id) {
+        <div class="okr-card">
+          <div class="okr-header">
+            <h3><a [routerLink]="['/okrs', okr._id]">{{ okr.title }}</a></h3>
+            <span class="pill" [class]="getStatusClass(okr.status)">{{ okr.status }}</span>
+          </div>
+
+          <div class="okr-progress">
+            <div class="progress-info">
+              <span class="label">Progress</span>
+              <span class="percentage" [class]="getProgressClass(okr.progressPercentage)">
+                {{ okr.progressPercentage | number: '1.0-0' }}%
+              </span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress" [style.width.%]="okr.progressPercentage"></div>
+            </div>
+          </div>
+
+          <div class="okr-footer">
+            <span class="kr-count">{{ okr.keyResults.length }} Key Results</span>
+            <a [routerLink]="['/okrs', okr._id]" class="link">View Details →</a>
+          </div>
+        </div>
+      } @empty {
+        <p class="muted">No OKRs for this quarter yet.</p>
+      }
+    </div>
+  }
+</section>

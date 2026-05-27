@@ -1,0 +1,40 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">◔</span>
+      <div>
+        <strong>Monival M&E</strong>
+        <small>{{ auth.organization()?.name ?? 'Organisation' }}</small>
+      </div>
+    </div>
+    @if (auth.organization(); as org) {
+      @if (org.subscriptionStatus === 'trialing' && org.trialEndsAt) {
+        <div class="trial-banner">
+          Trial · ends {{ org.trialEndsAt | date: 'mediumDate' }}
+          <a routerLink="/settings/billing">Upgrade</a>
+        </div>
+      }
+      <div class="plan-pill">{{ org.planName ?? org.planId }}</div>
+    }
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="active">📊 Dashboard</a>
+      <a routerLink="/projects" routerLinkActive="active">📁 Projects</a>
+      <a routerLink="/strategic" routerLinkActive="active">🎯 Strategic Overview</a>
+      <div class="nav-divider">Frameworks</div>
+      <a routerLink="/budget" routerLinkActive="active">💰 Budget Tracking</a>
+      <a routerLink="/bsc" routerLinkActive="active">📈 Balanced Scorecard</a>
+      <a routerLink="/okrs" routerLinkActive="active">🎯 OKRs</a>
+      <div class="nav-divider">Settings</div>
+      <a routerLink="/settings/team" routerLinkActive="active">👥 Team</a>
+      <a routerLink="/settings/billing" routerLinkActive="active">💳 Billing</a>
+    </nav>
+    <div class="user">
+      <span>{{ auth.user()?.name }}</span>
+      <small>{{ roleLabel(auth.user()?.role ?? 'viewer') }}</small>
+      <button type="button" (click)="auth.logout()">Sign out</button>
+    </div>
+  </aside>
+  <main>
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,144 @@
+@if (budget(); as b) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/budget" class="back">← Budgets</a>
+      <h1>{{ b.name }}</h1>
+      <p class="muted">FY {{ b.fiscalYear }} — {{ b.category }}</p>
+    </div>
+    <span class="pill">{{ b.status }}</span>
+  </header>
+
+  <div class="budget-summary">
+    <div class="stat">
+      <label>Allocated</label>
+      <span class="value">{{ b.allocatedAmount | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <label>Spent</label>
+      <span class="value">{{ b.spentAmount | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <label>Available</label>
+      <span class="value">{{ b.uncommittedAmount | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <label>Utilization</label>
+      <span class="value">{{ (b.spentAmount / b.allocatedAmount * 100) | number: '1.0-0' }}%</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button type="button" [class.active]="tab() === 'details'" (click)="setTab('details')">Details</button>
+    <button type="button" [class.active]="tab() === 'line-items'" (click)="setTab('line-items')">Line Items</button>
+    <button type="button" [class.active]="tab() === 'variance'" (click)="setTab('variance')">Variance Analysis</button>
+  </div>
+
+  @if (tab() === 'details') {
+    <section class="panel">
+      <h2>Budget Information</h2>
+      <dl class="details">
+        <dt>Name</dt>
+        <dd>{{ b.name }}</dd>
+        <dt>Category</dt>
+        <dd>{{ b.category }}</dd>
+        <dt>Status</dt>
+        <dd><span class="pill">{{ b.status }}</span></dd>
+        <dt>Fiscal Year</dt>
+        <dd>{{ b.fiscalYear }}</dd>
+        <dt>Period</dt>
+        <dd>{{ b.startDate | date: 'shortDate' }} — {{ b.endDate | date: 'shortDate' }}</dd>
+        @if (b.notes) {
+          <dt>Notes</dt>
+          <dd>{{ b.notes }}</dd>
+        }
+      </dl>
+
+      @if (isFinance() && b.status === 'draft') {
+        <button (click)="approveBudget()" class="primary">Approve Budget</button>
+      }
+    </section>
+  }
+
+  @if (tab() === 'line-items') {
+    <section class="panel">
+      <h2>Budget Line Items</h2>
+      @if (isFinance()) {
+        <form class="form-grid" (ngSubmit)="addLineItem()">
+          <label>Item Title<input [(ngModel)]="lineItemForm.title" name="title" required /></label>
+          <label>Planned Amount<input type="number" [(ngModel)]="lineItemForm.plannedAmount" name="amount" required /></label>
+          <label>Category<input [(ngModel)]="lineItemForm.category" name="category" /></label>
+          <label class="full">Description<textarea [(ngModel)]="lineItemForm.description" name="description" rows="2"></textarea></label>
+          <button type="submit" class="primary">Add Line Item</button>
+        </form>
+      }
+
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Planned</th>
+            <th>Spent</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of lineItems(); track item._id) {
+            <tr>
+              <td>{{ item.title }}</td>
+              <td class="number">{{ item.plannedAmount | number: '1.0-0' }}</td>
+              <td class="number">{{ item.spentAmount | number: '1.0-0' }}</td>
+              <td>
+                <select [(ngModel)]="item.status" (change)="updateLineItem(item._id, item.status)" class="small-select">
+                  <option value="planned">Planned</option>
+                  <option value="committed">Committed</option>
+                  <option value="spent">Spent</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="muted">No line items yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  @if (tab() === 'variance') {
+    <section class="panel">
+      <h2>Variance Analysis</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Planned</th>
+            <th>Actual</th>
+            <th>Variance</th>
+            <th>%</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (v of variance(); track v._id) {
+            <tr>
+              <td>{{ v.period }}</td>
+              <td class="number">{{ v.plannedAmount | number: '1.0-0' }}</td>
+              <td class="number">{{ v.actualAmount | number: '1.0-0' }}</td>
+              <td class="number" [class]="getVarianceColor(v.trend)">{{ v.variance | number: '1.0-0' }}</td>
+              <td class="number" [class]="getVarianceColor(v.trend)">{{ v.variancePercentage | number: '1.1-1' }}%</td>
+              <td>{{ getVarianceIcon(v.trend) }} {{ v.trend }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="muted">No variance data yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+} @else {
+  @if (!loading()) {
+    <p class="muted">Budget not found.</p>
+  } @else {
+    <p class="muted">Loading budget details...</p>
+  }
+}

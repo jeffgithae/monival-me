@@ -1,0 +1,145 @@
+@if (okr(); as o) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/okrs" class="back">← OKRs</a>
+      <h1>{{ o.title }}</h1>
+      <p class="muted">Q{{ o.quarter }} {{ o.year }}</p>
+    </div>
+    @if (isMEOfficer()) {
+      <select
+        [(ngModel)]="o.status"
+        (change)="updateOKRStatus(o.status)"
+        class="status-select"
+      >
+        <option value="draft">Draft</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="archived">Archived</option>
+      </select>
+    } @else {
+      <span class="pill">{{ o.status }}</span>
+    }
+  </header>
+
+  @if (progress(); as p) {
+    <div class="okr-summary">
+      <div class="summary-card">
+        <span class="label">Overall Progress</span>
+        <span class="value" [class]="getProgressClass(p.overallProgress)">
+          {{ p.overallProgress | number: '1.0-0' }}%
+        </span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Key Results</span>
+        <span class="value">{{ p.keyResults.length }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">On Track</span>
+        <span class="value">
+          {{ (p.keyResults | slice: 0).length ? 'Yes' : 'No' }}
+        </span>
+      </div>
+    </div>
+  }
+
+  <section class="panel">
+    @if (o.description) {
+      <p class="description">{{ o.description }}</p>
+    }
+
+    @if (isMEOfficer()) {
+      <h2>Add Key Result</h2>
+      <form class="form-grid" (ngSubmit)="addKeyResult()">
+        <label>Key Result Title<input [(ngModel)]="krForm.title" name="title" required /></label>
+        <label>Unit<input [(ngModel)]="krForm.unit" name="unit" placeholder="e.g., beneficiaries, %,%" required /></label>
+        <label>Target Value<input type="number" [(ngModel)]="krForm.targetValue" name="target" required /></label>
+        <label>Initial Confidence (%)<input type="number" [(ngModel)]="krForm.confidence" name="confidence" min="0" max="100" /></label>
+        <button type="submit" class="primary">Add Key Result</button>
+      </form>
+    }
+
+    <h2>Key Results</h2>
+    @if (o.keyResults.length > 0) {
+      <div class="key-results-list">
+        @for (kr of o.keyResults; let krIdx = $index; track krIdx) {
+          <div class="kr-card">
+            <div class="kr-header">
+              <h3>{{ kr.title }}</h3>
+              @if (isMEOfficer()) {
+                <select
+                  [(ngModel)]="kr.status"
+                  (change)="updateKeyResultStatus(krIdx, kr.status)"
+                  class="small-select"
+                >
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="at_risk">At Risk</option>
+                  <option value="completed">Completed</option>
+                </select>
+              } @else {
+                <span class="status-badge" [class]="getStatusClass(kr.status)">{{ kr.status }}</span>
+              }
+            </div>
+
+            @if (kr.description) {
+              <p class="description">{{ kr.description }}</p>
+            }
+
+            <div class="kr-metrics">
+              <div class="metric">
+                <label>Target</label>
+                <span>{{ kr.targetValue }} {{ kr.unit }}</span>
+              </div>
+              <div class="metric">
+                <label>Current</label>
+                @if (isMEOfficer()) {
+                  <input
+                    type="number"
+                    [(ngModel)]="kr.currentValue"
+                    (change)="updateKeyResultValue(krIdx, kr.currentValue)"
+                    class="value-input"
+                  />
+                } @else {
+                  <span>{{ kr.currentValue }} {{ kr.unit }}</span>
+                }
+              </div>
+              <div class="metric">
+                <label>Confidence</label>
+                @if (isMEOfficer()) {
+                  <input
+                    type="number"
+                    [(ngModel)]="kr.confidence"
+                    (change)="updateKeyResultConfidence(krIdx, kr.confidence)"
+                    min="0"
+                    max="100"
+                    class="confidence-input"
+                  />
+                  <span class="unit">%</span>
+                } @else {
+                  <span class="confidence-display" [class]="getConfidenceColor(kr.confidence)">
+                    {{ kr.confidence }}%
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="kr-progress">
+              <div class="progress-bar">
+                <div class="progress" [style.width.%]="(kr.currentValue / kr.targetValue) * 100"></div>
+              </div>
+              <span class="progress-text">{{ ((kr.currentValue / kr.targetValue) * 100) | number: '1.0-0' }}%</span>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="muted">No key results yet.</p>
+    }
+  </section>
+} @else {
+  @if (!loading()) {
+    <p class="muted">OKR not found.</p>
+  } @else {
+    <p class="muted">Loading OKR...</p>
+  }
+}

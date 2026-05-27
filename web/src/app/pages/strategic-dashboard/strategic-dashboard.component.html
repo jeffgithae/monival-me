@@ -1,0 +1,178 @@
+<header class="page-header">
+  <div>
+    <h1>🎯 Strategic Dashboard</h1>
+    <p class="muted">Integrated view of all planning frameworks</p>
+  </div>
+</header>
+
+@if (loading()) {
+  <p class="muted text-center">Loading strategic overview...</p>
+} @else {
+  <div class="dashboard-grid">
+    <!-- Framework Configuration -->
+    <section class="card framework-config">
+      <div class="card-title">Frameworks Enabled</div>
+      <div class="framework-list">
+        @if (frameworkConfig(); as config) {
+          @for (fw of config.availableFrameworks; track fw) {
+            <div class="framework-item">
+              <span class="fw-name">
+                @switch (fw) {
+                  @case ('logframe') {
+                    📋 Logframe
+                  }
+                  @case ('bsc') {
+                    📊 Balanced Scorecard
+                  }
+                  @case ('okr') {
+                    🎯 OKRs
+                  }
+                }
+              </span>
+              @if (config.primaryFramework === fw) {
+                <span class="primary-badge">Primary</span>
+              }
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- Budget Tracking Overview -->
+    @if (isFrameworkEnabled('logframe')) {
+      <section class="card budget-overview">
+        <div class="card-title">💰 Budget Tracking</div>
+        @if (budgetSummary(); as budget) {
+          <div class="stat-row">
+            <span class="label">Allocated</span>
+            <span class="value">{{ budget.totalAllocated | number: '1.0-0' }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Spent</span>
+            <span class="value">{{ budget.totalSpent | number: '1.0-0' }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Available</span>
+            <span class="value">{{ budget.totalUncommitted | number: '1.0-0' }}</span>
+          </div>
+          <div class="utilization-bar">
+            <div
+              class="utilization"
+              [style.width.%]="getBudgetUtilization()"
+              [class]="getUtilizationClass(getBudgetUtilization())"
+            ></div>
+          </div>
+          <span class="utilization-text">{{ getBudgetUtilization() | number: '1.0-0' }}% Utilized</span>
+          <a routerLink="/budget" class="card-link">View Budgets →</a>
+        }
+      </section>
+    }
+
+    <!-- Balanced Scorecard Overview -->
+    @if (isFrameworkEnabled('bsc')) {
+      <section class="card bsc-overview">
+        <div class="card-title">📊 Balanced Scorecard</div>
+        <div class="stat-row">
+          <span class="label">Active Scorecards</span>
+          <span class="value">{{ (scorecards() | slice: 0).length }}</span>
+        </div>
+        @if (scorecards().length > 0) {
+          <div class="stat-row">
+            <span class="label">Avg. Performance</span>
+            <span class="value" [class]="getScoreClass(getAverageBSCScore())">
+              {{ getAverageBSCScore() | number: '1.0-0' }}%
+            </span>
+          </div>
+        }
+        <div class="score-indicator">
+          <div
+            class="score-bar"
+            [style.width.%]="getAverageBSCScore()"
+            [class]="getScoreClass(getAverageBSCScore())"
+          ></div>
+        </div>
+        <a routerLink="/bsc" class="card-link">View Scorecards →</a>
+      </section>
+    }
+
+    <!-- OKRs Overview -->
+    @if (isFrameworkEnabled('okr')) {
+      <section class="card okr-overview">
+        <div class="card-title">🎯 OKRs</div>
+        <div class="stat-row">
+          <span class="label">Active OKRs</span>
+          <span class="value">{{ (okrs() | slice: 0).length }}</span>
+        </div>
+        @if (okrs().length > 0) {
+          <div class="stat-row">
+            <span class="label">Avg. Progress</span>
+            <span class="value">{{ getAverageOKRProgress() | number: '1.0-0' }}%</span>
+          </div>
+        }
+        <div class="progress-indicator">
+          <div class="progress-bar" [style.width.%]="getAverageOKRProgress()"></div>
+        </div>
+        <a routerLink="/okrs" class="card-link">View OKRs →</a>
+      </section>
+    }
+  </div>
+
+  <!-- Framework Alignment -->
+  <section class="panel framework-alignment">
+    <h2>Framework Alignment & Integration</h2>
+    <p class="description">
+      Your organization is using a multi-framework approach to strategic planning:
+    </p>
+    <ul class="alignment-list">
+      @if (isFrameworkEnabled('logframe')) {
+        <li>
+          <strong>Logframe</strong> — Project-level planning and monitoring through indicators and activities
+        </li>
+      }
+      @if (isFrameworkEnabled('bsc')) {
+        <li>
+          <strong>Balanced Scorecard</strong> — Annual strategic management with 4 perspectives (Financial, Customer,
+          Internal, Learning)
+        </li>
+      }
+      @if (isFrameworkEnabled('okr')) {
+        <li>
+          <strong>OKRs</strong> — Quarterly goal-setting with measurable key results and confidence tracking
+        </li>
+      }
+    </ul>
+    <p class="integration-tip">
+      💡 <strong>Integration Tip:</strong> Use your BSC as the annual strategy, execute it through quarterly OKRs, and
+      track budget allocation separately. Link projects to OKRs to see execution in real-time.
+    </p>
+  </section>
+
+  <!-- Quick Links -->
+  <section class="panel quick-links">
+    <h2>Quick Links</h2>
+    <div class="links-grid">
+      @if (isFrameworkEnabled('logframe')) {
+        <div class="link-card">
+          <a routerLink="/budget">💰 Budget Tracking</a>
+          <p>Allocate, track, and analyze budgets</p>
+        </div>
+      }
+      @if (isFrameworkEnabled('bsc')) {
+        <div class="link-card">
+          <a routerLink="/bsc">📊 Balanced Scorecard</a>
+          <p>Strategic management framework</p>
+        </div>
+      }
+      @if (isFrameworkEnabled('okr')) {
+        <div class="link-card">
+          <a routerLink="/okrs">🎯 OKRs</a>
+          <p>Quarterly goal-setting</p>
+        </div>
+      }
+      <div class="link-card">
+        <a routerLink="/settings/frameworks">⚙️ Framework Settings</a>
+        <p>Configure frameworks and roles</p>
+      </div>
+    </div>
+  </section>
+}

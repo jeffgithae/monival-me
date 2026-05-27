@@ -1,0 +1,37 @@
+<div class="pricing-page">
+  <header>
+    <a routerLink="/login" class="back">Sign in</a>
+    <h1>Plans for every NGO</h1>
+    <p>Self-service signup — 14-day trial included. No sales call required.</p>
+  </header>
+
+  <div class="grid">
+    @for (plan of plans(); track plan.id) {
+      <article class="card" [class.featured]="plan.id === 'professional'">
+        <h2>{{ plan.name }}</h2>
+        <p class="desc">{{ plan.description }}</p>
+        <p class="price">
+          @if (plan.monthlyPriceUsd === 0) {
+            Free
+          } @else {
+            {{ plan.monthlyPriceUsd | currency: 'USD' : 'symbol' : '1.0-0' }}<span>/mo</span>
+          }
+        </p>
+        <ul>
+          @for (f of plan.features; track f) {
+            <li>{{ f }}</li>
+          }
+          <li>Up to {{ plan.maxProjects }} projects</li>
+          <li>Up to {{ plan.maxUsers }} team members</li>
+        </ul>
+        <a class="cta" [routerLink]="['/register']" [queryParams]="{ plan: plan.id }">
+          Start with {{ plan.name }}
+        </a>
+      </article>
+    }
+  </div>
+
+  <p class="trial-note">
+    Or <a routerLink="/register" [queryParams]="{ plan: 'trial' }">start a free 14-day trial</a> — no card required.
+  </p>
+</div>

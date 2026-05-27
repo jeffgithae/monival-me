@@ -1,0 +1,35 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="brand-icon">◔</span>
+      <h1>Monival M&E</h1>
+      <p>Monitoring & evaluation for NGOs and grant-funded projects</p>
+    </div>
+    <form (ngSubmit)="submit()">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="email" name="email" required />
+      <label>Password</label>
+      <input type="password" [(ngModel)]="password" name="password" required />
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+      <button type="submit" [disabled]="loading()">
+        {{ loading() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+    @if (showDemoHint) {
+      <div class="demo-hint">
+        <strong>Demo account</strong> (requires API on port 3000)<br />
+        Email: <code>{{ demoEmail }}</code><br />
+        Password: <code>{{ demoPassword }}</code>
+        <button type="button" class="fill-demo" (click)="email = demoEmail; password = demoPassword">
+          Fill credentials
+        </button>
+      </div>
+    }
+    <p class="foot">
+      No account? <a routerLink="/register">Create organisation</a> ·
+      <a routerLink="/pricing">View plans</a>
+    </p>
+  </div>
+</div>

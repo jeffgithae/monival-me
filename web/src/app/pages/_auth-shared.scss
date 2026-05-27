@@ -1,0 +1,161 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(145deg, #eeedfe 0%, #e1f5ee 55%, #fafafa 100%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border: 1px solid #e8e6f0;
+  border-radius: 14px;
+  padding: 2rem;
+  box-shadow: 0 12px 40px rgba(60, 52, 137, 0.08);
+
+  &.wide {
+    max-width: 560px;
+  }
+}
+
+.brand {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0.4rem 0 0.25rem;
+    font-size: 1.35rem;
+    color: #3c3489;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #5c5678;
+  }
+}
+
+.brand-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: #eeedfe;
+  color: #3c3489;
+  border-radius: 10px;
+  font-size: 1.25rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5c5678;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #ddd9ec;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+button[type='submit'] {
+  margin-top: 0.5rem;
+  padding: 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: #3c3489;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.error {
+  color: #b42318;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.demo-hint {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: #f6f5fb;
+  border: 1px dashed #c8c4e8;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #5c5678;
+  line-height: 1.5;
+
+  code {
+    font-size: 0.8rem;
+    color: #3c3489;
+  }
+
+  .fill-demo {
+    display: block;
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid #ddd9ec;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: #3c3489;
+  }
+}
+
+.foot {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: #5c5678;
+  text-align: center;
+
+  a {
+    color: #3c3489;
+    font-weight: 600;
+  }
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  .plan-link {
+    font-size: 0.78rem;
+    color: #3c3489;
+    margin-top: 0.35rem;
+    display: inline-block;
+  }
+
+  select {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #ddd9ec;
+    border-radius: 8px;
+    width: 100%;
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}

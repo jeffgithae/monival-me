@@ -1,0 +1,124 @@
+// --- Add after existing seed data, before mongoose.disconnect() ---
+
+// Budget Tracking Demo
+const BudgetAllocation = mongoose.model('BudgetAllocation', require('../src/budget/schemas/budget-allocation.schema').BudgetAllocationSchema);
+const BudgetLineItem = mongoose.model('BudgetLineItem', require('../src/budget/schemas/budget-line-item.schema').BudgetLineItemSchema);
+const BudgetVariance = mongoose.model('BudgetVariance', require('../src/budget/schemas/budget-variance.schema').BudgetVarianceSchema);
+
+const budget = await BudgetAllocation.create({
+  organizationId: org._id,
+  name: 'FY26 Core Operations',
+  description: 'Annual operational budget for HQ and field activities.',
+  projectId: wash._id,
+  allocatedAmount: 120000,
+  spentAmount: 34000,
+  currency: 'USD',
+  category: 'operational',
+  status: 'active',
+  fiscalYear: 2026,
+  startDate: new Date('2026-01-01'),
+  endDate: new Date('2026-12-31'),
+  allowedExpenseTypes: ['personnel', 'supplies', 'travel', 'training'],
+});
+
+await BudgetLineItem.insertMany([
+  {
+    budgetAllocationId: budget._id,
+    organizationId: org._id,
+    description: 'Staff salaries',
+    amount: 60000,
+    spent: 20000,
+    category: 'personnel',
+    status: 'committed',
+  },
+  {
+    budgetAllocationId: budget._id,
+    organizationId: org._id,
+    description: 'Field supplies',
+    amount: 25000,
+    spent: 8000,
+    category: 'supplies',
+    status: 'committed',
+  },
+]);
+
+await BudgetVariance.create({
+  organizationId: org._id,
+  budgetAllocationId: budget._id,
+  period: '2026-03',
+  budgetedAmount: 30000,
+  actualAmount: 28000,
+  variance: 2000,
+  variancePercentage: 6.67,
+  trend: 'favorable',
+  notes: 'Slight underspending due to delayed procurement.'
+});
+
+// Balanced Scorecard Demo
+const BalancedScorecard = mongoose.model('BalancedScorecard', require('../src/bsc/schemas/balanced-scorecard.schema').BalancedScorecardSchema);
+const bsc = await BalancedScorecard.create({
+  organizationId: org._id,
+  name: '2026 Strategic BSC',
+  description: 'Annual BSC for all programs',
+  fiscalYear: 2026,
+  status: 'active',
+  perspectives: [
+    {
+      perspective: 'financial',
+      strategicTheme: 'Sustainability',
+      objectives: [
+        { title: 'Increase grant revenue', weight: 60, target: 100000, current: 40000, status: 'on_track' },
+        { title: 'Reduce admin costs', weight: 40, target: 20, current: 22, status: 'at_risk' },
+      ],
+    },
+    {
+      perspective: 'customer',
+      strategicTheme: 'Community Impact',
+      objectives: [
+        { title: 'Beneficiary satisfaction', weight: 50, target: 90, current: 85, status: 'on_track' },
+        { title: 'Expand outreach', weight: 50, target: 10000, current: 4200, status: 'on_track' },
+      ],
+    },
+    {
+      perspective: 'internal',
+      strategicTheme: 'Process Excellence',
+      objectives: [
+        { title: 'Improve reporting timeliness', weight: 70, target: 100, current: 80, status: 'at_risk' },
+        { title: 'Automate data collection', weight: 30, target: 5, current: 2, status: 'off_track' },
+      ],
+    },
+    {
+      perspective: 'learning',
+      strategicTheme: 'Capacity Building',
+      objectives: [
+        { title: 'Staff training hours', weight: 60, target: 500, current: 120, status: 'on_track' },
+        { title: 'Leadership development', weight: 40, target: 10, current: 3, status: 'on_track' },
+      ],
+    },
+  ],
+});
+
+// OKRs Demo
+const OKR = mongoose.model('OKR', require('../src/okrs/schemas/okr.schema').OKRSchema);
+const okr = await OKR.create({
+  organizationId: org._id,
+  title: 'Q2 2026 Field Expansion',
+  description: 'Expand field operations and improve outcomes',
+  quarter: 2,
+  year: 2026,
+  status: 'active',
+  ownerUserId: user._id,
+  keyResults: [
+    { title: 'Open 3 new field offices', targetValue: 3, currentValue: 1, unit: 'offices', confidence: 70, status: 'in_progress' },
+    { title: 'Train 50 new CHWs', targetValue: 50, currentValue: 18, unit: 'CHWs', confidence: 60, status: 'in_progress' },
+  ],
+  linkedProjects: [wash._id],
+  progressPercentage: 30,
+});
+
+// Framework Config
+await Organization.findByIdAndUpdate(org._id, {
+  planningFrameworks: ['logframe', 'bsc', 'okr'],
+  primaryFramework: 'bsc',
+});
+// --- End additions ---

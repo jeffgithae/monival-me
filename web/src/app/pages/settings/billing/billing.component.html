@@ -1,0 +1,52 @@
+<header class="page-header">
+  <div>
+    <a routerLink="/dashboard" class="back">← Dashboard</a>
+    <h1>Billing & subscription</h1>
+  </div>
+</header>
+
+@if (message()) {
+  <p class="banner success">{{ message() }}</p>
+}
+
+@if (status(); as s) {
+  <section class="panel current">
+    <h2>Current plan</h2>
+    <p class="plan-name">{{ s.planName }} <span class="pill">{{ s.subscriptionStatus }}</span></p>
+    @if (s.trialEndsAt && s.subscriptionStatus === 'trialing') {
+      <p class="muted">Trial ends {{ s.trialEndsAt | date: 'mediumDate' }}</p>
+    }
+    @if (s.currentPeriodEnd && s.subscriptionStatus === 'active') {
+      <p class="muted">Renews {{ s.currentPeriodEnd | date: 'mediumDate' }}</p>
+    }
+    @if (s.mockMode) {
+      <p class="muted mock">Dev mode: payments are simulated (BILLING_MOCK=true).</p>
+    }
+    @if (canManage) {
+      <button type="button" class="secondary" (click)="openPortal()" [disabled]="loading()">
+        Manage payment method
+      </button>
+    }
+  </section>
+}
+
+@if (canManage) {
+  <section class="panel">
+    <h2>Change plan</h2>
+    <div class="plan-row">
+      @for (plan of plans(); track plan.id) {
+        <button
+          type="button"
+          class="plan-btn"
+          (click)="subscribe(plan.id)"
+          [disabled]="loading() || status()?.planId === plan.id"
+        >
+          <strong>{{ plan.name }}</strong>
+          <span>${{ plan.monthlyPriceUsd }}/mo</span>
+        </button>
+      }
+    </div>
+  </section>
+} @else {
+  <p class="muted">Only owners and admins can manage billing.</p>
+}

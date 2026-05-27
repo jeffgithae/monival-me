@@ -1,0 +1,53 @@
+<div class="auth-page">
+  <div class="auth-card wide">
+    <div class="brand">
+      <span class="brand-icon">◔</span>
+      <h1>Start your M&E workspace</h1>
+      <p>Register your organisation and first admin user</p>
+    </div>
+    <form (ngSubmit)="submit()">
+      <div class="grid-2">
+        <div>
+          <label>Your name</label>
+          <input [(ngModel)]="name" name="name" required />
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" [(ngModel)]="email" name="email" required />
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" [(ngModel)]="password" name="password" required minlength="8" />
+        </div>
+        <div>
+          <label>Organisation name</label>
+          <input [(ngModel)]="organizationName" name="organizationName" required />
+        </div>
+        <div>
+          <label>Country</label>
+          <input [(ngModel)]="country" name="country" />
+        </div>
+        <div>
+          <label>Sector</label>
+          <input [(ngModel)]="sector" name="sector" placeholder="e.g. Health, Education" />
+        </div>
+        <div class="full">
+          <label>Plan</label>
+          <select [(ngModel)]="planId" name="planId">
+            <option value="trial">Free 14-day trial (no card)</option>
+            <option value="starter">Starter — $49/mo</option>
+            <option value="professional">Professional — $149/mo</option>
+          </select>
+          <a routerLink="/pricing" class="plan-link">Compare plans</a>
+        </div>
+      </div>
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+      <button type="submit" [disabled]="loading()">
+        {{ loading() ? 'Creating…' : 'Create workspace' }}
+      </button>
+    </form>
+    <p class="foot">Already registered? <a routerLink="/login">Sign in</a></p>
+  </div>
+</div>

@@ -1,0 +1,64 @@
+<header class="page-header">
+  <div>
+    <h1>Projects</h1>
+    <p class="muted">Browse all projects, filter by status, and launch a project dashboard.</p>
+  </div>
+  <div class="header-actions">
+    <span class="pill">{{ projectCounts().total }} total</span>
+    <span class="pill">{{ projectCounts().active }} active</span>
+    <span class="pill">{{ projectCounts().completed }} completed</span>
+    <span class="pill">{{ projectCounts().paused }} paused</span>
+    <button *ngIf="canCreateProjects && !showForm()" type="button" class="primary" (click)="toggleForm()">+ New project</button>
+  </div>
+</header>
+<section class="filter-bar">
+  <input type="search" placeholder="Search projects or donors" [(ngModel)]="search" />
+  <select [(ngModel)]="statusFilter">
+    <option value="all">All statuses</option>
+    <option value="active">Active</option>
+    <option value="completed">Completed</option>
+    <option value="paused">Paused</option>
+  </select>
+</section>
+
+<section class="panel projects-panel" *ngIf="showForm()">
+  <h2>Create new project</h2>
+  <form class="form-grid" (ngSubmit)="createProject()">
+    <label>Project name<input [(ngModel)]="form.name" name="name" required /></label>
+    <label>Donor<input [(ngModel)]="form.donor" name="donor" /></label>
+    <label>Start date<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
+    <label>End date<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
+    <label class="full">Description<textarea [(ngModel)]="form.description" name="description" rows="3"></textarea></label>
+    <div class="form-actions">
+      <button type="submit" class="primary" [disabled]="saving()">Create project</button>
+      <button type="button" class="secondary" (click)="toggleForm()" [disabled]="saving()">Cancel</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel projects-panel">
+  <p *ngIf="loading()" class="muted">Loading projects…</p>
+  <p *ngIf="!loading() && projectCounts().total === 0" class="muted">No projects found yet.</p>
+  <p *ngIf="!loading() && projectCounts().total > 0 && filteredProjects().length === 0" class="muted">No projects match your filter.</p>
+
+  <ul *ngIf="!loading() && filteredProjects().length > 0" class="project-grid">
+    <li *ngFor="let project of filteredProjects()" class="project-card">
+      <a [routerLink]="['/projects', project._id]">
+        <div class="card-header">
+          <div>
+            <strong>{{ project.name }}</strong>
+            <p class="muted">{{ project.donor || 'No donor specified' }}</p>
+          </div>
+          <span class="pill status-pill">{{ project.status }}</span>
+        </div>
+        <p class="description">{{ project.description || 'No description yet.' }}</p>
+        <div class="meta-row">
+          <span>{{ getProjectTimeline(project) }}</span>
+          <span *ngIf="getProjectDaysRemaining(project) !== null">
+            {{ getProjectDaysRemaining(project) }} days left
+          </span>
+        </div>
+      </a>
+    </li>
+  </ul>
+</section>

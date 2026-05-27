@@ -1,0 +1,75 @@
+<header class="page-header">
+  <div>
+    <h1>💰 Budget Tracking</h1>
+    <p class="muted">Allocate, track, and analyze budgets with variance analysis</p>
+  </div>
+</header>
+
+@if (error(); as err) {
+  <div class="alert alert-error">{{ err }}</div>
+}
+
+@if (isFinance()) {
+  <section class="panel">
+    <h2>Create New Budget</h2>
+    <form class="form-grid" (ngSubmit)="createBudget()">
+      <label>Budget Name<input [(ngModel)]="newBudgetForm.name" name="name" required /></label>
+      <label>Allocated Amount<input type="number" [(ngModel)]="newBudgetForm.allocatedAmount" name="amount" required /></label>
+      <label>Category
+        <select [(ngModel)]="newBudgetForm.category" name="category">
+          <option value="operational">Operational</option>
+          <option value="project">Project</option>
+          <option value="emergency">Emergency</option>
+          <option value="strategic">Strategic</option>
+        </select>
+      </label>
+      <label>Fiscal Year<input type="number" [(ngModel)]="newBudgetForm.fiscalYear" name="year" /></label>
+      <label>Start Date<input type="date" [(ngModel)]="newBudgetForm.startDate" name="startDate" /></label>
+      <label>End Date<input type="date" [(ngModel)]="newBudgetForm.endDate" name="endDate" /></label>
+      <label class="full">Notes<textarea [(ngModel)]="newBudgetForm.notes" name="notes" rows="2"></textarea></label>
+      <button type="submit" class="primary">Create Budget</button>
+    </form>
+  </section>
+}
+
+<section class="panel">
+  <h2>Budget Allocations</h2>
+  @if (loading()) {
+    <p class="muted">Loading budgets...</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Year</th>
+          <th>Category</th>
+          <th>Allocated</th>
+          <th>Spent</th>
+          <th>Remaining</th>
+          <th>Status</th>
+          <th>Progress</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (budget of budgets(); track budget._id) {
+          <tr>
+            <td><a [routerLink]="['/budget', budget._id]" class="link">{{ budget.name }}</a></td>
+            <td>{{ budget.fiscalYear }}</td>
+            <td><span class="badge">{{ budget.category }}</span></td>
+            <td class="number">{{ budget.allocatedAmount | number: '1.0-0' }}</td>
+            <td class="number">{{ budget.spentAmount | number: '1.0-0' }}</td>
+            <td class="number">{{ budget.uncommittedAmount | number: '1.0-0' }}</td>
+            <td><span [class]="'pill ' + getStatusClass(budget.status)">{{ budget.status }}</span></td>
+            <td>
+              <div class="progress-bar">
+                <div class="progress" [style.width.%]="getSpentPercentage(budget)"></div>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="8" class="muted">No budgets created yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

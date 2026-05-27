@@ -1,0 +1,135 @@
+<header class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Monitor programmes, approve field data, and generate donor reports.</p>
+  </div>
+  @if (canCreateProjects) {
+    <button type="button" class="primary" (click)="toggleForm()">
+      {{ showForm() ? 'Cancel' : '+ New project' }}
+    </button>
+  }
+</header>
+
+@if (overview(); as o) {
+  <section class="stats">
+    <div class="stat">
+      <span>{{ o.counts.projects }}</span>
+      <small>Projects</small>
+    </div>
+    <div class="stat">
+      <span>{{ o.counts.indicators }}</span>
+      <small>Indicators</small>
+    </div>
+    <div class="stat">
+      <span>{{ o.counts.activities }}</span>
+      <small>Activities</small>
+    </div>
+    <div class="stat">
+      <span>{{ o.counts.members }}</span>
+      <small>Team</small>
+    </div>
+    @if (o.counts.pendingApprovals > 0) {
+      <div class="stat warn">
+        <span>{{ o.counts.pendingApprovals }}</span>
+        <small>Pending approval</small>
+      </div>
+    }
+  </section>
+
+  <section class="panel snapshot-panel">
+    <h2>Portfolio snapshot</h2>
+    <div class="status-grid">
+      <div class="status-card">
+        <strong>{{ projectStatusCounts().total }}</strong>
+        <span>All projects</span>
+      </div>
+      <div class="status-card">
+        <strong>{{ projectStatusCounts().active }}</strong>
+        <span>Active projects</span>
+      </div>
+      <div class="status-card">
+        <strong>{{ projectStatusCounts().completed }}</strong>
+        <span>Completed projects</span>
+      </div>
+      <div class="status-card">
+        <strong>{{ projectStatusCounts().paused }}</strong>
+        <span>Paused projects</span>
+      </div>
+    </div>
+    @if (qualityAlerts().length > 0) {
+      <div class="quality-alerts">
+        <h3>Data quality alerts</h3>
+        <ul>
+          @for (alert of qualityAlerts(); track alert.title) {
+            <li class="alert-item" [class.critical]="alert.severity === 'critical'" [class.warning]="alert.severity === 'warning'">
+              <strong>{{ alert.title }}</strong>
+              <span>{{ alert.message }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+    @if (projectsDueSoon().length > 0) {
+      <div class="due-soon">
+        <h3>Projects due soon</h3>
+        <ul>
+          @for (project of projectsDueSoon(); track project._id) {
+            <li>
+              <a [routerLink]="['/projects', project._id]">{{ project.name }}</a>
+              <span>{{ project.daysRemaining }} days remaining</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </section>
+}
+
+@if (showForm()) {
+  <section class="panel form-panel">
+    <h2>New project</h2>
+    <form class="form-grid" (ngSubmit)="createProject()">
+      <label>Name<input [(ngModel)]="form.name" name="name" required /></label>
+      <label>Donor<input [(ngModel)]="form.donor" name="donor" /></label>
+      <label>Start<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
+      <label>End<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
+      <label class="full">Description<textarea [(ngModel)]="form.description" name="description" rows="2"></textarea></label>
+      <button type="submit" class="primary" [disabled]="saving()">Save project</button>
+    </form>
+  </section>
+}
+
+<h2 class="section-title">Projects</h2>
+<section class="grid">
+  @for (p of projects(); track p._id) {
+    <a class="card" [routerLink]="['/projects', p._id]">
+      <div class="card-top">
+        <span class="pill">{{ p.status }}</span>
+        <h3>{{ p.name }}</h3>
+      </div>
+      @if (p.donor) {
+        <p class="muted">Donor: {{ p.donor }}</p>
+      }
+      <span class="link">Open M&E workspace →</span>
+    </a>
+  } @empty {
+    <div class="empty panel">
+      <p>No projects yet. Create your first grant-funded programme to start tracking indicators.</p>
+    </div>
+  }
+</section>
+
+@if (overview()?.recentActivities?.length) {
+  <h2 class="section-title">Recent activities</h2>
+  <section class="panel">
+    <ul class="recent-list">
+      @for (a of overview()!.recentActivities; track a.id) {
+        <li>
+          <strong>{{ a.title }}</strong>
+          <span class="muted">{{ a.activityDate | date: 'mediumDate' }}</span>
+          <span class="status-pill">{{ a.status }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+}
