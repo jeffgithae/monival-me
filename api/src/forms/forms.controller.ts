@@ -53,5 +53,4 @@ export class FormsController {
   createResponse(@CurrentUser() user: JwtPayload, @Body() dto: CreateFormResponseDto) {
     return this.formsService.createResponse(user.organizationId, dto, user.sub);
   }
-//   console.log('Creating form response with data:', { organizationId: user.organizationId, dto, userId: user.sub });
 }
