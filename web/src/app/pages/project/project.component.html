@@ -10,6 +10,13 @@
     </div>
     <div class="header-right">
       <span class="pill">{{ p.status }}</span>
+      <span class="pill pill-secondary">{{ p.evaluationStatus || 'not_started' }}</span>
+      @if (p.nextReviewDate) {
+        <div class="timeline">
+          <span>Next review:</span>
+          <strong>{{ p.nextReviewDate | date: 'mediumDate' }}</strong>
+        </div>
+      }
       @if (p.startDate || p.endDate) {
         <div class="timeline">
           <span>{{ p.startDate ? (p.startDate | date: 'mediumDate') : 'TBA' }}</span>
@@ -46,6 +53,11 @@
         <h3>Data freshness</h3>
         <strong>@if (dataFreshnessDays() !== null) { {{ dataFreshnessDays() }} days } @else { No updates }</strong>
         <p>{{ healthDetail() }}</p>
+      </article>
+      <article class="overview-card">
+        <h3>Review timeline</h3>
+        <strong>{{ complianceReminder() }}</strong>
+        <p>Evaluation and compliance cadence for the project.</p>
       </article>
     </div>
     @if (timelineProgress() !== null) {
@@ -108,9 +120,9 @@
           <p>Last submitted activity age and delivery cadence.</p>
         </article>
         <article class="overview-card">
-          <h3>Avg. progress</h3>
-          <strong>{{ indicatorProgress() }}%</strong>
-          <p>Average achievement against indicator targets.</p>
+          <h3>Evaluation</h3>
+          <strong>{{ project()?.evaluationStatus || 'not_started' }}</strong>
+          <p>{{ complianceReminder() }}</p>
         </article>
       </div>
 
@@ -124,6 +136,26 @@
           }
         </div>
       }
+
+      <section class="panel evaluation-panel">
+        <h3>Project evaluation</h3>
+        <form class="form-grid">
+          <label>Evaluation status
+            <select [(ngModel)]="project().evaluationStatus" name="evaluationStatus">
+              <option value="not_started">Not started</option>
+              <option value="in_progress">In progress</option>
+              <option value="completed">Completed</option>
+              <option value="under_review">Under review</option>
+            </select>
+          </label>
+          <label>Next review date<input type="date" [(ngModel)]="project().nextReviewDate" name="nextReviewDate" /></label>
+          <label class="full">Summary<textarea [(ngModel)]="project().evaluationSummary" name="evaluationSummary" rows="3"></textarea></label>
+          <label class="full">Lessons learned<textarea [(ngModel)]="project().lessonsLearned" name="lessonsLearned" rows="3"></textarea></label>
+          <div class="form-actions full">
+            <button type="button" class="primary" (click)="saveProjectEvaluation()">Save evaluation</button>
+          </div>
+        </form>
+      </section>
 
       @if (frameworkRoots().length > 0) {
         <ul class="framework-tree">
@@ -176,6 +208,8 @@
           <input [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
           <input type="number" [(ngModel)]="indicatorForm.baseline" name="baseline" placeholder="Baseline" />
           <input type="number" [(ngModel)]="indicatorForm.target" name="target" placeholder="Target" required />
+          <input [(ngModel)]="indicatorForm.assumptions" name="assumptions" placeholder="Assumptions" />
+          <input [(ngModel)]="indicatorForm.disaggregationText" name="disaggregationText" placeholder="Disaggregation (comma-separated)" />
           <button type="submit" class="primary">Add</button>
         </form>
       }
@@ -187,7 +221,7 @@
             <th>Indicator</th>
             <th>Progress</th>
             <th>Trend</th>
-            <th>Last update</th>
+            <th>Next due</th>
           </tr>
         </thead>
         <tbody>
@@ -198,6 +232,8 @@
               <td>
                 {{ summary.title }}
                 @if (summary.unit) { <span class="muted">({{ summary.unit }})</span> }
+                @if (summary.disaggregation?.length) { <div class="muted">Breakdown: {{ summary.disaggregation.join(', ') }}</div> }
+                @if (summary.assumptions) { <div class="muted">Assumptions: {{ summary.assumptions }}</div> }
                 @if (summary.parentId) { <div class="muted">Parent: {{ summary.parentId }}</div> }
               </td>
               <td>
@@ -207,7 +243,7 @@
                 {{ summary.percentComplete }}%
               </td>
               <td>{{ summary.trend }}</td>
-              <td>@if (summary.lastActivityDate) { {{ summary.lastActivityDate | date: 'mediumDate' }} } @else { None }</td>
+              <td>@if (summary.nextDueDate) { {{ summary.nextDueDate | date: 'mediumDate' }} } @else { TBA }</td>
             </tr>
           } @empty {
             <tr><td colspan="6" class="muted">No indicators defined yet.</td></tr>
@@ -222,6 +258,14 @@
       <h2>Field activities</h2>
       @if (canLogActivities) {
       <form class="form-grid" (ngSubmit)="addActivity()">
+        <label>Template
+          <select [(ngModel)]="activityForm.templateId" name="templateId" (change)="selectActivityTemplate(activityForm.templateId)">
+            <option value="">— Choose template —</option>
+            @for (template of activityTemplates(); track template._id) {
+              <option [value]="template._id">{{ template.name }}</option>
+            }
+          </select>
+        </label>
         <label>Title<input [(ngModel)]="activityForm.title" name="title" required /></label>
         <label>Date<input type="date" [(ngModel)]="activityForm.activityDate" name="activityDate" required /></label>
         <label>Linked indicator
@@ -232,17 +276,35 @@
             }
           </select>
         </label>
+        <label>Activity type<input [(ngModel)]="activityForm.activityType" name="activityType" placeholder="e.g. Survey, Training" /></label>
         <label>Status
           <select [(ngModel)]="activityForm.status" name="status">
             <option value="submitted">Submit for review</option>
             <option value="draft">Save as draft</option>
           </select>
         </label>
+        <label>Partner
+          <input [(ngModel)]="partnerQuery" name="partnerQuery" (ngModelChange)="partnerQuery = $event" placeholder="Search partners..." />
+          <ul class="autocomplete-list" *ngIf="filteredPartners().length">
+            <li *ngFor="let p of filteredPartners()" (click)="selectPartner(p._id)">{{ p.name }}</li>
+          </ul>
+        </label>
+        <label>Beneficiaries
+          <input [(ngModel)]="beneficiaryQuery" name="beneficiaryQuery" (ngModelChange)="beneficiaryQuery = $event" placeholder="Filter beneficiaries..." />
+          <div class="beneficiary-list">
+            <label *ngFor="let b of filteredBeneficiaries()"><input type="checkbox" [checked]="isBeneficiarySelected(b._id)" (change)="toggleBeneficiary(b._id)" /> {{ b.name }}</label>
+          </div>
+        </label>
+        <label>Evidence URL<input [(ngModel)]="activityForm.evidenceUrl" name="evidenceUrl" placeholder="https://..." /></label>
+        <label>Evidence notes<input [(ngModel)]="activityForm.evidenceNotes" name="evidenceNotes" placeholder="Short summary" /></label>
         <label>Location<input [(ngModel)]="activityForm.location" name="location" /></label>
         <label>Participants<input type="number" [(ngModel)]="activityForm.participants" name="participants" /></label>
         <label>Quantity (progress)<input type="number" [(ngModel)]="activityForm.quantity" name="quantity" /></label>
         <label class="full">Notes<textarea [(ngModel)]="activityForm.notes" name="notes" rows="2"></textarea></label>
-        <button type="submit" class="primary">Log activity</button>
+        <div class="form-actions full">
+          <button type="button" class="secondary" (click)="saveActivityTemplate()">Save as template</button>
+          <button type="submit" class="primary">Log activity</button>
+        </div>
       </form>
       }
       <ul class="activity-list">
@@ -252,7 +314,9 @@
               <strong>{{ a.title }}</strong>
               <span class="muted">{{ a.activityDate | date: 'mediumDate' }}</span>
               @if (a.location) { <span class="muted"> · {{ a.location }}</span> }
+              @if (a.evidenceUrl) { <a class="muted" href="{{ a.evidenceUrl }}" target="_blank" rel="noopener">Evidence</a> }
             </div>
+            @if (a.evidenceNotes) { <p class="muted">{{ a.evidenceNotes }}</p> }
             <div class="meta">
               <span class="status-pill">{{ a.status ?? 'approved' }}</span>
               @if (a.quantity) { <span>Qty {{ a.quantity }}</span> }

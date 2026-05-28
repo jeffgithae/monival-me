@@ -44,6 +44,30 @@ export class CreateActivityDto {
   notes?: string;
 
   @IsOptional()
+  @IsString()
+  activityType?: string;
+
+  @IsOptional()
+  @IsString()
+  evidenceUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  evidenceNotes?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  partnerId?: string;
+
+  @IsOptional()
+  @IsMongoId({ each: true })
+  beneficiaryIds?: string[];
+
+  @IsOptional()
+  @IsMongoId()
+  templateId?: string;
+
+  @IsOptional()
   @IsIn(['draft', 'submitted'])
   status?: 'draft' | 'submitted';
 }

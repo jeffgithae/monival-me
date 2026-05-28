@@ -28,6 +28,18 @@ export class Project {
 
   @Prop({ default: 'active', enum: ['active', 'completed', 'paused'] })
   status!: string;
+
+  @Prop({ default: 'not_started', enum: ['not_started', 'in_progress', 'completed'] })
+  evaluationStatus!: string;
+
+  @Prop({ trim: true })
+  evaluationSummary?: string;
+
+  @Prop({ trim: true })
+  lessonsLearned?: string;
+
+  @Prop()
+  nextReviewDate?: Date;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

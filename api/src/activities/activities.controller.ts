@@ -20,6 +20,7 @@ import type { JwtPayload } from '../common/types/jwt-payload';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
+import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 
 class ReviewDto {
   @IsIn(['approved', 'rejected'])
@@ -52,6 +53,30 @@ export class ActivitiesController {
       user.role,
       user.sub,
     );
+  }
+
+  @Get('templates')
+  @Roles(...PERMISSIONS.VIEW_REPORTS)
+  activityTemplates(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.activitiesService.findTemplates(user.organizationId, projectId);
+  }
+
+  @Post('templates')
+  @Roles(...PERMISSIONS.LOG_ACTIVITIES)
+  createActivityTemplate(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateActivityTemplateDto,
+  ) {
+    return this.activitiesService.createTemplate(user.organizationId, dto);
+  }
+
+  @Delete('templates/:id')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
+  removeActivityTemplate(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.activitiesService.removeTemplate(user.organizationId, id);
   }
 
   @Patch(':id/review')

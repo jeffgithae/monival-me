@@ -10,6 +10,8 @@ import { BalancedScorecardModule } from './bsc/bsc.module';
 import { OKRsModule } from './okrs/okrs.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DonorsModule } from './donors/donors.module';
+import { PartnersModule } from './partners/partners.module';
+import { BeneficiariesModule } from './beneficiaries/beneficiaries.module';
 import { GrantsModule } from './grants/grants.module';
 import { HealthController } from './health/health.controller';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -20,6 +22,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { Organization, OrganizationSchema } from './organizations/schemas/organization.schema';
 import { ProjectsModule } from './projects/projects.module';
 import { ReportsModule } from './reports/reports.module';
+import { FormsModule } from './forms/forms.module';
 
 @Module({
   imports: [
@@ -41,11 +44,14 @@ import { ReportsModule } from './reports/reports.module';
     ActivitiesModule,
     ReportsModule,
     DonorsModule,
+    PartnersModule,
+    BeneficiariesModule,
     GrantsModule,
     BudgetModule,
     BalancedScorecardModule,
     OKRsModule,
     DashboardModule,
+    FormsModule,
   ],
   controllers: [HealthController],
   providers: [SubscriptionGuard, RolesGuard],

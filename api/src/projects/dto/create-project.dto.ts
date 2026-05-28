@@ -24,4 +24,20 @@ export class CreateProjectDto {
   @IsOptional()
   @IsIn(['active', 'completed', 'paused'])
   status?: string;
+
+  @IsOptional()
+  @IsIn(['not_started', 'in_progress', 'completed'])
+  evaluationStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  evaluationSummary?: string;
+
+  @IsOptional()
+  @IsString()
+  lessonsLearned?: string;
+
+  @IsOptional()
+  @IsDateString()
+  nextReviewDate?: string;
 }

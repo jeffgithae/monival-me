@@ -84,6 +84,7 @@ const IndicatorSchema = new Schema(
   {
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
+    parentId: { type: Schema.Types.ObjectId, ref: 'Indicator' },
     level: { type: String, default: 'output' },
     code: String,
     title: String,
@@ -100,6 +101,8 @@ const ActivitySchema = new Schema(
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     indicatorId: { type: Schema.Types.ObjectId, ref: 'Indicator' },
+    partnerId: { type: Schema.Types.ObjectId, ref: 'Partner' },
+    beneficiaryIds: [{ type: Schema.Types.ObjectId, ref: 'Beneficiary' }],
     title: String,
     description: String,
     activityDate: Date,
@@ -125,6 +128,8 @@ async function clearDemoData(
   Indicator: mongoose.Model<unknown>,
   Activity: mongoose.Model<unknown>,
   Donor: mongoose.Model<unknown>,
+  Partner: mongoose.Model<unknown>,
+  Beneficiary: mongoose.Model<unknown>,
   Invite: mongoose.Model<unknown>,
   Grant: mongoose.Model<unknown>,
   BudgetAllocation: mongoose.Model<unknown>,
@@ -150,6 +155,8 @@ async function clearDemoData(
   await OKR.deleteMany({ organizationId: orgId });
   await Donor.deleteMany({ organizationId: orgId });
   await Activity.deleteMany({ organizationId: orgId });
+  await Partner.deleteMany({ organizationId: orgId });
+  await Beneficiary.deleteMany({ organizationId: orgId });
   await Indicator.deleteMany({ organizationId: orgId });
   await Project.deleteMany({ organizationId: orgId });
   await OrganizationMember.deleteMany({ organizationId: orgId });
@@ -172,6 +179,8 @@ async function seed() {
   const Project = mongoose.model('Project', ProjectSchema);
   const Indicator = mongoose.model('Indicator', IndicatorSchema);
   const Activity = mongoose.model('Activity', ActivitySchema);
+  const Partner = mongoose.model('Partner', require('../src/partners/schemas/partner.schema').PartnerSchema) as mongoose.Model<unknown>;
+  const Beneficiary = mongoose.model('Beneficiary', require('../src/beneficiaries/schemas/beneficiary.schema').BeneficiarySchema) as mongoose.Model<unknown>;
   const Invite = mongoose.model('Invite', require('../src/members/schemas/invite.schema').InviteSchema) as mongoose.Model<unknown>;
   const Grant = mongoose.model('Grant', require('../src/grants/schemas/grant.schema').GrantSchema) as mongoose.Model<unknown>;
   const BudgetAllocation = mongoose.model('BudgetAllocation', require('../src/budget/schemas/budget-allocation.schema').BudgetAllocationSchema) as mongoose.Model<unknown>;
@@ -188,6 +197,8 @@ async function seed() {
     Indicator,
     Activity,
     Donor,
+    Partner,
+    Beneficiary,
     Invite,
     Grant,
     BudgetAllocation,
@@ -302,6 +313,41 @@ async function seed() {
       name: 'USAID',
       contactEmail: 'partners@usaid.example',
       country: 'United States',
+    },
+  ]);
+
+  // Seed partners and beneficiaries
+  const partners = await Partner.insertMany([
+    {
+      organizationId: org._id,
+      name: 'County Health Department, Kisumu',
+      contactEmail: 'khd@kisumu.example',
+      country: 'Kenya',
+      notes: 'Local government health partner',
+    },
+    {
+      organizationId: org._id,
+      name: 'Community Water Committee — Ward A',
+      contactEmail: 'cwc-warda@example.org',
+      country: 'Kenya',
+      notes: 'Community-level water management committee',
+    },
+  ]);
+
+  const beneficiaries = await Beneficiary.insertMany([
+    {
+      organizationId: org._id,
+      name: 'Household Group — Ward A',
+      groupType: 'household',
+      location: 'Kisumu, Ward A',
+      notes: 'Representative household grouping used for monitoring',
+    },
+    {
+      organizationId: org._id,
+      name: 'Pregnant women cohort — Siaya',
+      groupType: 'cohort',
+      location: 'Siaya County',
+      notes: 'Cohort tracked for ANC follow-up and referrals',
     },
   ]);
 
@@ -423,6 +469,16 @@ async function seed() {
       quantity: 3,
     },
   ]);
+
+  // Attach a partner and beneficiaries to a sample activity (if present)
+  try {
+    const mobileActivity = await Activity.findOne({ title: 'Mobile clinic — ANC day', organizationId: org._id }).lean();
+    if (mobileActivity) {
+      await Activity.updateOne({ _id: mobileActivity._id }, { $set: { partnerId: partners[0]._id, beneficiaryIds: [beneficiaries[1]._id] } });
+    }
+  } catch (e) {
+    // ignore if update fails in older seed runs
+  }
 
   const maternal = await Project.create({
     organizationId: org._id,
@@ -713,7 +769,7 @@ async function seed() {
         currentValue: 6, 
         unit: 'water_points', 
         confidence: 75, 
-        status: 'on_track',
+        status: 'in_progress',
         notes: 'Site assessments complete; 3 boreholes drilled; community committees formed',
       },
     ],
@@ -777,7 +833,7 @@ async function seed() {
         currentValue: 0, 
         unit: 'audits', 
         confidence: 80, 
-        status: 'on_track',
+        status: 'in_progress',
         notes: 'Auditor selected; full records prepared; audit scheduled Q2',
       },
       { 
@@ -786,7 +842,7 @@ async function seed() {
         currentValue: 84, 
         unit: '%', 
         confidence: 70, 
-        status: 'on_track',
+        status: 'in_progress',
         notes: 'Data validation checklist implemented; weekly QA reviews in place',
       },
       { 

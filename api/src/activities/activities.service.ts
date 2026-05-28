@@ -3,17 +3,25 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Project } from '../projects/schemas/project.schema';
+import { Partner } from '../partners/schemas/partner.schema';
+import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 import { OrgRole } from '../common/constants/roles';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { Activity } from './schemas/activity.schema';
+import { ActivityTemplate } from './schemas/activity-template.schema';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
+    @InjectModel(ActivityTemplate.name)
+    private readonly activityTemplateModel: Model<ActivityTemplate>,
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
+    @InjectModel(Partner.name) private readonly partnerModel: Model<Partner>,
+    @InjectModel(Beneficiary.name) private readonly beneficiaryModel: Model<Beneficiary>,
   ) {}
 
   private async assertRefs(
@@ -50,6 +58,47 @@ export class ActivitiesService {
     return this.activityModel.find(filter).sort({ activityDate: -1 }).lean();
   }
 
+  findTemplates(organizationId: string, projectId?: string) {
+    const filter: Record<string, unknown> = {
+      organizationId: new Types.ObjectId(organizationId),
+    };
+    if (projectId) {
+      filter.projectId = new Types.ObjectId(projectId);
+    }
+    return this.activityTemplateModel.find(filter).sort({ name: 1 }).lean();
+  }
+
+  async createTemplate(
+    organizationId: string,
+    dto: CreateActivityTemplateDto,
+  ) {
+    await this.assertRefs(organizationId, dto.projectId, dto.indicatorId);
+    return this.activityTemplateModel.create({
+      organizationId: new Types.ObjectId(organizationId),
+      projectId: new Types.ObjectId(dto.projectId),
+      name: dto.name,
+      description: dto.description,
+      indicatorId: dto.indicatorId ? new Types.ObjectId(dto.indicatorId) : undefined,
+      defaultLocation: dto.defaultLocation,
+      defaultActivityType: dto.defaultActivityType,
+      defaultEvidenceUrl: dto.defaultEvidenceUrl,
+      defaultParticipants: dto.defaultParticipants ?? 0,
+      defaultQuantity: dto.defaultQuantity ?? 0,
+      defaultNotes: dto.defaultNotes,
+    });
+  }
+
+  async removeTemplate(organizationId: string, id: string) {
+    const result = await this.activityTemplateModel.deleteOne({
+      _id: id,
+      organizationId: new Types.ObjectId(organizationId),
+    });
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('Activity template not found');
+    }
+    return { deleted: true };
+  }
+
   async findOne(organizationId: string, id: string) {
     const activity = await this.activityModel
       .findOne({
@@ -70,6 +119,14 @@ export class ActivitiesService {
     userId: string,
   ) {
     await this.assertRefs(organizationId, dto.projectId, dto.indicatorId);
+    if (dto.partnerId) {
+      const partner = await this.partnerModel.findOne({ _id: dto.partnerId, organizationId: new Types.ObjectId(organizationId) });
+      if (!partner) throw new NotFoundException('Partner not found');
+    }
+    if (dto.beneficiaryIds && dto.beneficiaryIds.length > 0) {
+      const count = await this.beneficiaryModel.countDocuments({ _id: { $in: dto.beneficiaryIds }, organizationId: new Types.ObjectId(organizationId) });
+      if (count !== dto.beneficiaryIds.length) throw new NotFoundException('One or more beneficiaries not found');
+    }
     const shouldRequireApproval = role === OrgRole.FIELD_OFFICER;
     let status: 'draft' | 'submitted' | 'approved' = 'approved';
 
@@ -83,13 +140,19 @@ export class ActivitiesService {
       organizationId: new Types.ObjectId(organizationId),
       projectId: new Types.ObjectId(dto.projectId),
       indicatorId: dto.indicatorId ? new Types.ObjectId(dto.indicatorId) : undefined,
+      partnerId: dto.partnerId ? new Types.ObjectId(dto.partnerId) : undefined,
+      beneficiaryIds: dto.beneficiaryIds ? dto.beneficiaryIds.map((b) => new Types.ObjectId(b)) : undefined,
       title: dto.title,
       description: dto.description,
       activityDate: new Date(dto.activityDate),
       location: dto.location,
+      activityType: dto.activityType,
+      templateId: dto.templateId ? new Types.ObjectId(dto.templateId) : undefined,
       participants: dto.participants ?? 0,
       quantity: dto.quantity ?? 0,
       notes: dto.notes,
+      evidenceUrl: dto.evidenceUrl,
+      evidenceNotes: dto.evidenceNotes,
       status,
       submittedByUserId: new Types.ObjectId(userId),
     });
@@ -134,16 +197,21 @@ export class ActivitiesService {
       );
     }
 
+    const updateDoc: Record<string, unknown> = {
+      ...dto,
+      indicatorId: dto.indicatorId
+        ? new Types.ObjectId(dto.indicatorId)
+        : undefined,
+      activityDate: dto.activityDate ? new Date(dto.activityDate) : undefined,
+      templateId: dto.templateId ? new Types.ObjectId(dto.templateId) : undefined,
+      partnerId: dto.partnerId ? new Types.ObjectId(dto.partnerId) : undefined,
+      beneficiaryIds: dto.beneficiaryIds ? dto.beneficiaryIds.map((b) => new Types.ObjectId(b)) : undefined,
+    };
+
     const activity = await this.activityModel
       .findOneAndUpdate(
         { _id: id, organizationId: new Types.ObjectId(organizationId) },
-        {
-          ...dto,
-          indicatorId: dto.indicatorId
-            ? new Types.ObjectId(dto.indicatorId)
-            : undefined,
-          activityDate: dto.activityDate ? new Date(dto.activityDate) : undefined,
-        },
+        updateDoc,
         { new: true },
       )
       .lean();

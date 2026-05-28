@@ -32,6 +32,10 @@ export interface Project {
   startDate?: string;
   endDate?: string;
   status: string;
+  evaluationStatus?: 'not_started' | 'in_progress' | 'completed';
+  evaluationSummary?: string;
+  lessonsLearned?: string;
+  nextReviewDate?: string;
 }
 
 export interface DashboardHealthSummary {
@@ -80,14 +84,94 @@ export interface Activity {
   _id: string;
   projectId: string;
   indicatorId?: string;
+  partnerId?: string;
+  beneficiaryIds?: string[];
   title: string;
   description?: string;
   activityDate: string;
   location?: string;
+  activityType?: string;
+  templateId?: string;
+  evidenceUrl?: string;
+  evidenceNotes?: string;
   participants: number;
   quantity: number;
   notes?: string;
   status?: string;
+}
+
+export interface Partner {
+  _id: string;
+  name: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  country?: string;
+  notes?: string;
+}
+
+export interface Beneficiary {
+  _id: string;
+  name: string;
+  groupType?: string;
+  location?: string;
+  notes?: string;
+}
+
+export interface ActivityTemplate {
+  _id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  indicatorId?: string;
+  defaultLocation?: string;
+  defaultActivityType?: string;
+  defaultEvidenceUrl?: string;
+  defaultParticipants: number;
+  defaultQuantity: number;
+  defaultNotes?: string;
+}
+
+export interface FormQuestion {
+  key: string;
+  label: string;
+  description?: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'radio' | 'checkbox' | 'date' | 'boolean';
+  required?: boolean;
+  options?: string[];
+  validation?: { min?: number; max?: number; pattern?: string; patternMessage?: string };
+  conditional?: { dependsOn?: string; operator?: 'equals' | 'not_equals' | 'in' | 'not_in'; value?: unknown };
+  repeatGroup?: boolean;
+}
+
+export interface FormSection {
+  title: string;
+  description?: string;
+  questions: FormQuestion[];
+  repeatGroup?: boolean;
+}
+
+export interface FormTemplate {
+  _id: string;
+  projectId?: string;
+  indicatorId?: string;
+  name: string;
+  description?: string;
+  status: 'draft' | 'active';
+  sections: FormSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormResponse {
+  _id: string;
+  projectId: string;
+  templateId: string;
+  indicatorId?: string;
+  activityId?: string;
+  submittedByUserId?: string;
+  collectedAt: string;
+  answers: Record<string, unknown>;
+  status: 'draft' | 'submitted';
 }
 
 export interface DonorReport {

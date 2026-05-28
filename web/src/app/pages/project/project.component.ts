@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { Activity, DonorReport, Indicator, Project } from '../../core/models';
+import { Activity, ActivityTemplate, DonorReport, Indicator, Project, FormTemplate, FormResponse } from '../../core/models';
 import {
   canApproveActivities,
   canLogActivities,
@@ -35,6 +35,11 @@ export class ProjectComponent implements OnInit {
   project = signal<Project | null>(null);
   indicators = signal<Indicator[]>([]);
   activities = signal<Activity[]>([]);
+  activityTemplates = signal<ActivityTemplate[]>([]);
+  formTemplates = signal<FormTemplate[]>([]);
+  formResponses = signal<FormResponse[]>([]);
+  partners = signal<Array<{ _id: string; name: string }>>([]);
+  beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
   tab = signal<Tab>('framework');
   projectId = '';
@@ -134,6 +139,7 @@ export class ProjectComponent implements OnInit {
         variance: indicator.target ? Math.max(0, indicator.target - achieved) : null,
         trend,
         lastActivityDate: this.getLastActivityDate(indicator),
+        nextDueDate: this.getIndicatorNextDueDate(indicator),
       };
     }),
   );
@@ -246,6 +252,27 @@ export class ProjectComponent implements OnInit {
     return 'stable';
   }
 
+  getIndicatorNextDueDate(indicator: Indicator): string | null {
+    const lastUpdate = this.getLastActivityDate(indicator);
+    const fallback = this.project()?.startDate;
+    const referenceDate = lastUpdate ? new Date(lastUpdate) : fallback ? new Date(fallback) : null;
+    if (!referenceDate) {
+      return null;
+    }
+    const next = new Date(referenceDate);
+    switch (indicator.frequency) {
+      case 'monthly':
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case 'annual':
+        next.setFullYear(next.getFullYear() + 1);
+        break;
+      default:
+        next.setMonth(next.getMonth() + 3);
+    }
+    return next.toISOString().slice(0, 10);
+  }
+
   indicatorForm = {
     code: '',
     title: '',
@@ -255,6 +282,8 @@ export class ProjectComponent implements OnInit {
     target: 0,
     frequency: 'quarterly',
     meansOfVerification: '',
+    assumptions: '',
+    disaggregationText: '',
   };
   reportFrom = '';
   reportTo = '';
@@ -262,12 +291,40 @@ export class ProjectComponent implements OnInit {
     title: '',
     activityDate: new Date().toISOString().slice(0, 10),
     indicatorId: '',
+    partnerId: '',
+    beneficiaryIds: [] as string[],
     location: '',
+    activityType: '',
+    templateId: '',
+    evidenceUrl: '',
+    evidenceNotes: '',
     participants: 0,
     quantity: 0,
     notes: '',
     status: 'submitted' as 'draft' | 'submitted',
   };
+
+  partnerQuery = signal('');
+  beneficiaryQuery = signal('');
+
+  readonly complianceReminder = computed(() => {
+    const project = this.project();
+    if (!project) return null;
+    if (project.nextReviewDate) {
+      const due = new Date(project.nextReviewDate);
+      const diff = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (diff < 0) {
+        return `Review overdue by ${Math.abs(diff)} days`;
+      }
+      return `Next review in ${diff} days`;
+    }
+    if (project.endDate) {
+      const ends = new Date(project.endDate);
+      const diff = Math.ceil((ends.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return diff >= 0 ? `${diff} days until project end` : 'Project is past end date';
+    }
+    return 'No review timeline set';
+  });
 
   indicatorOptions = computed(() => this.indicators());
 
@@ -303,6 +360,11 @@ export class ProjectComponent implements OnInit {
     this.api.project(this.projectId).subscribe((p) => this.project.set(p));
     this.api.indicators(this.projectId).subscribe((items) => this.indicators.set(items));
     this.api.activities(this.projectId).subscribe((items) => this.activities.set(items));
+    this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
+    this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
+    this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
+    this.api.partners().subscribe((items) => this.partners.set(items));
+    this.api.beneficiaries().subscribe((items) => this.beneficiaries.set(items));
   }
 
   loadReport() {
@@ -317,7 +379,14 @@ export class ProjectComponent implements OnInit {
 
   addIndicator() {
     this.api
-      .createIndicator({ ...this.indicatorForm, projectId: this.projectId })
+      .createIndicator({
+        ...this.indicatorForm,
+        projectId: this.projectId,
+        disaggregation: this.indicatorForm.disaggregationText
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      })
       .subscribe(() => {
         this.indicatorForm = {
           code: '',
@@ -328,6 +397,8 @@ export class ProjectComponent implements OnInit {
           target: 0,
           frequency: 'quarterly',
           meansOfVerification: '',
+          assumptions: '',
+          disaggregationText: '',
         };
         this.reload();
       });
@@ -340,7 +411,13 @@ export class ProjectComponent implements OnInit {
         title: this.activityForm.title,
         activityDate: this.activityForm.activityDate,
         indicatorId: this.activityForm.indicatorId || undefined,
+        partnerId: this.activityForm.partnerId || undefined,
+        beneficiaryIds: this.activityForm.beneficiaryIds?.length ? this.activityForm.beneficiaryIds : undefined,
         location: this.activityForm.location || undefined,
+        activityType: this.activityForm.activityType || undefined,
+        templateId: this.activityForm.templateId || undefined,
+        evidenceUrl: this.activityForm.evidenceUrl || undefined,
+        evidenceNotes: this.activityForm.evidenceNotes || undefined,
         participants: Number(this.activityForm.participants),
         quantity: Number(this.activityForm.quantity),
         notes: this.activityForm.notes || undefined,
@@ -351,7 +428,13 @@ export class ProjectComponent implements OnInit {
           title: '',
           activityDate: new Date().toISOString().slice(0, 10),
           indicatorId: '',
+          partnerId: '',
+          beneficiaryIds: [],
           location: '',
+          activityType: '',
+          templateId: '',
+          evidenceUrl: '',
+          evidenceNotes: '',
           participants: 0,
           quantity: 0,
           notes: '',
@@ -359,6 +442,89 @@ export class ProjectComponent implements OnInit {
         };
         this.reload();
       });
+  }
+
+  selectActivityTemplate(templateId: string) {
+    this.activityForm.templateId = templateId;
+    const template = this.activityTemplates().find((t) => t._id === templateId);
+    if (!template) {
+      return;
+    }
+    this.activityForm.title = template.name;
+    this.activityForm.indicatorId = template.indicatorId || '';
+    this.activityForm.location = template.defaultLocation || '';
+    this.activityForm.activityType = template.defaultActivityType || '';
+    this.activityForm.evidenceUrl = template.defaultEvidenceUrl || '';
+    this.activityForm.participants = template.defaultParticipants;
+    this.activityForm.quantity = template.defaultQuantity;
+    this.activityForm.notes = template.defaultNotes || '';
+    this.activityForm.evidenceNotes = '';
+    this.activityForm.partnerId = '';
+    this.activityForm.beneficiaryIds = [];
+  }
+
+  filteredPartners() {
+    const q = this.partnerQuery().toLowerCase().trim();
+    if (!q) return this.partners();
+    return this.partners().filter((p) => p.name.toLowerCase().includes(q));
+  }
+
+  filteredBeneficiaries() {
+    const q = this.beneficiaryQuery().toLowerCase().trim();
+    if (!q) return this.beneficiaries();
+    return this.beneficiaries().filter((b) => b.name.toLowerCase().includes(q));
+  }
+
+  selectPartner(id: string) {
+    this.activityForm.partnerId = id;
+    const partner = this.partners().find((p) => p._id === id);
+    if (partner) this.partnerQuery.set(partner.name);
+  }
+
+  toggleBeneficiary(id: string) {
+    const set = new Set(this.activityForm.beneficiaryIds || []);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    this.activityForm.beneficiaryIds = Array.from(set);
+  }
+
+  isBeneficiarySelected(id: string) {
+    return (this.activityForm.beneficiaryIds || []).includes(id);
+  }
+
+  saveActivityTemplate() {
+    const templateName = this.activityForm.activityType || this.activityForm.title || 'Field activity template';
+    this.api
+      .createActivityTemplate({
+        projectId: this.projectId,
+        name: templateName,
+        description: 'Saved from the current activity form',
+        indicatorId: this.activityForm.indicatorId || undefined,
+        defaultLocation: this.activityForm.location || undefined,
+        defaultActivityType: this.activityForm.activityType || undefined,
+        defaultEvidenceUrl: this.activityForm.evidenceUrl || undefined,
+        defaultParticipants: Number(this.activityForm.participants),
+        defaultQuantity: Number(this.activityForm.quantity),
+        defaultNotes: this.activityForm.notes || undefined,
+      })
+      .subscribe(() => this.reload());
+  }
+
+  saveProjectEvaluation() {
+    const project = this.project();
+    if (!project) return;
+    this.api
+      .updateProject(this.projectId, {
+        evaluationStatus: project.evaluationStatus,
+        evaluationSummary: project.evaluationSummary,
+        lessonsLearned: project.lessonsLearned,
+        nextReviewDate: project.nextReviewDate,
+      })
+      .subscribe(() => this.reload());
+  }
+
+  deleteActivityTemplate(id: string) {
+    this.api.deleteActivityTemplate(id).subscribe(() => this.reload());
   }
 
   reviewActivity(id: string, status: 'approved' | 'rejected') {

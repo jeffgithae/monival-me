@@ -3,6 +3,11 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import {
   Activity,
+  ActivityTemplate,
+  FormTemplate,
+  FormResponse,
+  Partner,
+  Beneficiary,
   BalancedScorecard,
   BSCPerformanceSummary,
   BudgetAllocation,
@@ -92,6 +97,15 @@ export class ApiService {
     );
   }
 
+  // Partners
+  partners() {
+    return this.http.get<Partner[]>(`${this.base}/partners`);
+  }
+
+  createPartner(body: Partial<Partner>) {
+    return this.http.post<Partner>(`${this.base}/partners`, body);
+  }
+
   createDonor(body: { name: string; contactEmail?: string; country?: string }) {
     return this.http.post(`${this.base}/donors`, body);
   }
@@ -106,6 +120,10 @@ export class ApiService {
 
   createProject(body: Partial<Project>) {
     return this.http.post<Project>(`${this.base}/projects`, body);
+  }
+
+  updateProject(id: string, body: Partial<Project>) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}`, body);
   }
 
   indicators(projectId?: string) {
@@ -130,6 +148,69 @@ export class ApiService {
 
   createActivity(body: Record<string, unknown>) {
     return this.http.post<Activity>(`${this.base}/activities`, body);
+  }
+
+  // Beneficiaries
+  beneficiaries() {
+    return this.http.get<Beneficiary[]>(`${this.base}/beneficiaries`);
+  }
+
+  createBeneficiary(body: Partial<Beneficiary>) {
+    return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
+  }
+
+  activityTemplates(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) {
+      params = params.set('projectId', projectId);
+    }
+    return this.http.get<ActivityTemplate[]>(`${this.base}/activities/templates`, { params });
+  }
+
+  createActivityTemplate(body: Record<string, unknown>) {
+    return this.http.post<ActivityTemplate>(`${this.base}/activities/templates`, body);
+  }
+
+  // Forms / Survey templates
+  formTemplates(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<FormTemplate[]>(`${this.base}/forms/templates`, { params });
+  }
+
+  formTemplate(id: string) {
+    return this.http.get<FormTemplate>(`${this.base}/forms/templates/${id}`);
+  }
+
+  createFormTemplate(body: Record<string, unknown>) {
+    return this.http.post<FormTemplate>(`${this.base}/forms/templates`, body);
+  }
+
+  updateFormTemplate(id: string, body: Record<string, unknown>) {
+    return this.http.patch<FormTemplate>(`${this.base}/forms/templates/${id}`, body);
+  }
+
+  deleteFormTemplate(id: string) {
+    return this.http.delete(`${this.base}/forms/templates/${id}`);
+  }
+
+  // Form responses
+  formResponses(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<FormResponse[]>(`${this.base}/forms/responses`, { params });
+  }
+
+  formResponse(id: string) {
+    return this.http.get<FormResponse>(`${this.base}/forms/responses/${id}`);
+  }
+
+  createFormResponse(body: Record<string, unknown>) {
+    return this.http.post<FormResponse>(`${this.base}/forms/responses`, body);
+  }
+
+  deleteActivityTemplate(id: string) {
+    return this.http.delete(`${this.base}/activities/templates/${id}`);
   }
 
   reviewActivity(id: string, status: 'approved' | 'rejected') {

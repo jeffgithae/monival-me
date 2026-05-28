@@ -35,6 +35,24 @@ export class Activity {
   @Prop({ trim: true })
   notes?: string;
 
+  @Prop({ trim: true })
+  activityType?: string;
+
+  @Prop({ trim: true })
+  evidenceUrl?: string;
+
+  @Prop({ trim: true })
+  evidenceNotes?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Partner' })
+  partnerId?: Types.ObjectId;
+
+  @Prop({ type: [Types.ObjectId], ref: 'Beneficiary' })
+  beneficiaryIds?: Types.ObjectId[];
+
+  @Prop({ type: Types.ObjectId, ref: 'ActivityTemplate' })
+  templateId?: Types.ObjectId;
+
   @Prop({
     type: String,
     default: 'approved',
