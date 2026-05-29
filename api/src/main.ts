@@ -1,3 +1,8 @@
+import { webcrypto } from 'node:crypto';
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
@@ -28,7 +33,6 @@ async function bootstrap() {
     },
     credentials: true,
   });
-  // await app.listen(process.env.PORT ?? 3000);
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
 bootstrap();
