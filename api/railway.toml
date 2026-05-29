@@ -7,8 +7,5 @@ startCommand = "node dist/main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
-[nixpacks]
-aptPkgs = []
-
 [nixpacks.environment]
 NIXPACKS_NODE_VERSION = "22"
