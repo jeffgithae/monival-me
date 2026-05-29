@@ -1,13 +1,13 @@
-export type PlanId = 'trial' | 'starter' | 'professional';
+export type PlanId = 'trial' | 'starter' | 'professional' | 'organization';
 
 export interface PlanDefinition {
   id: PlanId;
   name: string;
   description: string;
   monthlyPriceUsd: number;
-  maxProjects: number;
-  maxUsers: number;
-  maxIndicatorsPerProject: number;
+  maxProjects: number | null;
+  maxUsers: number | null;
+  maxIndicatorsPerProject: number | null;
   stripePriceId?: string;
   trialDays?: number;
   features: string[];
@@ -28,28 +28,51 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: 'starter',
     name: 'Starter',
-    description: 'Small NGOs and community organisations',
-    monthlyPriceUsd: 49,
-    maxProjects: 5,
+    description: 'Small local NGOs and pilot programs',
+    monthlyPriceUsd: 99,
+    maxProjects: 3,
     maxUsers: 10,
     maxIndicatorsPerProject: 50,
     stripePriceId: process.env.STRIPE_PRICE_STARTER,
-    features: ['Everything in trial', '5 active projects', '10 users', 'Email support'],
+    features: [
+      'Core M&E workspace',
+      'Logframes, activities, and approvals',
+      'Donor reports',
+      'Email support',
+    ],
   },
   professional: {
     id: 'professional',
-    name: 'Professional',
-    description: 'INGOs and multi-project portfolios',
-    monthlyPriceUsd: 149,
-    maxProjects: 50,
-    maxUsers: 30,
-    maxIndicatorsPerProject: 200,
+    name: 'Growth',
+    description: 'Multi-donor NGOs with several active programs',
+    monthlyPriceUsd: 299,
+    maxProjects: 15,
+    maxUsers: 50,
+    maxIndicatorsPerProject: null,
     stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
     features: [
-      'Unlimited donor reports',
+      'Everything in Starter',
+      'Grants and budget tracking',
+      'Unlimited indicators',
       'Approval workflows',
-      '30 users',
+      'Audit log and API access',
+    ],
+  },
+  organization: {
+    id: 'organization',
+    name: 'Organization',
+    description: 'Portfolio teams, INGOs, and multi-country programs',
+    monthlyPriceUsd: 699,
+    maxProjects: null,
+    maxUsers: null,
+    maxIndicatorsPerProject: null,
+    stripePriceId: process.env.STRIPE_PRICE_ORGANIZATION,
+    features: [
+      'Everything in Growth',
+      'Portfolio dashboards',
+      'Custom branding',
       'Priority support',
+      'Onboarding and migration assistance',
     ],
   },
 };

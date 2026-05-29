@@ -18,9 +18,12 @@ import {
   DonorReport,
   FrameworkConfig,
   Indicator,
+  IndicatorResult,
+  IndicatorTarget,
   OKR,
   OKRProgress,
   Project,
+  ReportingPeriod,
   StrategicOverview,
 } from './models';
 import { OrgRole } from './roles';
@@ -38,8 +41,8 @@ export class ApiService {
         name: string;
         description: string;
         monthlyPriceUsd: number;
-        maxProjects: number;
-        maxUsers: number;
+        maxProjects: number | null;
+        maxUsers: number | null;
         features: string[];
       }>
     >(`${this.base}/billing/plans`);
@@ -89,6 +92,75 @@ export class ApiService {
 
   removeMember(memberId: string) {
     return this.http.delete(`${this.base}/members/${memberId}`);
+  }
+
+  reportingPeriods(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<ReportingPeriod[]>(`${this.base}/reporting/periods`, { params });
+  }
+
+  createReportingPeriod(payload: {
+    projectId: string;
+    name: string;
+    cadence?: string;
+    startDate: string;
+    endDate: string;
+    notes?: string;
+  }) {
+    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, payload);
+  }
+
+  calculateReportingResults(periodId: string) {
+    return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${periodId}/calculate`, {});
+  }
+
+  updateReportingPeriodStatus(periodId: string, status: 'submitted' | 'approved' | 'locked') {
+    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${periodId}/status`, {
+      status,
+    });
+  }
+
+  indicatorResults(reportingPeriodId: string) {
+    return this.http.get<IndicatorResult[]>(`${this.base}/reporting/results`, {
+      params: new HttpParams().set('reportingPeriodId', reportingPeriodId),
+    });
+  }
+
+  upsertIndicatorResult(payload: {
+    reportingPeriodId: string;
+    indicatorId: string;
+    achieved: number;
+    narrative?: string;
+    disaggregations?: Record<string, unknown>;
+  }) {
+    return this.http.post<IndicatorResult>(`${this.base}/reporting/results`, payload);
+  }
+
+  indicatorTargets(reportingPeriodId: string) {
+    return this.http.get<IndicatorTarget[]>(`${this.base}/reporting/targets`, {
+      params: new HttpParams().set('reportingPeriodId', reportingPeriodId),
+    });
+  }
+
+  upsertIndicatorTarget(payload: {
+    reportingPeriodId: string;
+    indicatorId: string;
+    baseline?: number;
+    target: number;
+    notes?: string;
+  }) {
+    return this.http.post<IndicatorTarget>(`${this.base}/reporting/targets`, payload);
+  }
+
+  dataQuality(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<{
+      generatedAt: string;
+      counts: { indicators: number; activities: number; critical: number; warning: number; info: number };
+      alerts: Array<{ severity: 'critical' | 'warning' | 'info'; entityType: string; entityId?: string; message: string }>;
+    }>(`${this.base}/reporting/data-quality`, { params });
   }
 
   donors() {
@@ -217,10 +289,11 @@ export class ApiService {
     return this.http.patch(`${this.base}/activities/${id}/review`, { status });
   }
 
-  donorReport(projectId: string, fromDate?: string, toDate?: string) {
+  donorReport(projectId: string, fromDate?: string, toDate?: string, reportingPeriodId?: string) {
     let params = new HttpParams();
     if (fromDate) params = params.set('fromDate', fromDate);
     if (toDate) params = params.set('toDate', toDate);
+    if (reportingPeriodId) params = params.set('reportingPeriodId', reportingPeriodId);
     return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params });
   }
 

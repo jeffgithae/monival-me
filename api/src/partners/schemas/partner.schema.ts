@@ -21,6 +21,15 @@ export class Partner {
   country?: string;
 
   @Prop({ trim: true })
+  region?: string;
+
+  @Prop({ trim: true })
+  district?: string;
+
+  @Prop({ type: { latitude: Number, longitude: Number }, _id: false })
+  geoPoint?: { latitude: number; longitude: number };
+
+  @Prop({ trim: true })
   notes?: string;
 }
 

@@ -36,4 +36,22 @@ export class OrganizationsController {
   getStrategicOverview(@CurrentUser() user: JwtPayload) {
     return this.organizationsService.getStrategicOverview(user.organizationId);
   }
+
+  @Patch('enterprise-settings')
+  @UseGuards(RolesGuard)
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN)
+  updateEnterpriseSettings(
+    @CurrentUser() user: JwtPayload,
+    @Body()
+    body: {
+      mfaRequired?: boolean;
+      ssoEnabled?: boolean;
+      ssoProvider?: string;
+      ssoMetadataUrl?: string;
+      dataResidency?: string;
+      allowedDomains?: string[];
+    },
+  ) {
+    return this.organizationsService.updateEnterpriseSettings(user.organizationId, body);
+  }
 }

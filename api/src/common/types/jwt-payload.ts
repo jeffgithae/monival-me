@@ -6,4 +6,6 @@ export interface JwtPayload {
   organizationId: string;
   role: OrgRole;
   memberId: string;
+  projectScopeIds?: string[];
+  partnerScopeIds?: string[];
 }

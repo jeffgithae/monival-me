@@ -20,6 +20,18 @@ export class Project {
   @Prop({ trim: true })
   description?: string;
 
+  @Prop({ trim: true })
+  country?: string;
+
+  @Prop({ trim: true })
+  region?: string;
+
+  @Prop({ trim: true })
+  district?: string;
+
+  @Prop({ type: { latitude: Number, longitude: Number }, _id: false })
+  geoPoint?: { latitude: number; longitude: number };
+
   @Prop()
   startDate?: Date;
 

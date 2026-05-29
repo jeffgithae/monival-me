@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" role="img" aria-labelledby="title desc">
+  <title id="title">Monival product dashboard preview</title>
+  <desc id="desc">A premium dashboard preview with NGO project indicators, budget variance, and donor report status.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef5ef"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" x2="1">
+      <stop offset="0" stop-color="#0f3d2e"/>
+      <stop offset="1" stop-color="#0d726f"/>
+    </linearGradient>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="0" dy="32" stdDeviation="34" flood-color="#1f2d26" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="860" rx="46" fill="#0f3d2e"/>
+  <g filter="url(#shadow)">
+    <rect x="70" y="70" width="1060" height="720" rx="28" fill="url(#bg)"/>
+  </g>
+  <rect x="70" y="70" width="1060" height="74" rx="28" fill="#17211c"/>
+  <circle cx="116" cy="107" r="9" fill="#c3943a"/>
+  <circle cx="146" cy="107" r="9" fill="#a9583f"/>
+  <circle cx="176" cy="107" r="9" fill="#4f7a5b"/>
+  <text x="220" y="114" fill="#fbf7ef" font-family="Inter, Arial" font-size="22" font-weight="800">Monival Program Command Center</text>
+
+  <rect x="100" y="176" width="228" height="584" rx="20" fill="#f7f2e9" stroke="#dfe7e2"/>
+  <text x="130" y="224" fill="#17211c" font-family="Inter, Arial" font-size="22" font-weight="800">Portfolio</text>
+  <g font-family="Inter, Arial" font-size="17" font-weight="700">
+    <rect x="126" y="258" width="170" height="42" rx="12" fill="#0f3d2e"/>
+    <text x="150" y="285" fill="#ffffff">Health &amp; WASH</text>
+    <text x="150" y="347" fill="#5f6d66">Nutrition</text>
+    <text x="150" y="405" fill="#5f6d66">Education</text>
+    <text x="150" y="463" fill="#5f6d66">Partners</text>
+    <text x="150" y="521" fill="#5f6d66">Donor reports</text>
+    <text x="150" y="579" fill="#5f6d66">Budget variance</text>
+  </g>
+  <rect x="130" y="650" width="138" height="42" rx="21" fill="#d8b86f"/>
+  <text x="154" y="677" fill="#17211c" font-family="Inter, Arial" font-size="15" font-weight="900">On track</text>
+
+  <text x="372" y="210" fill="#17211c" font-family="Inter, Arial" font-size="34" font-weight="900">Q2 grant performance</text>
+  <text x="374" y="242" fill="#5f6d66" font-family="Inter, Arial" font-size="18">Indicators, activities, budgets, and donor reporting readiness.</text>
+
+  <g>
+    <rect x="372" y="282" width="215" height="134" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="398" y="322" fill="#5f6d66" font-family="Inter, Arial" font-size="16" font-weight="700">Indicators</text>
+    <text x="398" y="368" fill="#17211c" font-family="Inter, Arial" font-size="46" font-weight="900">84%</text>
+    <rect x="398" y="386" width="150" height="10" rx="5" fill="#e4ebe7"/>
+    <rect x="398" y="386" width="126" height="10" rx="5" fill="#0d726f"/>
+  </g>
+  <g>
+    <rect x="617" y="282" width="215" height="134" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="643" y="322" fill="#5f6d66" font-family="Inter, Arial" font-size="16" font-weight="700">Budget used</text>
+    <text x="643" y="368" fill="#17211c" font-family="Inter, Arial" font-size="46" font-weight="900">62%</text>
+    <rect x="643" y="386" width="150" height="10" rx="5" fill="#e4ebe7"/>
+    <rect x="643" y="386" width="93" height="10" rx="5" fill="#c3943a"/>
+  </g>
+  <g>
+    <rect x="862" y="282" width="215" height="134" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="888" y="322" fill="#5f6d66" font-family="Inter, Arial" font-size="16" font-weight="700">Pending reviews</text>
+    <text x="888" y="368" fill="#17211c" font-family="Inter, Arial" font-size="46" font-weight="900">12</text>
+    <rect x="888" y="386" width="124" height="28" rx="14" fill="#f4e6d2"/>
+    <text x="908" y="405" fill="#a9583f" font-family="Inter, Arial" font-size="14" font-weight="900">Needs action</text>
+  </g>
+
+  <rect x="372" y="452" width="460" height="248" rx="20" fill="#ffffff" stroke="#dfe7e2"/>
+  <text x="402" y="494" fill="#17211c" font-family="Inter, Arial" font-size="22" font-weight="900">Indicator progress</text>
+  <g fill="none" stroke-width="14" stroke-linecap="round">
+    <path d="M420 642 C480 570, 520 606, 574 548 S690 526, 780 494" stroke="#0d726f"/>
+    <path d="M420 680 C502 648, 532 674, 594 622 S700 590, 780 586" stroke="#c3943a"/>
+  </g>
+  <g stroke="#dfe7e2">
+    <line x1="420" y1="534" x2="788" y2="534"/>
+    <line x1="420" y1="584" x2="788" y2="584"/>
+    <line x1="420" y1="634" x2="788" y2="634"/>
+  </g>
+
+  <rect x="862" y="452" width="215" height="248" rx="20" fill="#ffffff" stroke="#dfe7e2"/>
+  <text x="890" y="494" fill="#17211c" font-family="Inter, Arial" font-size="22" font-weight="900">Donor report</text>
+  <circle cx="970" cy="590" r="58" fill="none" stroke="#e4ebe7" stroke-width="18"/>
+  <path d="M970 532 A58 58 0 1 1 926 628" fill="none" stroke="url(#green)" stroke-width="18" stroke-linecap="round"/>
+  <text x="937" y="600" fill="#17211c" font-family="Inter, Arial" font-size="28" font-weight="900">78%</text>
+  <rect x="900" y="654" width="138" height="32" rx="16" fill="#e7f2ef"/>
+  <text x="925" y="676" fill="#0d726f" font-family="Inter, Arial" font-size="14" font-weight="900">Ready soon</text>
+</svg>

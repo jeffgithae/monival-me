@@ -8,8 +8,8 @@ interface Plan {
   name: string;
   description: string;
   monthlyPriceUsd: number;
-  maxProjects: number;
-  maxUsers: number;
+  maxProjects: number | null;
+  maxUsers: number | null;
   features: string[];
 }
 

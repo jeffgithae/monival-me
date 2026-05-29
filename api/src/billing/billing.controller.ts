@@ -21,7 +21,7 @@ import { BillingService } from './billing.service';
 
 class CheckoutDto {
   @IsString()
-  @IsIn(['starter', 'professional'])
+  @IsIn(['starter', 'professional', 'organization'])
   planId!: PlanId;
 }
 

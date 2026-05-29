@@ -64,6 +64,24 @@ export class Organization {
       initiatives: string[];
     }>;
   };
+
+  @Prop({
+    type: Object,
+    default: {
+      mfaRequired: false,
+      ssoEnabled: false,
+      dataResidency: 'default',
+      allowedDomains: [],
+    },
+  })
+  enterpriseSettings?: {
+    mfaRequired?: boolean;
+    ssoEnabled?: boolean;
+    ssoProvider?: string;
+    ssoMetadataUrl?: string;
+    dataResidency?: string;
+    allowedDomains?: string[];
+  };
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

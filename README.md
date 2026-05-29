@@ -26,7 +26,7 @@ Multi-tenant M&E SaaS for nonprofits: logframe indicators, field activities, don
 ### Billing (self-service)
 
 - **14-day free trial** on signup (no card)
-- **Starter** ($49/mo) and **Professional** ($149/mo)
+- **Starter** ($99/mo), **Growth** ($299/mo), and **Organization** ($699/mo)
 - **Stripe Checkout** + Customer Portal (or **mock mode** when `BILLING_MOCK=true`)
 - Plan limits on projects, users, and indicators
 
@@ -60,6 +60,7 @@ cd api && npm run seed
    - `STRIPE_WEBHOOK_SECRET=whsec_...`
    - `STRIPE_PRICE_STARTER=price_...`
    - `STRIPE_PRICE_PROFESSIONAL=price_...`
+   - `STRIPE_PRICE_ORGANIZATION=price_...`
    - `BILLING_MOCK=false`
 3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/billing/webhook`
 

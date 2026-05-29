@@ -146,6 +146,10 @@ export class ActivitiesService {
       description: dto.description,
       activityDate: new Date(dto.activityDate),
       location: dto.location,
+      country: dto.country,
+      region: dto.region,
+      district: dto.district,
+      geoPoint: this.geoPoint(dto.latitude, dto.longitude),
       activityType: dto.activityType,
       templateId: dto.templateId ? new Types.ObjectId(dto.templateId) : undefined,
       participants: dto.participants ?? 0,
@@ -206,6 +210,7 @@ export class ActivitiesService {
       templateId: dto.templateId ? new Types.ObjectId(dto.templateId) : undefined,
       partnerId: dto.partnerId ? new Types.ObjectId(dto.partnerId) : undefined,
       beneficiaryIds: dto.beneficiaryIds ? dto.beneficiaryIds.map((b) => new Types.ObjectId(b)) : undefined,
+      geoPoint: this.geoPoint(dto.latitude, dto.longitude),
     };
 
     const activity = await this.activityModel
@@ -230,5 +235,9 @@ export class ActivitiesService {
       throw new NotFoundException('Activity not found');
     }
     return { deleted: true };
+  }
+
+  private geoPoint(latitude?: number, longitude?: number) {
+    return latitude !== undefined && longitude !== undefined ? { latitude, longitude } : undefined;
   }
 }

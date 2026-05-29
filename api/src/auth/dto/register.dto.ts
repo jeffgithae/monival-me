@@ -26,6 +26,6 @@ export class RegisterDto {
 
   /** Plan selected at signup; trial starts immediately. Paid plans checkout after register. */
   @IsOptional()
-  @IsIn(['trial', 'starter', 'professional'])
+  @IsIn(['trial', 'starter', 'professional', 'organization'])
   planId?: string;
 }

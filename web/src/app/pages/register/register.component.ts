@@ -31,7 +31,12 @@ export class RegisterComponent implements OnInit {
 
   ngOnInit() {
     const plan = this.route.snapshot.queryParamMap.get('plan');
-    if (plan === 'starter' || plan === 'professional' || plan === 'trial') {
+    if (
+      plan === 'starter' ||
+      plan === 'professional' ||
+      plan === 'organization' ||
+      plan === 'trial'
+    ) {
       this.planId = plan;
     }
   }

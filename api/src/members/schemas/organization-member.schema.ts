@@ -23,6 +23,12 @@ export class OrganizationMember {
 
   @Prop()
   joinedAt?: Date;
+
+  @Prop({ type: [Types.ObjectId], ref: 'Project', default: [] })
+  projectScopeIds!: Types.ObjectId[];
+
+  @Prop({ type: [Types.ObjectId], ref: 'Partner', default: [] })
+  partnerScopeIds!: Types.ObjectId[];
 }
 
 export const OrganizationMemberSchema = SchemaFactory.createForClass(OrganizationMember);

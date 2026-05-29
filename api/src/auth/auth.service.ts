@@ -134,6 +134,8 @@ export class AuthService {
       organizationId: user.organizationId.toString(),
       role: member.role,
       memberId: member._id.toString(),
+      projectScopeIds: member.projectScopeIds?.map((id) => id.toString()) ?? [],
+      partnerScopeIds: member.partnerScopeIds?.map((id) => id.toString()) ?? [],
     };
     return {
       accessToken: this.jwtService.sign(payload),

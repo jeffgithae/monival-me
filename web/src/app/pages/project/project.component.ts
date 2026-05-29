@@ -1,17 +1,17 @@
-import { DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { Activity, ActivityTemplate, DonorReport, Indicator, Project, FormTemplate, FormResponse } from '../../core/models';
+import { Activity, ActivityTemplate, DonorReport, Indicator, IndicatorResult, Project, FormTemplate, FormResponse, ReportingPeriod } from '../../core/models';
 import {
   canApproveActivities,
   canLogActivities,
   canManageIndicators,
 } from '../../core/roles';
 
-type Tab = 'framework' | 'indicators' | 'activities' | 'report';
+type Tab = 'framework' | 'indicators' | 'activities' | 'reporting' | 'report';
 
 interface IndicatorNode extends Indicator {
   children: IndicatorNode[];
@@ -27,7 +27,7 @@ interface IndicatorNode extends Indicator {
 @Component({
   selector: 'app-project',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [CommonModule, RouterLink, FormsModule, DatePipe],
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
 })
@@ -38,6 +38,8 @@ export class ProjectComponent implements OnInit {
   activityTemplates = signal<ActivityTemplate[]>([]);
   formTemplates = signal<FormTemplate[]>([]);
   formResponses = signal<FormResponse[]>([]);
+  reportingPeriods = signal<ReportingPeriod[]>([]);
+  indicatorResults = signal<IndicatorResult[]>([]);
   partners = signal<Array<{ _id: string; name: string }>>([]);
   beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
@@ -287,6 +289,14 @@ export class ProjectComponent implements OnInit {
   };
   reportFrom = '';
   reportTo = '';
+  selectedReportingPeriodId = '';
+  reportingPeriodForm = {
+    name: '',
+    cadence: 'quarterly',
+    startDate: '',
+    endDate: '',
+    notes: '',
+  };
   activityForm = {
     title: '',
     activityDate: new Date().toISOString().slice(0, 10),
@@ -363,6 +373,13 @@ export class ProjectComponent implements OnInit {
     this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
     this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
+    this.api.reportingPeriods(this.projectId).subscribe((items) => {
+      this.reportingPeriods.set(items);
+      if (!this.selectedReportingPeriodId && items.length > 0) {
+        this.selectedReportingPeriodId = items[0]._id;
+        this.loadIndicatorResults();
+      }
+    });
     this.api.partners().subscribe((items) => this.partners.set(items));
     this.api.beneficiaries().subscribe((items) => this.beneficiaries.set(items));
   }
@@ -373,6 +390,7 @@ export class ProjectComponent implements OnInit {
         this.projectId,
         this.reportFrom || undefined,
         this.reportTo || undefined,
+        this.selectedReportingPeriodId || undefined,
       )
       .subscribe((r) => this.report.set(r));
   }
@@ -521,6 +539,60 @@ export class ProjectComponent implements OnInit {
         nextReviewDate: project.nextReviewDate,
       })
       .subscribe(() => this.reload());
+  }
+
+  createReportingPeriod() {
+    this.api
+      .createReportingPeriod({
+        projectId: this.projectId,
+        name: this.reportingPeriodForm.name,
+        cadence: this.reportingPeriodForm.cadence,
+        startDate: this.reportingPeriodForm.startDate,
+        endDate: this.reportingPeriodForm.endDate,
+        notes: this.reportingPeriodForm.notes || undefined,
+      })
+      .subscribe((period) => {
+        this.reportingPeriodForm = {
+          name: '',
+          cadence: 'quarterly',
+          startDate: '',
+          endDate: '',
+          notes: '',
+        };
+        this.selectedReportingPeriodId = period._id;
+        this.reload();
+      });
+  }
+
+  loadIndicatorResults() {
+    if (!this.selectedReportingPeriodId) {
+      this.indicatorResults.set([]);
+      return;
+    }
+    this.api
+      .indicatorResults(this.selectedReportingPeriodId)
+      .subscribe((results) => this.indicatorResults.set(results));
+  }
+
+  calculateReportingResults() {
+    if (!this.selectedReportingPeriodId) return;
+    this.api
+      .calculateReportingResults(this.selectedReportingPeriodId)
+      .subscribe((results) => this.indicatorResults.set(results));
+  }
+
+  transitionReportingPeriod(status: 'submitted' | 'approved' | 'locked') {
+    if (!this.selectedReportingPeriodId) return;
+    this.api
+      .updateReportingPeriodStatus(this.selectedReportingPeriodId, status)
+      .subscribe(() => {
+        this.reload();
+        this.loadIndicatorResults();
+      });
+  }
+
+  resultIndicator(result: IndicatorResult): Indicator | null {
+    return typeof result.indicatorId === 'string' ? null : result.indicatorId;
   }
 
   deleteActivityTemplate(id: string) {

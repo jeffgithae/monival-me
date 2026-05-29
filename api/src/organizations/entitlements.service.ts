@@ -26,7 +26,7 @@ export class EntitlementsService {
     const count = await this.projectModel.countDocuments({
       organizationId: new Types.ObjectId(organizationId),
     });
-    if (count >= plan.maxProjects) {
+    if (plan.maxProjects !== null && count >= plan.maxProjects) {
       throw new ForbiddenException(
         `Project limit reached (${plan.maxProjects}). Upgrade your plan in Billing.`,
       );
@@ -43,7 +43,7 @@ export class EntitlementsService {
       organizationId: new Types.ObjectId(organizationId),
       status: { $in: ['active', 'invited'] },
     });
-    if (count >= plan.maxUsers) {
+    if (plan.maxUsers !== null && count >= plan.maxUsers) {
       throw new ForbiddenException(
         `User limit reached (${plan.maxUsers}). Upgrade your plan in Billing.`,
       );
@@ -60,7 +60,7 @@ export class EntitlementsService {
       organizationId: new Types.ObjectId(organizationId),
       projectId: new Types.ObjectId(projectId),
     });
-    if (count >= plan.maxIndicatorsPerProject) {
+    if (plan.maxIndicatorsPerProject !== null && count >= plan.maxIndicatorsPerProject) {
       throw new ForbiddenException(
         `Indicator limit reached for this project (${plan.maxIndicatorsPerProject}). Upgrade your plan.`,
       );

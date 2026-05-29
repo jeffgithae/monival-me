@@ -13,6 +13,13 @@ export class PartnersService {
   }
 
   create(organizationId: string, dto: CreatePartnerDto) {
-    return this.partnerModel.create({ organizationId: new Types.ObjectId(organizationId), ...dto });
+    return this.partnerModel.create({
+      organizationId: new Types.ObjectId(organizationId),
+      ...dto,
+      geoPoint:
+        dto.latitude !== undefined && dto.longitude !== undefined
+          ? { latitude: dto.latitude, longitude: dto.longitude }
+          : undefined,
+    });
   }
 }

@@ -40,6 +40,10 @@ export class ProjectsService {
       name: dto.name,
       donor: dto.donor,
       description: dto.description,
+      country: dto.country,
+      region: dto.region,
+      district: dto.district,
+      geoPoint: this.geoPoint(dto.latitude, dto.longitude),
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       status: dto.status ?? 'active',
@@ -47,14 +51,18 @@ export class ProjectsService {
   }
 
   async update(organizationId: string, id: string, dto: UpdateProjectDto) {
+    const updateData: Record<string, unknown> = {
+      ...dto,
+      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+    };
+    const geoPoint = this.geoPoint(dto.latitude, dto.longitude);
+    if (geoPoint) updateData.geoPoint = geoPoint;
+    Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
     const project = await this.projectModel
       .findOneAndUpdate(
         { _id: id, organizationId: new Types.ObjectId(organizationId) },
-        {
-          ...dto,
-          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        },
+        updateData,
         { new: true },
       )
       .lean();
@@ -73,5 +81,9 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
     return { deleted: true };
+  }
+
+  private geoPoint(latitude?: number, longitude?: number) {
+    return latitude !== undefined && longitude !== undefined ? { latitude, longitude } : undefined;
   }
 }

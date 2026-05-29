@@ -2,7 +2,7 @@
   <header>
     <a routerLink="/login" class="back">Sign in</a>
     <h1>Plans for every NGO</h1>
-    <p>Self-service signup — 14-day trial included. No sales call required.</p>
+    <p>Professional M&E software for grant-funded NGO teams. 14-day trial included.</p>
   </header>
 
   <div class="grid">
@@ -21,8 +21,20 @@
           @for (f of plan.features; track f) {
             <li>{{ f }}</li>
           }
-          <li>Up to {{ plan.maxProjects }} projects</li>
-          <li>Up to {{ plan.maxUsers }} team members</li>
+          <li>
+            @if (plan.maxProjects === null) {
+              Unlimited projects
+            } @else {
+              Up to {{ plan.maxProjects }} projects
+            }
+          </li>
+          <li>
+            @if (plan.maxUsers === null) {
+              Unlimited team members
+            } @else {
+              Up to {{ plan.maxUsers }} team members
+            }
+          </li>
         </ul>
         <a class="cta" [routerLink]="['/register']" [queryParams]="{ plan: plan.id }">
           Start with {{ plan.name }}

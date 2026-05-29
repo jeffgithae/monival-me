@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateFormResponseDto } from './dto/create-form-response.dto';
@@ -113,13 +113,15 @@ export class FormsService {
 
   async createResponse(organizationId: string, dto: CreateFormResponseDto, submittedByUserId?: string) {
     await this.assertProjectExists(organizationId, dto.projectId);
-    await this.assertTemplateExists(organizationId, dto.templateId);
+    const template = await this.assertTemplateExists(organizationId, dto.templateId);
     if (dto.indicatorId) {
       await this.assertIndicatorExists(organizationId, dto.indicatorId);
     }
     if (dto.activityId) {
       await this.assertActivityExists(organizationId, dto.activityId);
     }
+
+    this.validateResponse(template, dto.answers ?? {});
 
     return this.responseModel.create({
       organizationId: new Types.ObjectId(organizationId),
@@ -145,13 +147,14 @@ export class FormsService {
   }
 
   private async assertTemplateExists(organizationId: string, templateId: string) {
-    const exists = await this.templateModel.exists({
+    const template = await this.templateModel.findOne({
       _id: templateId,
       organizationId: new Types.ObjectId(organizationId),
-    });
-    if (!exists) {
+    }).lean();
+    if (!template) {
       throw new NotFoundException('Form template not found');
     }
+    return template;
   }
 
   private async assertIndicatorExists(organizationId: string, indicatorId: string) {
@@ -171,6 +174,60 @@ export class FormsService {
     });
     if (!exists) {
       throw new NotFoundException('Activity not found');
+    }
+  }
+
+  private validateResponse(template: FormTemplate, answers: Record<string, unknown>) {
+    const errors: string[] = [];
+    for (const section of template.sections ?? []) {
+      const questions = (section as { questions?: Array<Record<string, unknown>> }).questions ?? [];
+      for (const question of questions) {
+        const key = String(question.key ?? '');
+        const label = String(question.label ?? key);
+        const type = String(question.type ?? 'text');
+        const required = Boolean(question.required);
+        const value = answers[key];
+        const hasValue = value !== undefined && value !== null && value !== '';
+
+        if (required && !hasValue) {
+          errors.push(`${label} is required`);
+          continue;
+        }
+        if (!hasValue) continue;
+
+        if (type === 'number' && typeof value !== 'number') {
+          errors.push(`${label} must be a number`);
+        }
+        if (type === 'boolean' && typeof value !== 'boolean') {
+          errors.push(`${label} must be true or false`);
+        }
+        if (['select', 'radio'].includes(type)) {
+          const options = (question.options as string[] | undefined) ?? [];
+          if (options.length > 0 && !options.includes(String(value))) {
+            errors.push(`${label} must be one of: ${options.join(', ')}`);
+          }
+        }
+        if (type === 'checkbox') {
+          const options = (question.options as string[] | undefined) ?? [];
+          const values = Array.isArray(value) ? value.map(String) : [String(value)];
+          const invalid = values.filter((item) => options.length > 0 && !options.includes(item));
+          if (invalid.length > 0) {
+            errors.push(`${label} includes invalid option(s): ${invalid.join(', ')}`);
+          }
+        }
+        const validation = (question.validation as { min?: number; max?: number; pattern?: string; patternMessage?: string } | undefined) ?? {};
+        if (typeof value === 'number') {
+          if (validation.min !== undefined && value < validation.min) errors.push(`${label} must be at least ${validation.min}`);
+          if (validation.max !== undefined && value > validation.max) errors.push(`${label} must be at most ${validation.max}`);
+        }
+        if (validation.pattern && typeof value === 'string') {
+          const regex = new RegExp(validation.pattern);
+          if (!regex.test(value)) errors.push(validation.patternMessage ?? `${label} has an invalid format`);
+        }
+      }
+    }
+    if (errors.length > 0) {
+      throw new BadRequestException({ message: 'Form response failed validation', errors });
     }
   }
 }

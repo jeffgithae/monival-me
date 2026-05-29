@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
 import { ActivitiesModule } from './activities/activities.module';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { BudgetModule } from './budget/budget.module';
@@ -23,6 +24,7 @@ import { Organization, OrganizationSchema } from './organizations/schemas/organi
 import { ProjectsModule } from './projects/projects.module';
 import { ReportsModule } from './reports/reports.module';
 import { FormsModule } from './forms/forms.module';
+import { ReportingModule } from './reporting/reporting.module';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { FormsModule } from './forms/forms.module';
     }),
     MongooseModule.forFeature([{ name: Organization.name, schema: OrganizationSchema }]),
     AuthModule,
+    AuditModule,
     OrganizationsModule,
     MembersModule,
     BillingModule,
@@ -43,6 +46,7 @@ import { FormsModule } from './forms/forms.module';
     IndicatorsModule,
     ActivitiesModule,
     ReportsModule,
+    ReportingModule,
     DonorsModule,
     PartnersModule,
     BeneficiariesModule,

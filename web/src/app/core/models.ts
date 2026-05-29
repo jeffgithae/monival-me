@@ -18,9 +18,9 @@ export interface Organization {
   subscriptionStatus?: string;
   trialEndsAt?: string;
   limits?: {
-    maxProjects: number;
-    maxUsers: number;
-    maxIndicatorsPerProject: number;
+    maxProjects: number | null;
+    maxUsers: number | null;
+    maxIndicatorsPerProject: number | null;
   };
 }
 
@@ -75,9 +75,47 @@ export interface Indicator {
   title: string;
   unit?: string;
   meansOfVerification?: string;
+  assumptions?: string;
+  disaggregation?: string[];
   baseline: number;
   target: number;
   frequency: string;
+}
+
+export interface ReportingPeriod {
+  _id: string;
+  projectId: string;
+  name: string;
+  cadence: 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
+  startDate: string;
+  endDate: string;
+  status: 'open' | 'submitted' | 'approved' | 'locked';
+  submittedAt?: string;
+  approvedAt?: string;
+  notes?: string;
+}
+
+export interface IndicatorResult {
+  _id: string;
+  projectId: string;
+  reportingPeriodId: string;
+  indicatorId: string | Indicator;
+  achieved: number;
+  activityCount: number;
+  sourceActivityIds: string[];
+  disaggregations: Record<string, unknown>;
+  narrative?: string;
+  status: 'draft' | 'submitted' | 'approved' | 'locked';
+}
+
+export interface IndicatorTarget {
+  _id: string;
+  projectId: string;
+  reportingPeriodId: string;
+  indicatorId: string | Indicator;
+  baseline: number;
+  target: number;
+  notes?: string;
 }
 
 export interface Activity {
@@ -185,6 +223,13 @@ export interface DonorReport {
     startDate?: string;
     endDate?: string;
   };
+  reportingPeriod?: {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+  } | null;
   summary: {
     indicatorCount: number;
     activityCount: number;
@@ -201,6 +246,9 @@ export interface DonorReport {
     achieved: number;
     percentComplete: number;
     activityCount: number;
+    status?: string;
+    narrative?: string;
+    disaggregations?: Record<string, unknown>;
   }>;
   recentActivities: Array<{
     id: string;

@@ -102,6 +102,7 @@
     <button type="button" [class.active]="tab() === 'framework'" (click)="setTab('framework')">Results framework</button>
     <button type="button" [class.active]="tab() === 'indicators'" (click)="setTab('indicators')">Indicators</button>
     <button type="button" [class.active]="tab() === 'activities'" (click)="setTab('activities')">Activities</button>
+    <button type="button" [class.active]="tab() === 'reporting'" (click)="setTab('reporting')">Reporting periods</button>
     <button type="button" [class.active]="tab() === 'report'" (click)="setTab('report')">Donor report</button>
   </div>
 
@@ -139,22 +140,24 @@
 
       <section class="panel evaluation-panel">
         <h3>Project evaluation</h3>
+        @if (project(); as editableProject) {
         <form class="form-grid">
           <label>Evaluation status
-            <select [(ngModel)]="project().evaluationStatus" name="evaluationStatus">
+            <select [(ngModel)]="editableProject.evaluationStatus" name="evaluationStatus">
               <option value="not_started">Not started</option>
               <option value="in_progress">In progress</option>
               <option value="completed">Completed</option>
               <option value="under_review">Under review</option>
             </select>
           </label>
-          <label>Next review date<input type="date" [(ngModel)]="project().nextReviewDate" name="nextReviewDate" /></label>
-          <label class="full">Summary<textarea [(ngModel)]="project().evaluationSummary" name="evaluationSummary" rows="3"></textarea></label>
-          <label class="full">Lessons learned<textarea [(ngModel)]="project().lessonsLearned" name="lessonsLearned" rows="3"></textarea></label>
+          <label>Next review date<input type="date" [(ngModel)]="editableProject.nextReviewDate" name="nextReviewDate" /></label>
+          <label class="full">Summary<textarea [(ngModel)]="editableProject.evaluationSummary" name="evaluationSummary" rows="3"></textarea></label>
+          <label class="full">Lessons learned<textarea [(ngModel)]="editableProject.lessonsLearned" name="lessonsLearned" rows="3"></textarea></label>
           <div class="form-actions full">
             <button type="button" class="primary" (click)="saveProjectEvaluation()">Save evaluation</button>
           </div>
         </form>
+        }
       </section>
 
       @if (frameworkRoots().length > 0) {
@@ -232,7 +235,7 @@
               <td>
                 {{ summary.title }}
                 @if (summary.unit) { <span class="muted">({{ summary.unit }})</span> }
-                @if (summary.disaggregation?.length) { <div class="muted">Breakdown: {{ summary.disaggregation.join(', ') }}</div> }
+                @if (summary.disaggregation?.length) { <div class="muted">Breakdown: {{ summary.disaggregation?.join(', ') }}</div> }
                 @if (summary.assumptions) { <div class="muted">Assumptions: {{ summary.assumptions }}</div> }
                 @if (summary.parentId) { <div class="muted">Parent: {{ summary.parentId }}</div> }
               </td>
@@ -247,6 +250,80 @@
             </tr>
           } @empty {
             <tr><td colspan="6" class="muted">No indicators defined yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  @if (tab() === 'reporting') {
+    <section class="panel">
+      <h2>Reporting periods and indicator results</h2>
+      @if (canManageIndicators) {
+        <form class="form-grid" (ngSubmit)="createReportingPeriod()">
+          <label>Name<input [(ngModel)]="reportingPeriodForm.name" name="periodName" placeholder="Q2 2026" required /></label>
+          <label>Cadence
+            <select [(ngModel)]="reportingPeriodForm.cadence" name="periodCadence">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="semiannual">Semiannual</option>
+              <option value="annual">Annual</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>Start date<input type="date" [(ngModel)]="reportingPeriodForm.startDate" name="periodStart" required /></label>
+          <label>End date<input type="date" [(ngModel)]="reportingPeriodForm.endDate" name="periodEnd" required /></label>
+          <label class="full">Notes<input [(ngModel)]="reportingPeriodForm.notes" name="periodNotes" /></label>
+          <div class="form-actions full">
+            <button type="submit" class="primary">Create reporting period</button>
+          </div>
+        </form>
+      }
+
+      <div class="report-filters">
+        <label>Period
+          <select [(ngModel)]="selectedReportingPeriodId" name="selectedReportingPeriodId" (change)="loadIndicatorResults()">
+            <option value="">Choose a period</option>
+            @for (period of reportingPeriods(); track period._id) {
+              <option [value]="period._id">{{ period.name }} — {{ period.status }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="secondary" (click)="calculateReportingResults()" [disabled]="!selectedReportingPeriodId">Calculate from approved activities</button>
+        <button type="button" class="secondary" (click)="transitionReportingPeriod('submitted')" [disabled]="!selectedReportingPeriodId">Submit</button>
+        @if (canApprove) {
+          <button type="button" class="secondary" (click)="transitionReportingPeriod('approved')" [disabled]="!selectedReportingPeriodId">Approve</button>
+          <button type="button" class="primary" (click)="transitionReportingPeriod('locked')" [disabled]="!selectedReportingPeriodId">Lock</button>
+        }
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Indicator</th>
+            <th>Achieved</th>
+            <th>Activities</th>
+            <th>Status</th>
+            <th>Narrative</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (result of indicatorResults(); track result._id) {
+            <tr>
+              <td>
+                @if (resultIndicator(result); as indicator) {
+                  <strong>{{ indicator.code }}</strong> {{ indicator.title }}
+                } @else {
+                  {{ result.indicatorId }}
+                }
+              </td>
+              <td>{{ result.achieved }}</td>
+              <td>{{ result.activityCount }}</td>
+              <td><span class="status-pill">{{ result.status }}</span></td>
+              <td>{{ result.narrative || 'No narrative yet' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="muted">No results calculated for this reporting period yet.</td></tr>
           }
         </tbody>
       </table>

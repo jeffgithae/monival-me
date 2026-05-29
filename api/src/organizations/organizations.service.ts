@@ -31,6 +31,7 @@ export class OrganizationsService {
         maxUsers: plan.maxUsers,
         maxIndicatorsPerProject: plan.maxIndicatorsPerProject,
       },
+      enterpriseSettings: org.enterpriseSettings,
     };
   }
 
@@ -134,5 +135,23 @@ export class OrganizationsService {
         },
       ],
     };
+  }
+
+  async updateEnterpriseSettings(
+    orgId: string,
+    settings: {
+      mfaRequired?: boolean;
+      ssoEnabled?: boolean;
+      ssoProvider?: string;
+      ssoMetadataUrl?: string;
+      dataResidency?: string;
+      allowedDomains?: string[];
+    },
+  ) {
+    return this.orgModel.findByIdAndUpdate(
+      orgId,
+      { enterpriseSettings: settings },
+      { new: true },
+    ).lean();
   }
 }

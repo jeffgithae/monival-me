@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateProjectDto {
   @IsString()
@@ -12,6 +12,26 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  region?: string;
+
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 
   @IsOptional()
   @IsDateString()
