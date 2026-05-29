@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && ./node_modules/.bin/nest build --verbose"
+buildCommand = "npm install && npm run build"
 
 [deploy]
 startCommand = "node dist/main"
