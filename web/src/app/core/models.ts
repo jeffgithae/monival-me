@@ -429,26 +429,6 @@ export interface OKRProgress {
 }
 
 
-// Grant Management Models
-export interface Grant {
-  _id: string;
-  name: string;
-  description?: string;
-  donorId?: string;
-  amount: number;
-  currency: string;
-  amountSpent: number;
-  status: 'pending' | 'active' | 'completed' | 'closed';
-  startDate: string;
-  endDate: string;
-  linkedProjects: string[];
-  requiresMonthlyReporting: boolean;
-  requiresFinalReport: boolean;
-  termsAndConditions?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // Framework Configuration
 export interface FrameworkConfig {
   availableFrameworks: Array<'logframe' | 'bsc' | 'okr'>;
@@ -478,7 +458,7 @@ export interface StrategicOverview {
 
 // ─── Grants ───────────────────────────────────────────────────────────────────
 
-export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected';
+export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected' | 'completed' | 'pending';
 
 export interface Grant {
   _id: string;
@@ -489,7 +469,7 @@ export interface Grant {
   donorName?: string;
   projectId?: string;
   projectName?: string;
-  // status: GrantStatus;
+  status?: GrantStatus;
   currency: string;
   totalAmount: number;
   disbursedAmount: number;

@@ -110,7 +110,8 @@ export class GrantsListComponent implements OnInit {
   statusBadgeClass(status: GrantStatus): string {
     const map: Record<GrantStatus, string> = {
       prospect: 'badge-gray', applied: 'badge-blue', awarded: 'badge-purple',
-      active: 'badge-green', closed: 'badge-dark', rejected: 'badge-red'
+      active: 'badge-green', closed: 'badge-dark', rejected: 'badge-red',
+      completed: 'badge-teal', pending: 'badge-yellow'
     };
     return map[status] ?? 'badge-gray';
   }
