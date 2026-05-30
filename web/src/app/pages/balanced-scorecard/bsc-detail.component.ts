@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -15,7 +15,7 @@ type Tab = 'financial' | 'customer' | 'internal' | 'learning' | 'performance';
 @Component({
   selector: 'app-bsc-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './bsc-detail.component.html',
   styleUrl: './bsc.scss',
 })

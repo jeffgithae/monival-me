@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
+import { CommonModule, DecimalPipe, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -9,7 +9,7 @@ import { OKR, OKRKeyResult, OKRProgress } from '../../core/models';
 @Component({
   selector: 'app-okr-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, DecimalPipe, SlicePipe, FormsModule],
+  imports: [CommonModule, RouterLink, DecimalPipe, SlicePipe, FormsModule],
   templateUrl: './okr-detail.component.html',
   styleUrl: './okr.scss',
 })

@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -9,7 +9,7 @@ import { BalancedScorecard } from '../../core/models';
 @Component({
   selector: 'app-bsc-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './bsc-list.component.html',
   styleUrl: './bsc.scss',
 })

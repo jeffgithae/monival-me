@@ -1,4 +1,4 @@
-import { NgFor, NgIf, DatePipe } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,7 +10,7 @@ import { AuthService } from '../../core/auth.service';
 @Component({
   selector: 'app-projects-list',
   standalone: true,
-  imports: [NgIf, NgFor, RouterLink, DatePipe, FormsModule],
+  imports: [NgIf, NgFor, RouterLink, FormsModule],
   templateUrl: './projects-list.component.html',
   styleUrls: ['./projects-list.component.scss'],
 })

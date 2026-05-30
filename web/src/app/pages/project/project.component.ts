@@ -385,11 +385,11 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
   }
 
   loadReport() {
-  this.api.donorReport(this.projectId, {
-  reportingPeriodId: this.selectedReportingPeriodId || undefined,
-  fromDate: this.fromDate || undefined,
-  toDate: this.toDate || undefined,
-}).subscribe((r) => this.report.set(r as any));
+    this.api.donorReport(this.projectId, {
+      reportingPeriodId: this.selectedReportingPeriodId || undefined,
+      fromDate: this.reportFrom || undefined,
+      toDate: this.reportTo || undefined,
+    }).subscribe((r) => this.report.set(r as any));
   }
 
   addIndicator() {
@@ -543,10 +543,9 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
       .createReportingPeriod({
         projectId: this.projectId,
         name: this.reportingPeriodForm.name,
-        cadence: this.reportingPeriodForm.cadence,
+        frequency: this.reportingPeriodForm.cadence as any,
         startDate: this.reportingPeriodForm.startDate,
         endDate: this.reportingPeriodForm.endDate,
-        notes: this.reportingPeriodForm.notes || undefined,
       })
       .subscribe((period) => {
         this.reportingPeriodForm = {

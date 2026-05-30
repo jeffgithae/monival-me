@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -9,7 +9,7 @@ import { OKR } from '../../core/models';
 @Component({
   selector: 'app-okr-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, DecimalPipe, FormsModule],
+  imports: [CommonModule, RouterLink, DecimalPipe, FormsModule],
   templateUrl: './okr-list.component.html',
   styleUrl: './okr.scss',
 })
