@@ -470,3 +470,256 @@ export interface StrategicOverview {
   goals?: string[];
   timeframe?: string;
 }
+
+/**
+ * ADD THESE INTERFACES TO web/src/app/core/models.ts
+ * They extend the existing model file — do NOT replace it.
+ */
+
+// ─── Grants ───────────────────────────────────────────────────────────────────
+
+export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected';
+
+export interface Grant {
+  _id: string;
+  organizationId: string;
+  title: string;
+  referenceNumber?: string;
+  donorId?: string;
+  donorName?: string;
+  projectId?: string;
+  projectName?: string;
+  // status: GrantStatus;
+  currency: string;
+  totalAmount: number;
+  disbursedAmount: number;
+  spentAmount: number;
+  uncommittedAmount: number;
+  startDate: string;
+  endDate: string;
+  submissionDeadline?: string;
+  reportingFrequency?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+  nextReportDue?: string;
+  description?: string;
+  objectives?: string;
+  conditionsPrecedent?: string[];
+  restrictedCostCategories?: string[];
+  isRestricted: boolean;
+  attachmentUrls?: string[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  daysUntilExpiry?: number;
+  burnRate?: number;
+}
+
+export interface CreateGrantDto {
+  title: string;
+  referenceNumber?: string;
+  donorId?: string;
+  projectId?: string;
+  status?: GrantStatus;
+  currency?: string;
+  totalAmount: number;
+  startDate: string;
+  endDate: string;
+  submissionDeadline?: string;
+  reportingFrequency?: string;
+  description?: string;
+  objectives?: string;
+  isRestricted?: boolean;
+}
+
+export interface GrantSummary {
+  totalGrants: number;
+  activeGrants: number;
+  totalAwarded: number;
+  totalSpent: number;
+  totalDisbursed: number;
+  expiringIn30Days: Grant[];
+  overdueReports: Grant[];
+}
+
+// ─── Donors ───────────────────────────────────────────────────────────────────
+
+export type DonorType = 'bilateral' | 'multilateral' | 'foundation' | 'corporate' | 'individual' | 'government' | 'other';
+
+export interface Donor {
+  _id: string;
+  organizationId: string;
+  name: string;
+  shortName?: string;
+  type: DonorType;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  description?: string;
+  preferredReportingFormat?: string;
+  requiresDisaggregation?: boolean;
+  activeGrants?: number;
+  totalFunded?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDonorDto {
+  name: string;
+  shortName?: string;
+  type: DonorType;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  description?: string;
+  requiresDisaggregation?: boolean;
+}
+
+// ─── Reporting Periods ────────────────────────────────────────────────────────
+
+export type ReportingPeriodFrequency = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
+export type ReportingPeriodStatus = 'open' | 'submitted' | 'approved' | 'locked';
+
+export interface IndicatorResult {
+  // _id?: string;
+  // indicatorId: string;
+  indicatorTitle?: string;
+  targetValue?: number;
+  achievedValue: number;
+  calculatedValue?: number;
+  percentAchieved?: number;
+  disaggregation?: Record<string, number>;
+  narrative?: string;
+  dataQualityIssues?: string[];
+  source?: string;
+  verifiedBy?: string;
+}
+
+export interface ReportingPeriod {
+  _id: string;
+  organizationId: string;
+  // projectId?: string;
+  projectName?: string;
+  name: string;
+  frequency: ReportingPeriodFrequency;
+  startDate: string;
+  endDate: string;
+  dueDate?: string;
+  status: ReportingPeriodStatus;
+  results?: IndicatorResult[];
+  narrative?: string;
+  challenges?: string;
+  lessonsLearned?: string;
+  nextPeriodPlans?: string;
+  submittedBy?: string;
+  submittedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  lockedAt?: string;
+  totalActivities?: number;
+  approvedActivities?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateReportingPeriodDto {
+  projectId?: string;
+  name: string;
+  frequency: ReportingPeriodFrequency;
+  startDate: string;
+  endDate: string;
+  dueDate?: string;
+}
+
+// ─── Period Targets (add to Indicator model) ─────────────────────────────────
+
+export interface PeriodTarget {
+  period: string;        // "2026-Q1", "2026-01", "2026"
+  targetValue: number;
+  disaggregation?: Record<string, number>;
+  notes?: string;
+}
+
+// Add to existing Indicator interface:
+// periodTargets?: PeriodTarget[];
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+export type AuditAction =
+  | 'CREATE' | 'UPDATE' | 'DELETE'
+  | 'APPROVE' | 'REJECT' | 'SUBMIT'
+  | 'LOCK' | 'CLOSE' | 'ARCHIVE'
+  | 'LOGIN' | 'EXPORT' | 'REVISE'
+  | 'CREATE_ALLOCATION' | 'APPROVE_ALLOCATION' | 'REVISE_ALLOCATION'
+  | 'CLOSE_ALLOCATION' | 'CREATE_LINE_ITEM' | 'UPDATE_LINE_ITEM'
+  | 'CALCULATE_VARIANCE' | 'DELETE_ALLOCATION' | 'DELETE_LINE_ITEM';
+
+export interface AuditEvent {
+  _id: string;
+  organizationId: string;
+  userId: string;
+  userEmail: string;
+  action: AuditAction;
+  entity: string;
+  entityId: string;
+  before?: Record<string, any>;
+  after?: Record<string, any>;
+  ipAddress?: string;
+  reason?: string;
+  createdAt: string;
+}
+
+// ─── In-App Notifications ─────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'activity_pending_review'
+  | 'activity_approved'
+  | 'activity_rejected'
+  | 'grant_expiring_soon'
+  | 'grant_report_due'
+  | 'budget_threshold_warning'
+  | 'budget_threshold_critical'
+  | 'period_due_soon'
+  | 'period_submitted'
+  | 'period_approved'
+  | 'team_invite_accepted'
+  | 'indicator_target_missed';
+
+export interface AppNotification {
+  _id: string;
+  userId: string;
+  organizationId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  entityId?: string;
+  entityType?: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+// ─── Data Quality ─────────────────────────────────────────────────────────────
+
+export interface DataQualityIssue {
+  indicatorId: string;
+  indicatorTitle: string;
+  issueType: 'missing_data' | 'outlier' | 'stale' | 'no_activities' | 'target_missed_by_50pct';
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  lastUpdated?: string;
+}
+
+export interface DataQualityReport {
+  projectId: string;
+  periodId?: string;
+  generatedAt: string;
+  overallScore: number;  // 0-100
+  issues: DataQualityIssue[];
+  totalIndicators: number;
+  indicatorsWithData: number;
+  indicatorsOnTrack: number;
+  staleIndicators: number;
+}

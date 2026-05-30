@@ -1,0 +1,284 @@
+<!-- web/src/app/pages/reporting-periods/reporting-periods.component.html -->
+<div class="page periods-page">
+  <div class="page-header">
+    <div>
+      <h1>Reporting Periods</h1>
+      <p class="page-subtitle">Manage and lock indicator results per reporting period</p>
+    </div>
+    @if (canManage()) {
+      <button class="btn btn-primary" (click)="showForm.set(!showForm())">
+        {{ showForm() ? '✕ Cancel' : '+ New Period' }}
+      </button>
+    }
+  </div>
+
+  @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+
+  <!-- Create form -->
+  @if (showForm() && canManage()) {
+    <div class="card form-card">
+      <h3>New Reporting Period</h3>
+      <form [formGroup]="form" (ngSubmit)="createPeriod()">
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Period Name *</label>
+            <input formControlName="name" placeholder="Q1 2026 Progress Report" />
+          </div>
+          <div class="field">
+            <label>Frequency *</label>
+            <select formControlName="frequency">
+              @for (f of frequencies; track f) {
+                <option [value]="f">{{ f | titlecase }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="field">
+            <label>Start Date *</label>
+            <input formControlName="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label>End Date *</label>
+            <input formControlName="endDate" type="date" />
+          </div>
+          <div class="field">
+            <label>Report Due Date</label>
+            <input formControlName="dueDate" type="date" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
+            {{ saving() ? 'Creating…' : 'Create Period' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="periods-layout">
+    <!-- Left: period list -->
+    <div class="periods-list">
+      @if (loading()) {
+        <div class="loading">Loading…</div>
+      } @else if (periods().length === 0) {
+        <div class="empty-state"><p>No reporting periods yet.</p></div>
+      } @else {
+        @for (p of periods(); track p._id) {
+          <div class="period-card" [class.active]="selected()?._id === p._id" (click)="selectPeriod(p)">
+            <div class="period-name">{{ p.name }}</div>
+            <div class="period-meta">
+              <span [class]="'badge ' + statusBadge(p.status)">{{ p.status }}</span>
+              <span class="period-dates">{{ p.startDate | date:'d MMM' }} – {{ p.endDate | date:'d MMM y' }}</span>
+            </div>
+            @if (p.projectName) {
+              <div class="period-project">📁 {{ p.projectName }}</div>
+            }
+            @if (p.dueDate) {
+              <div class="period-due">Due: {{ p.dueDate | date:'d MMM y' }}</div>
+            }
+            <div class="period-stats">
+              <span>✅ {{ p.approvedActivities ?? 0 }}/{{ p.totalActivities ?? 0 }} activities</span>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Right: period detail -->
+    @if (selected()) {
+      <div class="period-detail card">
+        <!-- Header -->
+        <div class="detail-header">
+          <div>
+            <h2>{{ selected()!.name }}</h2>
+            <span [class]="'badge ' + statusBadge(selected()!.status)">{{ selected()!.status }}</span>
+          </div>
+          <!-- Action buttons by status -->
+          <div class="detail-actions">
+            @if (canCalculate()) {
+              <button class="btn btn-outline" (click)="calculate()" [disabled]="calculating()">
+                {{ calculating() ? '⏳ Calculating…' : '🔄 Calculate from Activities' }}
+              </button>
+            }
+            @if (canSubmit()) {
+              <button class="btn btn-primary" (click)="changeStatus('submitted')">Submit for Review →</button>
+            }
+            @if (canApproveSelected()) {
+              <button class="btn btn-success" (click)="changeStatus('approved')">✅ Approve</button>
+            }
+            @if (canLock()) {
+              <button class="btn btn-warning" (click)="changeStatus('locked')">🔒 Lock Period</button>
+            }
+            @if (selected()!.status === 'locked' || selected()!.status === 'approved') {
+              <button class="btn btn-outline" (click)="export('pdf')">📄 PDF</button>
+              <button class="btn btn-outline" (click)="export('excel')">📊 Excel</button>
+            }
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button [class.active]="activeTab()==='results'"   (click)="activeTab.set('results')">📊 Results</button>
+          <button [class.active]="activeTab()==='narrative'" (click)="activeTab.set('narrative')">📝 Narrative</button>
+          <button [class.active]="activeTab()==='dq'"        (click)="activeTab.set('dq')">🔍 Data Quality</button>
+        </div>
+
+        <!-- Results tab -->
+        @if (activeTab() === 'results') {
+          <div class="tab-content">
+            @if (!selected()!.results?.length) {
+              <div class="empty-state">
+                <p>No indicator results yet.</p>
+                @if (canCalculate()) {
+                  <p>Click "Calculate from Activities" to auto-populate results from approved activities.</p>
+                }
+              </div>
+            } @else {
+              <table class="data-table results-table">
+                <thead>
+                  <tr>
+                    <th>Indicator</th>
+                    <th>Target</th>
+                    <th>Calculated</th>
+                    <th>Achieved</th>
+                    <th>% Achieved</th>
+                    <th>Narrative</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of selected()!.results; track r.indicatorId) {
+                    <tr>
+                      <td>{{ r.indicatorTitle || r.indicatorId }}</td>
+                      <td>{{ r.targetValue ?? '—' }}</td>
+                      <td class="muted">{{ r.calculatedValue ?? '—' }}</td>
+                      <td>
+                        @if (!isLocked()) {
+                          <input type="number" class="inline-input"
+                            [value]="r.achievedValue"
+                            (change)="updateResult(r.indicatorId, 'achievedValue', +$any($event.target).value)" />
+                        } @else {
+                          {{ r.achievedValue }}
+                        }
+                      </td>
+                      <td>
+                        @if (r.percentAchieved != null) {
+                          <span [class]="r.percentAchieved >= 80 ? 'text-green' : r.percentAchieved >= 50 ? 'text-yellow' : 'text-red'">
+                            {{ r.percentAchieved | number:'1.0-0' }}%
+                          </span>
+                        } @else { — }
+                      </td>
+                      <td>
+                        @if (!isLocked()) {
+                          <input class="inline-input wide" [value]="r.narrative || ''"
+                            (change)="updateResult(r.indicatorId, 'narrative', $any($event.target).value)"
+                            placeholder="Explain variance…" />
+                        } @else {
+                          <span class="muted">{{ r.narrative || '—' }}</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+
+        <!-- Narrative tab -->
+        @if (activeTab() === 'narrative') {
+          <div class="tab-content">
+            <form [formGroup]="narrativeForm">
+              <div class="field">
+                <label>Period Narrative</label>
+                <textarea formControlName="narrative" rows="5"
+                  placeholder="Overall progress narrative for this period…"
+                  [readonly]="isLocked()"></textarea>
+              </div>
+              <div class="field">
+                <label>Challenges & Risks</label>
+                <textarea formControlName="challenges" rows="3"
+                  placeholder="Key challenges encountered…"
+                  [readonly]="isLocked()"></textarea>
+              </div>
+              <div class="field">
+                <label>Lessons Learned</label>
+                <textarea formControlName="lessonsLearned" rows="3"
+                  placeholder="What did we learn this period…"
+                  [readonly]="isLocked()"></textarea>
+              </div>
+              <div class="field">
+                <label>Plans for Next Period</label>
+                <textarea formControlName="nextPeriodPlans" rows="3"
+                  placeholder="Priority actions for the next period…"
+                  [readonly]="isLocked()"></textarea>
+              </div>
+              @if (!isLocked()) {
+                <button type="button" class="btn btn-primary" (click)="saveNarrative()" [disabled]="saving()">
+                  {{ saving() ? 'Saving…' : 'Save Narrative' }}
+                </button>
+              }
+            </form>
+          </div>
+        }
+
+        <!-- Data Quality tab -->
+        @if (activeTab() === 'dq') {
+          <div class="tab-content">
+            @if (!dqReport()) {
+              <div class="empty-state"><p>No data quality report available for this period.</p></div>
+            } @else {
+              <div class="dq-header">
+                <div class="dq-score-ring" [class]="dqReport()!.overallScore >= 80 ? 'good' : dqReport()!.overallScore >= 50 ? 'fair' : 'poor'">
+                  <span class="dq-score">{{ dqReport()!.overallScore | number:'1.0-0' }}%</span>
+                  <span class="dq-label">DQ Score</span>
+                </div>
+                <div class="dq-stats">
+                  <div>📊 {{ dqReport()!.indicatorsWithData }}/{{ dqReport()!.totalIndicators }} indicators have data</div>
+                  <div>✅ {{ dqReport()!.indicatorsOnTrack }} on track</div>
+                  <div>⏳ {{ dqReport()!.staleIndicators }} stale</div>
+                </div>
+              </div>
+              @if (dqReport()!.issues.length === 0) {
+                <div class="dq-ok">✅ No data quality issues found.</div>
+              } @else {
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Indicator</th><th>Issue</th><th>Severity</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (issue of dqReport()!.issues; track issue.indicatorId) {
+                      <tr>
+                        <td>{{ issue.indicatorTitle }}</td>
+                        <td>{{ issue.issueType | titlecase }}</td>
+                        <td><span [class]="dqSeverityClass(issue.severity)">{{ issue.severity }}</span></td>
+                        <td>{{ issue.description }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            }
+          </div>
+        }
+
+        <!-- Meta -->
+        <div class="period-meta-footer">
+          @if (selected()!.submittedBy) {
+            <span>Submitted: {{ selected()!.submittedAt | date:'d MMM y HH:mm' }}</span>
+          }
+          @if (selected()!.approvedBy) {
+            <span>Approved: {{ selected()!.approvedAt | date:'d MMM y HH:mm' }}</span>
+          }
+          @if (selected()!.lockedAt) {
+            <span>🔒 Locked: {{ selected()!.lockedAt | date:'d MMM y HH:mm' }}</span>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="period-placeholder card">
+        <p>← Select a reporting period to view details</p>
+      </div>
+    }
+  </div>
+</div>

@@ -21,10 +21,22 @@ import {
   IndicatorResult,
   IndicatorTarget,
   OKR,
+  OKRKeyResult,
   OKRProgress,
   Project,
   ReportingPeriod,
   StrategicOverview,
+  AppNotification,
+  AuditEvent,
+  CreateDonorDto,
+  CreateGrantDto,
+  CreateReportingPeriodDto,
+  DataQualityReport,
+  Donor,
+  Grant,
+  GrantSummary,
+  PeriodTarget,
+  ReportingPeriodStatus,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -94,22 +106,23 @@ export class ApiService {
     return this.http.delete(`${this.base}/members/${memberId}`);
   }
 
-  reportingPeriods(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) params = params.set('projectId', projectId);
-    return this.http.get<ReportingPeriod[]>(`${this.base}/reporting/periods`, { params });
-  }
+  // reportingPeriods(projectId?: string) {
+  //   let params = new HttpParams();
+  //   if (projectId) params = params.set('projectId', projectId);
+  //   return this.http.get<ReportingPeriod[]>(`${this.base}/reporting/periods`, { params });
+  // }
 
-  createReportingPeriod(payload: {
-    projectId: string;
-    name: string;
-    cadence?: string;
-    startDate: string;
-    endDate: string;
-    notes?: string;
-  }) {
-    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, payload);
-  }
+  // createReportingPeriod(payload: {
+  //   projectId: string;
+  //   name: string;
+  //   cadence?: string;
+  //   startDate: string;
+  //   endDate: string;
+  //   notes?: string;
+  // }) {
+  //   return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, payload);
+  // }
+  
 
   calculateReportingResults(periodId: string) {
     return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${periodId}/calculate`, {});
@@ -163,11 +176,11 @@ export class ApiService {
     }>(`${this.base}/reporting/data-quality`, { params });
   }
 
-  donors() {
-    return this.http.get<Array<{ _id: string; name: string; contactEmail?: string }>>(
-      `${this.base}/donors`,
-    );
-  }
+  // donors() {
+  //   return this.http.get<Array<{ _id: string; name: string; contactEmail?: string }>>(
+  //     `${this.base}/donors`,
+  //   );
+  // }
 
   // Partners
   partners() {
@@ -178,9 +191,9 @@ export class ApiService {
     return this.http.post<Partner>(`${this.base}/partners`, body);
   }
 
-  createDonor(body: { name: string; contactEmail?: string; country?: string }) {
-    return this.http.post(`${this.base}/donors`, body);
-  }
+  // createDonor(body: { name: string; contactEmail?: string; country?: string }) {
+  //   return this.http.post(`${this.base}/donors`, body);
+  // }
 
   projects() {
     return this.http.get<Project[]>(`${this.base}/projects`);
@@ -289,13 +302,13 @@ export class ApiService {
     return this.http.patch(`${this.base}/activities/${id}/review`, { status });
   }
 
-  donorReport(projectId: string, fromDate?: string, toDate?: string, reportingPeriodId?: string) {
-    let params = new HttpParams();
-    if (fromDate) params = params.set('fromDate', fromDate);
-    if (toDate) params = params.set('toDate', toDate);
-    if (reportingPeriodId) params = params.set('reportingPeriodId', reportingPeriodId);
-    return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params });
-  }
+  // donorReport(projectId: string, fromDate?: string, toDate?: string, reportingPeriodId?: string) {
+  //   let params = new HttpParams();
+  //   if (fromDate) params = params.set('fromDate', fromDate);
+  //   if (toDate) params = params.set('toDate', toDate);
+  //   if (reportingPeriodId) params = params.set('reportingPeriodId', reportingPeriodId);
+  //   return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params });
+  // }
 
   // Budget Tracking API
   budgetAllocations(query?: { status?: string; fiscalYear?: number; projectId?: string; grantId?: string; category?: string }) {
@@ -517,7 +530,133 @@ export class ApiService {
   getStrategicOverview() {
     return this.http.get<StrategicOverview>(`${this.base}/organizations/strategic-overview`);
   }
-}
+/**
+ * ADD THESE METHODS TO web/src/app/core/api.service.ts
+ * They extend the existing ApiService class — do NOT replace the file.
+ * Paste inside the class body.
+ */
 
-// Import OKRKeyResult for the method signature
-import { OKRKeyResult } from './models';
+// ─── Grants ───────────────────────────────────────────────────────────────────
+
+  grants(params?: { status?: string; projectId?: string; donorId?: string; page?: number; limit?: number }) {
+    return this.http.get<{ data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any });
+  }
+  grant(id: string) {
+    return this.http.get<Grant>(`${this.base}/grants/${id}`);
+  }
+  createGrant(body: CreateGrantDto) {
+    return this.http.post<Grant>(`${this.base}/grants`, body);
+  }
+  updateGrant(id: string, body: Partial<CreateGrantDto>) {
+    return this.http.patch<Grant>(`${this.base}/grants/${id}`, body);
+  }
+  deleteGrant(id: string) {
+    return this.http.delete(`${this.base}/grants/${id}`);
+  }
+  grantSummary() {
+    return this.http.get<GrantSummary>(`${this.base}/grants/summary`);
+  }
+  updateGrantSpend(id: string, spentAmount: number) {
+    return this.http.patch<Grant>(`${this.base}/grants/${id}/spending`, { spentAmount });
+  }
+  linkGrantToProject(grantId: string, projectId: string) {
+    return this.http.post(`${this.base}/grants/${grantId}/link-project`, { projectId });
+  }
+
+// ─── Donors ───────────────────────────────────────────────────────────────────
+
+  donors(params?: { type?: string; page?: number; limit?: number }) {
+    return this.http.get<{ data: Donor[]; total: number }>(`${this.base}/donors`, { params: params as any });
+  }
+  donor(id: string) {
+    return this.http.get<Donor>(`${this.base}/donors/${id}`);
+  }
+  createDonor(body: CreateDonorDto) {
+    return this.http.post<Donor>(`${this.base}/donors`, body);
+  }
+  updateDonor(id: string, body: Partial<CreateDonorDto>) {
+    return this.http.patch<Donor>(`${this.base}/donors/${id}`, body);
+  }
+  deleteDonor(id: string) {
+    return this.http.delete(`${this.base}/donors/${id}`);
+  }
+  donorGrants(donorId: string) {
+    return this.http.get<Grant[]>(`${this.base}/donors/${donorId}/grants`);
+  }
+
+// ─── Reporting Periods ────────────────────────────────────────────────────────
+
+  reportingPeriods(params?: { projectId?: string; status?: string; page?: number; limit?: number }) {
+    return this.http.get<{ data: ReportingPeriod[]; total: number }>(`${this.base}/reporting/periods`, { params: params as any });
+  }
+  reportingPeriod(id: string) {
+    return this.http.get<ReportingPeriod>(`${this.base}/reporting/periods/${id}`);
+  }
+  createReportingPeriod(body: CreateReportingPeriodDto) {
+    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, body);
+  }
+  calculatePeriodResults(id: string) {
+    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods/${id}/calculate`, {});
+  }
+  updatePeriodStatus(id: string, status: ReportingPeriodStatus, notes?: string) {
+    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}/status`, { status, notes });
+  }
+  updateIndicatorResult(periodId: string, body: Partial<IndicatorResult> & { indicatorId: string }) {
+    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/results`, { periodId, ...body });
+  }
+  donorReport(projectId: string, params: { reportingPeriodId?: string; fromDate?: string; toDate?: string }) {
+    return this.http.get(`${this.base}/reports/donor/${projectId}`, { params: params as any });
+  }
+  exportPeriodReport(periodId: string, format: 'pdf' | 'excel') {
+    return this.http.get(`${this.base}/reporting/periods/${periodId}/export?format=${format}`, {
+      responseType: 'blob',
+    });
+  }
+
+// ─── Period Targets ───────────────────────────────────────────────────────────
+
+  setPeriodTarget(indicatorId: string, target: PeriodTarget) {
+    return this.http.post(`${this.base}/indicators/${indicatorId}/targets`, target);
+  }
+  getPeriodTargets(indicatorId: string) {
+    return this.http.get<PeriodTarget[]>(`${this.base}/indicators/${indicatorId}/targets`);
+  }
+  deletePeriodTarget(indicatorId: string, period: string) {
+    return this.http.delete(`${this.base}/indicators/${indicatorId}/targets/${period}`);
+  }
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+  auditLog(params?: { entityId?: string; entity?: string; userId?: string; action?: string; page?: number; limit?: number }) {
+    return this.http.get<{ data: AuditEvent[]; total: number }>(`${this.base}/audit`, { params: params as any });
+  }
+  // budgetAuditLog(entityId: string) {
+  //   return this.http.get<AuditEvent[]>(`${this.base}/budget/audit/${entityId}`);
+  // }
+
+// ─── In-App Notifications ─────────────────────────────────────────────────────
+
+  notifications(params?: { isRead?: boolean; page?: number; limit?: number }) {
+    return this.http.get<{ data: AppNotification[]; total: number; unreadCount: number }>(
+      `${this.base}/notifications`,
+      { params: params as any }
+    );
+  }
+  markNotificationRead(id: string) {
+    return this.http.patch(`${this.base}/notifications/${id}/read`, {});
+  }
+  markAllNotificationsRead() {
+    return this.http.post(`${this.base}/notifications/read-all`, {});
+  }
+  deleteNotification(id: string) {
+    return this.http.delete(`${this.base}/notifications/${id}`);
+  }
+
+// ─── Data Quality ─────────────────────────────────────────────────────────────
+
+  // dataQualityReport(projectId: string, periodId?: string) {
+  //   const params = periodId ? { periodId } : {};
+  //   return this.http.get<DataQualityReport>(`${this.base}/reports/data-quality/${projectId}`, { params });
+  // }
+  
+}

@@ -19,7 +19,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload {
-    return payload;
+  validate(payload: JwtPayload): JwtPayload & { _id: string } {
+    // The JWT stores the user id under `sub` (RFC 7519), but service code
+    // universally reads `user._id`. Expose both so nothing breaks.
+    return { ...payload, _id: payload.sub };
   }
 }

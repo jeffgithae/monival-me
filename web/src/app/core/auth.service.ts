@@ -22,6 +22,15 @@ interface RegisterResponse extends AuthResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  isOwner(): any {
+      throw new Error('Method not implemented.');
+  }
+  isAdmin(): any {
+      throw new Error('Method not implemented.');
+  }
+  isFinance(): any {
+      throw new Error('Method not implemented.');
+  }
   private readonly tokenKey = 'monival_token';
   readonly user = signal<AuthUser | null>(null);
   readonly organization = signal<Organization | null>(null);
