@@ -17,6 +17,9 @@ import { OKRListComponent } from './pages/okrs/okr-list.component';
 import { OKRDetailComponent } from './pages/okrs/okr-detail.component';
 import { StrategicOverviewComponent } from './pages/strategic-overview/strategic-overview.component';
 import { OKRsComponent } from './pages/okrs/okrs.component';
+import { DonorsComponent } from './pages/donors/donor.component';
+import { ReportingPeriodsComponent } from './pages/reporting/reporting-period.component';
+import { GrantsListComponent } from './pages/grant/grant-list.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -40,6 +43,9 @@ export const routes: Routes = [
       { path: 'projects/:id', component: ProjectComponent },
       { path: 'settings/billing', component: BillingComponent },
       { path: 'settings/team', component: TeamComponent },
+      { path: 'donors', component: DonorsComponent },
+      { path: 'reporting', component: ReportingPeriodsComponent },
+      { path: 'grants', component: GrantsListComponent },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
