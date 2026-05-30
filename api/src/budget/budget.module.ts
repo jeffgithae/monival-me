@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { BudgetAllocation, BudgetAllocationSchema } from './schemas/budget-allocation.schema';
-import { BudgetLineItem, BudgetLineItemSchema } from './schemas/budget-line-item.schema';
-import { BudgetVariance, BudgetVarianceSchema } from './schemas/budget-variance.schema';
-import { BudgetService } from './budget.service';
+
 import { BudgetController } from './budget.controller';
+import { BudgetService } from './budget.service';
+import { BudgetAllocation, BudgetAllocationSchema, BudgetLineItem, BudgetLineItemSchema, BudgetVariance, BudgetVarianceSchema, BudgetAuditEvent, BudgetAuditEventSchema } from './schemas/budget.schema';
+
+// import {
+//   BudgetAllocation, BudgetAllocationSchema,
+//   BudgetLineItem, BudgetLineItemSchema,
+//   BudgetVariance, BudgetVarianceSchema,
+//   BudgetAuditEvent, BudgetAuditEventSchema,
+// } from './schemas/budget.schema';
 
 @Module({
   imports: [
@@ -12,10 +18,11 @@ import { BudgetController } from './budget.controller';
       { name: BudgetAllocation.name, schema: BudgetAllocationSchema },
       { name: BudgetLineItem.name, schema: BudgetLineItemSchema },
       { name: BudgetVariance.name, schema: BudgetVarianceSchema },
+      { name: BudgetAuditEvent.name, schema: BudgetAuditEventSchema },
     ]),
   ],
   controllers: [BudgetController],
   providers: [BudgetService],
-  exports: [BudgetService],
+  exports: [BudgetService], // Export so reporting/grants modules can use BudgetService
 })
 export class BudgetModule {}
