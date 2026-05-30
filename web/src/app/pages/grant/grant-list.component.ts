@@ -11,8 +11,7 @@ import { Grant, GrantSummary, CreateGrantDto, GrantStatus } from '../../core/mod
   selector: 'app-grants-list',
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule],
-  templateUrl: './grants-list.component.html',
-  styleUrl: './grants.scss',
+  templateUrl: './grant-list.component.html',
 })
 export class GrantsListComponent implements OnInit {
   private api    = inject(ApiService);

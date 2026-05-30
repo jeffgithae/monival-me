@@ -155,7 +155,6 @@ import { Donor, CreateDonorDto, DonorType, Grant } from '../../core/models';
   </div>
 </div>
   `,
-  styleUrl: './donors.component.scss',
 })
 export class DonorsComponent implements OnInit {
   private api  = inject(ApiService);
