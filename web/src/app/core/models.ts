@@ -144,6 +144,9 @@ export interface Partner {
   contactEmail?: string;
   contactPhone?: string;
   country?: string;
+  region?: string;
+  district?: string;
+  geoPoint?: { latitude: number; longitude: number };
   notes?: string;
 }
 
@@ -265,47 +268,86 @@ export interface DonorReport {
 export interface BudgetAllocation {
   _id: string;
   name: string;
+  description?: string;
+  projectId?: string;
+  grantId?: string;
+  donorId?: string;
   allocatedAmount: number;
   spentAmount: number;
+  committedAmount: number;
   uncommittedAmount: number;
-  category: 'operational' | 'project' | 'emergency' | 'strategic';
-  status: 'draft' | 'approved' | 'active' | 'closed';
+  currency: string;
+  allocatedAmountUSD: number;
+  category: 'operational' | 'project' | 'emergency' | 'strategic' | 'personnel' | 'travel' | 'equipment' | 'indirect';
+  status: 'draft' | 'submitted' | 'approved' | 'active' | 'under_review' | 'closed' | 'archived';
   fiscalYear: number;
   startDate: string;
   endDate: string;
-  notes?: string;
+  isRestricted: boolean;
 }
 
 export interface BudgetLineItem {
   _id: string;
-  budgetId: string;
-  title: string;
-  description?: string;
-  plannedAmount: number;
-  spentAmount: number;
+  /** References BudgetAllocation._id */
+  budgetAllocationId: string;
+  description: string;
+  costCategory: string;
+  unitDescription: string;
+  quantity: number;
+  unitCost: number;
+  amount: number;
+  spent: number;
+  committed: number;
   status: 'planned' | 'committed' | 'spent' | 'cancelled';
-  category?: string;
-  dueDate?: string;
+  notes?: string;
+  linkedActivityId?: string;
+  linkedIndicatorId?: string;
+  linkedGrantId?: string;
+  reportingPeriodId?: string;
+  invoiceReference?: string;
+  paymentDate?: string;
+  donorCostCategory?: string;
 }
 
 export interface BudgetVariance {
   _id: string;
-  budgetId: string;
+  /** References BudgetAllocation._id */
+  budgetAllocationId: string;
   period: string;
-  plannedAmount: number;
+  budgetedAmount: number;
   actualAmount: number;
   variance: number;
   variancePercentage: number;
-  trend: 'favorable' | 'unfavorable';
+  trend: 'favorable' | 'unfavorable' | 'on_track';
+  burnRate: number;
+  projectedYearEnd: number;
+  notes?: string;
+  alertLevel: 'info' | 'warning' | 'critical';
 }
 
 export interface BudgetSummary {
   totalAllocated: number;
+  totalAllocatedUSD: number;
   totalSpent: number;
+  totalCommitted: number;
   totalUncommitted: number;
-  allocations: BudgetAllocation[];
-  variance: number;
-  spentPercentage: number;
+  overallBurnRate: number;
+  projectedYearEnd: number;
+  alertedBudgets: number;
+  allocations: Array<{
+    _id: string;
+    name: string;
+    category: string;
+    currency: string;
+    allocated: number;
+    spent: number;
+    committed: number;
+    uncommitted: number;
+    burnRate: number;
+    status: string;
+    alertLevel: string;
+  }>;
+  byCategory: Record<string, { allocated: number; spent: number }>;
 }
 
 // Balanced Scorecard Models
@@ -369,8 +411,8 @@ export interface OKR {
   ownerUserId?: string;
   linkedProjects?: string[];
   progressPercentage: number;
-  lastReviewedBy?: string;
-  lastReviewDate?: string;
+  reviewedBy?: string;
+  reviewDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -384,6 +426,27 @@ export interface OKRProgress {
     confidence: number;
     status: string;
   }>;
+}
+
+
+// Grant Management Models
+export interface Grant {
+  _id: string;
+  name: string;
+  description?: string;
+  donorId?: string;
+  amount: number;
+  currency: string;
+  amountSpent: number;
+  status: 'pending' | 'active' | 'completed' | 'closed';
+  startDate: string;
+  endDate: string;
+  linkedProjects: string[];
+  requiresMonthlyReporting: boolean;
+  requiresFinalReport: boolean;
+  termsAndConditions?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Framework Configuration

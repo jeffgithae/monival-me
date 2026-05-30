@@ -1,144 +1,335 @@
+@if (error(); as err) {
+  <div class="alert alert-error">{{ err }}</div>
+}
+
 @if (budget(); as b) {
   <header class="page-header">
     <div>
       <a routerLink="/budget" class="back">← Budgets</a>
       <h1>{{ b.name }}</h1>
-      <p class="muted">FY {{ b.fiscalYear }} — {{ b.category }}</p>
+      <p class="muted">
+        FY {{ b.fiscalYear }} · {{ b.category | titlecase }} · {{ b.currency }}
+        @if (b.isRestricted) { <span class="badge badge-restricted">🔒 Restricted</span> }
+      </p>
     </div>
-    <span class="pill">{{ b.status }}</span>
+    <div class="header-actions">
+      <span [class]="'pill ' + getStatusClass(b.status)">{{ b.status | titlecase }}</span>
+      @if (canApprove) {
+        <button class="primary" (click)="approveBudget()">✓ Approve</button>
+      }
+      @if (canRevise) {
+        <button class="secondary" (click)="showReviseForm.set(!showReviseForm())">✏️ Revise</button>
+      }
+      @if (canClose) {
+        <button class="danger" (click)="closeBudget()">Close Budget</button>
+      }
+    </div>
   </header>
 
+  @if (showReviseForm()) {
+    <section class="panel panel-warning">
+      <h2>Revise Allocated Amount</h2>
+      <form class="form-grid" (ngSubmit)="reviseBudget()">
+        <label>
+          New Allocated Amount *
+          <input type="number" [(ngModel)]="reviseForm.newAllocatedAmount" name="newAmount" min="1" required />
+        </label>
+        <label>
+          Reason *
+          <select [(ngModel)]="reviseForm.reason" name="reason">
+            @for (r of revisionReasons; track r.value) {
+              <option [value]="r.value">{{ r.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="full">
+          Notes
+          <textarea [(ngModel)]="reviseForm.notes" name="notes" rows="2" placeholder="e.g. Donor amendment letter ref: DA-2026-003"></textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="primary">Save Revision</button>
+          <button type="button" (click)="showReviseForm.set(false)">Cancel</button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <!-- Summary cards -->
   <div class="budget-summary">
     <div class="stat">
       <label>Allocated</label>
-      <span class="value">{{ b.allocatedAmount | number: '1.0-0' }}</span>
+      <span class="value">{{ b.currency }} {{ b.allocatedAmount | number: '1.0-0' }}</span>
     </div>
     <div class="stat">
       <label>Spent</label>
-      <span class="value">{{ b.spentAmount | number: '1.0-0' }}</span>
+      <span class="value spent">{{ b.currency }} {{ b.spentAmount | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <label>Committed</label>
+      <span class="value">{{ b.currency }} {{ b.committedAmount | number: '1.0-0' }}</span>
     </div>
     <div class="stat">
       <label>Available</label>
-      <span class="value">{{ b.uncommittedAmount | number: '1.0-0' }}</span>
+      <span class="value available">{{ b.currency }} {{ b.uncommittedAmount | number: '1.0-0' }}</span>
     </div>
     <div class="stat">
-      <label>Utilization</label>
-      <span class="value">{{ (b.spentAmount / b.allocatedAmount * 100) | number: '1.0-0' }}%</span>
+      <label>Utilisation</label>
+      <span class="value">{{ getSpentPercent(b) | number: '1.0-0' }}%</span>
+      <div class="progress-bar mini">
+        <div
+          class="progress"
+          [style.width.%]="getSpentPercent(b)"
+          [style.background]="getProgressColor(getSpentPercent(b))"
+        ></div>
+      </div>
     </div>
   </div>
 
+  <!-- Tabs -->
   <div class="tabs">
-    <button type="button" [class.active]="tab() === 'details'" (click)="setTab('details')">Details</button>
+    <button type="button" [class.active]="tab() === 'details'"    (click)="setTab('details')">Details</button>
     <button type="button" [class.active]="tab() === 'line-items'" (click)="setTab('line-items')">Line Items</button>
-    <button type="button" [class.active]="tab() === 'variance'" (click)="setTab('variance')">Variance Analysis</button>
+    <button type="button" [class.active]="tab() === 'variance'"   (click)="setTab('variance')">Variance Analysis</button>
+    @if (isFinance()) {
+      <button type="button" [class.active]="tab() === 'audit'"    (click)="setTab('audit')">Audit Log</button>
+    }
   </div>
 
+  <!-- Details tab -->
   @if (tab() === 'details') {
     <section class="panel">
       <h2>Budget Information</h2>
       <dl class="details">
-        <dt>Name</dt>
-        <dd>{{ b.name }}</dd>
-        <dt>Category</dt>
-        <dd>{{ b.category }}</dd>
-        <dt>Status</dt>
-        <dd><span class="pill">{{ b.status }}</span></dd>
-        <dt>Fiscal Year</dt>
-        <dd>{{ b.fiscalYear }}</dd>
-        <dt>Period</dt>
-        <dd>{{ b.startDate | date: 'shortDate' }} — {{ b.endDate | date: 'shortDate' }}</dd>
-        @if (b.notes) {
-          <dt>Notes</dt>
-          <dd>{{ b.notes }}</dd>
+        <dt>Name</dt>        <dd>{{ b.name }}</dd>
+        <dt>Description</dt> <dd>{{ b.description || '—' }}</dd>
+        <dt>Category</dt>    <dd>{{ b.category | titlecase }}</dd>
+        <dt>Status</dt>      <dd><span [class]="'pill ' + getStatusClass(b.status)">{{ b.status | titlecase }}</span></dd>
+        <dt>Fiscal Year</dt> <dd>{{ b.fiscalYear }}</dd>
+        <dt>Period</dt>      <dd>{{ b.startDate | date: 'mediumDate' }} – {{ b.endDate | date: 'mediumDate' }}</dd>
+        <dt>Currency</dt>    <dd>{{ b.currency }}</dd>
+        <dt>Restricted</dt>  <dd>{{ b.isRestricted ? 'Yes (donor-restricted)' : 'No' }}</dd>
+        @if (b.allocatedAmountUSD && b.currency !== 'USD') {
+          <dt>Allocated (USD)</dt>
+          <dd>USD {{ b.allocatedAmountUSD | number: '1.0-0' }}</dd>
         }
       </dl>
-
-      @if (isFinance() && b.status === 'draft') {
-        <button (click)="approveBudget()" class="primary">Approve Budget</button>
-      }
     </section>
   }
 
+  <!-- Line Items tab -->
   @if (tab() === 'line-items') {
     <section class="panel">
-      <h2>Budget Line Items</h2>
-      @if (isFinance()) {
-        <form class="form-grid" (ngSubmit)="addLineItem()">
-          <label>Item Title<input [(ngModel)]="lineItemForm.title" name="title" required /></label>
-          <label>Planned Amount<input type="number" [(ngModel)]="lineItemForm.plannedAmount" name="amount" required /></label>
-          <label>Category<input [(ngModel)]="lineItemForm.category" name="category" /></label>
-          <label class="full">Description<textarea [(ngModel)]="lineItemForm.description" name="description" rows="2"></textarea></label>
-          <button type="submit" class="primary">Add Line Item</button>
+      <div class="panel-toolbar">
+        <h2>Budget Line Items</h2>
+        @if (isFinance()) {
+          <button class="primary small" (click)="showLineItemForm.set(!showLineItemForm())">
+            {{ showLineItemForm() ? '✕ Cancel' : '+ Add Line Item' }}
+          </button>
+        }
+      </div>
+
+      @if (lineItemError(); as err) {
+        <div class="alert alert-error">{{ err }}</div>
+      }
+
+      @if (showLineItemForm() && isFinance()) {
+        <form class="form-grid sub-form" (ngSubmit)="addLineItem()">
+          <label class="full">
+            Description *
+            <input [(ngModel)]="lineItemForm.description" name="description" required placeholder="e.g. Project Manager — 12 person-months" />
+          </label>
+          <label>
+            Cost Category *
+            <input [(ngModel)]="lineItemForm.costCategory" name="costCategory" required placeholder="e.g. salaries, travel, supplies" />
+          </label>
+          <label>
+            Unit Description *
+            <input [(ngModel)]="lineItemForm.unitDescription" name="unitDesc" required placeholder="e.g. person-month, trip, unit" />
+          </label>
+          <label>
+            Quantity *
+            <input type="number" [(ngModel)]="lineItemForm.quantity" name="quantity" min="0.01" step="0.01" required />
+          </label>
+          <label>
+            Unit Cost *
+            <input type="number" [(ngModel)]="lineItemForm.unitCost" name="unitCost" min="0.01" step="0.01" required />
+          </label>
+          <label>
+            Total (computed)
+            <input type="number" [value]="lineItemForm.quantity * lineItemForm.unitCost" readonly class="readonly" />
+          </label>
+          <label>
+            Invoice Reference
+            <input [(ngModel)]="lineItemForm.invoiceReference" name="invoiceRef" placeholder="INV-2026-001" />
+          </label>
+          <label>
+            Payment Date
+            <input type="date" [(ngModel)]="lineItemForm.paymentDate" name="paymentDate" />
+          </label>
+          <label>
+            Donor Cost Category
+            <input [(ngModel)]="lineItemForm.donorCostCategory" name="donorCostCat" placeholder="e.g. USAID Direct Costs" />
+          </label>
+          <label class="full">
+            Notes
+            <textarea [(ngModel)]="lineItemForm.notes" name="notes" rows="2"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="primary">Add Line Item</button>
+            <button type="button" (click)="showLineItemForm.set(false); resetLineItemForm()">Cancel</button>
+          </div>
         </form>
       }
 
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Planned</th>
-            <th>Spent</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of lineItems(); track item._id) {
+      @if (lineItemsLoading()) {
+        <p class="muted">Loading line items…</p>
+      } @else {
+        <table>
+          <thead>
             <tr>
-              <td>{{ item.title }}</td>
-              <td class="number">{{ item.plannedAmount | number: '1.0-0' }}</td>
-              <td class="number">{{ item.spentAmount | number: '1.0-0' }}</td>
-              <td>
-                <select [(ngModel)]="item.status" (change)="updateLineItem(item._id, item.status)" class="small-select">
-                  <option value="planned">Planned</option>
-                  <option value="committed">Committed</option>
-                  <option value="spent">Spent</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </td>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Qty</th>
+              <th>Unit Cost</th>
+              <th class="num">Amount</th>
+              <th class="num">Spent</th>
+              <th>Status</th>
+              @if (isFinance()) { <th>Actions</th> }
             </tr>
-          } @empty {
-            <tr><td colspan="4" class="muted">No line items yet.</td></tr>
+          </thead>
+          <tbody>
+            @for (item of lineItems(); track item._id) {
+              <tr>
+                <td>
+                  {{ item.description }}
+                  @if (item.invoiceReference) {
+                    <small class="sub-text">{{ item.invoiceReference }}</small>
+                  }
+                </td>
+                <td><span class="badge">{{ item.costCategory }}</span></td>
+                <td>{{ item.quantity }}</td>
+                <td class="num">{{ item.unitCost | number: '1.2-2' }}</td>
+                <td class="num">{{ item.amount | number: '1.0-0' }}</td>
+                <td class="num">{{ item.spent | number: '1.0-0' }}</td>
+                <td>
+                  @if (isFinance()) {
+                    <select [(ngModel)]="item.status" (change)="updateLineItemStatus(item, item.status)" class="small-select">
+                      <option value="planned">Planned</option>
+                      <option value="committed">Committed</option>
+                      <option value="spent">Spent</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  } @else {
+                    <span class="pill">{{ item.status | titlecase }}</span>
+                  }
+                </td>
+                @if (isFinance()) {
+                  <td>
+                    <button class="icon-btn danger-text" (click)="deleteLineItem(item._id)" title="Delete line item">🗑</button>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="muted center">No line items yet.</td></tr>
+            }
+          </tbody>
+          @if (lineItems().length) {
+            <tfoot>
+              <tr class="totals-row">
+                <td colspan="4"><strong>Totals</strong></td>
+                <td class="num"><strong>{{ b.allocatedAmount | number: '1.0-0' }}</strong></td>
+                <td class="num"><strong>{{ b.spentAmount | number: '1.0-0' }}</strong></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
           }
-        </tbody>
-      </table>
+        </table>
+      }
     </section>
   }
 
+  <!-- Variance tab -->
   @if (tab() === 'variance') {
     <section class="panel">
-      <h2>Variance Analysis</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Planned</th>
-            <th>Actual</th>
-            <th>Variance</th>
-            <th>%</th>
-            <th>Trend</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (v of variance(); track v._id) {
+      <div class="panel-toolbar">
+        <h2>Variance Analysis</h2>
+        @if (isFinance()) {
+          <button class="primary small" (click)="showVarianceCalc.set(!showVarianceCalc())">
+            {{ showVarianceCalc() ? '✕ Cancel' : '+ Calculate Period' }}
+          </button>
+        }
+      </div>
+
+      @if (showVarianceCalc() && isFinance()) {
+        <form class="form-grid sub-form" (ngSubmit)="calculateVariance()">
+          <label>
+            Period (YYYY-MM) *
+            <input [(ngModel)]="varianceCalcForm.period" name="period" pattern="\d{4}-\d{2}" required placeholder="2026-01" />
+          </label>
+          <label>
+            Notes
+            <input [(ngModel)]="varianceCalcForm.notes" name="notes" />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="primary">Calculate</button>
+            <button type="button" (click)="showVarianceCalc.set(false)">Cancel</button>
+          </div>
+        </form>
+      }
+
+      @if (varianceLoading()) {
+        <p class="muted">Loading variance data…</p>
+      } @else {
+        <table>
+          <thead>
             <tr>
-              <td>{{ v.period }}</td>
-              <td class="number">{{ v.plannedAmount | number: '1.0-0' }}</td>
-              <td class="number">{{ v.actualAmount | number: '1.0-0' }}</td>
-              <td class="number" [class]="getVarianceColor(v.trend)">{{ v.variance | number: '1.0-0' }}</td>
-              <td class="number" [class]="getVarianceColor(v.trend)">{{ v.variancePercentage | number: '1.1-1' }}%</td>
-              <td>{{ getVarianceIcon(v.trend) }} {{ v.trend }}</td>
+              <th>Period</th>
+              <th class="num">Budgeted</th>
+              <th class="num">Actual</th>
+              <th class="num">Variance</th>
+              <th class="num">Variance %</th>
+              <th class="num">Burn Rate</th>
+              <th>Trend</th>
+              <th>Alert</th>
             </tr>
-          } @empty {
-            <tr><td colspan="6" class="muted">No variance data yet.</td></tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (v of variance(); track v._id) {
+              <tr>
+                <td>{{ v.period }}</td>
+                <td class="num">{{ v.budgetedAmount | number: '1.0-0' }}</td>
+                <td class="num">{{ v.actualAmount | number: '1.0-0' }}</td>
+                <td class="num" [class]="varianceTrendClass(v.trend)">{{ v.variance | number: '1.0-0' }}</td>
+                <td class="num" [class]="varianceTrendClass(v.trend)">{{ v.variancePercentage | number: '1.1-1' }}%</td>
+                <td class="num">{{ v.burnRate | number: '1.1-1' }}%</td>
+                <td>{{ varianceTrendIcon(v.trend) }} {{ v.trend | titlecase }}</td>
+                <td><span [class]="'badge ' + alertLevelClass(v.alertLevel)">{{ v.alertLevel }}</span></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="muted center">No variance data yet. Use "+ Calculate Period" to generate it.</td></tr>
+            }
+          </tbody>
+        </table>
+      }
     </section>
   }
+
+  <!-- Audit tab -->
+  @if (tab() === 'audit' && isFinance()) {
+    <section class="panel">
+      <h2>Audit Log</h2>
+      @for (entry of auditLog(); track $index) {
+        <div class="audit-entry">{{ entry | json }}</div>
+      } @empty {
+        <p class="muted">No audit events found.</p>
+      }
+    </section>
+  }
+
 } @else {
-  @if (!loading()) {
-    <p class="muted">Budget not found.</p>
+  @if (loading()) {
+    <p class="muted">Loading budget…</p>
   } @else {
-    <p class="muted">Loading budget details...</p>
+    <p class="muted">Budget not found. <a routerLink="/budget">← Back to budgets</a></p>
   }
 }

@@ -298,41 +298,100 @@ export class ApiService {
   }
 
   // Budget Tracking API
-  budgetAllocations() {
-    return this.http.get<BudgetAllocation[]>(`${this.base}/budget/allocations`);
+  budgetAllocations(query?: { status?: string; fiscalYear?: number; projectId?: string; grantId?: string; category?: string }) {
+    let params = new HttpParams();
+    if (query?.status)     params = params.set('status', query.status);
+    if (query?.fiscalYear) params = params.set('fiscalYear', String(query.fiscalYear));
+    if (query?.projectId)  params = params.set('projectId', query.projectId);
+    if (query?.grantId)    params = params.set('grantId', query.grantId);
+    if (query?.category)   params = params.set('category', query.category);
+    return this.http.get<BudgetAllocation[]>(`${this.base}/budget/allocations`, { params });
   }
 
   budgetAllocation(id: string) {
     return this.http.get<BudgetAllocation>(`${this.base}/budget/allocations/${id}`);
   }
 
-  createBudgetAllocation(body: Partial<BudgetAllocation>) {
+  createBudgetAllocation(body: {
+    name: string;
+    description?: string;
+    allocatedAmount: number;
+    currency?: string;
+    category: string;
+    fiscalYear: number;
+    startDate: string;
+    endDate: string;
+    projectId?: string;
+    grantId?: string;
+    donorId?: string;
+    isRestricted?: boolean;
+    allowedExpenseTypes?: string[];
+    exchangeRateToUSD?: number;
+  }) {
     return this.http.post<BudgetAllocation>(`${this.base}/budget/allocations`, body);
   }
 
-  updateBudgetAllocation(id: string, body: Partial<BudgetAllocation>) {
+  updateBudgetAllocation(id: string, body: {
+    name?: string;
+    description?: string;
+    allocatedAmount?: number;
+    currency?: string;
+    category?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    isRestricted?: boolean;
+  }) {
     return this.http.patch<BudgetAllocation>(`${this.base}/budget/allocations/${id}`, body);
   }
 
-  approveBudget(id: string) {
-    return this.http.post<BudgetAllocation>(`${this.base}/budget/allocations/${id}/approve`, {});
+  approveBudget(id: string, notes?: string) {
+    return this.http.post<BudgetAllocation>(`${this.base}/budget/allocations/${id}/approve`, { notes });
+  }
+
+  reviseBudget(id: string, body: { newAllocatedAmount: number; reason: string; notes?: string }) {
+    return this.http.post<BudgetAllocation>(`${this.base}/budget/allocations/${id}/revise`, body);
+  }
+
+  closeBudget(id: string) {
+    return this.http.post<BudgetAllocation>(`${this.base}/budget/allocations/${id}/close`, {});
   }
 
   deleteBudgetAllocation(id: string) {
     return this.http.delete(`${this.base}/budget/allocations/${id}`);
   }
 
-  budgetLineItems(budgetId: string) {
-    return this.http.get<BudgetLineItem[]>(
-      `${this.base}/budget/line-items?budgetId=${budgetId}`,
-    );
+  /** Line items — fetched by allocation ID path param: GET /budget/line-items/:allocationId */
+  budgetLineItems(allocationId: string) {
+    return this.http.get<BudgetLineItem[]>(`${this.base}/budget/line-items/${allocationId}`);
   }
 
-  createBudgetLineItem(body: Partial<BudgetLineItem>) {
+  createBudgetLineItem(body: {
+    budgetAllocationId: string;
+    description: string;
+    costCategory: string;
+    unitDescription: string;
+    quantity: number;
+    unitCost: number;
+    notes?: string;
+    linkedActivityId?: string;
+    linkedIndicatorId?: string;
+    reportingPeriodId?: string;
+    invoiceReference?: string;
+    paymentDate?: string;
+    donorCostCategory?: string;
+  }) {
     return this.http.post<BudgetLineItem>(`${this.base}/budget/line-items`, body);
   }
 
-  updateBudgetLineItem(id: string, body: Partial<BudgetLineItem>) {
+  updateBudgetLineItem(id: string, body: {
+    spent?: number;
+    committed?: number;
+    status?: string;
+    notes?: string;
+    invoiceReference?: string;
+    paymentDate?: string;
+  }) {
     return this.http.patch<BudgetLineItem>(`${this.base}/budget/line-items/${id}`, body);
   }
 
@@ -340,14 +399,28 @@ export class ApiService {
     return this.http.delete(`${this.base}/budget/line-items/${id}`);
   }
 
-  budgetVariance(budgetId: string) {
-    return this.http.get<BudgetVariance[]>(
-      `${this.base}/budget/variance?budgetId=${budgetId}`,
-    );
+  /** Variance — fetched by allocation ID path param: GET /budget/variance/:allocationId */
+  budgetVariance(allocationId: string, query?: { fromPeriod?: string; toPeriod?: string }) {
+    let params = new HttpParams();
+    if (query?.fromPeriod) params = params.set('fromPeriod', query.fromPeriod);
+    if (query?.toPeriod)   params = params.set('toPeriod', query.toPeriod);
+    return this.http.get<BudgetVariance[]>(`${this.base}/budget/variance/${allocationId}`, { params });
   }
 
-  budgetSummary() {
-    return this.http.get<BudgetSummary>(`${this.base}/budget/summary`);
+  calculateVariance(allocationId: string, period: string, notes?: string) {
+    return this.http.post<BudgetVariance>(`${this.base}/budget/variance/${allocationId}`, { period, notes });
+  }
+
+  /** Summary — GET /budget/summary/:organizationId */
+  budgetSummary(organizationId: string, query?: { fiscalYear?: number; grantId?: string }) {
+    let params = new HttpParams();
+    if (query?.fiscalYear) params = params.set('fiscalYear', String(query.fiscalYear));
+    if (query?.grantId)    params = params.set('grantId', query.grantId);
+    return this.http.get<BudgetSummary>(`${this.base}/budget/summary/${organizationId}`, { params });
+  }
+
+  budgetAuditLog(entityId: string) {
+    return this.http.get<unknown[]>(`${this.base}/budget/audit/${entityId}`);
   }
 
   // Balanced Scorecard API

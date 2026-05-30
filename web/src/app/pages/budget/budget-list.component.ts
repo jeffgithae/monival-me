@@ -17,25 +17,41 @@ export class BudgetListComponent implements OnInit {
   budgets = signal<BudgetAllocation[]>([]);
   loading = signal(true);
   error = signal('');
+  showForm = signal(false);
   isFinance = signal(false);
+
+  readonly categories = [
+    { value: 'operational', label: 'Operational' },
+    { value: 'project',     label: 'Project' },
+    { value: 'emergency',   label: 'Emergency' },
+    { value: 'strategic',   label: 'Strategic' },
+    { value: 'personnel',   label: 'Personnel' },
+    { value: 'travel',      label: 'Travel' },
+    { value: 'equipment',   label: 'Equipment' },
+    { value: 'indirect',    label: 'Indirect' },
+  ];
+
+  filterStatus = '';
+  filterFiscalYear: number | null = null;
 
   newBudgetForm = {
     name: '',
+    description: '',
     allocatedAmount: 0,
-    category: 'operational' as const,
+    currency: 'USD',
+    category: 'operational',
     fiscalYear: new Date().getFullYear(),
     startDate: '',
     endDate: '',
-    notes: '',
+    isRestricted: false,
   };
 
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
   ) {
-    this.isFinance.set(
-      this.auth.user()?.role === 'admin' || this.auth.user()?.role === 'finance',
-    );
+    const role = this.auth.user()?.role;
+    this.isFinance.set(role === 'admin' || role === 'owner' || role === 'finance');
   }
 
   ngOnInit() {
@@ -44,58 +60,83 @@ export class BudgetListComponent implements OnInit {
 
   loadBudgets() {
     this.loading.set(true);
-    this.api.budgetAllocations().subscribe({
+    const query: Record<string, any> = {};
+    if (this.filterStatus) query['status'] = this.filterStatus;
+    if (this.filterFiscalYear) query['fiscalYear'] = this.filterFiscalYear;
+    this.api.budgetAllocations(query).subscribe({
       next: (budgets) => {
         this.budgets.set(budgets);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Failed to load budgets');
         this.loading.set(false);
-        console.error(err);
       },
     });
   }
 
   createBudget() {
-    if (!this.newBudgetForm.name || this.newBudgetForm.allocatedAmount <= 0) {
-      this.error.set('Please fill in all required fields');
+    const f = this.newBudgetForm;
+    if (!f.name || f.allocatedAmount <= 0 || !f.startDate || !f.endDate) {
+      this.error.set('Name, allocated amount, start date, and end date are required.');
       return;
     }
-
+    this.error.set('');
     this.api.createBudgetAllocation({
-      ...this.newBudgetForm,
-      status: 'draft',
+      name: f.name,
+      description: f.description || undefined,
+      allocatedAmount: f.allocatedAmount,
+      currency: f.currency,
+      category: f.category,
+      fiscalYear: f.fiscalYear,
+      startDate: f.startDate,
+      endDate: f.endDate,
+      isRestricted: f.isRestricted,
     }).subscribe({
       next: () => {
-        this.newBudgetForm = {
-          name: '',
-          allocatedAmount: 0,
-          category: 'operational',
-          fiscalYear: new Date().getFullYear(),
-          startDate: '',
-          endDate: '',
-          notes: '',
-        };
+        this.resetForm();
+        this.showForm.set(false);
         this.loadBudgets();
       },
-      error: () => {
-        this.error.set('Failed to create budget');
-      },
+      error: () => this.error.set('Failed to create budget.'),
     });
   }
 
-  getStatusClass(status: string): string {
-    const statusClasses: Record<string, string> = {
-      draft: 'status-draft',
-      approved: 'status-approved',
-      active: 'status-active',
-      closed: 'status-closed',
+  resetForm() {
+    this.newBudgetForm = {
+      name: '',
+      description: '',
+      allocatedAmount: 0,
+      currency: 'USD',
+      category: 'operational',
+      fiscalYear: new Date().getFullYear(),
+      startDate: '',
+      endDate: '',
+      isRestricted: false,
     };
-    return statusClasses[status] || '';
   }
 
-  getSpentPercentage(budget: BudgetAllocation): number {
-    return (budget.spentAmount / budget.allocatedAmount) * 100;
+  getStatusClass(status: string): string {
+    const map: Record<string, string> = {
+      draft:        'status-draft',
+      submitted:    'status-submitted',
+      approved:     'status-approved',
+      active:       'status-active',
+      under_review: 'status-review',
+      closed:       'status-closed',
+      archived:     'status-archived',
+    };
+    return map[status] ?? '';
+  }
+
+  getSpentPercent(b: BudgetAllocation): number {
+    if (!b.allocatedAmount) return 0;
+    return Math.min((b.spentAmount / b.allocatedAmount) * 100, 100);
+  }
+
+  getProgressColor(pct: number): string {
+    if (pct >= 90) return '#ef4444';
+    if (pct >= 75) return '#f59e0b';
+    return '#3b82f6';
   }
 }

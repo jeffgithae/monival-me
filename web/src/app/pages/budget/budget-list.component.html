@@ -1,73 +1,131 @@
 <header class="page-header">
   <div>
     <h1>💰 Budget Tracking</h1>
-    <p class="muted">Allocate, track, and analyze budgets with variance analysis</p>
+    <p class="muted">Allocate, track, and analyse budgets with real-time variance</p>
   </div>
+  @if (isFinance()) {
+    <button class="primary" (click)="showForm.set(!showForm())">
+      {{ showForm() ? '✕ Cancel' : '+ New Budget' }}
+    </button>
+  }
 </header>
 
 @if (error(); as err) {
   <div class="alert alert-error">{{ err }}</div>
 }
 
-@if (isFinance()) {
+@if (showForm() && isFinance()) {
   <section class="panel">
-    <h2>Create New Budget</h2>
+    <h2>Create New Budget Allocation</h2>
     <form class="form-grid" (ngSubmit)="createBudget()">
-      <label>Budget Name<input [(ngModel)]="newBudgetForm.name" name="name" required /></label>
-      <label>Allocated Amount<input type="number" [(ngModel)]="newBudgetForm.allocatedAmount" name="amount" required /></label>
-      <label>Category
+      <label class="full">
+        Budget Name *
+        <input [(ngModel)]="newBudgetForm.name" name="name" required placeholder="e.g. USAID Year 2 Operations" />
+      </label>
+      <label class="full">
+        Description
+        <textarea [(ngModel)]="newBudgetForm.description" name="description" rows="2" placeholder="Optional description"></textarea>
+      </label>
+      <label>
+        Allocated Amount *
+        <input type="number" [(ngModel)]="newBudgetForm.allocatedAmount" name="amount" min="1" required />
+      </label>
+      <label>
+        Currency
+        <input [(ngModel)]="newBudgetForm.currency" name="currency" placeholder="USD" maxlength="3" />
+      </label>
+      <label>
+        Category *
         <select [(ngModel)]="newBudgetForm.category" name="category">
-          <option value="operational">Operational</option>
-          <option value="project">Project</option>
-          <option value="emergency">Emergency</option>
-          <option value="strategic">Strategic</option>
+          @for (cat of categories; track cat.value) {
+            <option [value]="cat.value">{{ cat.label }}</option>
+          }
         </select>
       </label>
-      <label>Fiscal Year<input type="number" [(ngModel)]="newBudgetForm.fiscalYear" name="year" /></label>
-      <label>Start Date<input type="date" [(ngModel)]="newBudgetForm.startDate" name="startDate" /></label>
-      <label>End Date<input type="date" [(ngModel)]="newBudgetForm.endDate" name="endDate" /></label>
-      <label class="full">Notes<textarea [(ngModel)]="newBudgetForm.notes" name="notes" rows="2"></textarea></label>
-      <button type="submit" class="primary">Create Budget</button>
+      <label>
+        Fiscal Year
+        <input type="number" [(ngModel)]="newBudgetForm.fiscalYear" name="year" />
+      </label>
+      <label>
+        Start Date *
+        <input type="date" [(ngModel)]="newBudgetForm.startDate" name="startDate" required />
+      </label>
+      <label>
+        End Date *
+        <input type="date" [(ngModel)]="newBudgetForm.endDate" name="endDate" required />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="newBudgetForm.isRestricted" name="isRestricted" />
+        Donor-Restricted Fund
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="primary">Create Budget</button>
+        <button type="button" (click)="showForm.set(false); resetForm()">Cancel</button>
+      </div>
     </form>
   </section>
 }
 
 <section class="panel">
-  <h2>Budget Allocations</h2>
+  <div class="panel-toolbar">
+    <h2>Budget Allocations</h2>
+    <div class="filters">
+      <select [(ngModel)]="filterStatus" (change)="loadBudgets()">
+        <option value="">All statuses</option>
+        <option value="draft">Draft</option>
+        <option value="submitted">Submitted</option>
+        <option value="approved">Approved</option>
+        <option value="active">Active</option>
+        <option value="under_review">Under Review</option>
+        <option value="closed">Closed</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+  </div>
+
   @if (loading()) {
-    <p class="muted">Loading budgets...</p>
+    <p class="muted">Loading budgets…</p>
   } @else {
     <table>
       <thead>
         <tr>
           <th>Name</th>
-          <th>Year</th>
+          <th>FY</th>
           <th>Category</th>
-          <th>Allocated</th>
-          <th>Spent</th>
-          <th>Remaining</th>
+          <th>Currency</th>
+          <th class="num">Allocated</th>
+          <th class="num">Spent</th>
+          <th class="num">Committed</th>
+          <th class="num">Available</th>
           <th>Status</th>
-          <th>Progress</th>
+          <th>Utilisation</th>
         </tr>
       </thead>
       <tbody>
-        @for (budget of budgets(); track budget._id) {
+        @for (b of budgets(); track b._id) {
           <tr>
-            <td><a [routerLink]="['/budget', budget._id]" class="link">{{ budget.name }}</a></td>
-            <td>{{ budget.fiscalYear }}</td>
-            <td><span class="badge">{{ budget.category }}</span></td>
-            <td class="number">{{ budget.allocatedAmount | number: '1.0-0' }}</td>
-            <td class="number">{{ budget.spentAmount | number: '1.0-0' }}</td>
-            <td class="number">{{ budget.uncommittedAmount | number: '1.0-0' }}</td>
-            <td><span [class]="'pill ' + getStatusClass(budget.status)">{{ budget.status }}</span></td>
+            <td><a [routerLink]="['/budget', b._id]" class="link">{{ b.name }}</a></td>
+            <td>{{ b.fiscalYear }}</td>
+            <td><span class="badge">{{ b.category }}</span></td>
+            <td>{{ b.currency }}</td>
+            <td class="num">{{ b.allocatedAmount | number: '1.0-0' }}</td>
+            <td class="num">{{ b.spentAmount | number: '1.0-0' }}</td>
+            <td class="num">{{ b.committedAmount | number: '1.0-0' }}</td>
+            <td class="num">{{ b.uncommittedAmount | number: '1.0-0' }}</td>
+            <td><span [class]="'pill ' + getStatusClass(b.status)">{{ b.status | titlecase }}</span></td>
             <td>
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="getSpentPercentage(budget)"></div>
+                <div
+                  class="progress"
+                  [style.width.%]="getSpentPercent(b)"
+                  [style.background]="getProgressColor(getSpentPercent(b))"
+                ></div>
               </div>
+              <small class="pct">{{ getSpentPercent(b) | number: '1.0-0' }}%</small>
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="8" class="muted">No budgets created yet.</td></tr>
+          <tr><td colspan="10" class="muted center">No budget allocations yet. Click "+ New Budget" to create one.</td></tr>
         }
       </tbody>
     </table>
