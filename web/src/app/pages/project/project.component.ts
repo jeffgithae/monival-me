@@ -373,10 +373,10 @@ export class ProjectComponent implements OnInit {
     this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
     this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
-    this.api.reportingPeriods(this.projectId).subscribe((items) => {
-      this.reportingPeriods.set(items);
-      if (!this.selectedReportingPeriodId && items.length > 0) {
-        this.selectedReportingPeriodId = items[0]._id;
+    this.api.reportingPeriods({ projectId: this.projectId }).subscribe((items) => {
+     this.reportingPeriods.set(items.data);
+if (!this.selectedReportingPeriodId && items.data.length > 0) {
+  this.selectedReportingPeriodId = items.data[0]._id;
         this.loadIndicatorResults();
       }
     });
@@ -385,14 +385,11 @@ export class ProjectComponent implements OnInit {
   }
 
   loadReport() {
-    this.api
-      .donorReport(
-        this.projectId,
-        this.reportFrom || undefined,
-        this.reportTo || undefined,
-        this.selectedReportingPeriodId || undefined,
-      )
-      .subscribe((r) => this.report.set(r));
+  this.api.donorReport(this.projectId, {
+  reportingPeriodId: this.selectedReportingPeriodId || undefined,
+  fromDate: this.fromDate || undefined,
+  toDate: this.toDate || undefined,
+}).subscribe((r) => this.report.set(r as any));
   }
 
   addIndicator() {
