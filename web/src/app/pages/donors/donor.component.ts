@@ -100,7 +100,7 @@ import { Donor, CreateDonorDto, DonorType, Grant } from '../../core/models';
               @if (d.country) { <span class="muted">{{ d.country }}</span> }
             </div>
             @if (d.activeGrants) {
-              <div class="donor-stats">{{ d.activeGrants }} active grants · ${{ d.totalFunded | number }}</div>
+              <div class="donor-stats">{{ d.activeGrants }} active grants · $ {{ d.totalFunded | number }}</div>
             }
           </div>
         }

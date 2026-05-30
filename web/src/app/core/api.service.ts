@@ -654,9 +654,10 @@ export class ApiService {
 
 // ─── Data Quality ─────────────────────────────────────────────────────────────
 
-  // dataQualityReport(projectId: string, periodId?: string) {
-  //   const params = periodId ? { periodId } : {};
-  //   return this.http.get<DataQualityReport>(`${this.base}/reports/data-quality/${projectId}`, { params });
-  // }
+  dataQualityReport(projectId: string, periodId?: string) {
+    // ✅ fixed
+let params = new HttpParams();
+if (periodId) params = params.set('periodId', periodId);
+return this.http.get<DataQualityReport>(`${this.base}/reports/data-quality/${projectId}`, { params });}
   
 }

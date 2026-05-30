@@ -100,7 +100,7 @@ export class ReportingPeriodsComponent implements OnInit {
   loadDQ(p: ReportingPeriod) {
     if (!p.projectId) return;
     this.api.dataQualityReport(p.projectId, p._id).subscribe({
-      next: r => this.dqReport.set(r),
+      next: (r: DataQualityReport) => this.dqReport.set(r),
       error: () => this.dqReport.set(null),
     });
   }

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "commonjs",
+    "moduleResolution": "node10",
     "esModuleInterop": true,
     "declaration": true,
     "removeComments": true,
