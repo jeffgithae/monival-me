@@ -172,7 +172,7 @@
                   <div class="grant-donor">{{ g.donorName }}</div>
                 }
               </td>
-              <td><span [class]="'badge ' + statusBadgeClass(g.status)">{{ g.status }}</span></td>
+              <td><span [class]="'badge ' + statusBadgeClass($any(g.status))">{{ g.status }}</span></td>
               <td>{{ g.currency }} {{ g.totalAmount | number }}</td>
               <td>{{ g.currency }} {{ g.spentAmount | number }}</td>
               <td>
