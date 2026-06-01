@@ -191,7 +191,11 @@ export class DonorsComponent implements OnInit {
   load() {
     this.loading.set(true);
     this.api.donors().subscribe({
-      next: res => { this.donors.set(res.data); this.loading.set(false); },
+      next: res => {
+        const donors = Array.isArray(res) ? res : res.data;
+        this.donors.set(donors);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }

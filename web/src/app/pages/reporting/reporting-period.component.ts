@@ -199,4 +199,9 @@ export class ReportingPeriodsComponent implements OnInit {
     return p && p.status === 'approved' && this.canApprove();
   });
   isLocked = computed(() => this.selected()?.status === 'locked');
+
+  totalPeriods = computed(() => this.periods().length);
+  approvedPeriods = computed(() => this.periods().filter((p) => p.status === 'approved').length);
+  submittedPeriods = computed(() => this.periods().filter((p) => p.status === 'submitted').length);
+  openPeriods = computed(() => this.periods().filter((p) => p.status === 'open').length);
 }

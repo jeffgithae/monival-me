@@ -545,7 +545,13 @@ export class ApiService {
 // ─── Grants ───────────────────────────────────────────────────────────────────
 
   grants(params?: { status?: string; projectId?: string; donorId?: string; page?: number; limit?: number }) {
-    return this.http.get<{ data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any });
+    return this.http
+      .get<Grant[] | { data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any })
+      .pipe(
+        map((response) =>
+          Array.isArray(response) ? { data: response, total: response.length } : response,
+        ),
+      );
   }
   grant(id: string) {
     return this.http.get<Grant>(`${this.base}/grants/${id}`);
@@ -572,7 +578,17 @@ export class ApiService {
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
   donors(params?: { type?: string; page?: number; limit?: number }) {
-    return this.http.get<{ data: Donor[]; total: number }>(`${this.base}/donors`, { params: params as any });
+    let query = new HttpParams();
+    if (params?.type) query = query.set('type', params.type);
+    if (params?.page) query = query.set('page', params.page.toString());
+    if (params?.limit) query = query.set('limit', params.limit.toString());
+    return this.http
+      .get<Donor[] | { data: Donor[]; total: number }>(`${this.base}/donors`, { params: query })
+      .pipe(
+        map((response) =>
+          Array.isArray(response) ? { data: response, total: response.length } : response,
+        ),
+      );
   }
   donor(id: string) {
     return this.http.get<Donor>(`${this.base}/donors/${id}`);

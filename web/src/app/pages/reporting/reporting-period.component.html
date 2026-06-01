@@ -12,6 +12,25 @@
     }
   </div>
 
+  <div class="reporting-summary cards-grid">
+    <div class="summary-card card">
+      <div class="summary-value">{{ totalPeriods() }}</div>
+      <div class="summary-label">Total periods</div>
+    </div>
+    <div class="summary-card card">
+      <div class="summary-value">{{ approvedPeriods() }}</div>
+      <div class="summary-label">Approved</div>
+    </div>
+    <div class="summary-card card">
+      <div class="summary-value">{{ submittedPeriods() }}</div>
+      <div class="summary-label">Submitted</div>
+    </div>
+    <div class="summary-card card">
+      <div class="summary-value">{{ openPeriods() }}</div>
+      <div class="summary-label">Open</div>
+    </div>
+  </div>
+
   @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
 
   <!-- Create form -->

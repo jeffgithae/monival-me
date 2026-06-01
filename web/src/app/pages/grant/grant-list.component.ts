@@ -64,8 +64,9 @@ export class GrantsListComponent implements OnInit {
 
     this.api.grants(params).subscribe({
       next: res => {
-        this.grants.set(res.data);
-        this.total.set(res.total);
+        const grants = Array.isArray(res) ? res : res.data;
+        this.grants.set(grants);
+        this.total.set(Array.isArray(res) ? grants.length : res.total);
         this.loading.set(false);
       },
       error: err => {
