@@ -36,6 +36,12 @@ export class DonorsController {
     return this.donorsService.findOne(user.organizationId, id);
   }
 
+  @Get(':id/grants')
+  @Roles(...PERMISSIONS.VIEW_REPORTS)
+  donorGrants(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.donorsService.findGrantsByDonor(user.organizationId, id);
+  }
+
   @Post()
   @Roles(...PERMISSIONS.MANAGE_DONORS)
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateDonorDto) {

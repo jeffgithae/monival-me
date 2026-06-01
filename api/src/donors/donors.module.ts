@@ -4,12 +4,14 @@ import { Organization, OrganizationSchema } from '../organizations/schemas/organ
 import { DonorsController } from './donors.controller';
 import { DonorsService } from './donors.service';
 import { Donor, DonorSchema } from './schemas/donor.schema';
+import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Donor.name, schema: DonorSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      { name: Grant.name, schema: GrantSchema },
     ]),
   ],
   controllers: [DonorsController],

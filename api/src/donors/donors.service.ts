@@ -4,10 +4,14 @@ import { Model, Types } from 'mongoose';
 import { CreateDonorDto } from './dto/create-donor.dto';
 import { UpdateDonorDto } from './dto/update-donor.dto';
 import { Donor } from './schemas/donor.schema';
+import { Grant, GrantDocument } from '../grants/schemas/grant.schema';
 
 @Injectable()
 export class DonorsService {
-  constructor(@InjectModel(Donor.name) private readonly donorModel: Model<Donor>) {}
+  constructor(
+    @InjectModel(Donor.name) private readonly donorModel: Model<Donor>,
+    @InjectModel(Grant.name) private readonly grantModel: Model<GrantDocument>,
+  ) {}
 
   findAll(organizationId: string) {
     return this.donorModel
@@ -45,6 +49,16 @@ export class DonorsService {
       throw new NotFoundException('Donor not found');
     }
     return donor;
+  }
+
+  async findGrantsByDonor(organizationId: string, donorId: string) {
+    return this.grantModel
+      .find({
+        organizationId: new Types.ObjectId(organizationId),
+        donorId: new Types.ObjectId(donorId),
+      })
+      .sort({ createdAt: -1 })
+      .lean();
   }
 
   async remove(organizationId: string, id: string) {

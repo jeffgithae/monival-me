@@ -319,7 +319,12 @@ export class ApiService {
     if (query?.projectId)  params = params.set('projectId', query.projectId);
     if (query?.grantId)    params = params.set('grantId', query.grantId);
     if (query?.category)   params = params.set('category', query.category);
-    return this.http.get<BudgetAllocation[]>(`${this.base}/budget/allocations`, { params });
+    return this.http
+      .get<{ data: BudgetAllocation[]; total: number; page: number; limit: number }>(
+        `${this.base}/budget/allocations`,
+        { params },
+      )
+      .pipe(map((response) => response.data));
   }
 
   budgetAllocation(id: string) {

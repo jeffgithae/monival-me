@@ -31,10 +31,16 @@ export class GrantsController {
     return this.grantsService.findAll(user.organizationId, { status, donorId, search });
   }
 
+  @Get('summary')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE, OrgRole.ME_OFFICER, OrgRole.VIEWER)
+  async getSummary(@CurrentUser() user: any) {
+    return this.grantsService.getBudgetSummary(user.organizationId);
+  }
+
   @Get('budget-summary')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE, OrgRole.ME_OFFICER, OrgRole.VIEWER)
   async getBudgetSummary(@CurrentUser() user: any) {
-    return this.grantsService.getBudgetSummary(user.organizationId);
+    return this.getSummary(user);
   }
 
   @Get('expiring')
