@@ -6,3 +6,5 @@ dist_test/
 .DS_Store
 coverage/
 .angular/
+tsconfig.build.tsbuildinfo
+tsconfig.tsbuildinfo
