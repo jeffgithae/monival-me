@@ -4,19 +4,66 @@ import { Model, Types } from 'mongoose';
 import { Grant, GrantDocument } from './schemas/grant.schema';
 import { CreateGrantDto } from './dto/create-grant.dto';
 import { UpdateGrantDto } from './dto/update-grant.dto';
+import { Donor } from '../donors/schemas/donor.schema';
+import { Project } from '../projects/schemas/project.schema';
+import { NotificationsService } from '../notifications/notifications.service';
+import { OrgRole } from '../common/constants/roles';
 
 @Injectable()
 export class GrantsService {
-  constructor(@InjectModel(Grant.name) private grantModel: Model<GrantDocument>) {}
+  constructor(
+    @InjectModel(Grant.name) private grantModel: Model<GrantDocument>,
+    @InjectModel(Donor.name) private donorModel: Model<Donor>,
+    @InjectModel(Project.name) private projectModel: Model<Project>,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  private async assertReferences(organizationId: string, donorId?: string, linkedProjects?: string[]) {
+    if (donorId) {
+      const donor = await this.donorModel.findOne({
+        _id: donorId,
+        organizationId: new Types.ObjectId(organizationId),
+      });
+      if (!donor) {
+        throw new NotFoundException('Donor not found');
+      }
+    }
+
+    if (linkedProjects?.length) {
+      const projects = await this.projectModel.find({
+        _id: { $in: linkedProjects.map((id) => new Types.ObjectId(id)) },
+        organizationId: new Types.ObjectId(organizationId),
+      });
+      if (projects.length !== linkedProjects.length) {
+        throw new NotFoundException('One or more linked projects not found');
+      }
+    }
+  }
 
   async create(organizationId: string, createGrantDto: CreateGrantDto): Promise<GrantDocument> {
+    await this.assertReferences(organizationId, createGrantDto.donorId, createGrantDto.linkedProjects);
     const grant = new this.grantModel({
       ...createGrantDto,
       organizationId: new Types.ObjectId(organizationId),
       donorId: createGrantDto.donorId ? new Types.ObjectId(createGrantDto.donorId) : undefined,
       linkedProjects: createGrantDto.linkedProjects?.map(id => new Types.ObjectId(id)),
     });
-    return grant.save();
+    const saved = await grant.save();
+
+    await this.notifications.notifyRoles(
+      organizationId,
+      [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE],
+      {
+        type: 'grant.created',
+        title: `Grant created: ${saved.name}`,
+        message: `A new grant has been added and is ready for allocation planning.`,
+        entityType: 'grant',
+        entityId: saved._id.toString(),
+        link: `/grants/${saved._id}`,
+      },
+    );
+
+    return saved;
   }
 
   async findAll(organizationId: string, filters?: {
@@ -62,6 +109,7 @@ export class GrantsService {
   }
 
   async update(id: string, organizationId: string, updateGrantDto: UpdateGrantDto): Promise<GrantDocument> {
+    await this.assertReferences(organizationId, updateGrantDto.donorId, updateGrantDto.linkedProjects);
     const grant = await this.findOne(id, organizationId);
 
     const updateData: Record<string, any> = {
@@ -81,6 +129,19 @@ export class GrantsService {
     if (!updated) {
       throw new NotFoundException('Grant not found');
     }
+
+    await this.notifications.notifyRoles(
+      organizationId,
+      [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE],
+      {
+        type: 'grant.updated',
+        title: `Grant updated: ${updated.name}`,
+        message: `A grant record has been updated. Review the latest funding details.`,
+        entityType: 'grant',
+        entityId: updated._id.toString(),
+        link: `/grants/${updated._id}`,
+      },
+    );
 
     return updated;
   }

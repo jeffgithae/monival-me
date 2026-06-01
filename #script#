@@ -1,0 +1,1 @@
+ cd /home/jeff/Projects/monival-me/web && if [ -d dist ]; then echo ok; else echo no; fi

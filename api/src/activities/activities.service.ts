@@ -6,6 +6,7 @@ import { Project } from '../projects/schemas/project.schema';
 import { Partner } from '../partners/schemas/partner.schema';
 import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 import { OrgRole } from '../common/constants/roles';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
@@ -22,6 +23,7 @@ export class ActivitiesService {
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Partner.name) private readonly partnerModel: Model<Partner>,
     @InjectModel(Beneficiary.name) private readonly beneficiaryModel: Model<Beneficiary>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private async assertRefs(
@@ -136,7 +138,7 @@ export class ActivitiesService {
       status = 'submitted';
     }
 
-    return this.activityModel.create({
+    const activity = await this.activityModel.create({
       organizationId: new Types.ObjectId(organizationId),
       projectId: new Types.ObjectId(dto.projectId),
       indicatorId: dto.indicatorId ? new Types.ObjectId(dto.indicatorId) : undefined,
@@ -160,6 +162,24 @@ export class ActivitiesService {
       status,
       submittedByUserId: new Types.ObjectId(userId),
     });
+
+    if (status === 'submitted') {
+      await this.notifications.notifyRoles(
+        organizationId,
+        [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER],
+        {
+          type: 'activity.submitted',
+          title: `Activity submitted: ${activity.title}`,
+          message: `An activity has been submitted for review. Please review and approve or reject it.`,
+          entityType: 'activity',
+          entityId: activity._id.toString(),
+          link: `/activities/${activity._id}`,
+        },
+        userId,
+      );
+    }
+
+    return activity;
   }
 
   async review(
@@ -181,6 +201,19 @@ export class ActivitiesService {
       .lean();
     if (!activity) {
       throw new NotFoundException('Activity not found');
+    }
+
+    if (activity.submittedByUserId) {
+      await this.notifications.create({
+        organizationId,
+        userId: activity.submittedByUserId.toString(),
+        type: `activity.${status}`,
+        title: `Activity ${status}: ${activity.title}`,
+        message: `Your activity has been ${status}.`,
+        entityType: 'activity',
+        entityId: activity._id.toString(),
+        link: `/activities/${activity._id}`,
+      });
     }
     return activity;
   }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activity } from '../activities/schemas/activity.schema';
+import { AuditService } from '../audit/audit.service';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Organization } from '../organizations/schemas/organization.schema';
 import { Project } from '../projects/schemas/project.schema';
@@ -15,6 +16,7 @@ export class ReportsService {
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
     private readonly reportingService: ReportingService,
+    private readonly audit: AuditService,
   ) {}
 
   async donorReport(
@@ -23,6 +25,7 @@ export class ReportsService {
     fromDate?: string,
     toDate?: string,
     reportingPeriodId?: string,
+    actorUserId?: string,
   ) {
     const orgId = new Types.ObjectId(organizationId);
     const project = await this.projectModel
@@ -111,7 +114,7 @@ export class ReportsService {
 
     const totalParticipants = activities.reduce((s, a) => s + (a.participants ?? 0), 0);
 
-    return {
+    const report = {
       generatedAt: new Date().toISOString(),
       organization: org
         ? { name: org.name, country: org.country, sector: org.sector }
@@ -156,6 +159,19 @@ export class ReportsService {
         indicatorId: a.indicatorId?.toString(),
       })),
     };
+
+    if (actorUserId) {
+      await this.audit.record({
+        organizationId,
+        actorUserId,
+        action: 'donor_report.generated',
+        entityType: 'Project',
+        entityId: projectId,
+        metadata: { fromDate, toDate, reportingPeriodId },
+      });
+    }
+
+    return report;
   }
 
   async donorReportCsv(
@@ -164,6 +180,7 @@ export class ReportsService {
     fromDate?: string,
     toDate?: string,
     reportingPeriodId?: string,
+    actorUserId?: string,
   ) {
     const report = await this.donorReport(organizationId, projectId, fromDate, toDate, reportingPeriodId);
     const rows = [
@@ -184,7 +201,18 @@ export class ReportsService {
         indicator.narrative ?? '',
       ]),
     ];
-    return rows.map((row) => row.map((cell) => this.csvCell(cell)).join(',')).join('\n');
+    const csv = rows.map((row) => row.map((cell) => this.csvCell(cell)).join(',')).join('\n');
+    if (actorUserId) {
+      await this.audit.record({
+        organizationId,
+        actorUserId,
+        action: 'donor_report.exported',
+        entityType: 'Project',
+        entityId: projectId,
+        metadata: { format: 'csv', fromDate, toDate, reportingPeriodId },
+      });
+    }
+    return csv;
   }
 
   importTemplate(kind: string) {

@@ -1,13 +1,19 @@
 <div class="pricing-page">
-  <header>
-    <a routerLink="/login" class="back">Sign in</a>
-    <h1>Plans for every NGO</h1>
-    <p>Professional M&E software for grant-funded NGO teams. 14-day trial included.</p>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Pricing designed for NGOs</p>
+      <h1>Clear plans for every team and every grant portfolio</h1>
+      <p>Choose the right Monival package for your organisation, from no-risk trials to premium growth plans.</p>
+    </div>
+    <a routerLink="/register" class="hero-cta">Start a free trial</a>
   </header>
 
   <div class="grid">
     @for (plan of plans(); track plan.id) {
       <article class="card" [class.featured]="plan.id === 'professional'">
+        @if (plan.id === 'professional') {
+          <span class="badge">Most popular</span>
+        }
         <h2>{{ plan.name }}</h2>
         <p class="desc">{{ plan.description }}</p>
         <p class="price">

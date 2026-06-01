@@ -1,13 +1,13 @@
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
 
   h1 {
-    margin: 0.25rem 0;
-    color: #2d2866;
+    margin: 0;
+    color: #111827;
   }
 }
 
@@ -20,21 +20,21 @@
 
 .project-description {
   margin: 0.75rem 0 0;
-  color: #5c5678;
+  color: #6b7280;
   max-width: 60ch;
 }
 
 .timeline {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.88rem;
-  color: #5c5678;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+  color: #6b7280;
 }
 
 .back {
-  font-size: 0.8rem;
-  color: #3c3489;
+  font-size: 0.9rem;
+  color: #4f46e5;
   text-decoration: none;
 }
 

@@ -48,10 +48,13 @@ export class ReportingService {
     return period;
   }
 
-  listPeriods(organizationId: string, projectId?: string) {
+  listPeriods(organizationId: string, projectId?: string, status?: string) {
     const filter: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId) };
     if (projectId) {
       filter.projectId = new Types.ObjectId(projectId);
+    }
+    if (status) {
+      filter.status = status;
     }
     return this.periodModel.find(filter).sort({ startDate: -1 }).lean();
   }

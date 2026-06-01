@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { MembersModule } from '../members/members.module';
 import { OrganizationMember, OrganizationMemberSchema } from '../members/schemas/organization-member.schema';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { BillingModule } from '../billing/billing.module';
 import {
   Organization,
   OrganizationSchema,
@@ -18,6 +19,7 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     OrganizationsModule,
+    BillingModule,
     MembersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

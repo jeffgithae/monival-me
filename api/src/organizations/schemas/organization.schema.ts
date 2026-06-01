@@ -9,6 +9,12 @@ export class Organization {
   @Prop({ required: true, trim: true })
   name!: string;
 
+  @Prop({ required: true, trim: true, lowercase: true, unique: true })
+  slug!: string;
+
+  @Prop({ trim: true, lowercase: true, unique: true, sparse: true })
+  domain?: string;
+
   @Prop({ trim: true })
   country?: string;
 
@@ -85,3 +91,5 @@ export class Organization {
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
+OrganizationSchema.index({ slug: 1 }, { unique: true, sparse: true });
+OrganizationSchema.index({ domain: 1 }, { unique: true, sparse: true });

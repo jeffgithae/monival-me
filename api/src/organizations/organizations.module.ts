@@ -6,6 +6,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { EntitlementsService } from './entitlements.service';
 import { OrganizationsController } from './organizations.controller';
 import { OrganizationsService } from './organizations.service';
+import { TenantService } from './tenant.service';
 import { Organization, OrganizationSchema } from './schemas/organization.schema';
 
 @Global()
@@ -19,7 +20,7 @@ import { Organization, OrganizationSchema } from './schemas/organization.schema'
     ]),
   ],
   controllers: [OrganizationsController],
-  providers: [OrganizationsService, EntitlementsService],
-  exports: [OrganizationsService, EntitlementsService],
+  providers: [OrganizationsService, EntitlementsService, TenantService],
+  exports: [OrganizationsService, EntitlementsService, TenantService],
 })
 export class OrganizationsModule {}

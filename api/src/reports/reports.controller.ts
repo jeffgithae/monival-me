@@ -28,6 +28,7 @@ export class ReportsController {
       fromDate,
       toDate,
       reportingPeriodId,
+      user.sub,
     );
   }
 
@@ -42,7 +43,14 @@ export class ReportsController {
     @Query('toDate') toDate?: string,
     @Query('reportingPeriodId') reportingPeriodId?: string,
   ) {
-    return this.reportsService.donorReportCsv(user.organizationId, projectId, fromDate, toDate, reportingPeriodId);
+    return this.reportsService.donorReportCsv(
+      user.organizationId,
+      projectId,
+      fromDate,
+      toDate,
+      reportingPeriodId,
+      user.sub,
+    );
   }
 
   @Get('templates/:kind.csv')

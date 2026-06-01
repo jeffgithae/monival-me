@@ -4,7 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { Activity, ActivityTemplate, DonorReport, Indicator, IndicatorResult, Project, FormTemplate, FormResponse, ReportingPeriod } from '../../core/models';
+import {
+  Activity,
+  ActivityTemplate,
+  DonorReport,
+  FormResponse,
+  FormTemplate,
+  Indicator,
+  IndicatorResult,
+  IndicatorTarget,
+  Project,
+  ReportingPeriod,
+} from '../../core/models';
 import {
   canApproveActivities,
   canLogActivities,
@@ -40,6 +51,7 @@ export class ProjectComponent implements OnInit {
   formResponses = signal<FormResponse[]>([]);
   reportingPeriods = signal<ReportingPeriod[]>([]);
   indicatorResults = signal<IndicatorResult[]>([]);
+  indicatorTargets = signal<IndicatorTarget[]>([]);
   partners = signal<Array<{ _id: string; name: string }>>([]);
   beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
@@ -374,9 +386,9 @@ export class ProjectComponent implements OnInit {
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
     this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
     this.api.reportingPeriods({ projectId: this.projectId }).subscribe((items) => {
-     this.reportingPeriods.set(items.data);
-if (!this.selectedReportingPeriodId && items.data.length > 0) {
-  this.selectedReportingPeriodId = items.data[0]._id;
+      this.reportingPeriods.set(items.data);
+      if (!this.selectedReportingPeriodId && items.data.length > 0) {
+        this.selectedReportingPeriodId = items.data[0]._id;
         this.loadIndicatorResults();
       }
     });
@@ -389,7 +401,7 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
       reportingPeriodId: this.selectedReportingPeriodId || undefined,
       fromDate: this.reportFrom || undefined,
       toDate: this.reportTo || undefined,
-    }).subscribe((r) => this.report.set(r as any));
+    }).subscribe((r) => this.report.set(r));
   }
 
   addIndicator() {
@@ -543,9 +555,10 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
       .createReportingPeriod({
         projectId: this.projectId,
         name: this.reportingPeriodForm.name,
-        frequency: this.reportingPeriodForm.cadence as any,
+        cadence: this.reportingPeriodForm.cadence as any,
         startDate: this.reportingPeriodForm.startDate,
         endDate: this.reportingPeriodForm.endDate,
+        notes: this.reportingPeriodForm.notes || undefined,
       })
       .subscribe((period) => {
         this.reportingPeriodForm = {
@@ -563,11 +576,23 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
   loadIndicatorResults() {
     if (!this.selectedReportingPeriodId) {
       this.indicatorResults.set([]);
+      this.indicatorTargets.set([]);
       return;
     }
+    this.loadIndicatorTargets();
     this.api
       .indicatorResults(this.selectedReportingPeriodId)
       .subscribe((results) => this.indicatorResults.set(results));
+  }
+
+  loadIndicatorTargets() {
+    if (!this.selectedReportingPeriodId) {
+      this.indicatorTargets.set([]);
+      return;
+    }
+    this.api
+      .indicatorTargets(this.selectedReportingPeriodId)
+      .subscribe((targets) => this.indicatorTargets.set(targets));
   }
 
   calculateReportingResults() {
@@ -588,7 +613,45 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
   }
 
   resultIndicator(result: IndicatorResult): Indicator | null {
-    return typeof result.indicatorId === 'string' ? null : result.indicatorId;
+    if (typeof result.indicatorId !== 'string') {
+      return result.indicatorId;
+    }
+    return this.indicators().find((indicator) => indicator._id === result.indicatorId) ?? null;
+  }
+
+  targetForIndicator(indicatorId: string): IndicatorTarget | null {
+    return this.indicatorTargets().find((target) => {
+      const targetIndicatorId =
+        typeof target.indicatorId === 'string' ? target.indicatorId : target.indicatorId._id;
+      return targetIndicatorId === indicatorId;
+    }) ?? null;
+  }
+
+  targetValueForIndicator(indicator: Indicator): number {
+    return this.targetForIndicator(indicator._id)?.target ?? indicator.target ?? 0;
+  }
+
+  targetValueForResult(result: IndicatorResult): number | null {
+    const indicator = this.resultIndicator(result);
+    return indicator ? this.targetValueForIndicator(indicator) : null;
+  }
+
+  saveIndicatorTarget(indicator: Indicator, value: string | number) {
+    if (!this.selectedReportingPeriodId) return;
+    const target = Number(value);
+    if (!Number.isFinite(target)) return;
+
+    this.api
+      .upsertIndicatorTarget({
+        reportingPeriodId: this.selectedReportingPeriodId,
+        indicatorId: indicator._id,
+        baseline: indicator.baseline ?? 0,
+        target,
+      })
+      .subscribe(() => {
+        this.loadIndicatorTargets();
+        this.loadReport();
+      });
   }
 
   deleteActivityTemplate(id: string) {
@@ -601,5 +664,24 @@ if (!this.selectedReportingPeriodId && items.data.length > 0) {
 
   printReport() {
     window.print();
+  }
+
+  exportDonorReportCsv() {
+    this.api
+      .donorReportCsv(this.projectId, {
+        reportingPeriodId: this.selectedReportingPeriodId || undefined,
+        fromDate: this.reportFrom || undefined,
+        toDate: this.reportTo || undefined,
+      })
+      .subscribe((blob) => {
+        const projectName = this.project()?.name || 'donor-report';
+        const safeName = projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeName || 'donor-report'}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
   }
 }

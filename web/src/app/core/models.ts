@@ -580,10 +580,11 @@ export interface IndicatorResult {
 export interface ReportingPeriod {
   _id: string;
   organizationId: string;
-  // projectId?: string;
+  projectId: string;
   projectName?: string;
   name: string;
-  frequency: ReportingPeriodFrequency;
+  frequency?: ReportingPeriodFrequency;
+  cadence: ReportingPeriodFrequency;
   startDate: string;
   endDate: string;
   dueDate?: string;
@@ -607,10 +608,12 @@ export interface ReportingPeriod {
 export interface CreateReportingPeriodDto {
   projectId?: string;
   name: string;
-  frequency: ReportingPeriodFrequency;
+  frequency?: ReportingPeriodFrequency;
+  cadence?: ReportingPeriodFrequency;
   startDate: string;
   endDate: string;
   dueDate?: string;
+  notes?: string;
 }
 
 // ─── Period Targets (add to Indicator model) ─────────────────────────────────

@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info:
+  title: Monival M&E API (Core)
+  version: 0.1.0
+  description: OpenAPI skeleton for core services (Auth, Tenants, Users, Projects, Indicators, Activities, Reporting).
+servers:
+  - url: /api
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes: {}
+  schemas:
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate (email/password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Logged in
+        '401':
+          description: Unauthorized
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200': { description: OK }
+
+  /tenants:
+    post:
+      summary: Create tenant / organization (onboarding)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationCreate'
+      responses:
+        '201': { description: Created }
+
+  /users:
+    get:
+      summary: List users in tenant
+      security:
+        - BearerAuth: []
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create user
+      security:
+        - BearerAuth: []
+
+  /projects:
+    get:
+      summary: List projects for tenant
+      security:
+        - BearerAuth: []
+    post:
+      summary: Create project
+      security:
+        - BearerAuth: []
+
+  /indicators:
+    get:
+      summary: List indicators
+      security:
+        - BearerAuth: []
+    post:
+      summary: Create indicator
+      security:
+        - BearerAuth: []
+
+  /activities:
+    get:
+      summary: List activities
+      security:
+        - BearerAuth: []
+    post:
+      summary: Log activity
+      security:
+        - BearerAuth: []
+
+  /reporting/periods:
+    get:
+      summary: List reporting periods
+      security:
+        - BearerAuth: []
+    post:
+      summary: Create reporting period
+      security:
+        - BearerAuth: []
+
+  /reports/generate:
+    post:
+      summary: Generate a project/donor report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                from:
+                  type: string
+                  format: date
+                to:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: PDF/JSON report generated
+
+# placeholder schemas
+components:
+  schemas:
+    OrganizationCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        email:
+          type: string

@@ -1,21 +1,23 @@
 <div class="shell">
   <aside class="sidebar">
-    <div class="logo">
-      <span class="logo-icon">◔</span>
-      <div>
-        <strong>Monival M&E</strong>
-        <small>{{ auth.organization()?.name ?? 'Organisation' }}</small>
-      </div>
-    </div>
-    @if (auth.organization(); as org) {
-      @if (org.subscriptionStatus === 'trialing' && org.trialEndsAt) {
-        <div class="trial-banner">
-          Trial · ends {{ org.trialEndsAt | date: 'mediumDate' }}
-          <a routerLink="/settings/billing">Upgrade</a>
+    <div class="sidebar-top">
+      <div class="logo">
+        <span class="logo-icon">◔</span>
+        <div>
+          <strong>Monival M&E</strong>
+          <small>{{ auth.organization()?.name ?? 'Organisation' }}</small>
         </div>
+      </div>
+      @if (auth.organization(); as org) {
+        <div class="plan-pill">{{ org.planName ?? org.planId }}</div>
+        @if (org.subscriptionStatus === 'trialing' && org.trialEndsAt) {
+          <div class="trial-banner">
+            Trial ends {{ org.trialEndsAt | date: 'mediumDate' }}
+            <a routerLink="/settings/billing">Upgrade</a>
+          </div>
+        }
       }
-      <div class="plan-pill">{{ org.planName ?? org.planId }}</div>
-    }
+    </div>
     <nav>
       <a routerLink="/dashboard" routerLinkActive="active">📊 Dashboard</a>
       <a routerLink="/projects" routerLinkActive="active">📁 Projects</a>
@@ -40,6 +42,8 @@
     </div>
   </aside>
   <main>
-    <router-outlet />
+    <div class="app-frame">
+      <router-outlet />
+    </div>
   </main>
 </div>

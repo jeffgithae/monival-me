@@ -78,7 +78,7 @@ export class BSCDetailComponent implements OnInit {
   }
 
   addObjective() {
-    if (!this.newBSCForm.name) {
+    if (!this.objectiveForm.title.trim()) {
       return;
     }
 
@@ -162,7 +162,4 @@ export class BSCDetailComponent implements OnInit {
     if (percentage >= 50) return 'percentage-medium';
     return 'percentage-low';
   }
-
-  // Temporary placeholder
-  newBSCForm = { name: '' };
 }

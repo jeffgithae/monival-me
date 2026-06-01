@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { map } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   Activity,
@@ -587,13 +588,29 @@ export class ApiService {
 // ─── Reporting Periods ────────────────────────────────────────────────────────
 
   reportingPeriods(params?: { projectId?: string; status?: string; page?: number; limit?: number }) {
-    return this.http.get<{ data: ReportingPeriod[]; total: number }>(`${this.base}/reporting/periods`, { params: params as any });
+    return this.http
+      .get<ReportingPeriod[] | { data: ReportingPeriod[]; total: number }>(
+        `${this.base}/reporting/periods`,
+        { params: params as any },
+      )
+      .pipe(
+        map((response) =>
+          Array.isArray(response)
+            ? { data: response, total: response.length }
+            : response,
+        ),
+      );
   }
   reportingPeriod(id: string) {
     return this.http.get<ReportingPeriod>(`${this.base}/reporting/periods/${id}`);
   }
   createReportingPeriod(body: CreateReportingPeriodDto) {
-    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, body);
+    const { frequency, cadence, dueDate, ...rest } = body;
+    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, {
+      ...rest,
+      cadence: cadence ?? frequency,
+      notes: dueDate ? `Due date: ${dueDate}` : rest.notes,
+    });
   }
   calculatePeriodResults(id: string) {
     return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods/${id}/calculate`, {});
@@ -605,7 +622,13 @@ export class ApiService {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/results`, { periodId, ...body });
   }
   donorReport(projectId: string, params: { reportingPeriodId?: string; fromDate?: string; toDate?: string }) {
-    return this.http.get(`${this.base}/reports/donor/${projectId}`, { params: params as any });
+    return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params: params as any });
+  }
+  donorReportCsv(projectId: string, params: { reportingPeriodId?: string; fromDate?: string; toDate?: string }) {
+    return this.http.get(`${this.base}/reports/donor/${projectId}/export`, {
+      params: params as any,
+      responseType: 'blob',
+    });
   }
   exportPeriodReport(periodId: string, format: 'pdf' | 'excel') {
     return this.http.get(`${this.base}/reporting/periods/${periodId}/export?format=${format}`, {
@@ -655,9 +678,10 @@ export class ApiService {
 // ─── Data Quality ─────────────────────────────────────────────────────────────
 
   dataQualityReport(projectId: string, periodId?: string) {
-    // ✅ fixed
-let params = new HttpParams();
-if (periodId) params = params.set('periodId', periodId);
-return this.http.get<DataQualityReport>(`${this.base}/reports/data-quality/${projectId}`, { params });}
-  
+    let params = new HttpParams().set('projectId', projectId);
+    if (periodId) {
+      params = params.set('periodId', periodId);
+    }
+    return this.http.get<DataQualityReport>(`${this.base}/reporting/data-quality`, { params });
+  }
 }

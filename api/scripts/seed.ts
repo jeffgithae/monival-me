@@ -137,6 +137,16 @@ async function clearDemoData(
   BudgetVariance: mongoose.Model<unknown>,
   BalancedScorecard: mongoose.Model<unknown>,
   OKR: mongoose.Model<unknown>,
+  ActivityTemplate: mongoose.Model<unknown>,
+  FormTemplate: mongoose.Model<unknown>,
+  FormResponse: mongoose.Model<unknown>,
+  ReportingPeriod: mongoose.Model<unknown>,
+  IndicatorTarget: mongoose.Model<unknown>,
+  IndicatorResult: mongoose.Model<unknown>,
+  AuditEvent: mongoose.Model<unknown>,
+  Document: mongoose.Model<unknown>,
+  DocumentVersion: mongoose.Model<unknown>,
+  Notification: mongoose.Model<unknown>,
 ) {
   const existing = (await User.findOne({ email: SEED_EMAIL.toLowerCase() }).lean()) as
     | SeedUser
@@ -157,6 +167,16 @@ async function clearDemoData(
   await Activity.deleteMany({ organizationId: orgId });
   await Partner.deleteMany({ organizationId: orgId });
   await Beneficiary.deleteMany({ organizationId: orgId });
+  await ActivityTemplate.deleteMany({ organizationId: orgId });
+  await FormResponse.deleteMany({ organizationId: orgId });
+  await FormTemplate.deleteMany({ organizationId: orgId });
+  await IndicatorResult.deleteMany({ organizationId: orgId });
+  await IndicatorTarget.deleteMany({ organizationId: orgId });
+  await ReportingPeriod.deleteMany({ organizationId: orgId });
+  await Notification.deleteMany({ organizationId: orgId });
+  await AuditEvent.deleteMany({ organizationId: orgId });
+  await DocumentVersion.deleteMany({ organizationId: orgId });
+  await Document.deleteMany({ organizationId: orgId });
   await Indicator.deleteMany({ organizationId: orgId });
   await Project.deleteMany({ organizationId: orgId });
   await OrganizationMember.deleteMany({ organizationId: orgId });
@@ -188,6 +208,16 @@ async function seed() {
   const BudgetVariance = mongoose.model('BudgetVariance', require('../src/budget/schemas/budget-variance.schema').BudgetVarianceSchema) as mongoose.Model<unknown>;
   const BalancedScorecard = mongoose.model('BalancedScorecard', require('../src/bsc/schemas/balanced-scorecard.schema').BalancedScorecardSchema) as mongoose.Model<unknown>;
   const OKR = mongoose.model('OKR', require('../src/okrs/schemas/okr.schema').OKRSchema) as mongoose.Model<unknown>;
+  const ActivityTemplate = mongoose.model('ActivityTemplate', require('../src/activities/schemas/activity-template.schema').ActivityTemplateSchema) as mongoose.Model<unknown>;
+  const FormTemplate = mongoose.model('FormTemplate', require('../src/forms/schemas/form-template.schema').FormTemplateSchema) as mongoose.Model<unknown>;
+  const FormResponse = mongoose.model('FormResponse', require('../src/forms/schemas/form-response.schema').FormResponseSchema) as mongoose.Model<unknown>;
+  const ReportingPeriod = mongoose.model('ReportingPeriod', require('../src/reporting/schemas/reporting-period.schema').ReportingPeriodSchema) as mongoose.Model<unknown>;
+  const IndicatorTarget = mongoose.model('IndicatorTarget', require('../src/reporting/schemas/indicator-target.schema').IndicatorTargetSchema) as mongoose.Model<unknown>;
+  const IndicatorResult = mongoose.model('IndicatorResult', require('../src/reporting/schemas/indicator-result.schema').IndicatorResultSchema) as mongoose.Model<unknown>;
+  const AuditEvent = mongoose.model('AuditEvent', require('../src/audit/schemas/audit-event.schema').AuditEventSchema) as mongoose.Model<unknown>;
+  const Document = mongoose.model('Document', require('../src/documents/schemas/document.schema').DocumentSchema) as mongoose.Model<unknown>;
+  const DocumentVersion = mongoose.model('DocumentVersion', require('../src/documents/schemas/document-version.schema').DocumentVersionSchema) as mongoose.Model<unknown>;
+  const Notification = mongoose.model('Notification', require('../src/notifications/schemas/notification.schema').NotificationSchema) as mongoose.Model<unknown>;
 
   await clearDemoData(
     User,
@@ -206,6 +236,16 @@ async function seed() {
     BudgetVariance,
     BalancedScorecard,
     OKR,
+    ActivityTemplate,
+    FormTemplate,
+    FormResponse,
+    ReportingPeriod,
+    IndicatorTarget,
+    IndicatorResult,
+    AuditEvent,
+    Document,
+    DocumentVersion,
+    Notification,
   );
 
   const periodEnd = new Date();
@@ -858,6 +898,244 @@ async function seed() {
     linkedProjects: [],
     progressPercentage: 32,
   });
+
+  const activityTemplates = await ActivityTemplate.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      name: 'Household WASH Monitoring Visit',
+      description: 'Standard field visit for water access and sanitation monitoring.',
+      defaultLocation: 'Field site',
+      defaultActivityType: 'Monitoring visit',
+      defaultEvidenceUrl: '',
+      defaultParticipants: 1,
+      defaultQuantity: 0,
+      defaultNotes: 'Collect household WASH indicators and provide hygiene messaging.',
+    },
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      name: 'ANC follow-up outreach',
+      description: 'Follow-up visit for pregnant women enrolled in ANC support.',
+      defaultLocation: 'Community health point',
+      defaultActivityType: 'Outreach',
+      defaultEvidenceUrl: '',
+      defaultParticipants: 10,
+      defaultQuantity: 0,
+      defaultNotes: 'Record attendance, referrals and health education delivered.',
+    },
+  ]);
+
+  const formTemplate = await FormTemplate.create({
+    organizationId: org._id,
+    projectId: wash._id,
+    indicatorId: washIndicators[0]._id,
+    name: 'WASH Household Survey',
+    description: 'Monthly WASH data collection template for household visits.',
+    status: 'active',
+    sections: [
+      {
+        title: 'Household details',
+        description: 'Basic household and access information.',
+        questions: [
+          { key: 'household_id', label: 'Household ID', type: 'text', required: true },
+          { key: 'water_source', label: 'Primary water source', type: 'select', required: true, options: ['Piped', 'Borehole', 'River', 'Other'] },
+          { key: 'latrine_type', label: 'Latrine type', type: 'select', options: ['No latrine', 'Pit latrine', 'VIP latrine', 'Other'] },
+          { key: 'household_size', label: 'Household size', type: 'number', required: true },
+        ],
+      },
+      {
+        title: 'Visit summary',
+        description: 'Field observations and message delivery.',
+        questions: [
+          { key: 'session_date', label: 'Visit date', type: 'date', required: true },
+          { key: 'participants', label: 'Participants reached', type: 'number', required: true },
+          { key: 'hygiene_message', label: 'Hygiene message delivered', type: 'textarea' },
+          { key: 'notes', label: 'Notes', type: 'textarea' },
+        ],
+      },
+    ],
+  });
+
+  const baselineActivity = await Activity.findOne({
+    title: 'Borehole commissioning — Ward A',
+    organizationId: org._id,
+  });
+
+  await FormResponse.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      templateId: formTemplate._id,
+      indicatorId: washIndicators[0]._id,
+      activityId: baselineActivity?._id,
+      submittedByUserId: meOfficerUser._id,
+      collectedAt: new Date('2025-02-15'),
+      answers: {
+        household_id: 'WASH-001',
+        water_source: 'Borehole',
+        latrine_type: 'Pit latrine',
+        household_size: 6,
+        session_date: '2025-02-14',
+        participants: 5,
+        hygiene_message: 'Safe water handling and handwashing',
+        notes: 'Household received hygiene kit and latrine repair support.',
+      },
+      status: 'submitted',
+    },
+  ]);
+
+  const reportingPeriod1 = await ReportingPeriod.create({
+    organizationId: org._id,
+    projectId: wash._id,
+    name: 'Q1 2025',
+    cadence: 'quarterly',
+    startDate: new Date('2025-01-01'),
+    endDate: new Date('2025-03-31'),
+    status: 'approved',
+    submittedByUserId: meOfficerUser._id,
+    submittedAt: new Date('2025-04-02'),
+    approvedByUserId: adminUser._id,
+    approvedAt: new Date('2025-04-05'),
+    notes: 'Quarterly progress report approved with recommendations for data quality.',
+  });
+
+  const reportingPeriod2 = await ReportingPeriod.create({
+    organizationId: org._id,
+    projectId: maternal._id,
+    name: 'Q1 2025',
+    cadence: 'quarterly',
+    startDate: new Date('2025-01-01'),
+    endDate: new Date('2025-03-31'),
+    status: 'submitted',
+    submittedByUserId: meOfficerUser._id,
+    submittedAt: new Date('2025-04-03'),
+    notes: 'Submitted for review ahead of field coordination meeting.',
+  });
+
+  await IndicatorTarget.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      reportingPeriodId: reportingPeriod1._id,
+      indicatorId: washIndicators[0]._id,
+      baseline: 0,
+      target: 120,
+      notes: 'Target household connections for Q1 2025.',
+    },
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      reportingPeriodId: reportingPeriod2._id,
+      indicatorId: maternalIndicators[0]._id,
+      baseline: 100,
+      target: 220,
+      notes: 'ANC visit target for maternal outreach.',
+    },
+  ]);
+
+  await IndicatorResult.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      reportingPeriodId: reportingPeriod1._id,
+      indicatorId: washIndicators[0]._id,
+      achieved: 118,
+      activityCount: 3,
+      sourceActivityIds: (await Activity.find({ projectId: wash._id, organizationId: org._id }).limit(3)).map((a) => a._id),
+      narrative: 'Almost all planned household connections completed; one water point delayed due to materials.',
+      status: 'approved',
+      submittedByUserId: meOfficerUser._id,
+      submittedAt: new Date('2025-04-02'),
+      approvedByUserId: adminUser._id,
+      approvedAt: new Date('2025-04-05'),
+    },
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      reportingPeriodId: reportingPeriod2._id,
+      indicatorId: maternalIndicators[0]._id,
+      achieved: 312,
+      activityCount: 4,
+      sourceActivityIds: (await Activity.find({ projectId: maternal._id, organizationId: org._id }).limit(2)).map((a) => a._id),
+      narrative: 'ANC outreach exceeded target by Q1 thanks to mobile clinic scale-up.',
+      status: 'submitted',
+      submittedByUserId: meOfficerUser._id,
+      submittedAt: new Date('2025-04-03'),
+    },
+  ]);
+
+  await AuditEvent.insertMany([
+    {
+      organizationId: org._id,
+      actorUserId: user._id,
+      action: 'create_project',
+      entityType: 'Project',
+      entityId: wash._id.toString(),
+      metadata: { name: wash.name },
+    },
+    {
+      organizationId: org._id,
+      actorUserId: meOfficerUser._id,
+      action: 'submit_reporting_period',
+      entityType: 'ReportingPeriod',
+      entityId: reportingPeriod2._id.toString(),
+      metadata: { status: 'submitted' },
+    },
+    {
+      organizationId: org._id,
+      actorUserId: adminUser._id,
+      action: 'approve_reporting_period',
+      entityType: 'ReportingPeriod',
+      entityId: reportingPeriod1._id.toString(),
+      metadata: { status: 'approved' },
+    },
+  ]);
+
+  const document = await Document.create({
+    organizationId: org._id,
+    projectId: wash._id,
+    createdByUserId: user._id,
+    title: 'WASH Monitoring Report Q1 2025',
+    description: 'Quarterly monitoring report for WASH activities and progress.',
+    category: 'report',
+    tags: ['WASH', 'monitoring', 'Q1'],
+    storageKey: 'documents/wash-q1-2025.pdf',
+    fileUrl: 'https://example.com/documents/wash-q1-2025.pdf',
+  });
+
+  await DocumentVersion.create({
+    organizationId: org._id,
+    documentId: document._id,
+    versionNumber: 1,
+    releaseNotes: 'Initial published version.',
+    storageKey: 'documents/wash-q1-2025-v1.pdf',
+    fileUrl: 'https://example.com/documents/wash-q1-2025-v1.pdf',
+    createdByUserId: user._id,
+  });
+
+  await Notification.insertMany([
+    {
+      organizationId: org._id,
+      userId: user._id,
+      type: 'project_update',
+      title: 'New activity logged',
+      message: 'A new WASH monitoring visit was logged for Ward A.',
+      entityType: 'Activity',
+      entityId: wash._id.toString(),
+      isRead: false,
+    },
+    {
+      organizationId: org._id,
+      userId: financeUser._id,
+      type: 'grant_reminder',
+      title: 'Grant reporting due soon',
+      message: 'The School Nutrition Facility Upgrade grant quarterly report is due within 7 days.',
+      entityType: 'Grant',
+      entityId: grant._id.toString(),
+      isRead: false,
+    },
+  ]);
 
   // Add indicator measurements to track progress over time
   const washO1Measurements = [

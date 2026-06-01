@@ -6,6 +6,7 @@ import {
   Organization,
   OrganizationSchema,
 } from '../organizations/schemas/organization.schema';
+import { AuditModule } from '../audit/audit.module';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { ReportingModule } from '../reporting/reporting.module';
 import { ReportsController } from './reports.controller';
@@ -13,6 +14,7 @@ import { ReportsService } from './reports.service';
 
 @Module({
   imports: [
+    AuditModule,
     ReportingModule,
     MongooseModule.forFeature([
       { name: Project.name, schema: ProjectSchema },

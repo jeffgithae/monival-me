@@ -297,10 +297,43 @@
         }
       </div>
 
+      @if (selectedReportingPeriodId && indicatorOptions().length > 0) {
+        <h3>Period targets</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Indicator</th>
+              <th>Lifetime target</th>
+              <th>Period target</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (indicator of indicatorOptions(); track indicator._id) {
+              <tr>
+                <td><strong>{{ indicator.code }}</strong> {{ indicator.title }}</td>
+                <td>{{ indicator.target }} @if (indicator.unit) { {{ indicator.unit }} }</td>
+                <td>
+                  @if (canManageIndicators) {
+                    <input
+                      type="number"
+                      [value]="targetValueForIndicator(indicator)"
+                      (change)="saveIndicatorTarget(indicator, $any($event.target).value)"
+                    />
+                  } @else {
+                    {{ targetValueForIndicator(indicator) }}
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
       <table>
         <thead>
           <tr>
             <th>Indicator</th>
+            <th>Target</th>
             <th>Achieved</th>
             <th>Activities</th>
             <th>Status</th>
@@ -317,13 +350,14 @@
                   {{ result.indicatorId }}
                 }
               </td>
+              <td>@if (targetValueForResult(result) !== null) { {{ targetValueForResult(result) }} } @else { TBA }</td>
               <td>{{ result.achieved }}</td>
               <td>{{ result.activityCount }}</td>
               <td><span class="status-pill">{{ result.status }}</span></td>
               <td>{{ result.narrative || 'No narrative yet' }}</td>
             </tr>
           } @empty {
-            <tr><td colspan="5" class="muted">No results calculated for this reporting period yet.</td></tr>
+            <tr><td colspan="6" class="muted">No results calculated for this reporting period yet.</td></tr>
           }
         </tbody>
       </table>
@@ -421,6 +455,7 @@
       @if (report(); as r) {
         <div class="report-actions no-print">
           <button type="button" class="primary" (click)="printReport()">Print / Save as PDF</button>
+          <button type="button" class="secondary" (click)="exportDonorReportCsv()">Export CSV</button>
         </div>
         <article class="report-doc">
           <header class="report-head">

@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ActivitiesController } from './activities.controller';
 import { ActivitiesService } from './activities.service';
 import { Activity, ActivitySchema } from './schemas/activity.schema';
@@ -12,6 +13,7 @@ import { Beneficiary, BeneficiarySchema } from '../beneficiaries/schemas/benefic
 
 @Module({
   imports: [
+    NotificationsModule,
     MongooseModule.forFeature([
       { name: Activity.name, schema: ActivitySchema },
       { name: ActivityTemplate.name, schema: ActivityTemplateSchema },

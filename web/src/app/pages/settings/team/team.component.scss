@@ -1,37 +1,62 @@
 .page-header {
-  margin-bottom: 1rem;
-  h1 { margin: 0.25rem 0 0; color: #2d2866; }
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.75rem;
+
+  h1 {
+    margin: 0;
+    color: #111827;
+  }
 }
-.back { font-size: 0.8rem; color: #3c3489; text-decoration: none; }
-.muted { color: #5c5678; font-size: 0.88rem; }
+
+.back {
+  font-size: 0.9rem;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.92rem;
+}
+
 .panel {
-  background: #fff;
-  border: 1px solid #e8e6f0;
-  border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-  h2 { margin: 0 0 0.75rem; font-size: 1rem; color: #2d2866; }
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(79, 70, 229, 0.12);
+  border-radius: 22px;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: #111827;
+  }
 }
+
 .primary {
-  background: #3c3489;
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 0.5rem 0.9rem;
+  border-radius: 16px;
+  padding: 0.85rem 1.2rem;
   cursor: pointer;
 }
 
 .invite-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
 
   input,
   select {
-    padding: 0.45rem 0.6rem;
-    border: 1px solid #ddd9ec;
-    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    background: #f8fafc;
   }
 
   input {
@@ -41,17 +66,17 @@
 }
 
 .invite-link {
-  margin-top: 0.75rem;
-  font-size: 0.82rem;
-  color: #5c5678;
+  margin-top: 1rem;
+  font-size: 0.92rem;
+  color: #6b7280;
+}
 
-  code {
-    display: block;
-    margin-top: 0.35rem;
-    word-break: break-all;
-    font-size: 0.75rem;
-    color: #3c3489;
-  }
+.invite-link code {
+  display: block;
+  margin-top: 0.5rem;
+  word-break: break-word;
+  font-size: 0.85rem;
+  color: #312e81;
 }
 
 table {

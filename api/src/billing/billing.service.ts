@@ -191,6 +191,39 @@ export class BillingService {
         }
         break;
       }
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as {
+          subscription?: string;
+          metadata?: Record<string, string>;
+          status?: string;
+          customer?: string;
+          current_period_end?: number;
+        };
+        const orgId = invoice.metadata?.organizationId;
+        if (orgId && invoice.subscription) {
+          await this.organizationsService.updateSubscriptionStatus(orgId, 'active', invoice.metadata?.planId as PlanId);
+          if (invoice.current_period_end) {
+            await this.orgModel.findByIdAndUpdate(orgId, {
+              currentPeriodEnd: new Date(invoice.current_period_end * 1000),
+            });
+          }
+        }
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as {
+          subscription?: string;
+          metadata?: Record<string, string>;
+          status?: string;
+          customer?: string;
+          current_period_end?: number;
+        };
+        const orgId = invoice.metadata?.organizationId;
+        if (orgId) {
+          await this.organizationsService.updateSubscriptionStatus(orgId, 'past_due', invoice.metadata?.planId as PlanId);
+        }
+        break;
+      }
       default:
         break;
     }

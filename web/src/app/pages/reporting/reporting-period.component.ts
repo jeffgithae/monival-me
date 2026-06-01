@@ -33,7 +33,7 @@ export class ReportingPeriodsComponent implements OnInit {
   error        = signal('');
   filterProjectId = signal('');
 
-  canManage = computed(() => this.auth.isOwner() || this.auth.isAdmin() || (this.auth as any).isMEOfficer?.());
+  canManage = computed(() => this.auth.isOwner() || this.auth.isAdmin() || this.auth.isMEOfficer());
   canApprove = computed(() => this.auth.isOwner() || this.auth.isAdmin());
 
   frequencies = ['monthly', 'quarterly', 'semiannual', 'annual', 'custom'];

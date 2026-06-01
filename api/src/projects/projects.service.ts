@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { EntitlementsService } from '../organizations/entitlements.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { OrgRole } from '../common/constants/roles';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project } from './schemas/project.schema';
@@ -11,6 +13,7 @@ export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     private readonly entitlements: EntitlementsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   findAll(organizationId: string) {
@@ -35,7 +38,7 @@ export class ProjectsService {
 
   async create(organizationId: string, dto: CreateProjectDto) {
     await this.entitlements.assertCanAddProject(organizationId);
-    return this.projectModel.create({
+    const project = await this.projectModel.create({
       organizationId: new Types.ObjectId(organizationId),
       name: dto.name,
       donor: dto.donor,
@@ -48,6 +51,21 @@ export class ProjectsService {
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       status: dto.status ?? 'active',
     });
+
+    await this.notifications.notifyRoles(
+      organizationId,
+      [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER],
+      {
+        type: 'project.created',
+        title: `Project created: ${project.name}`,
+        message: `A new project was created and is ready for planning.`,
+        entityType: 'project',
+        entityId: project._id.toString(),
+        link: `/projects/${project._id}`,
+      },
+    );
+
+    return project;
   }
 
   async update(organizationId: string, id: string, dto: UpdateProjectDto) {

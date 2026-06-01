@@ -56,21 +56,26 @@ export class RegisterComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          this.auth.completeRegistration(res);
           if (res.checkoutRequired && this.planId !== 'trial') {
-            this.api.checkout(this.planId).subscribe({
-              next: (checkout) => {
-                this.loading.set(false);
-                if (checkout.url) {
-                  window.location.href = checkout.url;
-                }
-              },
-              error: (err) => {
-                this.loading.set(false);
-                this.error.set(formatHttpError(err, 'Account created but checkout failed'));
-              },
-            });
+            this.auth.completeRegistration(res, false);
+            if (res.checkout?.url) {
+              window.location.href = res.checkout.url;
+            } else {
+              this.api.checkout(this.planId).subscribe({
+                next: (checkout) => {
+                  this.loading.set(false);
+                  if (checkout.url) {
+                    window.location.href = checkout.url;
+                  }
+                },
+                error: (err) => {
+                  this.loading.set(false);
+                  this.error.set(formatHttpError(err, 'Account created but checkout failed'));
+                },
+              });
+            }
           } else {
+            this.auth.completeRegistration(res);
             this.loading.set(false);
           }
         },

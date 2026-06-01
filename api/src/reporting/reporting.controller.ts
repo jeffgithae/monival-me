@@ -16,8 +16,12 @@ export class ReportingController {
 
   @Get('periods')
   @Roles(...PERMISSIONS.VIEW_REPORTS)
-  listPeriods(@CurrentUser() user: JwtPayload, @Query('projectId') projectId?: string) {
-    return this.reportingService.listPeriods(user.organizationId, projectId);
+  listPeriods(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.reportingService.listPeriods(user.organizationId, projectId, status);
   }
 
   @Post('periods')

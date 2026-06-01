@@ -18,19 +18,27 @@ interface MeResponse extends AuthUser {
 interface RegisterResponse extends AuthResponse {
   selectedPlan?: string;
   checkoutRequired?: boolean;
+  checkout?: { url: string; mock?: boolean };
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  isOwner(): any {
-      throw new Error('Method not implemented.');
+  isOwner() {
+    return this.user()?.role === 'owner';
   }
-  isAdmin(): any {
-      throw new Error('Method not implemented.');
+
+  isAdmin() {
+    return this.user()?.role === 'admin';
   }
-  isFinance(): any {
-      throw new Error('Method not implemented.');
+
+  isFinance() {
+    return this.user()?.role === 'finance';
   }
+
+  isMEOfficer() {
+    return this.user()?.role === 'me_officer';
+  }
+
   private readonly tokenKey = 'monival_token';
   readonly user = signal<AuthUser | null>(null);
   readonly organization = signal<Organization | null>(null);
@@ -71,8 +79,8 @@ export class AuthService {
     return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register`, payload);
   }
 
-  completeRegistration(res: RegisterResponse) {
-    this.setSession(res);
+  completeRegistration(res: RegisterResponse, navigate = true) {
+    this.setSession(res, navigate);
   }
 
   login(email: string, password: string) {
@@ -107,10 +115,12 @@ export class AuthService {
     void this.router.navigate(['/login']);
   }
 
-  private setSession(res: AuthResponse) {
+  private setSession(res: AuthResponse, navigate = true) {
     localStorage.setItem(this.tokenKey, res.accessToken);
     this.user.set(res.user);
-    void this.router.navigate(['/dashboard']);
+    if (navigate) {
+      void this.router.navigate(['/dashboard']);
+    }
     this.loadProfile().subscribe();
   }
 }

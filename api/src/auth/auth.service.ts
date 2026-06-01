@@ -17,6 +17,7 @@ import {
 import { OrganizationsService } from '../organizations/organizations.service';
 import { Organization } from '../organizations/schemas/organization.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { BillingService } from '../billing/billing.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly organizationsService: OrganizationsService,
     private readonly membersService: MembersService,
+    private readonly billingService: BillingService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -40,15 +42,19 @@ export class AuthService {
     }
 
     const planId: PlanId = (dto.planId as PlanId) ?? 'trial';
+    const slug = await this.buildUniqueSlug(dto.organizationName);
     const org = await this.orgModel.create({
       name: dto.organizationName,
+      slug,
       country: dto.country,
       sector: dto.sector,
       planId,
-      subscriptionStatus: 'trialing',
+      subscriptionStatus: planId === 'trial' ? 'trialing' : 'incomplete',
     });
 
-    await this.organizationsService.startTrial(org._id, 'trial');
+    if (planId === 'trial') {
+      await this.organizationsService.startTrial(org._id, 'trial');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.userModel.create({
@@ -65,11 +71,20 @@ export class AuthService {
     );
 
     const auth = await this.buildAuthResponse(user, member);
+    const checkout =
+      planId !== 'trial'
+        ? await this.billingService.createCheckoutSession(
+            org._id.toString(),
+            user._id.toString(),
+            planId,
+          )
+        : undefined;
 
     return {
       ...auth,
       selectedPlan: planId,
       checkoutRequired: planId !== 'trial',
+      checkout,
     };
   }
 
@@ -147,5 +162,20 @@ export class AuthService {
         role: member.role,
       },
     };
+  }
+
+  private async buildUniqueSlug(name: string) {
+    const baseSlug = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    let slug = baseSlug || 'tenant';
+    let suffix = 1;
+    while (await this.orgModel.exists({ slug })) {
+      slug = `${baseSlug}-${suffix++}`;
+    }
+    return slug;
   }
 }

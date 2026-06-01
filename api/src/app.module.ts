@@ -17,6 +17,7 @@ import { GrantsModule } from './grants/grants.module';
 import { HealthController } from './health/health.controller';
 import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionGuard } from './common/guards/subscription.guard';
+import { TenantGuard } from './common/guards/tenant.guard';
 import { IndicatorsModule } from './indicators/indicators.module';
 import { MembersModule } from './members/members.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -24,6 +25,8 @@ import { Organization, OrganizationSchema } from './organizations/schemas/organi
 import { ProjectsModule } from './projects/projects.module';
 import { ReportsModule } from './reports/reports.module';
 import { FormsModule } from './forms/forms.module';
+import { DocumentsModule } from './documents/documents.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ReportingModule } from './reporting/reporting.module';
 
 @Module({
@@ -56,8 +59,14 @@ import { ReportingModule } from './reporting/reporting.module';
     OKRsModule,
     DashboardModule,
     FormsModule,
+    DocumentsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
-  providers: [SubscriptionGuard, RolesGuard],
+  providers: [
+    SubscriptionGuard,
+    RolesGuard,
+    { provide: APP_GUARD, useClass: TenantGuard },
+  ],
 })
 export class AppModule {}
