@@ -1,0 +1,78 @@
+.copilot-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.composer {
+  display: grid;
+  gap: 1rem;
+}
+
+.composer label {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.prompt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.results {
+  display: grid;
+  gap: 1rem;
+}
+
+.answer-card p {
+  color: var(--text);
+  font-size: 1.02rem;
+}
+
+.action-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text);
+}
+
+.action-list li + li {
+  margin-top: 0.6rem;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.context-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.context-item:last-child {
+  border-bottom: 0;
+}
+
+.context-item strong {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.context-item span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 1100px) {
+  .copilot-layout,
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+}

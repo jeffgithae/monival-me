@@ -706,3 +706,30 @@ export interface DataQualityReport {
   indicatorsOnTrack: number;
   staleIndicators: number;
 }
+
+export interface CopilotResponse {
+  answer: string;
+  recommendations: string[];
+  context: {
+    projects: Array<{
+      id: string;
+      name: string;
+      status: string;
+      donor?: string;
+      endDate?: string;
+    }>;
+    recentActivities: Array<{
+      id: string;
+      title: string;
+      status?: string;
+      activityDate: string;
+    }>;
+    reportingPeriods: Array<{
+      id: string;
+      name: string;
+      status: ReportingPeriodStatus;
+      startDate: string;
+      endDate: string;
+    }>;
+  };
+}

@@ -1,3 +1,6 @@
  cd /home/jeff/Projects/monival-me/api && npx ts-node scripts/seed.ts
  cd /home/jeff/Projects/monival-me/api && npm ci --prefer-offline --no-audit --no-fund && npm run seed
  git status --porcelain && git add api/scripts/seed.ts && git rev-parse --abbrev-ref HEAD && git commit -m "chore(seed): extend demo seed with full module data" || true && git push || true
+ cd /home/jeff/Projects/monival-me/api && npm run build
+ cd /home/jeff/Projects/monival-me/web && npm run build
+ cd /home/jeff/Projects/monival-me/web && npm run build

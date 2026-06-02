@@ -28,6 +28,7 @@ import { FormsModule } from './forms/forms.module';
 import { DocumentsModule } from './documents/documents.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportingModule } from './reporting/reporting.module';
+import { AIModule } from './AI/ai.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ReportingModule } from './reporting/reporting.module';
     FormsModule,
     DocumentsModule,
     NotificationsModule,
+    AIModule,
   ],
   controllers: [HealthController],
   providers: [

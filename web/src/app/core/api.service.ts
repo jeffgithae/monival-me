@@ -38,6 +38,7 @@ import {
   GrantSummary,
   PeriodTarget,
   ReportingPeriodStatus,
+  CopilotResponse,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -704,5 +705,14 @@ export class ApiService {
       params = params.set('periodId', periodId);
     }
     return this.http.get<DataQualityReport>(`${this.base}/reporting/data-quality`, { params });
+  }
+
+// ─── AI Copilot ──────────────────────────────────────────────────────────────
+
+  copilotMessage(message: string, projectId?: string) {
+    return this.http.post<CopilotResponse>(`${this.base}/ai/copilot/message`, {
+      message,
+      projectId: projectId || undefined,
+    });
   }
 }

@@ -1,0 +1,116 @@
+<div class="page copilot-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">AI Copilot</span>
+      <h1>Workspace Copilot</h1>
+      <p class="page-subtitle">Ask questions grounded in your projects, indicators, activities, and reporting periods.</p>
+    </div>
+  </div>
+
+  <section class="copilot-layout">
+    <div class="panel composer">
+      <label>
+        Project focus
+        <select [ngModel]="selectedProjectId()" (ngModelChange)="selectedProjectId.set($event)">
+          <option value="">All projects</option>
+          @for (project of projects(); track project._id) {
+            <option [value]="project._id">{{ project.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Question
+        <textarea
+          rows="6"
+          [ngModel]="message()"
+          (ngModelChange)="message.set($event)"
+          placeholder="Ask about report readiness, stale data, indicator gaps, or next actions."
+        ></textarea>
+      </label>
+
+      <button class="btn btn-primary" type="button" (click)="ask()" [disabled]="loading() || !message().trim()">
+        {{ loading() ? 'Thinking...' : 'Ask Copilot' }}
+      </button>
+
+      <div class="prompt-row">
+        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('Which reporting periods need attention?')">
+          Reporting
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('Where are our indicator data gaps?')">
+          Indicators
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('What activities should be reviewed first?')">
+          Activities
+        </button>
+      </div>
+    </div>
+
+    <div class="results">
+      @if (error()) {
+        <div class="alert alert-error">{{ error() }}</div>
+      }
+
+      @if (!response() && !loading()) {
+        <div class="card empty-state">
+          <h3>Ready when you are</h3>
+          <p>Choose a project or ask across the full workspace.</p>
+        </div>
+      }
+
+      @if (response(); as result) {
+        <article class="card answer-card">
+          <h2>Answer</h2>
+          <p>{{ result.answer }}</p>
+        </article>
+
+        <article class="card">
+          <h3>Recommended Actions</h3>
+          <ul class="action-list">
+            @for (item of result.recommendations; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        </article>
+
+        <div class="context-grid">
+          <article class="card">
+            <h3>Projects</h3>
+            @for (project of result.context.projects; track project.id) {
+              <div class="context-item">
+                <strong>{{ project.name }}</strong>
+                <span>{{ project.status }} @if (project.donor) { · {{ project.donor }} }</span>
+              </div>
+            } @empty {
+              <p class="muted">No projects found.</p>
+            }
+          </article>
+
+          <article class="card">
+            <h3>Recent Activities</h3>
+            @for (activity of result.context.recentActivities; track activity.id) {
+              <div class="context-item">
+                <strong>{{ activity.title }}</strong>
+                <span>{{ activity.status || 'draft' }} · {{ activity.activityDate | date:'mediumDate' }}</span>
+              </div>
+            } @empty {
+              <p class="muted">No recent activities found.</p>
+            }
+          </article>
+
+          <article class="card">
+            <h3>Reporting Periods</h3>
+            @for (period of result.context.reportingPeriods; track period.id) {
+              <div class="context-item">
+                <strong>{{ period.name }}</strong>
+                <span>{{ period.status }} · {{ period.endDate | date:'mediumDate' }}</span>
+              </div>
+            } @empty {
+              <p class="muted">No reporting periods found.</p>
+            }
+          </article>
+        </div>
+      }
+    </div>
+  </section>
+</div>

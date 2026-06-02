@@ -20,6 +20,7 @@ import { OKRsComponent } from './pages/okrs/okrs.component';
 import { DonorsComponent } from './pages/donors/donor.component';
 import { ReportingPeriodsComponent } from './pages/reporting/reporting-period.component';
 import { GrantsListComponent } from './pages/grant/grant-list.component';
+import { AiCopilotComponent } from './pages/ai-copilot/ai-copilot.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -46,6 +47,7 @@ export const routes: Routes = [
       { path: 'donors', component: DonorsComponent },
       { path: 'reporting', component: ReportingPeriodsComponent },
       { path: 'grants', component: GrantsListComponent },
+      { path: 'ai', component: AiCopilotComponent },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
