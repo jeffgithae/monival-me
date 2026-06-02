@@ -56,6 +56,18 @@ export class DashboardComponent implements OnInit {
     return canManageProjects(this.auth.user()?.role ?? 'viewer');
   }
 
+  /** Returns SVG stroke-dasharray for a ring: "filled gap circumference" */
+  getRingDash(value: number, total: number): string {
+    const circumference = 2 * Math.PI * 26; // r=26
+    const filled = total > 0 ? (value / total) * circumference : 0;
+    const gap = circumference - filled;
+    return `${filled.toFixed(2)} ${gap.toFixed(2)}`;
+  }
+
+  getStatusPct(value: number, total: number): number {
+    return total > 0 ? Math.round((value / total) * 100) : 0;
+  }
+
   ngOnInit() {
     this.reload();
   }
