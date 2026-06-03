@@ -15,6 +15,7 @@ import {
   IndicatorTarget,
   Project,
   ReportingPeriod,
+  BudgetAllocation,
 } from '../../core/models';
 import {
   canApproveActivities,
@@ -22,7 +23,7 @@ import {
   canManageIndicators,
 } from '../../core/roles';
 
-type Tab = 'framework' | 'indicators' | 'activities' | 'reporting' | 'report';
+type Tab = 'framework' | 'indicators' | 'activities' | 'reporting' | 'report' | 'budgets' | 'documents';
 
 interface IndicatorNode extends Indicator {
   children: IndicatorNode[];
@@ -55,6 +56,12 @@ export class ProjectComponent implements OnInit {
   partners = signal<Array<{ _id: string; name: string }>>([]);
   beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
+  budgetAllocations = signal<BudgetAllocation[]>([]);
+  documents = signal<Array<{ id: string; name: string; type: string; size: string; date: string; url: string }>>([
+    { id: '1', name: 'Project Proposal.pdf', type: 'PDF', size: '2.4 MB', date: '2026-01-15', url: '#' },
+    { id: '2', name: 'Grant Agreement.docx', type: 'DOCX', size: '1.1 MB', date: '2026-02-01', url: '#' },
+    { id: '3', name: 'Initial Baseline Survey.xlsx', type: 'XLSX', size: '4.5 MB', date: '2026-03-10', url: '#' }
+  ]);
   tab = signal<Tab>('framework');
   projectId = '';
 
@@ -376,6 +383,13 @@ export class ProjectComponent implements OnInit {
     if (t === 'report') {
       this.loadReport();
     }
+    if (t === 'budgets') {
+      this.loadBudgets();
+    }
+  }
+
+  loadBudgets() {
+    this.api.budgetAllocations({ projectId: this.projectId }).subscribe(data => this.budgetAllocations.set(data));
   }
 
   reload() {

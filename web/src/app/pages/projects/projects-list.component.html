@@ -1,64 +1,131 @@
-<header class="page-header">
+<!-- ─── Header ───────────────────────────────────────────────────────────── -->
+<div class="page-header">
   <div>
+    <span class="eyebrow">Portfolio</span>
     <h1>Projects</h1>
-    <p class="muted">Browse all projects, filter by status, and launch a project dashboard.</p>
+    <p class="subtitle">Browse programmes, filter by status, and open an M&amp;E workspace.</p>
   </div>
-  <div class="header-actions">
-    <span class="pill">{{ projectCounts().total }} total</span>
-    <span class="pill">{{ projectCounts().active }} active</span>
-    <span class="pill">{{ projectCounts().completed }} completed</span>
-    <span class="pill">{{ projectCounts().paused }} paused</span>
-    <button *ngIf="canCreateProjects && !showForm()" type="button" class="primary" (click)="toggleForm()">+ New project</button>
-  </div>
-</header>
-<section class="filter-bar">
-  <input type="search" placeholder="Search projects or donors" [(ngModel)]="search" />
-  <select [(ngModel)]="statusFilter">
-    <option value="all">All statuses</option>
-    <option value="active">Active</option>
-    <option value="completed">Completed</option>
-    <option value="paused">Paused</option>
-  </select>
-</section>
+  @if (canCreateProjects) {
+    <button type="button" class="btn-new" (click)="toggleForm()">
+      {{ showForm() ? '✕ Cancel' : '+ New project' }}
+    </button>
+  }
+</div>
 
-<section class="panel projects-panel" *ngIf="showForm()">
-  <h2>Create new project</h2>
-  <form class="form-grid" (ngSubmit)="createProject()">
-    <label>Project name<input [(ngModel)]="form.name" name="name" required /></label>
-    <label>Donor<input [(ngModel)]="form.donor" name="donor" /></label>
-    <label>Start date<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
-    <label>End date<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
-    <label class="full">Description<textarea [(ngModel)]="form.description" name="description" rows="3"></textarea></label>
-    <div class="form-actions">
-      <button type="submit" class="primary" [disabled]="saving()">Create project</button>
-      <button type="button" class="secondary" (click)="toggleForm()" [disabled]="saving()">Cancel</button>
+<!-- ─── Status tab bar ───────────────────────────────────────────────────── -->
+<div class="status-tabs">
+  <button type="button"
+    class="status-tab"
+    [class.active]="statusFilter() === 'all'"
+    (click)="setStatus('all')">
+    All <span class="tab-count">{{ projectCounts().total }}</span>
+  </button>
+  <button type="button"
+    class="status-tab active-tab"
+    [class.active]="statusFilter() === 'active'"
+    (click)="setStatus('active')">
+    Active <span class="tab-count">{{ projectCounts().active }}</span>
+  </button>
+  <button type="button"
+    class="status-tab completed-tab"
+    [class.active]="statusFilter() === 'completed'"
+    (click)="setStatus('completed')">
+    Completed <span class="tab-count">{{ projectCounts().completed }}</span>
+  </button>
+  <button type="button"
+    class="status-tab paused-tab"
+    [class.active]="statusFilter() === 'paused'"
+    (click)="setStatus('paused')">
+    Paused <span class="tab-count">{{ projectCounts().paused }}</span>
+  </button>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Search projects or donors…"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)" />
+  </div>
+</div>
+
+<!-- ─── Create form ──────────────────────────────────────────────────────── -->
+@if (showForm()) {
+  <div class="create-panel">
+    <div class="create-panel-head">
+      <div>
+        <h2>New project</h2>
+        <p>Create a programme and link it to a donor or grant.</p>
+      </div>
     </div>
-  </form>
-</section>
+    <form class="create-form" (ngSubmit)="createProject()">
+      <div class="form-row">
+        <label>Project name<input [(ngModel)]="form.name" name="name" required placeholder="e.g. WASH Programme Phase 2" /></label>
+        <label>Donor<input [(ngModel)]="form.donor" name="donor" placeholder="Funding organisation" /></label>
+      </div>
+      <div class="form-row">
+        <label>Start date<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
+        <label>End date<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
+      </div>
+      <label class="full-label">Description
+        <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Brief programme objectives and scope…"></textarea>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn-save" [disabled]="saving()">
+          {{ saving() ? 'Creating…' : 'Create project' }}
+        </button>
+        <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
 
-<section class="panel projects-panel">
-  <p *ngIf="loading()" class="muted">Loading projects…</p>
-  <p *ngIf="!loading() && projectCounts().total === 0" class="muted">No projects found yet.</p>
-  <p *ngIf="!loading() && projectCounts().total > 0 && filteredProjects().length === 0" class="muted">No projects match your filter.</p>
-
-  <ul *ngIf="!loading() && filteredProjects().length > 0" class="project-grid">
-    <li *ngFor="let project of filteredProjects()" class="project-card">
-      <a [routerLink]="['/projects', project._id]">
-        <div class="card-header">
-          <div>
-            <strong>{{ project.name }}</strong>
-            <p class="muted">{{ project.donor || 'No donor specified' }}</p>
-          </div>
-          <span class="pill status-pill">{{ project.status }}</span>
+<!-- ─── Projects grid ────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="loading-grid">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+} @else if (filteredProjects().length === 0) {
+  <div class="empty-state">
+    <span class="empty-icon">📁</span>
+    <h3>{{ projectCounts().total === 0 ? 'No projects yet' : 'No matches found' }}</h3>
+    <p>{{ projectCounts().total === 0 ? 'Create your first grant-funded programme to start tracking indicators and outcomes.' : 'Try adjusting your search or filter.' }}</p>
+    @if (canCreateProjects && projectCounts().total === 0) {
+      <button type="button" class="btn-new" (click)="toggleForm()">+ New project</button>
+    }
+  </div>
+} @else {
+  <div class="projects-grid">
+    @for (project of filteredProjects(); track project._id) {
+      <a class="project-card" [routerLink]="['/projects', project._id]">
+        <div class="card-top">
+          <span class="status-dot" [class]="'dot-' + project.status"></span>
+          <span class="status-label" [class]="'label-' + project.status">{{ project.status }}</span>
+          <span class="card-arrow">→</span>
         </div>
-        <p class="description">{{ project.description || 'No description yet.' }}</p>
-        <div class="meta-row">
-          <span>{{ getProjectTimeline(project) }}</span>
-          <span *ngIf="getProjectDaysRemaining(project) !== null">
-            {{ getProjectDaysRemaining(project) }} days left
-          </span>
+
+        <h3 class="card-name">{{ project.name }}</h3>
+
+        @if (project.donor) {
+          <p class="card-donor">🤝 {{ project.donor }}</p>
+        }
+
+        @if (project.description) {
+          <p class="card-desc">{{ project.description }}</p>
+        }
+
+        <div class="card-meta">
+          @if (getProjectTimeline(project) !== 'Dates not set') {
+            <span class="meta-item">📅 {{ getProjectTimeline(project) }}</span>
+          }
+          @if (getProjectDaysRemaining(project) !== null) {
+            <span class="meta-item days-left" [class.urgent]="(getProjectDaysRemaining(project) ?? 99) <= 30">
+              {{ getProjectDaysRemaining(project) }}d left
+            </span>
+          }
         </div>
       </a>
-    </li>
-  </ul>
-</section>
+    }
+  </div>
+}

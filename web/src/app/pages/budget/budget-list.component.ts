@@ -1,10 +1,10 @@
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { BudgetAllocation } from '../../core/models';
+import { BudgetAllocation, BudgetSummary } from '../../core/models';
 
 @Component({
   selector: 'app-budget-list',
@@ -14,9 +14,10 @@ import { BudgetAllocation } from '../../core/models';
   styleUrl: './budget.scss',
 })
 export class BudgetListComponent implements OnInit {
-  budgets = signal<BudgetAllocation[]>([]);
-  loading = signal(true);
-  error = signal('');
+  budgets  = signal<BudgetAllocation[]>([]);
+  summary  = signal<BudgetSummary | null>(null);
+  loading  = signal(true);
+  error    = signal('');
   showForm = signal(false);
   isFinance = signal(false);
 
@@ -31,7 +32,8 @@ export class BudgetListComponent implements OnInit {
     { value: 'indirect',    label: 'Indirect' },
   ];
 
-  filterStatus = '';
+  filterStatus   = '';
+  filterCategory = '';
   filterFiscalYear: number | null = null;
 
   newBudgetForm = {
@@ -46,6 +48,15 @@ export class BudgetListComponent implements OnInit {
     isRestricted: false,
   };
 
+  // Summary derived values
+  readonly totalAllocated  = computed(() => this.summary()?.totalAllocated ?? 0);
+  readonly totalSpent      = computed(() => this.summary()?.totalSpent ?? 0);
+  readonly totalCommitted  = computed(() => this.summary()?.totalCommitted ?? 0);
+  readonly totalAvailable  = computed(() => this.summary()?.totalUncommitted ?? 0);
+  readonly overallBurnRate = computed(() => this.summary()?.overallBurnRate ?? 0);
+  readonly alertedBudgets  = computed(() => this.summary()?.alertedBudgets ?? 0);
+  readonly primaryCurrency = computed(() => this.budgets()[0]?.currency ?? 'USD');
+
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
@@ -55,23 +66,28 @@ export class BudgetListComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadAll();
+  }
+
+  loadAll() {
     this.loadBudgets();
+    const orgId = this.auth.user()?.organizationId;
+    if (orgId) {
+      this.api.budgetSummary(orgId, {
+        fiscalYear: this.filterFiscalYear ?? undefined,
+      }).subscribe({ next: (s) => this.summary.set(s) });
+    }
   }
 
   loadBudgets() {
     this.loading.set(true);
     const query: Record<string, any> = {};
-    if (this.filterStatus) query['status'] = this.filterStatus;
+    if (this.filterStatus)   query['status']     = this.filterStatus;
+    if (this.filterCategory) query['category']   = this.filterCategory;
     if (this.filterFiscalYear) query['fiscalYear'] = this.filterFiscalYear;
     this.api.budgetAllocations(query).subscribe({
-      next: (budgets) => {
-        this.budgets.set(budgets);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Failed to load budgets');
-        this.loading.set(false);
-      },
+      next: (budgets) => { this.budgets.set(budgets); this.loading.set(false); },
+      error: () => { this.error.set('Failed to load budgets'); this.loading.set(false); },
     });
   }
 
@@ -93,38 +109,23 @@ export class BudgetListComponent implements OnInit {
       endDate: f.endDate,
       isRestricted: f.isRestricted,
     }).subscribe({
-      next: () => {
-        this.resetForm();
-        this.showForm.set(false);
-        this.loadBudgets();
-      },
+      next: () => { this.resetForm(); this.showForm.set(false); this.loadAll(); },
       error: () => this.error.set('Failed to create budget.'),
     });
   }
 
   resetForm() {
     this.newBudgetForm = {
-      name: '',
-      description: '',
-      allocatedAmount: 0,
-      currency: 'USD',
-      category: 'operational',
-      fiscalYear: new Date().getFullYear(),
-      startDate: '',
-      endDate: '',
-      isRestricted: false,
+      name: '', description: '', allocatedAmount: 0, currency: 'USD',
+      category: 'operational', fiscalYear: new Date().getFullYear(),
+      startDate: '', endDate: '', isRestricted: false,
     };
   }
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      draft:        'status-draft',
-      submitted:    'status-submitted',
-      approved:     'status-approved',
-      active:       'status-active',
-      under_review: 'status-review',
-      closed:       'status-closed',
-      archived:     'status-archived',
+      draft: 'status-draft', submitted: 'status-submitted', approved: 'status-approved',
+      active: 'status-active', under_review: 'status-review', closed: 'status-closed', archived: 'status-archived',
     };
     return map[status] ?? '';
   }
@@ -134,9 +135,17 @@ export class BudgetListComponent implements OnInit {
     return Math.min((b.spentAmount / b.allocatedAmount) * 100, 100);
   }
 
-  getProgressColor(pct: number): string {
-    if (pct >= 90) return '#ef4444';
-    if (pct >= 75) return '#f59e0b';
-    return '#3b82f6';
+  getBurnRateClass(pct: number): string {
+    if (pct >= 90) return 'burn-critical';
+    if (pct >= 75) return 'burn-warning';
+    return 'burn-ok';
+  }
+
+  getCategoryIcon(cat: string): string {
+    const icons: Record<string, string> = {
+      operational: '⚙️', project: '📁', emergency: '🚨', strategic: '🎯',
+      personnel: '👥', travel: '✈️', equipment: '🔧', indirect: '📊',
+    };
+    return icons[cat] ?? '💰';
   }
 }

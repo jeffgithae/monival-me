@@ -463,18 +463,17 @@ export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'close
 export interface Grant {
   _id: string;
   organizationId: string;
-  title: string;
+  name: string;
   referenceNumber?: string;
-  donorId?: string;
-  donorName?: string;
+  donorId?: any;
   projectId?: string;
   projectName?: string;
   status?: GrantStatus;
   currency: string;
-  totalAmount: number;
-  disbursedAmount: number;
-  spentAmount: number;
-  uncommittedAmount: number;
+  amount: number;
+  disbursedAmount?: number;
+  amountSpent: number;
+  uncommittedAmount?: number;
   startDate: string;
   endDate: string;
   submissionDeadline?: string;
@@ -484,23 +483,23 @@ export interface Grant {
   objectives?: string;
   conditionsPrecedent?: string[];
   restrictedCostCategories?: string[];
-  isRestricted: boolean;
+  isRestricted?: boolean;
   attachmentUrls?: string[];
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
   daysUntilExpiry?: number;
   burnRate?: number;
 }
 
 export interface CreateGrantDto {
-  title: string;
+  name: string;
   referenceNumber?: string;
   donorId?: string;
   projectId?: string;
   status?: GrantStatus;
   currency?: string;
-  totalAmount: number;
+  amount: number;
   startDate: string;
   endDate: string;
   submissionDeadline?: string;
@@ -511,13 +510,13 @@ export interface CreateGrantDto {
 }
 
 export interface GrantSummary {
-  totalGrants: number;
+  totalGrantAmount: number;
   activeGrants: number;
-  totalAwarded: number;
   totalSpent: number;
-  totalDisbursed: number;
-  expiringIn30Days: Grant[];
-  overdueReports: Grant[];
+  remainingBudget: number;
+  expiringIn30Days?: Grant[];
+  overdueReports?: Grant[];
+  totalGrants?: number;
 }
 
 // ─── Donors ───────────────────────────────────────────────────────────────────

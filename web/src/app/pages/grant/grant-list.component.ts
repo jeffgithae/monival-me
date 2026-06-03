@@ -38,13 +38,13 @@ export class GrantsListComponent implements OnInit {
   currencies = ['USD','KES','EUR','GBP','UGX','TZS'];
 
   form = this.fb.group({
-    title:              ['', Validators.required],
+    name:               ['', Validators.required],
     referenceNumber:    [''],
     donorId:            [''],
     projectId:          [''],
     status:             ['prospect' as GrantStatus],
     currency:           ['USD'],
-    totalAmount:        [0, [Validators.required, Validators.min(1)]],
+    amount:             [0, [Validators.required, Validators.min(1)]],
     startDate:          ['', Validators.required],
     endDate:            ['', Validators.required],
     submissionDeadline: [''],
@@ -64,7 +64,13 @@ export class GrantsListComponent implements OnInit {
 
     this.api.grants(params).subscribe({
       next: res => {
-        const grants = Array.isArray(res) ? res : res.data;
+        let grants = Array.isArray(res) ? res : res.data;
+        grants = grants.map(g => {
+          const burnRate = (g.amount || 0) > 0 ? ((g.amountSpent || 0) / g.amount) * 100 : 0;
+          const end = new Date(g.endDate);
+          const daysUntilExpiry = Math.ceil((end.getTime() - Date.now()) / (1000 * 3600 * 24));
+          return { ...g, burnRate, daysUntilExpiry };
+        });
         this.grants.set(grants);
         this.total.set(Array.isArray(res) ? grants.length : res.total);
         this.loading.set(false);

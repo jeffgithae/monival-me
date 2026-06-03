@@ -74,19 +74,19 @@ export class ProjectsListComponent implements OnInit {
     });
   }
 
+  setStatus(status: 'all' | 'active' | 'completed' | 'paused') {
+    this.statusFilter.set(status);
+  }
+
   getProjectDaysRemaining(project: Project) {
-    if (!project.endDate) {
-      return null;
-    }
+    if (!project.endDate) return null;
     const end = new Date(project.endDate);
     const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return diff >= 0 ? diff : 0;
   }
 
   getProjectTimeline(project: Project) {
-    if (!project.startDate && !project.endDate) {
-      return 'Dates not set';
-    }
+    if (!project.startDate && !project.endDate) return 'Dates not set';
     return `${project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBA'} – ${project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBA'}`;
   }
 

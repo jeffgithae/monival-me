@@ -255,6 +255,12 @@ export class BudgetDetailComponent implements OnInit {
     return '#3b82f6';
   }
 
+  getBurnClass(pct: number): string {
+    if (pct >= 90) return 'burn-critical';
+    if (pct >= 75) return 'burn-warning';
+    return 'burn-ok';
+  }
+
   lineItemTotal(item: BudgetLineItem): number {
     return item.quantity * item.unitCost;
   }

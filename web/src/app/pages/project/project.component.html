@@ -1,186 +1,236 @@
 @if (project(); as p) {
-  <header class="page-header">
-    <div>
-      <a routerLink="/projects" class="back">← Projects</a>
+
+<!-- ─── Hero header ─────────────────────────────────────────────────────── -->
+<div class="project-hero">
+  <a routerLink="/projects" class="back-link">← All projects</a>
+  <div class="hero-body">
+    <div class="hero-left">
+      <div class="hero-badges">
+        <span class="status-badge" [class]="'badge-' + p.status">{{ p.status }}</span>
+        @if (p.evaluationStatus) {
+          <span class="eval-badge" [class]="'eval-' + p.evaluationStatus">{{ p.evaluationStatus | titlecase }}</span>
+        }
+      </div>
       <h1>{{ p.name }}</h1>
       @if (p.donor) {
-        <p class="muted">Funded by {{ p.donor }}</p>
+        <p class="hero-donor">🤝 Funded by <strong>{{ p.donor }}</strong></p>
       }
-      <p class="project-description">{{ p.description || 'No project summary available yet.' }}</p>
+      @if (p.description) {
+        <p class="hero-desc">{{ p.description }}</p>
+      }
     </div>
-    <div class="header-right">
-      <span class="pill">{{ p.status }}</span>
-      <span class="pill pill-secondary">{{ p.evaluationStatus || 'not_started' }}</span>
-      @if (p.nextReviewDate) {
-        <div class="timeline">
-          <span>Next review:</span>
-          <strong>{{ p.nextReviewDate | date: 'mediumDate' }}</strong>
-        </div>
-      }
+    <div class="hero-right">
       @if (p.startDate || p.endDate) {
-        <div class="timeline">
-          <span>{{ p.startDate ? (p.startDate | date: 'mediumDate') : 'TBA' }}</span>
-          <span>→</span>
-          <span>{{ p.endDate ? (p.endDate | date: 'mediumDate') : 'TBA' }}</span>
+        <div class="date-range">
+          <div class="date-item">
+            <span class="date-label">Start</span>
+            <strong>{{ p.startDate ? (p.startDate | date: 'mediumDate') : 'TBA' }}</strong>
+          </div>
+          <div class="date-sep">→</div>
+          <div class="date-item">
+            <span class="date-label">End</span>
+            <strong>{{ p.endDate ? (p.endDate | date: 'mediumDate') : 'TBA' }}</strong>
+          </div>
+        </div>
+      }
+      @if (p.nextReviewDate) {
+        <div class="review-chip">
+          📅 Next review: <strong>{{ p.nextReviewDate | date: 'mediumDate' }}</strong>
         </div>
       }
     </div>
-  </header>
-
-  <section class="panel overview-panel">
-    <div class="overview-grid">
-      <article class="overview-card">
-        <h3>Indicators</h3>
-        <strong>{{ indicatorCount() }}</strong>
-        <p>Measured outcomes and outputs for this project.</p>
-      </article>
-      <article class="overview-card">
-        <h3>Activities</h3>
-        <strong>{{ activityCount() }}</strong>
-        <p>Logged field actions, events, and progress notes.</p>
-      </article>
-      <article class="overview-card">
-        <h3>Avg. progress</h3>
-        <strong>{{ indicatorProgress() }}%</strong>
-        <p>Average achievement against indicator targets.</p>
-      </article>
-      <article class="overview-card">
-        <h3>Health</h3>
-        <strong>{{ projectHealth() }}</strong>
-        <p>{{ daysRemaining() !== null ? (daysRemaining() + ' days left') : 'No end date set' }}</p>
-      </article>
-      <article class="overview-card">
-        <h3>Data freshness</h3>
-        <strong>@if (dataFreshnessDays() !== null) { {{ dataFreshnessDays() }} days } @else { No updates }</strong>
-        <p>{{ healthDetail() }}</p>
-      </article>
-      <article class="overview-card">
-        <h3>Review timeline</h3>
-        <strong>{{ complianceReminder() }}</strong>
-        <p>Evaluation and compliance cadence for the project.</p>
-      </article>
-    </div>
-    @if (timelineProgress() !== null) {
-      <div class="progress-row">
-        <label>Timeline progress</label>
-        <div class="progress-bar lighter">
-          <div class="progress-fill" [style.width.%]="timelineProgress()"></div>
-        </div>
-        <small>{{ timelineProgress() }}% of project time elapsed</small>
-      </div>
-    }
-    @if (indicatorCount() > 0) {
-      <div class="progress-row">
-        <label>Overall indicator progress</label>
-        <div class="progress-bar">
-          <div class="progress-fill" [style.width.%]="indicatorProgress()"></div>
-        </div>
-      </div>
-    }
-  </section>
-
-  <section class="panel recent-activities-panel">
-    <h2>Recent project activity</h2>
-    @if (recentActivities().length > 0) {
-      <ul class="recent-activity-list">
-        @for (activity of recentActivities(); track activity._id) {
-          <li>
-            <div>
-              <strong>{{ activity.title }}</strong>
-              <p class="muted">{{ activity.activityDate | date: 'mediumDate' }} · {{ activity.location || 'No location' }}</p>
-            </div>
-            <span class="status-pill">{{ activity.status || 'completed' }}</span>
-          </li>
-        }
-      </ul>
-    } @else {
-      <p class="muted">No recent activity logged yet.</p>
-    }
-  </section>
-
-  <div class="tabs">
-    <button type="button" [class.active]="tab() === 'framework'" (click)="setTab('framework')">Results framework</button>
-    <button type="button" [class.active]="tab() === 'indicators'" (click)="setTab('indicators')">Indicators</button>
-    <button type="button" [class.active]="tab() === 'activities'" (click)="setTab('activities')">Activities</button>
-    <button type="button" [class.active]="tab() === 'reporting'" (click)="setTab('reporting')">Reporting periods</button>
-    <button type="button" [class.active]="tab() === 'report'" (click)="setTab('report')">Donor report</button>
   </div>
+</div>
 
-  @if (tab() === 'framework') {
-    <section class="panel">
-      <h2>Results framework</h2>
-      <div class="overview-grid compact">
-        <article class="overview-card">
-          <h3>Health</h3>
-          <strong>{{ projectHealth() }}</strong>
-          <p>{{ healthDetail() }}</p>
-        </article>
-        <article class="overview-card">
-          <h3>Data freshness</h3>
-          <strong>@if (dataFreshnessDays() !== null) { {{ dataFreshnessDays() }} days } @else { No updates }</strong>
-          <p>Last submitted activity age and delivery cadence.</p>
-        </article>
-        <article class="overview-card">
-          <h3>Evaluation</h3>
-          <strong>{{ project()?.evaluationStatus || 'not_started' }}</strong>
-          <p>{{ complianceReminder() }}</p>
-        </article>
+<!-- ─── KPI strip ───────────────────────────────────────────────────────── -->
+<div class="kpi-strip">
+  <div class="kpi">
+    <span class="kpi-val">{{ indicatorCount() }}</span>
+    <span class="kpi-lbl">Indicators</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-val">{{ activityCount() }}</span>
+    <span class="kpi-lbl">Activities</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-val">{{ indicatorProgress() }}%</span>
+    <span class="kpi-lbl">Avg. progress</span>
+  </div>
+  <div class="kpi" [class.kpi-warn]="healthSignal() !== 'On track'">
+    <span class="kpi-val">{{ healthSignal() }}</span>
+    <span class="kpi-lbl">Health</span>
+  </div>
+  <div class="kpi">
+    @if (dataFreshnessDays() !== null) {
+      <span class="kpi-val" [class.stale]="(dataFreshnessDays() ?? 0) > 30">{{ dataFreshnessDays() }}d</span>
+    } @else {
+      <span class="kpi-val stale">—</span>
+    }
+    <span class="kpi-lbl">Data freshness</span>
+  </div>
+  @if (daysRemaining() !== null) {
+    <div class="kpi" [class.kpi-warn]="(daysRemaining() ?? 99) < 30">
+      <span class="kpi-val">{{ daysRemaining() }}</span>
+      <span class="kpi-lbl">Days left</span>
+    </div>
+  }
+</div>
+
+<!-- ─── Progress bars ──────────────────────────────────────────────────── -->
+<div class="progress-panel">
+  @if (timelineProgress() !== null) {
+    <div class="prog-row">
+      <div class="prog-meta">
+        <span>Timeline elapsed</span>
+        <strong>{{ timelineProgress() }}%</strong>
       </div>
+      <div class="prog-track">
+        <div class="prog-fill timeline-fill" [style.width.%]="timelineProgress()"></div>
+      </div>
+    </div>
+  }
+  @if (indicatorCount() > 0) {
+    <div class="prog-row">
+      <div class="prog-meta">
+        <span>Indicator progress</span>
+        <strong>{{ indicatorProgress() }}%</strong>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill indicator-fill" [style.width.%]="indicatorProgress()"></div>
+      </div>
+    </div>
+  }
+</div>
 
-      @if (qualityAlerts().length > 0) {
-        <div class="alert-list">
-          @for (alert of qualityAlerts(); track alert.title + alert.message) {
-            <div class="alert-card alert-{{ alert.severity }}">
-              <strong>{{ alert.title }}</strong>
-              <p>{{ alert.message }}</p>
-            </div>
-          }
-        </div>
+<!-- ─── Recent activities preview ─────────────────────────────────────── -->
+@if (recentActivities().length > 0) {
+  <div class="recent-panel">
+    <h2>Recent activity</h2>
+    <ul class="recent-list">
+      @for (activity of recentActivities(); track activity._id) {
+        <li class="recent-row">
+          <div class="activity-dot"></div>
+          <div class="recent-body">
+            <strong>{{ activity.title }}</strong>
+            <span>{{ activity.activityDate | date: 'mediumDate' }}@if (activity.location) { · {{ activity.location }} }</span>
+          </div>
+          <span class="act-pill act-{{ activity.status || 'approved' }}">{{ activity.status || 'approved' }}</span>
+        </li>
       }
+    </ul>
+  </div>
+}
 
-      <section class="panel evaluation-panel">
-        <h3>Project evaluation</h3>
-        @if (project(); as editableProject) {
-        <form class="form-grid">
-          <label>Evaluation status
-            <select [(ngModel)]="editableProject.evaluationStatus" name="evaluationStatus">
-              <option value="not_started">Not started</option>
-              <option value="in_progress">In progress</option>
-              <option value="completed">Completed</option>
-              <option value="under_review">Under review</option>
-            </select>
+<!-- ─── Tab navigation ─────────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button type="button" class="tab-btn" [class.active]="tab() === 'framework'" (click)="setTab('framework')">
+    🗂 Framework
+  </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'indicators'" (click)="setTab('indicators')">
+    📊 Indicators
+  </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'activities'" (click)="setTab('activities')">
+    ⚡ Activities
+    @if ((activityStatusCounts()['submitted'] ?? 0) > 0) {
+      <span class="tab-badge">{{ activityStatusCounts()['submitted'] }}</span>
+    }
+  </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'reporting'" (click)="setTab('reporting')">
+    📋 Reporting
+  </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'report'" (click)="setTab('report')">
+    📄 Donor report
+  </button>
+</div>
+
+<!-- ═══════════════ FRAMEWORK TAB ════════════════════════════════════════ -->
+@if (tab() === 'framework') {
+  <div class="tab-content">
+
+    @if (qualityAlerts().length > 0) {
+      <div class="alerts-row">
+        @for (alert of qualityAlerts(); track alert.title) {
+          <div class="alert-chip alert-{{ alert.severity }}">
+            <strong>{{ alert.title }}</strong>
+            <span>{{ alert.message }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Evaluation form -->
+    <div class="panel eval-panel">
+      <h3>Project evaluation</h3>
+      @if (project(); as ep) {
+        <form class="eval-form">
+          <div class="eval-row">
+            <label>Evaluation status
+              <select [(ngModel)]="ep.evaluationStatus" name="evaluationStatus">
+                <option value="not_started">Not started</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+                <option value="under_review">Under review</option>
+              </select>
+            </label>
+            <label>Next review date
+              <input type="date" [(ngModel)]="ep.nextReviewDate" name="nextReviewDate" />
+            </label>
+          </div>
+          <label class="full-label">Summary
+            <textarea [(ngModel)]="ep.evaluationSummary" name="evaluationSummary" rows="3" placeholder="Evaluation summary…"></textarea>
           </label>
-          <label>Next review date<input type="date" [(ngModel)]="editableProject.nextReviewDate" name="nextReviewDate" /></label>
-          <label class="full">Summary<textarea [(ngModel)]="editableProject.evaluationSummary" name="evaluationSummary" rows="3"></textarea></label>
-          <label class="full">Lessons learned<textarea [(ngModel)]="editableProject.lessonsLearned" name="lessonsLearned" rows="3"></textarea></label>
-          <div class="form-actions full">
-            <button type="button" class="primary" (click)="saveProjectEvaluation()">Save evaluation</button>
+          <label class="full-label">Lessons learned
+            <textarea [(ngModel)]="ep.lessonsLearned" name="lessonsLearned" rows="3" placeholder="Key lessons from implementation…"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn-primary" (click)="saveProjectEvaluation()">Save evaluation</button>
           </div>
         </form>
-        }
-      </section>
+      }
+    </div>
 
-      @if (frameworkRoots().length > 0) {
+    <!-- Framework tree -->
+    @if (frameworkRoots().length > 0) {
+      <div class="panel framework-panel">
+        <h3>Results framework</h3>
         <ul class="framework-tree">
           @for (root of frameworkRoots(); track root._id) {
-            <li>
-              <div class="framework-node">
-                <div>
-                  <strong>{{ root.code }}</strong> {{ root.title }}
-                  <p class="muted">Level: {{ root.level || 'output' }} · Progress: {{ root.percentComplete }}%</p>
+            <li class="tree-node">
+              <div class="tree-row">
+                <div class="tree-left">
+                  <span class="tree-level">{{ root.level || 'output' }}</span>
+                  <div>
+                    <strong>{{ root.code }}</strong> {{ root.title }}
+                    @if (root.unit) { <span class="tree-unit">({{ root.unit }})</span> }
+                  </div>
                 </div>
-                <span class="status-pill">{{ root.status }}</span>
+                <div class="tree-right">
+                  <div class="mini-bar">
+                    <div class="mini-fill" [style.width.%]="root.percentComplete" [class]="'fill-' + root.status"></div>
+                  </div>
+                  <span class="tree-pct">{{ root.percentComplete }}%</span>
+                  <span class="tree-status status-{{ root.status }}">{{ root.status }}</span>
+                </div>
               </div>
               @if (root.children.length > 0) {
-                <ul>
+                <ul class="tree-children">
                   @for (child of root.children; track child._id) {
-                    <li>
-                      <div class="framework-node nested">
-                        <div>
-                          <strong>{{ child.code }}</strong> {{ child.title }}
-                          <p class="muted">Level: {{ child.level || 'output' }} · Progress: {{ child.percentComplete }}%</p>
+                    <li class="tree-node child">
+                      <div class="tree-row">
+                        <div class="tree-left">
+                          <span class="tree-level">{{ child.level || 'output' }}</span>
+                          <div>
+                            <strong>{{ child.code }}</strong> {{ child.title }}
+                            @if (child.unit) { <span class="tree-unit">({{ child.unit }})</span> }
+                          </div>
                         </div>
-                        <span class="status-pill">{{ child.status }}</span>
+                        <div class="tree-right">
+                          <div class="mini-bar">
+                            <div class="mini-fill" [style.width.%]="child.percentComplete" [class]="'fill-' + child.status"></div>
+                          </div>
+                          <span class="tree-pct">{{ child.percentComplete }}%</span>
+                          <span class="tree-status status-{{ child.status }}">{{ child.status }}</span>
+                        </div>
                       </div>
                     </li>
                   }
@@ -189,99 +239,229 @@
             </li>
           }
         </ul>
-      } @else {
-        <p class="muted">No indicators defined yet. Add indicators to build a project results framework.</p>
-      }
-    </section>
-  }
+      </div>
+    } @else {
+      <div class="empty-panel">
+        <span>📊</span>
+        <p>No indicators yet. Add indicators in the Indicators tab to build a results framework.</p>
+      </div>
+    }
+  </div>
+}
 
-  @if (tab() === 'indicators') {
-    <section class="panel">
-      <h2>Logframe indicators</h2>
-      @if (canManageIndicators) {
+<!-- ═══════════════ INDICATORS TAB ═══════════════════════════════════════ -->
+@if (tab() === 'indicators') {
+  <div class="tab-content">
+    @if (canManageIndicators) {
+      <div class="panel">
+        <h3>Add indicator</h3>
         <form class="inline-form" (ngSubmit)="addIndicator()">
-          <select [(ngModel)]="indicatorForm.level" name="level">
-            <option value="goal">Goal</option>
-            <option value="outcome">Outcome</option>
-            <option value="output">Output</option>
-            <option value="activity">Activity</option>
-          </select>
-          <input [(ngModel)]="indicatorForm.code" name="code" placeholder="Code (e.g. O1)" required />
-          <input [(ngModel)]="indicatorForm.title" name="title" placeholder="Indicator title" required class="grow" />
-          <input [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
-          <input type="number" [(ngModel)]="indicatorForm.baseline" name="baseline" placeholder="Baseline" />
-          <input type="number" [(ngModel)]="indicatorForm.target" name="target" placeholder="Target" required />
-          <input [(ngModel)]="indicatorForm.assumptions" name="assumptions" placeholder="Assumptions" />
-          <input [(ngModel)]="indicatorForm.disaggregationText" name="disaggregationText" placeholder="Disaggregation (comma-separated)" />
-          <button type="submit" class="primary">Add</button>
-        </form>
-      }
-      <table>
-        <thead>
-          <tr>
-            <th>Level</th>
-            <th>Code</th>
-            <th>Indicator</th>
-            <th>Progress</th>
-            <th>Trend</th>
-            <th>Next due</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (summary of indicatorSummaries(); track summary._id) {
-            <tr>
-              <td>{{ summary.level ?? 'output' }}</td>
-              <td><strong>{{ summary.code }}</strong></td>
-              <td>
-                {{ summary.title }}
-                @if (summary.unit) { <span class="muted">({{ summary.unit }})</span> }
-                @if (summary.disaggregation?.length) { <div class="muted">Breakdown: {{ summary.disaggregation?.join(', ') }}</div> }
-                @if (summary.assumptions) { <div class="muted">Assumptions: {{ summary.assumptions }}</div> }
-                @if (summary.parentId) { <div class="muted">Parent: {{ summary.parentId }}</div> }
-              </td>
-              <td>
-                <div class="bar-wrap">
-                  <div class="bar" [style.width.%]="summary.percentComplete"></div>
-                </div>
-                {{ summary.percentComplete }}%
-              </td>
-              <td>{{ summary.trend }}</td>
-              <td>@if (summary.nextDueDate) { {{ summary.nextDueDate | date: 'mediumDate' }} } @else { TBA }</td>
-            </tr>
-          } @empty {
-            <tr><td colspan="6" class="muted">No indicators defined yet.</td></tr>
-          }
-        </tbody>
-      </table>
-    </section>
-  }
-
-  @if (tab() === 'reporting') {
-    <section class="panel">
-      <h2>Reporting periods and indicator results</h2>
-      @if (canManageIndicators) {
-        <form class="form-grid" (ngSubmit)="createReportingPeriod()">
-          <label>Name<input [(ngModel)]="reportingPeriodForm.name" name="periodName" placeholder="Q2 2026" required /></label>
-          <label>Cadence
-            <select [(ngModel)]="reportingPeriodForm.cadence" name="periodCadence">
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="semiannual">Semiannual</option>
-              <option value="annual">Annual</option>
-              <option value="custom">Custom</option>
+          <label class="inline-lbl">Level
+            <select [(ngModel)]="indicatorForm.level" name="level">
+              <option value="goal">Goal</option>
+              <option value="outcome">Outcome</option>
+              <option value="output">Output</option>
+              <option value="activity">Activity</option>
             </select>
           </label>
-          <label>Start date<input type="date" [(ngModel)]="reportingPeriodForm.startDate" name="periodStart" required /></label>
-          <label>End date<input type="date" [(ngModel)]="reportingPeriodForm.endDate" name="periodEnd" required /></label>
-          <label class="full">Notes<input [(ngModel)]="reportingPeriodForm.notes" name="periodNotes" /></label>
-          <div class="form-actions full">
-            <button type="submit" class="primary">Create reporting period</button>
+          <label class="inline-lbl">Code
+            <input [(ngModel)]="indicatorForm.code" name="code" placeholder="O1" required />
+          </label>
+          <label class="inline-lbl grow">Title
+            <input [(ngModel)]="indicatorForm.title" name="title" placeholder="Indicator title" required />
+          </label>
+          <label class="inline-lbl">Unit
+            <input [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
+          </label>
+          <label class="inline-lbl">Baseline
+            <input type="number" [(ngModel)]="indicatorForm.baseline" name="baseline" placeholder="0" />
+          </label>
+          <label class="inline-lbl">Target
+            <input type="number" [(ngModel)]="indicatorForm.target" name="target" placeholder="100" required />
+          </label>
+          <button type="submit" class="btn-primary btn-sm">Add indicator</button>
+        </form>
+      </div>
+    }
+
+    <div class="panel table-panel">
+      <h3>Indicators <span class="count-chip">{{ indicatorSummaries().length }}</span></h3>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Level</th>
+              <th>Code</th>
+              <th>Indicator</th>
+              <th>Progress</th>
+              <th>Trend</th>
+              <th>Next due</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of indicatorSummaries(); track s._id) {
+              <tr>
+                <td><span class="level-tag level-{{ s.level ?? 'output' }}">{{ s.level ?? 'output' }}</span></td>
+                <td><strong>{{ s.code }}</strong></td>
+                <td>
+                  <span class="ind-title">{{ s.title }}</span>
+                  @if (s.unit) { <span class="muted"> ({{ s.unit }})</span> }
+                  @if (s.disaggregation?.length) { <div class="muted small">Breakdown: {{ s.disaggregation?.join(', ') }}</div> }
+                </td>
+                <td>
+                  <div class="prog-cell">
+                    <div class="mini-bar">
+                      <div class="mini-fill" [style.width.%]="s.percentComplete"></div>
+                    </div>
+                    <span>{{ s.percentComplete }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="trend-pill trend-{{ s.trend }}">{{ s.trend }}</span>
+                </td>
+                <td class="muted small">
+                  @if (s.nextDueDate) { {{ s.nextDueDate | date: 'mediumDate' }} } @else { TBA }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty-row">No indicators defined yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════ ACTIVITIES TAB ══════════════════════════════════════ -->
+@if (tab() === 'activities') {
+  <div class="tab-content">
+    @if (canLogActivities) {
+      <div class="panel">
+        <h3>Log activity</h3>
+        <form class="create-form" (ngSubmit)="addActivity()">
+          <div class="form-row">
+            <label>Template
+              <select [(ngModel)]="activityForm.templateId" name="templateId" (change)="selectActivityTemplate(activityForm.templateId)">
+                <option value="">— Choose template —</option>
+                @for (t of activityTemplates(); track t._id) {
+                  <option [value]="t._id">{{ t.name }}</option>
+                }
+              </select>
+            </label>
+            <label>Title<input [(ngModel)]="activityForm.title" name="title" required placeholder="Activity title" /></label>
+          </div>
+          <div class="form-row">
+            <label>Date<input type="date" [(ngModel)]="activityForm.activityDate" name="activityDate" required /></label>
+            <label>Linked indicator
+              <select [(ngModel)]="activityForm.indicatorId" name="indicatorId">
+                <option value="">— None —</option>
+                @for (i of indicatorOptions(); track i._id) {
+                  <option [value]="i._id">{{ i.code }} — {{ i.title }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Activity type<input [(ngModel)]="activityForm.activityType" name="activityType" placeholder="Survey, Training…" /></label>
+            <label>Status
+              <select [(ngModel)]="activityForm.status" name="status">
+                <option value="submitted">Submit for review</option>
+                <option value="draft">Save as draft</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Location<input [(ngModel)]="activityForm.location" name="location" placeholder="Location" /></label>
+            <label>Evidence URL<input [(ngModel)]="activityForm.evidenceUrl" name="evidenceUrl" placeholder="https://…" /></label>
+          </div>
+          <div class="form-row">
+            <label>Participants<input type="number" [(ngModel)]="activityForm.participants" name="participants" placeholder="0" /></label>
+            <label>Quantity (progress)<input type="number" [(ngModel)]="activityForm.quantity" name="quantity" placeholder="0" /></label>
+          </div>
+          <label class="full-label">Notes
+            <textarea [(ngModel)]="activityForm.notes" name="notes" rows="2" placeholder="Additional notes…"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Log activity</button>
+            <button type="button" class="btn-ghost" (click)="saveActivityTemplate()">Save as template</button>
           </div>
         </form>
-      }
+      </div>
+    }
 
-      <div class="report-filters">
-        <label>Period
+    <div class="panel table-panel">
+      <h3>Activities <span class="count-chip">{{ activities().length }}</span></h3>
+      <ul class="activity-feed">
+        @for (a of activities(); track a._id) {
+          <li class="feed-row">
+            <div class="feed-dot dot-{{ a.status || 'approved' }}"></div>
+            <div class="feed-body">
+              <div class="feed-top">
+                <strong>{{ a.title }}</strong>
+                <span class="act-pill act-{{ a.status || 'approved' }}">{{ a.status || 'approved' }}</span>
+              </div>
+              <div class="feed-meta">
+                <span>{{ a.activityDate | date: 'mediumDate' }}</span>
+                @if (a.location) { <span>· {{ a.location }}</span> }
+                @if (a.quantity) { <span>· Qty {{ a.quantity }}</span> }
+                @if (a.participants) { <span>· {{ a.participants }} participants</span> }
+                @if (a.evidenceUrl) {
+                  <a [href]="a.evidenceUrl" target="_blank" rel="noopener" class="evidence-link">Evidence ↗</a>
+                }
+              </div>
+              @if (a.evidenceNotes) { <p class="feed-notes">{{ a.evidenceNotes }}</p> }
+            </div>
+            @if (canApprove && a.status === 'submitted') {
+              <div class="review-btns">
+                <button type="button" class="btn-approve" (click)="reviewActivity(a._id, 'approved')">✓ Approve</button>
+                <button type="button" class="btn-reject" (click)="reviewActivity(a._id, 'rejected')">✕ Reject</button>
+              </div>
+            }
+          </li>
+        } @empty {
+          <li class="empty-row">No activities logged yet.</li>
+        }
+      </ul>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════ REPORTING TAB ════════════════════════════════════════ -->
+@if (tab() === 'reporting') {
+  <div class="tab-content">
+    @if (canManageIndicators) {
+      <div class="panel">
+        <h3>New reporting period</h3>
+        <form class="create-form" (ngSubmit)="createReportingPeriod()">
+          <div class="form-row">
+            <label>Name<input [(ngModel)]="reportingPeriodForm.name" name="periodName" placeholder="Q2 2026" required /></label>
+            <label>Cadence
+              <select [(ngModel)]="reportingPeriodForm.cadence" name="periodCadence">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semiannual">Semiannual</option>
+                <option value="annual">Annual</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Start date<input type="date" [(ngModel)]="reportingPeriodForm.startDate" name="periodStart" required /></label>
+            <label>End date<input type="date" [(ngModel)]="reportingPeriodForm.endDate" name="periodEnd" required /></label>
+          </div>
+          <label class="full-label">Notes<input [(ngModel)]="reportingPeriodForm.notes" name="periodNotes" placeholder="Optional notes" /></label>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Create period</button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <div class="panel">
+      <h3>Period actions</h3>
+      <div class="period-controls">
+        <label class="period-select-label">Period
           <select [(ngModel)]="selectedReportingPeriodId" name="selectedReportingPeriodId" (change)="loadIndicatorResults()">
             <option value="">Choose a period</option>
             @for (period of reportingPeriods(); track period._id) {
@@ -289,188 +469,127 @@
             }
           </select>
         </label>
-        <button type="button" class="secondary" (click)="calculateReportingResults()" [disabled]="!selectedReportingPeriodId">Calculate from approved activities</button>
-        <button type="button" class="secondary" (click)="transitionReportingPeriod('submitted')" [disabled]="!selectedReportingPeriodId">Submit</button>
-        @if (canApprove) {
-          <button type="button" class="secondary" (click)="transitionReportingPeriod('approved')" [disabled]="!selectedReportingPeriodId">Approve</button>
-          <button type="button" class="primary" (click)="transitionReportingPeriod('locked')" [disabled]="!selectedReportingPeriodId">Lock</button>
-        }
+        <div class="period-btns">
+          <button type="button" class="btn-secondary" (click)="calculateReportingResults()" [disabled]="!selectedReportingPeriodId">Calculate results</button>
+          <button type="button" class="btn-secondary" (click)="transitionReportingPeriod('submitted')" [disabled]="!selectedReportingPeriodId">Submit</button>
+          @if (canApprove) {
+            <button type="button" class="btn-secondary" (click)="transitionReportingPeriod('approved')" [disabled]="!selectedReportingPeriodId">Approve</button>
+            <button type="button" class="btn-primary" (click)="transitionReportingPeriod('locked')" [disabled]="!selectedReportingPeriodId">Lock period</button>
+          }
+        </div>
       </div>
+    </div>
 
-      @if (selectedReportingPeriodId && indicatorOptions().length > 0) {
+    @if (selectedReportingPeriodId && indicatorOptions().length > 0) {
+      <div class="panel table-panel">
         <h3>Period targets</h3>
-        <table>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th>Lifetime target</th>
+                <th>Period target</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (indicator of indicatorOptions(); track indicator._id) {
+                <tr>
+                  <td><strong>{{ indicator.code }}</strong> {{ indicator.title }}</td>
+                  <td>{{ indicator.target }} @if (indicator.unit) { {{ indicator.unit }} }</td>
+                  <td>
+                    @if (canManageIndicators) {
+                      <input class="target-input"
+                        type="number"
+                        [value]="targetValueForIndicator(indicator)"
+                        (change)="saveIndicatorTarget(indicator, $any($event.target).value)" />
+                    } @else {
+                      {{ targetValueForIndicator(indicator) }}
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <div class="panel table-panel">
+      <h3>Indicator results</h3>
+      <div class="table-scroll">
+        <table class="data-table">
           <thead>
             <tr>
               <th>Indicator</th>
-              <th>Lifetime target</th>
-              <th>Period target</th>
+              <th>Target</th>
+              <th>Achieved</th>
+              <th>Activities</th>
+              <th>Status</th>
+              <th>Narrative</th>
             </tr>
           </thead>
           <tbody>
-            @for (indicator of indicatorOptions(); track indicator._id) {
+            @for (result of indicatorResults(); track result._id) {
               <tr>
-                <td><strong>{{ indicator.code }}</strong> {{ indicator.title }}</td>
-                <td>{{ indicator.target }} @if (indicator.unit) { {{ indicator.unit }} }</td>
                 <td>
-                  @if (canManageIndicators) {
-                    <input
-                      type="number"
-                      [value]="targetValueForIndicator(indicator)"
-                      (change)="saveIndicatorTarget(indicator, $any($event.target).value)"
-                    />
+                  @if (resultIndicator(result); as ind) {
+                    <strong>{{ ind.code }}</strong> {{ ind.title }}
                   } @else {
-                    {{ targetValueForIndicator(indicator) }}
+                    {{ result.indicatorId }}
                   }
                 </td>
+                <td>@if (targetValueForResult(result) !== null) { {{ targetValueForResult(result) }} } @else { TBA }</td>
+                <td><strong>{{ result.achieved }}</strong></td>
+                <td>{{ result.activityCount }}</td>
+                <td><span class="act-pill act-{{ result.status }}">{{ result.status }}</span></td>
+                <td class="muted small">{{ result.narrative || '—' }}</td>
               </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty-row">No results calculated yet.</td></tr>
             }
           </tbody>
         </table>
-      }
-
-      <table>
-        <thead>
-          <tr>
-            <th>Indicator</th>
-            <th>Target</th>
-            <th>Achieved</th>
-            <th>Activities</th>
-            <th>Status</th>
-            <th>Narrative</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (result of indicatorResults(); track result._id) {
-            <tr>
-              <td>
-                @if (resultIndicator(result); as indicator) {
-                  <strong>{{ indicator.code }}</strong> {{ indicator.title }}
-                } @else {
-                  {{ result.indicatorId }}
-                }
-              </td>
-              <td>@if (targetValueForResult(result) !== null) { {{ targetValueForResult(result) }} } @else { TBA }</td>
-              <td>{{ result.achieved }}</td>
-              <td>{{ result.activityCount }}</td>
-              <td><span class="status-pill">{{ result.status }}</span></td>
-              <td>{{ result.narrative || 'No narrative yet' }}</td>
-            </tr>
-          } @empty {
-            <tr><td colspan="6" class="muted">No results calculated for this reporting period yet.</td></tr>
-          }
-        </tbody>
-      </table>
-    </section>
-  }
-
-  @if (tab() === 'activities') {
-    <section class="panel">
-      <h2>Field activities</h2>
-      @if (canLogActivities) {
-      <form class="form-grid" (ngSubmit)="addActivity()">
-        <label>Template
-          <select [(ngModel)]="activityForm.templateId" name="templateId" (change)="selectActivityTemplate(activityForm.templateId)">
-            <option value="">— Choose template —</option>
-            @for (template of activityTemplates(); track template._id) {
-              <option [value]="template._id">{{ template.name }}</option>
-            }
-          </select>
-        </label>
-        <label>Title<input [(ngModel)]="activityForm.title" name="title" required /></label>
-        <label>Date<input type="date" [(ngModel)]="activityForm.activityDate" name="activityDate" required /></label>
-        <label>Linked indicator
-          <select [(ngModel)]="activityForm.indicatorId" name="indicatorId">
-            <option value="">— None —</option>
-            @for (i of indicatorOptions(); track i._id) {
-              <option [value]="i._id">{{ i.code }} — {{ i.title }}</option>
-            }
-          </select>
-        </label>
-        <label>Activity type<input [(ngModel)]="activityForm.activityType" name="activityType" placeholder="e.g. Survey, Training" /></label>
-        <label>Status
-          <select [(ngModel)]="activityForm.status" name="status">
-            <option value="submitted">Submit for review</option>
-            <option value="draft">Save as draft</option>
-          </select>
-        </label>
-        <label>Partner
-          <input [(ngModel)]="partnerQuery" name="partnerQuery" (ngModelChange)="partnerQuery = $event" placeholder="Search partners..." />
-          <ul class="autocomplete-list" *ngIf="filteredPartners().length">
-            <li *ngFor="let p of filteredPartners()" (click)="selectPartner(p._id)">{{ p.name }}</li>
-          </ul>
-        </label>
-        <label>Beneficiaries
-          <input [(ngModel)]="beneficiaryQuery" name="beneficiaryQuery" (ngModelChange)="beneficiaryQuery = $event" placeholder="Filter beneficiaries..." />
-          <div class="beneficiary-list">
-            <label *ngFor="let b of filteredBeneficiaries()"><input type="checkbox" [checked]="isBeneficiarySelected(b._id)" (change)="toggleBeneficiary(b._id)" /> {{ b.name }}</label>
-          </div>
-        </label>
-        <label>Evidence URL<input [(ngModel)]="activityForm.evidenceUrl" name="evidenceUrl" placeholder="https://..." /></label>
-        <label>Evidence notes<input [(ngModel)]="activityForm.evidenceNotes" name="evidenceNotes" placeholder="Short summary" /></label>
-        <label>Location<input [(ngModel)]="activityForm.location" name="location" /></label>
-        <label>Participants<input type="number" [(ngModel)]="activityForm.participants" name="participants" /></label>
-        <label>Quantity (progress)<input type="number" [(ngModel)]="activityForm.quantity" name="quantity" /></label>
-        <label class="full">Notes<textarea [(ngModel)]="activityForm.notes" name="notes" rows="2"></textarea></label>
-        <div class="form-actions full">
-          <button type="button" class="secondary" (click)="saveActivityTemplate()">Save as template</button>
-          <button type="submit" class="primary">Log activity</button>
-        </div>
-      </form>
-      }
-      <ul class="activity-list">
-        @for (a of activities(); track a._id) {
-          <li>
-            <div>
-              <strong>{{ a.title }}</strong>
-              <span class="muted">{{ a.activityDate | date: 'mediumDate' }}</span>
-              @if (a.location) { <span class="muted"> · {{ a.location }}</span> }
-              @if (a.evidenceUrl) { <a class="muted" href="{{ a.evidenceUrl }}" target="_blank" rel="noopener">Evidence</a> }
-            </div>
-            @if (a.evidenceNotes) { <p class="muted">{{ a.evidenceNotes }}</p> }
-            <div class="meta">
-              <span class="status-pill">{{ a.status ?? 'approved' }}</span>
-              @if (a.quantity) { <span>Qty {{ a.quantity }}</span> }
-              @if (a.participants) { <span>{{ a.participants }} participants</span> }
-              @if (canApprove && a.status === 'submitted') {
-                <button type="button" class="approve-btn" (click)="reviewActivity(a._id, 'approved')">Approve</button>
-                <button type="button" class="reject-btn" (click)="reviewActivity(a._id, 'rejected')">Reject</button>
-              }
-            </div>
-          </li>
-        } @empty {
-          <li class="muted">No activities logged yet.</li>
-        }
-      </ul>
-    </section>
-  }
-
-  @if (tab() === 'report') {
-    <section class="panel report-panel">
-      <div class="report-filters no-print">
-        <label>From <input type="date" [(ngModel)]="reportFrom" name="reportFrom" /></label>
-        <label>To <input type="date" [(ngModel)]="reportTo" name="reportTo" /></label>
-        <button type="button" class="primary" (click)="loadReport()">Generate report</button>
       </div>
-      @if (report(); as r) {
-        <div class="report-actions no-print">
-          <button type="button" class="primary" (click)="printReport()">Print / Save as PDF</button>
-          <button type="button" class="secondary" (click)="exportDonorReportCsv()">Export CSV</button>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════ DONOR REPORT TAB ════════════════════════════════════ -->
+@if (tab() === 'report') {
+  <div class="tab-content no-print-controls">
+    <div class="panel report-controls">
+      <div class="report-filters">
+        <label>From<input type="date" [(ngModel)]="reportFrom" name="reportFrom" /></label>
+        <label>To<input type="date" [(ngModel)]="reportTo" name="reportTo" /></label>
+        <button type="button" class="btn-primary" (click)="loadReport()">Generate report</button>
+      </div>
+      @if (report()) {
+        <div class="report-export">
+          <button type="button" class="btn-secondary" (click)="printReport()">🖨 Print / Save PDF</button>
+          <button type="button" class="btn-ghost" (click)="exportDonorReportCsv()">📥 Export CSV</button>
         </div>
-        <article class="report-doc">
-          <header class="report-head">
-            <p class="eyebrow">Donor progress report</p>
-            <h2>{{ r.project.name }}</h2>
-            <p>{{ r.organization?.name }} · Generated {{ r.generatedAt | date: 'medium' }}</p>
-          </header>
-          <div class="stats">
-            <div><span>{{ r.summary.indicatorCount }}</span><small>Indicators</small></div>
-            <div><span>{{ r.summary.activityCount }}</span><small>Activities</small></div>
-            <div><span>{{ r.summary.totalParticipants }}</span><small>Participants reached</small></div>
-            <div><span>{{ r.summary.averageProgress }}%</span><small>Avg. progress</small></div>
-          </div>
-          <h3>Indicator performance</h3>
-          <table>
+      }
+    </div>
+
+    @if (report(); as r) {
+      <div class="report-doc">
+        <div class="report-head">
+          <span class="eyebrow">Donor progress report</span>
+          <h2>{{ r.project.name }}</h2>
+          <p>{{ r.organization?.name }} · Generated {{ r.generatedAt | date: 'medium' }}</p>
+        </div>
+
+        <div class="report-kpis">
+          <div class="rep-kpi"><span>{{ r.summary.indicatorCount }}</span><small>Indicators</small></div>
+          <div class="rep-kpi"><span>{{ r.summary.activityCount }}</span><small>Activities</small></div>
+          <div class="rep-kpi"><span>{{ r.summary.totalParticipants }}</span><small>Participants</small></div>
+          <div class="rep-kpi"><span>{{ r.summary.averageProgress }}%</span><small>Avg. progress</small></div>
+        </div>
+
+        <h3>Indicator performance</h3>
+        <div class="table-scroll">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Code</th>
@@ -483,30 +602,39 @@
             <tbody>
               @for (row of r.indicators; track row.id) {
                 <tr>
-                  <td>{{ row.code }}</td>
+                  <td><strong>{{ row.code }}</strong></td>
                   <td>{{ row.title }}</td>
                   <td>{{ row.achieved }} @if (row.unit) { {{ row.unit }} }</td>
                   <td>{{ row.target }}</td>
                   <td>
-                    <div class="bar-wrap">
-                      <div class="bar" [style.width.%]="row.percentComplete"></div>
+                    <div class="prog-cell">
+                      <div class="mini-bar"><div class="mini-fill" [style.width.%]="row.percentComplete"></div></div>
+                      <span>{{ row.percentComplete }}%</span>
                     </div>
-                    {{ row.percentComplete }}%
                   </td>
                 </tr>
               }
             </tbody>
           </table>
-          <h3>Recent activities</h3>
-          <ul>
-            @for (a of r.recentActivities; track a.id) {
-              <li>{{ a.title }} — {{ a.activityDate | date: 'mediumDate' }} (qty {{ a.quantity }})</li>
-            }
-          </ul>
-        </article>
-      } @else {
-        <p class="muted">Loading report…</p>
-      }
-    </section>
-  }
+        </div>
+
+        <h3>Recent activities</h3>
+        <ul class="report-activity-list">
+          @for (a of r.recentActivities; track a.id) {
+            <li>
+              <strong>{{ a.title }}</strong>
+              <span>{{ a.activityDate | date: 'mediumDate' }} · qty {{ a.quantity }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else {
+      <div class="empty-panel">
+        <span>📄</span>
+        <p>Set a date range above and click Generate report.</p>
+      </div>
+    }
+  </div>
+}
+
 }

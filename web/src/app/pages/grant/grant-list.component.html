@@ -1,211 +1,240 @@
 <!-- web/src/app/pages/grants/grants-list.component.html -->
-<div class="page grants-page">
+<div class="projects-dashboard grants-page">
 
   <!-- Summary cards -->
   @if (summary()) {
-    <div class="summary-cards">
-      <div class="card stat-card">
-        <span class="stat-label">Total Grants</span>
-        <span class="stat-value">{{ summary()!.totalGrants }}</span>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-label">Active Grants</span>
-        <span class="stat-value highlight-green">{{ summary()!.activeGrants }}</span>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-label">Total Awarded</span>
-        <span class="stat-value">${{ summary()!.totalAwarded | number }}</span>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-label">Total Spent</span>
-        <span class="stat-value">${{ summary()!.totalSpent | number }}</span>
-      </div>
-      @if (summary()!.expiringIn30Days.length > 0) {
-        <div class="card stat-card alert-card">
-          <span class="stat-label">⚠️ Expiring in 30d</span>
-          <span class="stat-value highlight-orange">{{ summary()!.expiringIn30Days.length }}</span>
+    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem;">
+      <article class="metric-card">
+        <div class="metric-icon">📄</div>
+        <div class="metric-content">
+          <span class="label">Total Grants</span>
+          <strong>{{ total() }}</strong>
         </div>
+      </article>
+      <article class="metric-card highlight">
+        <div class="metric-icon">🟢</div>
+        <div class="metric-content">
+          <span class="label">Active Grants</span>
+          <strong>{{ summary()!.activeGrants }}</strong>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-icon">💰</div>
+        <div class="metric-content">
+          <span class="label">Total Awarded</span>
+          <strong>${{ summary()!.totalGrantAmount | number }}</strong>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-icon">💸</div>
+        <div class="metric-content">
+          <span class="label">Total Spent</span>
+          <strong>${{ summary()!.totalSpent | number }}</strong>
+        </div>
+      </article>
+      @if (summary()!.expiringIn30Days?.length) {
+        <article class="metric-card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.1)); border-color: rgba(245, 158, 11, 0.2);">
+          <div class="metric-icon">⚠️</div>
+          <div class="metric-content">
+            <span class="label" style="color: #d97706;">Expiring 30d</span>
+            <strong style="color: #d97706;">{{ summary()!.expiringIn30Days?.length }}</strong>
+          </div>
+        </article>
       }
-      @if (summary()!.overdueReports.length > 0) {
-        <div class="card stat-card alert-card">
-          <span class="stat-label">🔴 Reports Overdue</span>
-          <span class="stat-value highlight-red">{{ summary()!.overdueReports.length }}</span>
-        </div>
+      @if (summary()!.overdueReports?.length) {
+        <article class="metric-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.1)); border-color: rgba(239, 68, 68, 0.2);">
+          <div class="metric-icon">🔴</div>
+          <div class="metric-content">
+            <span class="label" style="color: #ef4444;">Overdue Reports</span>
+            <strong style="color: #ef4444;">{{ summary()!.overdueReports?.length }}</strong>
+          </div>
+        </article>
       }
     </div>
   }
 
   <!-- Header + actions -->
-  <div class="page-header">
-    <div>
-      <h1>Grants</h1>
-      <p class="page-subtitle">Manage donor-funded grants and track burn rates</p>
+  <header class="dashboard-header glass-panel mt-4">
+    <div class="header-content">
+      <div class="header-titles">
+        <h1 class="gradient-text">Grants</h1>
+        <p class="muted">Manage donor-funded grants and track burn rates</p>
+      </div>
+      @if (canCreate()) {
+        <button class="btn-primary shadow-btn" (click)="showForm.set(!showForm())">
+          <span class="icon">{{ showForm() ? '✕' : '+' }}</span> {{ showForm() ? 'Cancel' : 'New Grant' }}
+        </button>
+      }
     </div>
-    @if (canCreate()) {
-      <button class="btn btn-primary" (click)="showForm.set(!showForm())">
-        {{ showForm() ? '✕ Cancel' : '+ New Grant' }}
-      </button>
-    }
-  </div>
+  </header>
 
   <!-- Create form -->
   @if (showForm() && canCreate()) {
-    <div class="card form-card">
-      <h3>New Grant</h3>
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <div class="form-grid-2">
-          <div class="field">
-            <label>Grant Title *</label>
-            <input formControlName="title" placeholder="USAID Year 2 Award" />
-          </div>
-          <div class="field">
-            <label>Reference Number</label>
-            <input formControlName="referenceNumber" placeholder="AID-623-A-00-..." />
-          </div>
+    <section class="form-panel glass-panel mt-4">
+      <div class="panel-header">
+        <h2>New Grant</h2>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
+        <div class="form-group">
+          <label>Grant Name *</label>
+          <input formControlName="name" class="glass-input" placeholder="e.g. USAID Year 2 Award" />
         </div>
-        <div class="form-grid-3">
-          <div class="field">
-            <label>Status</label>
-            <select formControlName="status">
-              @for (s of statuses; track s) {
-                <option [value]="s">{{ s | titlecase }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Currency</label>
-            <select formControlName="currency">
-              @for (c of currencies; track c) {
-                <option [value]="c">{{ c }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Total Amount *</label>
-            <input formControlName="totalAmount" type="number" min="1" />
-          </div>
+        <div class="form-group">
+          <label>Reference Number</label>
+          <input formControlName="referenceNumber" class="glass-input" placeholder="AID-623-A-00-..." />
         </div>
-        <div class="form-grid-3">
-          <div class="field">
-            <label>Start Date *</label>
-            <input formControlName="startDate" type="date" />
-          </div>
-          <div class="field">
-            <label>End Date *</label>
-            <input formControlName="endDate" type="date" />
-          </div>
-          <div class="field">
-            <label>Reporting Frequency</label>
-            <select formControlName="reportingFrequency">
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="semiannual">Semiannual</option>
-              <option value="annual">Annual</option>
-            </select>
-          </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select formControlName="status" class="status-select">
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ s | titlecase }}</option>
+            }
+          </select>
         </div>
-        <div class="field">
+        <div class="form-group">
+          <label>Currency</label>
+          <select formControlName="currency" class="status-select">
+            @for (c of currencies; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Total Amount *</label>
+          <input formControlName="amount" type="number" min="1" class="glass-input" />
+        </div>
+        
+        <div class="form-group">
+          <label>Start Date *</label>
+          <input formControlName="startDate" type="date" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label>End Date *</label>
+          <input formControlName="endDate" type="date" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label>Reporting Frequency</label>
+          <select formControlName="reportingFrequency" class="status-select">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semiannual">Semiannual</option>
+            <option value="annual">Annual</option>
+          </select>
+        </div>
+        
+        <div class="form-group full-width">
           <label>Description / Objectives</label>
-          <textarea formControlName="objectives" rows="3" placeholder="Grant purpose and key objectives..."></textarea>
+          <textarea formControlName="objectives" rows="3" class="glass-input" placeholder="Grant purpose and key objectives..."></textarea>
         </div>
-        <div class="field-checkbox">
-          <input formControlName="isRestricted" type="checkbox" id="restricted" />
-          <label for="restricted">Donor-restricted fund (restrict spending categories)</label>
+        <div class="form-group full-width field-checkbox">
+          <label style="display:flex; gap:0.5rem; align-items:center;">
+            <input formControlName="isRestricted" type="checkbox" id="restricted" />
+            Donor-restricted fund (restrict spending categories)
+          </label>
         </div>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
             {{ saving() ? 'Creating…' : 'Create Grant' }}
           </button>
-          <button type="button" class="btn btn-ghost" (click)="showForm.set(false)">Cancel</button>
+          <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
         </div>
       </form>
-    </div>
+    </section>
   }
 
   <!-- Filters -->
-  <div class="filter-row">
-    <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilter()">
-      <option value="">All Statuses</option>
-      @for (s of statuses; track s) {
-        <option [value]="s">{{ s | titlecase }}</option>
-      }
-    </select>
-    <button class="btn btn-ghost btn-sm" (click)="clearFilter()" *ngIf="filterStatus()">Clear</button>
-  </div>
+  <section class="toolbar glass-panel mt-4">
+    <div class="filter-wrap" style="display:flex; gap:1rem; align-items:center;">
+      <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilter()" class="status-select" style="min-width: 200px;">
+        <option value="">All Statuses</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ s | titlecase }}</option>
+        }
+      </select>
+      <button class="btn-ghost" (click)="clearFilter()" *ngIf="filterStatus()">Clear</button>
+    </div>
+  </section>
 
   <!-- Error -->
   @if (error()) {
-    <div class="alert alert-error">{{ error() }}</div>
+    <div class="alert alert-error glass-panel mt-4">{{ error() }}</div>
   }
 
   <!-- Table -->
-  @if (loading()) {
-    <div class="loading">Loading grants…</div>
-  } @else if (grants().length === 0) {
-    <div class="empty-state">
-      <p>No grants found. {{ canCreate() ? 'Create your first grant above.' : '' }}</p>
-    </div>
-  } @else {
-    <div class="table-wrapper card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Grant</th>
-            <th>Status</th>
-            <th>Amount</th>
-            <th>Spent</th>
-            <th>Burn Rate</th>
-            <th>Expires</th>
-            <th>Next Report</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (g of grants(); track g._id) {
-            <tr class="clickable" (click)="openDetail(g._id)">
-              <td>
-                <div class="grant-title">{{ g.title }}</div>
-                @if (g.referenceNumber) {
-                  <div class="grant-ref">{{ g.referenceNumber }}</div>
-                }
-                @if (g.donorName) {
-                  <div class="grant-donor">{{ g.donorName }}</div>
-                }
-              </td>
-              <td><span [class]="'badge ' + statusBadgeClass($any(g.status))">{{ g.status }}</span></td>
-              <td>{{ g.currency }} {{ g.totalAmount | number }}</td>
-              <td>{{ g.currency }} {{ g.spentAmount | number }}</td>
-              <td>
-                @if (g.burnRate != null) {
-                  <div class="burn-rate-cell">
-                    <div class="burn-bar">
-                      <div class="burn-fill" [class]="burnRateClass(g.burnRate)" [style.width.%]="g.burnRate"></div>
-                    </div>
-                    <span [class]="'burn-pct ' + burnRateClass(g.burnRate)">{{ g.burnRate | number:'1.0-0' }}%</span>
-                  </div>
-                } @else {
-                  <span class="muted">—</span>
-                }
-              </td>
-              <td [class.text-danger]="(g.daysUntilExpiry ?? 999) <= 30">
-                {{ g.endDate | date:'d MMM y' }}<br>
-                <small>{{ daysLabel(g.daysUntilExpiry) }}</small>
-              </td>
-              <td>{{ g.nextReportDue ? (g.nextReportDue | date:'d MMM') : '—' }}</td>
-              <td><button class="btn btn-sm btn-outline" (click)="$event.stopPropagation(); openDetail(g._id)">View →</button></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Pagination -->
-    @if (totalPages > 1) {
-      <div class="pagination">
-        <button [disabled]="!hasPrev" (click)="prevPage()" class="btn btn-sm btn-ghost">← Prev</button>
-        <span>{{ page() }} / {{ totalPages }}</span>
-        <button [disabled]="!hasNext" (click)="nextPage()" class="btn btn-sm btn-ghost">Next →</button>
+  <section class="mt-4">
+    @if (loading()) {
+      <div class="state-message glass-panel">
+        <div class="spinner"></div>
+        <p>Loading grants…</p>
       </div>
+    } @else if (grants().length === 0) {
+      <div class="state-message glass-panel empty-state">
+        <div class="empty-icon">📁</div>
+        <p>No grants found. {{ canCreate() ? 'Create your first grant above.' : '' }}</p>
+      </div>
+    } @else {
+      <div class="glass-panel" style="padding: 1.5rem; overflow-x: auto;">
+        <table class="documents-table">
+          <thead>
+            <tr>
+              <th>Grant</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Spent</th>
+              <th>Burn Rate</th>
+              <th>Expires</th>
+              <th>Next Report</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of grants(); track g._id) {
+              <tr class="clickable" (click)="openDetail(g._id)" style="cursor: pointer;">
+                <td>
+                  <div style="font-weight: 600; color: #1f2937;">{{ g.name }}</div>
+                  @if (g.referenceNumber) {
+                    <div style="font-size: 0.8rem; color: #6b7280;">{{ g.referenceNumber }}</div>
+                  }
+                  @if (g.donorId?.name) {
+                    <div style="font-size: 0.8rem; color: #4f46e5; margin-top: 0.2rem;">🏛️ {{ g.donorId?.name }}</div>
+                  }
+                </td>
+                <td><span class="status-pill status-{{ g.status }}">{{ g.status }}</span></td>
+                <td><strong>{{ g.currency }} {{ g.amount | number }}</strong></td>
+                <td><strong>{{ g.currency }} {{ g.amountSpent | number }}</strong></td>
+                <td>
+                  @if (g.burnRate != null) {
+                    <div class="progress-track" style="min-width: 120px;">
+                      <div class="progress-bar lighter">
+                        <div class="progress-fill achievement-fill" [style.width.%]="g.burnRate" [class.warning]="g.burnRate > 80"></div>
+                      </div>
+                      <span style="font-size: 0.75rem; color: #6b7280; margin-top: 0.2rem;">{{ g.burnRate | number:'1.0-0' }}%</span>
+                    </div>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td [style.color]="(g.daysUntilExpiry ?? 999) <= 30 ? '#ef4444' : 'inherit'" [style.fontWeight]="(g.daysUntilExpiry ?? 999) <= 30 ? '600' : 'normal'">
+                  {{ g.endDate | date:'d MMM y' }}<br>
+                  <small>{{ daysLabel(g.daysUntilExpiry) }}</small>
+                </td>
+                <td>{{ g.nextReportDue ? (g.nextReportDue | date:'d MMM') : '—' }}</td>
+                <td><button class="btn-ghost" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" (click)="$event.stopPropagation(); openDetail(g._id)">View →</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+  
+      <!-- Pagination -->
+      @if (totalPages > 1) {
+        <div class="pagination glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 1rem; margin-top: 1.5rem;">
+          <button [disabled]="!hasPrev" (click)="prevPage()" class="btn-ghost">← Prev</button>
+          <span style="font-weight: 600; color: #4b5563;">{{ page() }} / {{ totalPages }}</span>
+          <button [disabled]="!hasNext" (click)="nextPage()" class="btn-ghost">Next →</button>
+        </div>
+      }
     }
-  }
+  </section>
 </div>
