@@ -1,221 +1,322 @@
-// web/src/app/pages/donors/donors.component.ts
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { Donor, CreateDonorDto, DonorType, Grant } from '../../core/models';
+import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto, AddComplianceConditionDto } from '../../core/models';
 
 @Component({
   selector: 'app-donors',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DecimalPipe, DatePipe],
   template: `
-<div class="projects-dashboard donors-page">
-  <header class="dashboard-header glass-panel">
-    <div class="header-content">
-      <div class="header-titles">
-        <h1 class="gradient-text">Donor Registry</h1>
-        <p class="muted">Manage funders and their relationship with your organization</p>
-      </div>
-      <div class="header-stats">
-        <div class="stat-badge active-badge">
-          <span class="value">{{ donors().length }}</span>
-          <span class="label">Total Donors</span>
-        </div>
-      </div>
-      @if (canManage()) {
-        <button class="btn-primary shadow-btn" (click)="showForm.set(!showForm())">
-          <span class="icon">{{ showForm() ? '✕' : '+' }}</span> {{ showForm() ? 'Cancel' : 'Add Donor' }}
-        </button>
-      }
-    </div>
-  </header>
-
-  @if (error()) { <div class="alert alert-error glass-panel">{{ error() }}</div> }
-
-  @if (showForm() && canManage()) {
-    <section class="form-panel glass-panel">
-      <div class="panel-header">
-        <h2>{{ editMode() ? 'Edit Donor' : 'New Donor' }}</h2>
-      </div>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
-        <div class="form-group">
-          <label>Donor Name *</label>
-          <input formControlName="name" class="glass-input" placeholder="e.g. USAID" />
-        </div>
-        <div class="form-group">
-          <label>Short Name / Acronym</label>
-          <input formControlName="shortName" class="glass-input" placeholder="USAID" />
-        </div>
-        <div class="form-group">
-          <label>Type *</label>
-          <select formControlName="type" class="status-select">
-            @for (t of donorTypes; track t) { <option [value]="t">{{ t | titlecase }}</option> }
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Country</label>
-          <input formControlName="country" class="glass-input" placeholder="e.g. United States" />
-        </div>
-        <div class="form-group">
-          <label>Website</label>
-          <input formControlName="website" class="glass-input" placeholder="https://usaid.gov" />
-        </div>
-        <div class="form-group">
-          <label>Primary Contact Name</label>
-          <input formControlName="contactName" class="glass-input" />
-        </div>
-        <div class="form-group">
-          <label>Contact Email</label>
-          <input formControlName="contactEmail" type="email" class="glass-input" />
-        </div>
-        <div class="form-group full-width">
-          <label>Description</label>
-          <textarea formControlName="description" rows="3" class="glass-input" placeholder="Brief description of the donor…"></textarea>
-        </div>
-        <div class="form-group full-width field-checkbox">
-          <label style="display:flex; gap:0.5rem; align-items:center;">
-            <input formControlName="requiresDisaggregation" type="checkbox" id="disagg" />
-            Requires disaggregated indicator results (by gender, age, etc.)
-          </label>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
-            {{ saving() ? 'Saving…' : (editMode() ? 'Save Changes' : 'Add Donor') }}
-          </button>
-        </div>
-      </form>
-    </section>
+<!-- ─── Header ───────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Stakeholder Management</span>
+    <h1>Donors</h1>
+    <p class="subtitle">Manage funding relationships and track donor compliance across all programmes.</p>
+  </div>
+  @if (canManage()) {
+    <button type="button" class="btn-new" (click)="toggleForm()">
+      {{ showForm() ? '✕ Cancel' : '+ New donor' }}
+    </button>
   }
+</div>
 
-  <div class="donors-layout grid-layout mt-4" style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
-    <!-- List -->
-    <div class="donors-list glass-panel" style="padding: 1.5rem; max-height: 800px; overflow-y: auto;">
-      @if (loading()) {
-        <div class="state-message">
-          <div class="spinner"></div>
-          <p>Loading donors…</p>
-        </div>
-      } @else if (donors().length === 0) {
-        <div class="state-message empty-state">
-          <div class="empty-icon">🤝</div>
-          <p>No donors yet.</p>
-        </div>
-      } @else {
-        <div class="list-container" style="display:flex; flex-direction:column; gap:1rem;">
-          @for (d of donors(); track d._id) {
-            <div class="donor-card glass-card" [class.active]="selected()?._id === d._id" (click)="select(d)" style="cursor:pointer; padding: 1rem; border: 2px solid transparent;" [style.borderColor]="selected()?._id === d._id ? '#4f46e5' : 'transparent'">
-              <div style="font-weight:700; font-size:1.1rem; color:#111827;">{{ d.name }}</div>
-              <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.5rem;">
-                <span class="status-pill secondary">{{ d.type }}</span>
-                @if (d.country) { <span class="muted" style="font-size:0.8rem;">{{ d.country }}</span> }
-              </div>
-              @if (d.activeGrants) {
-                <div class="muted" style="margin-top:0.5rem; font-size:0.85rem;">{{ d.activeGrants }} active grants · $ {{ d.totalFunded | number }}</div>
-              }
-            </div>
-          }
-        </div>
-      }
-    </div>
+<!-- ─── Status tabs + search ─────────────────────────────────────────── -->
+<div class="status-tabs">
+  <button type="button"
+    class="status-tab"
+    [class.active]="donorStatusFilter() === 'all'"
+    (click)="donorStatusFilter.set('all')">
+    All <span class="tab-count">{{ donorCounts().total }}</span>
+  </button>
+  <button type="button"
+    class="status-tab"
+    [class.active]="donorStatusFilter() === 'active'"
+    (click)="donorStatusFilter.set('active')">
+    Active <span class="tab-count">{{ donorCounts().active }}</span>
+  </button>
+  <button type="button"
+    class="status-tab"
+    [class.active]="donorStatusFilter() === 'prospect'"
+    (click)="donorStatusFilter.set('prospect')">
+    Prospects <span class="tab-count">{{ donorCounts().prospect }}</span>
+  </button>
+  <button type="button"
+    class="status-tab"
+    [class.active]="donorStatusFilter() === 'inactive'"
+    (click)="donorStatusFilter.set('inactive')">
+    Inactive <span class="tab-count">{{ donorCounts().inactive }}</span>
+  </button>
 
-    <!-- Detail -->
-    @if (selected()) {
-      <div class="donor-detail glass-panel" style="padding: 2rem;">
-        <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
-          <h2 class="gradient-text" style="font-size: 1.8rem; margin:0;">{{ selected()!.name }}</h2>
-          @if (canManage()) {
-            <button class="btn-ghost" (click)="startEdit()">Edit Donor</button>
-          }
-        </div>
-        
-        <div class="metrics-grid" style="margin-bottom: 2rem;">
-          <article class="metric-card">
-            <div class="metric-icon">🏢</div>
-            <div class="metric-content">
-              <span class="label">Type</span>
-              <strong style="font-size:1.1rem;">{{ selected()!.type | titlecase }}</strong>
-            </div>
-          </article>
-          @if (selected()!.country) {
-            <article class="metric-card">
-              <div class="metric-icon">🌍</div>
-              <div class="metric-content">
-                <span class="label">Country</span>
-                <strong style="font-size:1.1rem;">{{ selected()!.country }}</strong>
-              </div>
-            </article>
-          }
-          @if (selected()!.website) {
-            <article class="metric-card">
-              <div class="metric-icon">🔗</div>
-              <div class="metric-content">
-                <span class="label">Website</span>
-                <a [href]="selected()!.website" target="_blank" style="font-weight:600; color:#4f46e5;">Visit Site ↗</a>
-              </div>
-            </article>
-          }
-        </div>
-
-        @if (selected()!.contactName || selected()!.requiresDisaggregation) {
-          <div class="contact-info glass-panel" style="padding: 1.5rem; margin-bottom: 2rem; background: rgba(79, 70, 229, 0.03);">
-            @if (selected()!.contactName) { 
-              <div style="margin-bottom:1rem;">
-                <span class="muted" style="display:block; font-size:0.85rem; text-transform:uppercase; font-weight:600; margin-bottom:0.25rem;">Contact Person</span>
-                <strong style="font-size:1.1rem; color:#1f2937;">{{ selected()!.contactName }}</strong>
-                <a [href]="'mailto:' + selected()!.contactEmail" style="display:block; color:#4f46e5; margin-top:0.25rem;">{{ selected()!.contactEmail }}</a>
-              </div>
-            }
-            @if (selected()!.requiresDisaggregation) { 
-              <div style="display:flex; align-items:center; gap:0.5rem; color:#d97706; font-weight:600; background:rgba(245, 158, 11, 0.1); padding:0.5rem 1rem; border-radius:8px; display:inline-flex;">
-                <span>⚠️</span> Requires disaggregated reporting
-              </div>
-            }
-          </div>
-        }
-
-        @if (selected()!.description) {
-          <div class="description-section" style="margin-bottom: 2rem;">
-            <p style="font-size: 1.05rem; line-height:1.6; color:#4b5563;">{{ selected()!.description }}</p>
-          </div>
-        }
-
-        <!-- Grants linked to this donor -->
-        <h3 style="font-size:1.3rem; margin-bottom:1rem; color:#1f2937;">Linked Grants</h3>
-        @if (donorGrants().length === 0) {
-          <div class="glass-panel empty-state" style="padding:2rem;">
-            <p class="muted">No grants linked to this donor yet.</p>
-          </div>
-        } @else {
-          <div style="overflow-x:auto;">
-            <table class="documents-table">
-              <thead><tr><th>Grant Title</th><th>Status</th><th>Total Amount</th><th>Expires</th></tr></thead>
-              <tbody>
-                @for (g of donorGrants(); track g._id) {
-                  <tr>
-                    <td><a [routerLink]="['/grants', g._id]" style="font-weight:600; color:#4f46e5;">{{ g.title }}</a></td>
-                    <td><span class="status-pill status-{{g.status}}">{{ g.status }}</span></td>
-                    <td><strong>{{ g.currency }} {{ g.totalAmount | number }}</strong></td>
-                    <td>{{ g.endDate | date:'d MMM y' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="donor-placeholder glass-panel empty-state" style="padding: 4rem 2rem;">
-        <div class="empty-icon">👈</div>
-        <h3 style="color:#1f2937;">Select a Donor</h3>
-        <p class="muted">Choose a donor from the list to view their details and linked grants.</p>
-      </div>
-    }
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Search donors or countries…"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)" />
   </div>
 </div>
+
+<!-- ─── Create form ──────────────────────────────────────────────────── -->
+@if (showForm()) {
+  <div class="create-panel">
+    <div class="create-panel-head">
+      <div>
+        <h2>New donor</h2>
+        <p>Add a funding partner and define reporting requirements.</p>
+      </div>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
+      <div class="form-row">
+        <label>Donor name<input formControlName="name" required placeholder="e.g. USAID" /></label>
+        <label>Short name / Acronym<input formControlName="shortName" placeholder="USAID" /></label>
+      </div>
+      <div class="form-row">
+        <label>Type<select formControlName="type">
+          @for (t of donorTypes; track t) { 
+            <option [value]="t">{{ typeLabel(t) }}</option>
+          }
+        </select></label>
+        <label>Status<select formControlName="status">
+          @for (s of donorStatuses; track s) { 
+            <option [value]="s">{{ statusLabel(s) }}</option>
+          }
+        </select></label>
+      </div>
+      <div class="form-row">
+        <label>Country<input formControlName="country" placeholder="e.g. United States" /></label>
+        <label>Website<input formControlName="website" placeholder="https://usaid.gov" /></label>
+      </div>
+      <div class="form-row">
+        <label>Primary contact name<input formControlName="contactName" /></label>
+        <label>Contact email<input formControlName="contactEmail" type="email" /></label>
+      </div>
+      <label class="full-label">Description
+        <textarea formControlName="description" rows="3" placeholder="Brief overview of the donor organisation and funding priorities…"></textarea>
+      </label>
+      <label class="full-label checkbox">
+        <input type="checkbox" formControlName="requiresDisaggregation" />
+        Requires disaggregated indicator results (by gender, age, location, etc.)
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn-save" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Creating…' : 'Create donor' }}
+        </button>
+        <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+<!-- ─── Donors grid ────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="loading-grid">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+} @else if (filteredDonors().length === 0) {
+  <div class="empty-state">
+    <span class="empty-icon">🤝</span>
+    <h3>{{ donorCounts().total === 0 ? 'No donors yet' : 'No matches found' }}</h3>
+    <p>{{ donorCounts().total === 0 ? 'Add your first funding partner to start tracking donor relationships and compliance.' : 'Try adjusting your search or filter.' }}</p>
+    @if (canManage() && donorCounts().total === 0) {
+      <button type="button" class="btn-new" (click)="toggleForm()">+ New donor</button>
+    }
+  </div>
+} @else {
+  <div class="donors-grid">
+    @for (donor of filteredDonors(); track donor._id) {
+      <button type="button" class="donor-card" (click)="selectDonor(donor)">
+        <div class="card-top">
+          <span class="status-dot" [class]="'dot-' + (donor.status || 'active')"></span>
+          <span class="status-label" [class]="'label-' + (donor.status || 'active')">{{ statusLabel(donor.status) }}</span>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <h3 class="card-name">{{ donor.name }}</h3>
+
+        @if (donor.shortName) {
+          <p class="card-meta-item">💼 {{ donor.shortName }}</p>
+        }
+
+        <p class="card-type">{{ typeLabel(donor.type) }}</p>
+
+        @if (donor.country) {
+          <p class="card-meta-item">📍 {{ donor.country }}</p>
+        }
+
+        <div class="card-stats">
+          @if (donor.activeGrants) {
+            <span class="stat-item">{{ donor.activeGrants }} active grant{{ donor.activeGrants === 1 ? '' : 's' }}</span>
+          }
+          @if (donor.totalFunded) {
+            <span class="stat-item">{{ donor.totalFunded | number:'1.0-0' }} funded</span>
+          }
+        </div>
+      </button>
+    }
+  </div>
+}
+
+<!-- ─── Donor detail view ────────────────────────────────────────────── -->
+@if (selected()) {
+  <div class="detail-overlay">
+    <div class="detail-panel">
+      <div class="detail-header">
+        <button type="button" class="btn-back" (click)="deselectDonor()">← Back to donors</button>
+        <div class="detail-title">
+          <h2>{{ selected()!.name }}</h2>
+          <span class="status-badge" [attr.data-status]="selected()!.status || 'active'">{{ statusLabel(selected()!.status) }}</span>
+        </div>
+        @if (canManage()) {
+          <button type="button" class="btn-secondary">Edit donor</button>
+        }
+      </div>
+
+      @if (loading()) {
+        <div class="detail-loading">Loading donor details…</div>
+      } @else if (error()) {
+        <div class="alert-error" style="margin-bottom: 1.5rem;">{{ error() }}</div>
+      }
+      @if (!loading()) {
+        <!-- Organization Info -->
+        <div class="detail-section">
+          <h3>Organization</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Type</span>
+              <span class="info-value">{{ typeLabel(selected()!.type) }}</span>
+            </div>
+            @if (selected()!.shortName) {
+              <div class="info-item">
+                <span class="info-label">Acronym</span>
+                <span class="info-value">{{ selected()!.shortName }}</span>
+              </div>
+            }
+            @if (selected()!.country) {
+              <div class="info-item">
+                <span class="info-label">Country</span>
+                <span class="info-value">{{ selected()!.country }}</span>
+              </div>
+            }
+            @if (selected()!.website) {
+              <div class="info-item">
+                <span class="info-label">Website</span>
+                <a [href]="selected()!.website" target="_blank" class="info-link">{{ selected()!.website }} ↗</a>
+              </div>
+            }
+          </div>
+          @if (selected()!.description) {
+            <div class="description-box">
+              <p>{{ selected()!.description }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Contact Info -->
+        @if (selected()!.contactName || selected()!.contactEmail || selected()!.contactPhone) {
+          <div class="detail-section">
+            <h3>Primary Contact</h3>
+            <div class="contact-box">
+              @if (selected()!.contactName) {
+                <div class="contact-item">
+                  <span class="contact-label">Name</span>
+                  <span class="contact-value">{{ selected()!.contactName }}</span>
+                </div>
+              }
+              @if (selected()!.contactEmail) {
+                <div class="contact-item">
+                  <span class="contact-label">Email</span>
+                  <a [href]="'mailto:' + selected()!.contactEmail" class="contact-link">{{ selected()!.contactEmail }}</a>
+                </div>
+              }
+              @if (selected()!.contactPhone) {
+                <div class="contact-item">
+                  <span class="contact-label">Phone</span>
+                  <a [href]="'tel:' + selected()!.contactPhone" class="contact-link">{{ selected()!.contactPhone }}</a>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Financial Overview -->
+        @if (donorProfile()) {
+          <div class="detail-section">
+            <h3>Financial Overview</h3>
+            <div class="kpi-grid-compact">
+              <div class="kpi-mini">
+                <div class="kpi-value">{{ donorProfile()!.summary.totalGrants }}</div>
+                <div class="kpi-label">Total Grants</div>
+              </div>
+              <div class="kpi-mini">
+                <div class="kpi-value">{{ donorProfile()!.summary.activeGrants }}</div>
+                <div class="kpi-label">Active</div>
+              </div>
+              <div class="kpi-mini">
+                <div class="kpi-value">{{ donorProfile()!.summary.totalAwarded | number:'1.0-0' }}</div>
+                <div class="kpi-label">Awarded</div>
+              </div>
+              <div class="kpi-mini">
+                <div class="kpi-value">{{ donorProfile()!.summary.totalSpent | number:'1.0-0' }}</div>
+                <div class="kpi-label">Spent</div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Reporting Requirements -->
+        @if (selected()!.reportingCadence || selected()!.preferredReportingFormat || selected()!.requiresDisaggregation) {
+          <div class="detail-section">
+            <h3>Reporting Requirements</h3>
+            <div class="info-grid">
+              @if (selected()!.reportingCadence) {
+                <div class="info-item">
+                  <span class="info-label">Cadence</span>
+                  <span class="info-value">{{ selected()!.reportingCadence }}</span>
+                </div>
+              }
+              @if (selected()!.preferredReportingFormat) {
+                <div class="info-item">
+                  <span class="info-label">Format</span>
+                  <span class="info-value">{{ selected()!.preferredReportingFormat }}</span>
+                </div>
+              }
+              @if (selected()!.requiresDisaggregation) {
+                <div class="alert-flag">⚠️ Requires disaggregated results (by gender, age, location)</div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Linked Grants -->
+        @if (donorGrants().length > 0) {
+          <div class="detail-section">
+            <h3>Linked Grants ({{ donorGrants().length }})</h3>
+            <div class="grants-list">
+              @for (grant of donorGrants(); track grant._id) {
+                <div class="grant-item">
+                  <div class="grant-name">{{ grant.title || grant.name }}</div>
+                  <div class="grant-meta">
+                    <span class="grant-status" [attr.data-status]="grant.status">{{ grant.status }}</span>
+                    <span class="grant-amount">{{ grant.currency }} {{ (grant.totalAmount ?? grant.amount) | number:'1.0-0' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+}
   `,
+  styleUrls: ['./donor.component.scss'],
 })
 export class DonorsComponent implements OnInit {
   private api  = inject(ApiService);
@@ -224,26 +325,52 @@ export class DonorsComponent implements OnInit {
 
   donors      = signal<Donor[]>([]);
   selected    = signal<Donor | null>(null);
+  donorProfile = signal<DonorProfile | null>(null);
   donorGrants = signal<Grant[]>([]);
   loading     = signal(true);
   saving      = signal(false);
   showForm    = signal(false);
-  editMode    = signal(false);
   error       = signal('');
+  
+  searchQuery = signal('');
+  donorStatusFilter = signal<'all' | 'active' | 'prospect' | 'inactive'>('all');
 
   canManage = computed(() => this.auth.isOwner() || this.auth.isAdmin());
+  
+  donorCounts = computed(() => ({
+    total: this.donors().length,
+    active: this.donors().filter((d) => d.status === 'active').length,
+    prospect: this.donors().filter((d) => d.status === 'prospect').length,
+    inactive: this.donors().filter((d) => d.status === 'inactive').length,
+  }));
+
+  filteredDonors = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    return this.donors().filter((donor) => {
+      const matchesStatus = this.donorStatusFilter() === 'all' || donor.status === this.donorStatusFilter();
+      const matchesQuery =
+        !query ||
+        donor.name.toLowerCase().includes(query) ||
+        (donor.country?.toLowerCase().includes(query) ?? false) ||
+        (donor.type?.toLowerCase().includes(query) ?? false);
+      return matchesStatus && matchesQuery;
+    });
+  });
 
   donorTypes: DonorType[] = ['bilateral','multilateral','foundation','corporate','individual','government','other'];
+  donorStatuses = ['active', 'prospect', 'inactive', 'former'];
 
   form = this.fb.group({
     name:                   ['', Validators.required],
     shortName:              [''],
     type:                   ['bilateral' as DonorType, Validators.required],
+    status:                 ['active'],
     country:                [''],
     website:                [''],
     contactName:            [''],
     contactEmail:           ['', Validators.email],
     description:            [''],
+    reportingCadence:       [''],
     requiresDisaggregation: [false],
   });
 
@@ -253,7 +380,7 @@ export class DonorsComponent implements OnInit {
     this.loading.set(true);
     this.api.donors().subscribe({
       next: res => {
-        const donors = Array.isArray(res) ? res : res.data;
+        const donors = Array.isArray(res) ? res : (res as any).data ?? [];
         this.donors.set(donors);
         this.loading.set(false);
       },
@@ -261,29 +388,72 @@ export class DonorsComponent implements OnInit {
     });
   }
 
-  select(d: Donor) {
-    this.selected.set(d);
-    this.api.donorGrants(d._id).subscribe({ next: gs => this.donorGrants.set(gs), error: () => this.donorGrants.set([]) });
+  toggleForm() {
+    this.showForm.update((v) => !v);
   }
 
-  startEdit() {
-    const d = this.selected();
-    if (!d) return;
-    this.form.patchValue(d as any);
-    this.editMode.set(true);
-    this.showForm.set(true);
+  selectDonor(donor: Donor) {
+    this.selected.set(donor);
+    this.loading.set(true);
+    // Try to load full profile, fall back to just grants if profile fails
+    this.api.donorProfile(donor._id).subscribe({
+      next: (profile) => {
+        this.donorProfile.set(profile);
+        this.donorGrants.set(profile.grants ?? []);
+        this.loading.set(false);
+      },
+      error: () => {
+        // Profile endpoint may not exist yet - try just grants
+        this.api.donorGrants(donor._id).subscribe({
+          next: (grants) => {
+            this.donorGrants.set(grants);
+            this.loading.set(false);
+          },
+          error: () => {
+            // Neither endpoint worked - just show donor data we already have
+            this.loading.set(false);
+            this.error.set('Could not load full profile. Try refreshing the API server.');
+          },
+        });
+      },
+    });
+  }
+
+  deselectDonor() {
+    this.selected.set(null);
+    this.donorProfile.set(null);
+    this.donorGrants.set([]);
   }
 
   submit() {
     if (this.form.invalid) return;
     this.saving.set(true);
-    const call = this.editMode() && this.selected()
-      ? this.api.updateDonor(this.selected()!._id, this.form.value as any)
-      : this.api.createDonor(this.form.value as CreateDonorDto);
-
-    call.subscribe({
-      next: () => { this.load(); this.showForm.set(false); this.editMode.set(false); this.saving.set(false); },
+    this.api.createDonor(this.form.value as CreateDonorDto).subscribe({
+      next: () => { this.load(); this.showForm.set(false); this.form.reset({ status: 'active' }); this.saving.set(false); },
       error: err => { this.error.set(err.error?.message || 'Failed'); this.saving.set(false); }
     });
+  }
+
+  typeLabel(type?: string): string {
+    const labels: Record<string, string> = {
+      bilateral: 'Bilateral',
+      multilateral: 'Multilateral',
+      foundation: 'Foundation',
+      corporate: 'Corporate',
+      individual: 'Individual',
+      government: 'Government',
+      other: 'Other',
+    };
+    return labels[type || ''] || 'Unknown';
+  }
+
+  statusLabel(status?: string): string {
+    const labels: Record<string, string> = {
+      active: 'Active',
+      prospect: 'Prospect',
+      inactive: 'Inactive',
+      former: 'Former',
+    };
+    return labels[status || 'active'] || 'Unknown';
   }
 }

@@ -78,13 +78,7 @@ export class DonorsController {
       .send(csv);
   }
 
-  // ─── Single donor ──────────────────────────────────────────────────────────
-
-  @Get(':id')
-  @Roles(...PERMISSIONS.VIEW_REPORTS)
-  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.donorsService.findOne(user.organizationId, id);
-  }
+  // ─── Single donor child routes (must come before :id) ──────────────────────
 
   @Get(':id/profile')
   @Roles(...PERMISSIONS.VIEW_REPORTS)
@@ -114,6 +108,14 @@ export class DonorsController {
   @Roles(...PERMISSIONS.MANAGE_DONORS)
   auditLog(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.donorsService.getAuditLog(user.organizationId, id);
+  }
+
+  // ─── Single donor (generic - must come after child routes) ────────────────
+
+  @Get(':id')
+  @Roles(...PERMISSIONS.VIEW_REPORTS)
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.donorsService.findOne(user.organizationId, id);
   }
 
   @Post()

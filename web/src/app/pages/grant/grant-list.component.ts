@@ -55,7 +55,10 @@ export class GrantsListComponent implements OnInit {
 
   ngOnInit() {
     this.load();
-    this.api.donors().subscribe({ next: ds => this.donors.set(ds), error: () => {} });
+    this.api.donors().subscribe({ next: ds => {
+      const list = Array.isArray(ds) ? ds : (ds as any).data ?? [];
+      this.donors.set(list);
+    }, error: () => {} });
   }
 
   load() {
@@ -66,9 +69,10 @@ export class GrantsListComponent implements OnInit {
 
     this.api.grants(params).subscribe({
       next: res => {
-        const data = Array.isArray(res) ? res : res.data;
+        const data = (res as any).data ?? [];
+        const total = (res as any).total ?? data.length;
         this.grants.set(data);
-        this.total.set(Array.isArray(res) ? data.length : res.total);
+        this.total.set(total);
         this.loading.set(false);
       },
       error: err => {

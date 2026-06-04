@@ -187,6 +187,7 @@ export class ApiService {
   //     `${this.base}/donors`,
   //   );
   // }
+  
 
   // Partners
   partners() {
@@ -656,12 +657,12 @@ export class ApiService {
   reportingPeriod(id: string) {
     return this.http.get<ReportingPeriod>(`${this.base}/reporting/periods/${id}`);
   }
-  createReportingPeriod(body: CreateReportingPeriodDto) {
+  createReportingPeriod(body: CreateReportingPeriodDto & { dueDate?: string }) {
     const { frequency, cadence, dueDate, ...rest } = body;
     return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, {
       ...rest,
       cadence: cadence ?? frequency,
-      notes: dueDate ? `Due date: ${dueDate}` : rest.notes,
+      notes: dueDate ? `Due date: ${dueDate}` : (rest as any).notes,
     });
   }
   calculatePeriodResults(id: string) {

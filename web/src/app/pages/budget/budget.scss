@@ -741,7 +741,7 @@ h1 {
 
 // ─── Details grid ──────────────────────────────────────────────────────────────
 
-.details-panel { }
+.details-panel { display: block; }
 
 .details-grid {
   display: grid;

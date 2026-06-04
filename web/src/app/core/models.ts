@@ -547,6 +547,10 @@ export interface ReportingPeriod {
   endDate: string;
   notes?: string;
   donorRequirements?: string;
+  narrative?: string;
+  challenges?: string;
+  lessonsLearned?: string;
+  nextPeriodPlans?: string;
   status: 'open' | 'submitted' | 'approved' | 'locked';
   completionPct?: number;
   narrativeComplete?: boolean;
@@ -822,6 +826,8 @@ export interface Grant {
   _id: string;
   organizationId: string;
   name: string;
+  title?: string;
+  totalAmount?: number;
   referenceNumber?: string;
   donorId?: any;
   projectId?: string;
@@ -831,6 +837,7 @@ export interface Grant {
   amount: number;
   disbursedAmount?: number;
   amountSpent: number;
+  spentAmount?: number;
   uncommittedAmount?: number;
   startDate: string;
   endDate: string;
@@ -848,6 +855,7 @@ export interface Grant {
   updatedAt?: string;
   daysUntilExpiry?: number;
   burnRate?: number;
+  donorName?: string;
 }
 
 export interface CreateGrantDto {
@@ -880,6 +888,7 @@ export interface GrantSummary {
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
 export type DonorType = 'bilateral' | 'multilateral' | 'foundation' | 'corporate' | 'individual' | 'government' | 'other';
+export type DonorStatus = 'active' | 'prospect' | 'inactive' | 'former';
 
 export interface Donor {
   _id: string;
@@ -887,6 +896,7 @@ export interface Donor {
   name: string;
   shortName?: string;
   type: DonorType;
+  status?: DonorStatus;
   country?: string;
   website?: string;
   contactName?: string;
@@ -894,9 +904,12 @@ export interface Donor {
   contactPhone?: string;
   description?: string;
   preferredReportingFormat?: string;
+  reportingCadence?: string;
   requiresDisaggregation?: boolean;
   activeGrants?: number;
   totalFunded?: number;
+  complianceConditions?: Array<{ _id?: string; description: string; status?: 'pending' | 'met' | 'waived' | 'overdue'; dueDate?: string; notes?: string }>;
+  engagements?: Array<{ _id?: string; type: string; date: string; summary: string; outcome?: string }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -905,13 +918,60 @@ export interface CreateDonorDto {
   name: string;
   shortName?: string;
   type: DonorType;
+  status?: DonorStatus;
   country?: string;
   website?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
   description?: string;
+  reportingCadence?: string;
   requiresDisaggregation?: boolean;
+}
+
+export interface DonorProfile {
+  donor: Donor;
+  grants: Grant[];
+  projects: Array<{ _id: string; name: string; status?: string; startDate?: string; endDate?: string; donor?: string; donorId?: string }>;
+  budgets: Array<Record<string, any>>;
+  summary: {
+    totalGrants: number;
+    activeGrants: number;
+    totalAwarded: number;
+    totalSpent: number;
+    remaining: number;
+  };
+}
+
+export interface DonorPortfolioSummary {
+  totalDonors: number;
+  totalGrants: number;
+  activeGrants: number;
+  totalAwarded: number;
+  totalSpent: number;
+  totalDisbursed: number;
+  remaining: number;
+  countByType: Record<string, number>;
+  countByStatus: Record<string, number>;
+  expiringIn30Days: number;
+  overdueReports: number;
+  overdueCompliance: number;
+}
+
+export interface AddEngagementDto {
+  type: string;
+  date: string;
+  summary: string;
+  outcome?: string;
+  relatedGrantId?: string;
+}
+
+export interface AddComplianceConditionDto {
+  description: string;
+  status?: 'pending' | 'met' | 'waived' | 'overdue' | string;
+  dueDate?: string;
+  metDate?: string;
+  notes?: string;
 }
 
 // ─── Balanced Scorecard ───────────────────────────────────────────────────────
@@ -1134,6 +1194,9 @@ export interface CreateReportingPeriodDto {
   endDate: string;
   notes?: string;
   donorRequirements?: string;
+  frequency?: 'monthly' | 'quarterly' | 'annual' | string;
+  dueDate?: string;
+
 }
 
 export interface CreateProjectDto {
