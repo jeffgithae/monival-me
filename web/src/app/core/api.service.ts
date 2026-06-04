@@ -34,6 +34,10 @@ import {
   CreateReportingPeriodDto,
   DataQualityReport,
   Donor,
+  DonorProfile,
+  DonorPortfolioSummary,
+  AddEngagementDto,
+  AddComplianceConditionDto,
   Grant,
   GrantSummary,
   PeriodTarget,
@@ -545,7 +549,7 @@ export class ApiService {
 
 // ─── Grants ───────────────────────────────────────────────────────────────────
 
-  grants(params?: { status?: string; projectId?: string; donorId?: string; page?: number; limit?: number }) {
+  grants(params?: { status?: string; donorId?: string; search?: string; page?: number; limit?: number }) {
     return this.http
       .get<Grant[] | { data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any })
       .pipe(
@@ -569,6 +573,12 @@ export class ApiService {
   grantSummary() {
     return this.http.get<GrantSummary>(`${this.base}/grants/summary`);
   }
+  expiringGrants(days = 30) {
+    return this.http.get<Grant[]>(`${this.base}/grants/expiring?days=${days}`);
+  }
+  grantsByProject(projectId: string) {
+    return this.http.get<Grant[]>(`${this.base}/grants/by-project/${projectId}`);
+  }
   updateGrantSpend(id: string, spentAmount: number) {
     return this.http.patch<Grant>(`${this.base}/grants/${id}/spending`, { spentAmount });
   }
@@ -578,21 +588,29 @@ export class ApiService {
 
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
-  donors(params?: { type?: string; page?: number; limit?: number }) {
-    let query = new HttpParams();
-    if (params?.type) query = query.set('type', params.type);
-    if (params?.page) query = query.set('page', params.page.toString());
-    if (params?.limit) query = query.set('limit', params.limit.toString());
-    return this.http
-      .get<Donor[] | { data: Donor[]; total: number }>(`${this.base}/donors`, { params: query })
-      .pipe(
-        map((response) =>
-          Array.isArray(response) ? { data: response, total: response.length } : response,
-        ),
-      );
+  donors(params?: { status?: string; type?: string; search?: string; tag?: string }) {
+    return this.http.get<Donor[]>(`${this.base}/donors`, { params: params as any });
   }
   donor(id: string) {
     return this.http.get<Donor>(`${this.base}/donors/${id}`);
+  }
+  donorProfile(id: string) {
+    return this.http.get<DonorProfile>(`${this.base}/donors/${id}/profile`);
+  }
+  donorPortfolioSummary() {
+    return this.http.get<DonorPortfolioSummary>(`${this.base}/donors/portfolio-summary`);
+  }
+  donorGrants(donorId: string) {
+    return this.http.get<Grant[]>(`${this.base}/donors/${donorId}/grants`);
+  }
+  donorDeadlines(donorId: string) {
+    return this.http.get<any>(`${this.base}/donors/${donorId}/deadlines`);
+  }
+  donorPerformance(donorId: string) {
+    return this.http.get<any>(`${this.base}/donors/${donorId}/performance`);
+  }
+  donorAuditLog(donorId: string) {
+    return this.http.get<any[]>(`${this.base}/donors/${donorId}/audit`);
   }
   createDonor(body: CreateDonorDto) {
     return this.http.post<Donor>(`${this.base}/donors`, body);
@@ -603,8 +621,20 @@ export class ApiService {
   deleteDonor(id: string) {
     return this.http.delete(`${this.base}/donors/${id}`);
   }
-  donorGrants(donorId: string) {
-    return this.http.get<Grant[]>(`${this.base}/donors/${donorId}/grants`);
+  addDonorEngagement(donorId: string, body: AddEngagementDto) {
+    return this.http.post<Donor>(`${this.base}/donors/${donorId}/engagements`, body);
+  }
+  removeDonorEngagement(donorId: string, engagementId: string) {
+    return this.http.delete(`${this.base}/donors/${donorId}/engagements/${engagementId}`);
+  }
+  addDonorCompliance(donorId: string, body: AddComplianceConditionDto) {
+    return this.http.post<Donor>(`${this.base}/donors/${donorId}/compliance`, body);
+  }
+  updateDonorCompliance(donorId: string, conditionId: string, body: { status?: string; notes?: string; metDate?: string }) {
+    return this.http.patch<Donor>(`${this.base}/donors/${donorId}/compliance/${conditionId}`, body);
+  }
+  exportDonors() {
+    return this.http.get(`${this.base}/donors/export`, { responseType: 'blob' });
   }
 
 // ─── Reporting Periods ────────────────────────────────────────────────────────

@@ -463,17 +463,23 @@ export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'close
 export interface Grant {
   _id: string;
   organizationId: string;
-  name: string;
+  // API returns title; name kept for backwards compat with old records
+  title: string;
+  name?: string;
   referenceNumber?: string;
-  donorId?: any;
-  projectId?: string;
-  projectName?: string;
+  donorId?: { _id: string; name: string; shortName?: string; type?: string; country?: string; contactEmail?: string; website?: string; requiresDisaggregation?: boolean; preferredReportingFormat?: string };
+  donorName?: string;
+  linkedProjects?: Array<{ _id: string; name: string; status: string; startDate?: string; endDate?: string }>;
+  budgets?: Array<{ _id: string; name: string; allocatedAmount: number; spentAmount: number; currency: string; status: string; category?: string }>;
   status?: GrantStatus;
   currency: string;
-  amount: number;
-  disbursedAmount?: number;
-  amountSpent: number;
-  uncommittedAmount?: number;
+  totalAmount: number;
+  // Legacy field aliases returned by older records
+  amount?: number;
+  disbursedAmount: number;
+  spentAmount: number;
+  amountSpent?: number;
+  uncommittedAmount: number;
   startDate: string;
   endDate: string;
   submissionDeadline?: string;
@@ -481,6 +487,7 @@ export interface Grant {
   nextReportDue?: string;
   description?: string;
   objectives?: string;
+  termsAndConditions?: string;
   conditionsPrecedent?: string[];
   restrictedCostCategories?: string[];
   isRestricted?: boolean;
@@ -493,13 +500,15 @@ export interface Grant {
 }
 
 export interface CreateGrantDto {
-  name: string;
+  title: string;
   referenceNumber?: string;
   donorId?: string;
-  projectId?: string;
+  linkedProjects?: string[];
   status?: GrantStatus;
   currency?: string;
-  amount: number;
+  totalAmount: number;
+  disbursedAmount?: number;
+  spentAmount?: number;
   startDate: string;
   endDate: string;
   submissionDeadline?: string;
@@ -507,21 +516,61 @@ export interface CreateGrantDto {
   description?: string;
   objectives?: string;
   isRestricted?: boolean;
+  restrictedCostCategories?: string[];
+  termsAndConditions?: string;
+  conditionsPrecedent?: string[];
 }
 
 export interface GrantSummary {
-  totalGrantAmount: number;
+  totalGrants: number;
   activeGrants: number;
+  totalAwarded: number;
   totalSpent: number;
-  remainingBudget: number;
-  expiringIn30Days?: Grant[];
-  overdueReports?: Grant[];
-  totalGrants?: number;
+  totalDisbursed: number;
+  expiringIn30Days: Grant[];
+  overdueReports: Grant[];
 }
 
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
 export type DonorType = 'bilateral' | 'multilateral' | 'foundation' | 'corporate' | 'individual' | 'government' | 'other';
+export type DonorStatus = 'prospect' | 'active' | 'inactive' | 'former';
+
+export interface DonorAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+export interface DonorContact {
+  name: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  isPrimary?: boolean;
+}
+
+export interface DonorEngagement {
+  _id: string;
+  type: 'call' | 'email' | 'meeting' | 'site_visit' | 'proposal_submission' | 'report_submission' | 'other';
+  date: string;
+  summary: string;
+  outcome?: string;
+  recordedBy?: string;
+  relatedGrantId?: string;
+  createdAt?: string;
+}
+
+export interface ComplianceCondition {
+  _id: string;
+  description: string;
+  status: 'pending' | 'met' | 'waived' | 'overdue';
+  dueDate?: string;
+  metDate?: string;
+  notes?: string;
+}
 
 export interface Donor {
   _id: string;
@@ -529,16 +578,29 @@ export interface Donor {
   name: string;
   shortName?: string;
   type: DonorType;
+  status: DonorStatus;
+  address?: DonorAddress;
+  // Legacy flat contact fields
   country?: string;
-  website?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  // Rich contacts list
+  contacts?: DonorContact[];
+  website?: string;
   description?: string;
+  notes?: string;
   preferredReportingFormat?: string;
   requiresDisaggregation?: boolean;
-  activeGrants?: number;
-  totalFunded?: number;
+  requiredDisaggregationDimensions?: string[];
+  reportingCadence?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+  currency?: string;
+  fiscalYearEnd?: number;
+  signedAgreementDate?: string;
+  agreementReferenceNumber?: string;
+  complianceConditions?: ComplianceCondition[];
+  engagements?: DonorEngagement[];
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -547,13 +609,69 @@ export interface CreateDonorDto {
   name: string;
   shortName?: string;
   type: DonorType;
-  country?: string;
-  website?: string;
+  status?: DonorStatus;
+  address?: DonorAddress;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contacts?: DonorContact[];
+  country?: string;
+  website?: string;
   description?: string;
+  notes?: string;
   requiresDisaggregation?: boolean;
+  requiredDisaggregationDimensions?: string[];
+  reportingCadence?: string;
+  preferredReportingFormat?: string;
+  currency?: string;
+  fiscalYearEnd?: number;
+  signedAgreementDate?: string;
+  agreementReferenceNumber?: string;
+  tags?: string[];
+}
+
+export interface DonorProfile {
+  donor: Donor;
+  grants: Grant[];
+  projects: Array<{ _id: string; name: string; status: string; startDate?: string; endDate?: string }>;
+  budgets: Array<{ _id: string; name: string; allocatedAmount: number; spentAmount: number; currency: string; status: string }>;
+  summary: {
+    totalGrants: number;
+    activeGrants: number;
+    totalAwarded: number;
+    totalSpent: number;
+    remaining: number;
+  };
+}
+
+export interface DonorPortfolioSummary {
+  totalDonors: number;
+  totalGrants: number;
+  activeGrants: number;
+  totalAwarded: number;
+  totalSpent: number;
+  totalDisbursed: number;
+  remaining: number;
+  countByType: Record<string, number>;
+  countByStatus: Record<string, number>;
+  expiringIn30Days: number;
+  overdueReports: number;
+  overdueCompliance: number;
+}
+
+export interface AddEngagementDto {
+  type: DonorEngagement['type'];
+  date: string;
+  summary: string;
+  outcome?: string;
+  relatedGrantId?: string;
+}
+
+export interface AddComplianceConditionDto {
+  description: string;
+  status?: ComplianceCondition['status'];
+  dueDate?: string;
+  notes?: string;
 }
 
 // ─── Reporting Periods ────────────────────────────────────────────────────────
