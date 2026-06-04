@@ -1,5 +1,7 @@
 import { OrgRole } from './roles';
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -24,19 +26,258 @@ export interface Organization {
   };
 }
 
-export interface Project {
+// ─── Project sub-types ────────────────────────────────────────────────────────
+
+export interface ProjectRisk {
+  _id: string;
+  title: string;
+  description?: string;
+  likelihood: 'low' | 'medium' | 'high' | 'critical';
+  impact: 'low' | 'medium' | 'high' | 'critical';
+  mitigationPlan?: string;
+  contingencyPlan?: string;
+  status: 'open' | 'mitigated' | 'accepted' | 'closed';
+  ownerId?: string;
+  ownerName?: string;
+  reviewDate?: string;
+  closedDate?: string;
+  closureNotes?: string;
+}
+
+export interface ProjectMilestone {
+  _id: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'overdue' | 'cancelled';
+  completedDate?: string;
+  ownerId?: string;
+  ownerName?: string;
+  linkedIndicatorIds?: string[];
+  progressPct: number;
+  completionNotes?: string;
+}
+
+export interface WorkplanItem {
+  _id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  linkedIndicatorIds?: string[];
+  responsibleUserId?: string;
+  responsibleName?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'delayed' | 'cancelled';
+  progressPct: number;
+  quarter?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  outputDescription?: string;
+}
+
+export interface ProjectStakeholder {
   _id: string;
   name: string;
-  donor?: string;
+  organisation?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  type: 'internal' | 'external' | 'donor' | 'government' | 'community' | 'private_sector' | 'un_agency' | 'ngo';
+  influence: 'low' | 'medium' | 'high';
+  interest: 'low' | 'medium' | 'high';
+  engagementStrategy: 'manage_closely' | 'keep_satisfied' | 'keep_informed' | 'monitor';
+  notes?: string;
+  isActive: boolean;
+}
+
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+export interface Project {
+  _id: string;
+  organizationId?: string;
+
+  // Identity
+  name: string;
+  projectCode?: string;
   description?: string;
-  startDate?: string;
-  endDate?: string;
+  objectives?: string[];
+  tags?: string[];
+  sector?: string;
+  subSectors?: string[];
+
+  // Phase & lifecycle
   status: string;
-  evaluationStatus?: 'not_started' | 'in_progress' | 'completed';
+  projectPhase?: 'inception' | 'implementation' | 'scale_up' | 'closeout' | 'completed';
+  evaluationStatus?: 'not_started' | 'in_progress' | 'completed' | 'under_review';
   evaluationSummary?: string;
   lessonsLearned?: string;
+  archiveNotes?: string;
+  isArchived?: boolean;
+  isTemplate?: boolean;
+
+  // Theory of change
+  theoreticalApproach?: string;
+  problemStatement?: string;
+  changeHypothesis?: string;
+  keyAssumptions?: string[];
+
+  // Funding
+  donor?: string;
+  donorId?: string;
+  grantIds?: string[];
+  grantReference?: string;
+  totalBudget?: number;
+  currency?: string;
+
+  // Timeline
+  startDate?: string;
+  endDate?: string;
+  closureDate?: string;
   nextReviewDate?: string;
+  extensionMonths?: number;
+
+  // Geography
+  country?: string;
+  region?: string;
+  district?: string;
+  geoPoint?: { latitude: number; longitude: number };
+  implementationAreas?: string[];
+  coverageArea?: string;
+
+  // Beneficiaries
+  targetBeneficiaryCount?: number;
+  targetDirectBeneficiaries?: number;
+  targetIndirectBeneficiaries?: number;
+  targetGroups?: string[];
+  populationServed?: string;
+
+  // Partnerships
+  implementationPartners?: string[];
+  partnerIds?: string[];
+
+  // Team
+  projectManagerId?: string;
+  projectManagerName?: string;
+  meOfficerId?: string;
+  meOfficerName?: string;
+
+  // Planning artifacts
+  milestones?: ProjectMilestone[];
+  workplan?: WorkplanItem[];
+  risks?: ProjectRisk[];
+  stakeholders?: ProjectStakeholder[];
+
+  // SDG & frameworks
+  sdgGoals?: number[];
+  frameworks?: string[];
+
+  // Reporting settings
+  reportingFrequency?: string;
+  reportingNotes?: string;
+  requiresEvidencePerActivity?: boolean;
+  requiresDisaggregation?: boolean;
+
+  // Quality
+  dataQualityScore?: number;
+  dataQualityLastChecked?: string;
+
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+// ─── Project summary (from /projects/:id/summary) ─────────────────────────────
+
+export interface ProjectIndicatorSummary {
+  _id: string;
+  code: string;
+  title: string;
+  unit?: string;
+  level: string;
+  baseline: number;
+  target: number;
+  achieved: number;
+  remaining: number;
+  pct: number;
+  trend: 'up' | 'down' | 'stable' | 'n/a';
+  status: 'on_track' | 'at_risk' | 'behind';
+  direction?: string;
+  cumulative?: boolean;
+  frequency?: string;
+  dataSource?: string;
+  responsiblePerson?: string;
+  isCore?: boolean;
+  sdgGoals?: number[];
+  activityCount: number;
+}
+
+export interface ProjectSummary {
+  project: Project;
+  indicators: ProjectIndicatorSummary[];
+  activityCounts: {
+    total: number;
+    approved: number;
+    submitted: number;
+    rejected: number;
+    draft: number;
+  };
+  periods: Array<{
+    _id: string;
+    name: string;
+    cadence: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }>;
+  summary: {
+    avgProgress: number;
+    totalParticipants: number;
+    totalCost: number;
+    budgetUtilisationPct: number | null;
+    indicatorCount: number;
+    coreIndicatorCount: number;
+    onTrack: number;
+    atRisk: number;
+    behind: number;
+    timelinePct: number | null;
+    daysRemaining: number | null;
+    freshnessDays: number | null;
+    openRisks: number;
+    highRisks: number;
+    riskScore: number;
+    overdueMilestones: number;
+    completedMilestones: number;
+    milestoneProgress: number | null;
+    lockedPeriods: number;
+    reportingPeriodCount: number;
+    dataQualityScore: number;
+  };
+}
+
+// ─── Portfolio stats (from /projects/portfolio-stats) ─────────────────────────
+
+export interface PortfolioStats {
+  generatedAt: string;
+  counts: {
+    projects: number;
+    indicators: number;
+    activities: number;
+    pendingApprovals: number;
+    overdueMilestones: number;
+    openRisks: number;
+  };
+  financials: {
+    totalBudget: number;
+    totalCost: number;
+    budgetUtilisationPct: number | null;
+    totalParticipants: number;
+  };
+  breakdowns: {
+    status: Record<string, number>;
+    sector: Record<string, number>;
+  };
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface DashboardHealthSummary {
   onTrack: number;
@@ -66,56 +307,119 @@ export interface DashboardOverview {
   qualityAlerts: QualityAlert[];
 }
 
+// ─── Disaggregation ───────────────────────────────────────────────────────────
+
+export interface DisaggregationCategory {
+  label: string;
+  values: string[];
+}
+
+export interface AnnualTarget {
+  year: number;
+  target: number;
+  achieved?: number;
+  notes?: string;
+}
+
+// ─── Indicator ────────────────────────────────────────────────────────────────
+
 export interface Indicator {
   _id: string;
   projectId: string;
   parentId?: string;
-  level?: string;
+
+  // Logframe position
+  level: string;
   code: string;
   title: string;
+  definition?: string;
+  rationale?: string;
+
+  // Measurement
   unit?: string;
-  meansOfVerification?: string;
-  assumptions?: string;
-  disaggregation?: string[];
+  indicatorType?: 'number' | 'percentage' | 'ratio' | 'yes_no' | 'text' | 'currency' | 'score';
+  direction?: 'increasing' | 'decreasing' | 'maintain';
+  cumulative?: boolean;
+
+  // Targets
   baseline: number;
+  baselineDate?: string;
+  baselineSource?: string;
   target: number;
+  annualTargets?: AnnualTarget[];
   frequency: string;
+
+  // Disaggregation
+  disaggregation?: string[];
+  disaggregationCategories?: DisaggregationCategory[];
+
+  // Gender markers
+  genderMarker?: string;
+  isGenderDisaggregated?: boolean;
+  isAgeDisaggregated?: boolean;
+
+  // Data collection
+  dataSource?: string;
+  dataCollectionMethod?: string;
+  meansOfVerification?: string;
+  dataCollectionTool?: string;
+  reportingResponsibility?: string;
+  verificationFrequency?: string;
+
+  // Responsibility
+  responsiblePerson?: string;
+  responsibleUserId?: string;
+
+  // Quality
+  assumptions?: string;
+  limitations?: string;
+  precautionsForDataQuality?: string;
+  isCore?: boolean;
+  isStandardIndicator?: boolean;
+  standardIndicatorCode?: string;
+  standardFramework?: string;
+
+  // SDG
+  sdgGoals?: number[];
+  sdgTargets?: string[];
+
+  // Status
+  isActive?: boolean;
+  sortOrder?: number;
+  lastAchievedValue?: number;
+  lastAchievedDate?: string;
 }
 
-export interface ReportingPeriod {
-  _id: string;
-  projectId: string;
-  name: string;
-  cadence: 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
-  startDate: string;
-  endDate: string;
-  status: 'open' | 'submitted' | 'approved' | 'locked';
-  submittedAt?: string;
-  approvedAt?: string;
-  notes?: string;
-}
+// ─── Indicator performance (from /indicators/:id/performance) ─────────────────
 
-export interface IndicatorResult {
-  _id: string;
-  projectId: string;
-  reportingPeriodId: string;
-  indicatorId: string | Indicator;
+export interface IndicatorPerformance {
+  indicator: Indicator;
   achieved: number;
+  pct: number;
+  remaining: number;
+  status: 'on_track' | 'at_risk' | 'behind';
   activityCount: number;
-  sourceActivityIds: string[];
-  disaggregations: Record<string, unknown>;
-  narrative?: string;
-  status: 'draft' | 'submitted' | 'approved' | 'locked';
+  trend: Array<{ month: string; value: number }>;
+  periodTrend: 'up' | 'down' | 'stable' | 'n/a';
+  disaggSummary: Record<string, Record<string, number>>;
+  annualProgress: Array<{ year: number; target: number; achieved: number; pct: number }>;
+  lastActivity: Activity | null;
 }
 
-export interface IndicatorTarget {
-  _id: string;
-  projectId: string;
-  reportingPeriodId: string;
-  indicatorId: string | Indicator;
-  baseline: number;
-  target: number;
-  notes?: string;
+// ─── Activity ─────────────────────────────────────────────────────────────────
+
+export interface DisaggregationEntry {
+  category: string;
+  value: string;
+  count: number;
+}
+
+export interface ActivityAttachment {
+  filename: string;
+  url: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  uploadedAt: string;
 }
 
 export interface Activity {
@@ -124,39 +428,98 @@ export interface Activity {
   indicatorId?: string;
   partnerId?: string;
   beneficiaryIds?: string[];
+  templateId?: string;
+  grantId?: string;
+
+  // Core
   title: string;
   description?: string;
   activityDate: string;
-  location?: string;
   activityType?: string;
-  templateId?: string;
-  evidenceUrl?: string;
-  evidenceNotes?: string;
-  participants: number;
-  quantity: number;
-  notes?: string;
-  status?: string;
-}
 
-export interface Partner {
-  _id: string;
-  name: string;
-  contactEmail?: string;
-  contactPhone?: string;
+  // Location
+  location?: string;
   country?: string;
   region?: string;
   district?: string;
+  village?: string;
+  site?: string;
   geoPoint?: { latitude: number; longitude: number };
+
+  // Outputs
+  participants: number;
+  quantity: number;
+
+  // Participant breakdown
+  participantsMale?: number;
+  participantsFemale?: number;
+  participantsOther?: number;
+  participantsUnder18?: number;
+  participantsOver60?: number;
+  participantsPwd?: number;
+  participantsIdp?: number;
+  participantsRefugee?: number;
+
+  // Disaggregated data
+  disaggregationData?: DisaggregationEntry[];
+
+  // Financial
+  cost?: number;
+  costCurrency?: string;
+  budgetLine?: string;
+
+  // Evidence
+  evidenceUrl?: string;
+  evidenceNotes?: string;
+  attachments?: ActivityAttachment[];
+  hasPhotoEvidence?: boolean;
+  hasSignatureSheet?: boolean;
+
+  // Narrative
   notes?: string;
+  challenges?: string;
+  recommendations?: string;
+  followUpActions?: string;
+
+  // Workflow
+  status?: 'draft' | 'submitted' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  submittedByUserId?: string;
+  submittedAt?: string;
+  reviewedByUserId?: string;
+  reviewedAt?: string;
+
+  // Quality
+  qualityFlags?: string[];
+
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface Beneficiary {
-  _id: string;
-  name: string;
-  groupType?: string;
-  location?: string;
-  notes?: string;
+// ─── Activity statistics (from /activities/statistics) ───────────────────────
+
+export interface ActivityStatistics {
+  generatedAt: string;
+  totals: {
+    activities: number;
+    participants: number;
+    quantity: number;
+    cost: number;
+    breakdown: {
+      male: number;
+      female: number;
+      under18: number;
+      pwd: number;
+      idp: number;
+      refugee: number;
+    };
+  };
+  byType: Array<{ type: string; count: number; participants: number; quantity: number }>;
+  byMonth: Array<{ year: number; month: number; count: number; participants: number; quantity: number }>;
+  byLocation: Array<{ district: string; count: number; participants: number }>;
 }
+
+// ─── Activity template ────────────────────────────────────────────────────────
 
 export interface ActivityTemplate {
   _id: string;
@@ -171,6 +534,106 @@ export interface ActivityTemplate {
   defaultQuantity: number;
   defaultNotes?: string;
 }
+
+// ─── Reporting period ─────────────────────────────────────────────────────────
+
+export interface ReportingPeriod {
+  _id: string;
+  organizationId?: string;
+  projectId: string;
+  name: string;
+  cadence: 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
+  startDate: string;
+  endDate: string;
+  notes?: string;
+  donorRequirements?: string;
+  status: 'open' | 'submitted' | 'approved' | 'locked';
+  completionPct?: number;
+  narrativeComplete?: boolean;
+  financialsComplete?: boolean;
+  submittedByUserId?: string;
+  submittedAt?: string;
+  approvedByUserId?: string;
+  approvedAt?: string;
+  lockedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Indicator result ─────────────────────────────────────────────────────────
+
+export interface DisaggregatedResult {
+  category: string;
+  value: string;
+  count: number;
+}
+
+export interface IndicatorResult {
+  _id: string;
+  organizationId?: string;
+  projectId: string;
+  reportingPeriodId: string;
+  indicatorId: string | Indicator;
+  achieved: number;
+  activityCount: number;
+  sourceActivityIds: string[];
+  disaggregatedResults?: DisaggregatedResult[];
+  disaggregations: Record<string, unknown>;
+  periodTarget?: number;
+  varianceAbs?: number;
+  variancePct?: number;
+  narrative?: string;
+  challengesNarrative?: string;
+  lessonsNarrative?: string;
+  nextStepsNarrative?: string;
+  previousPeriodAchieved?: number;
+  periodOverPeriodChange?: number;
+  periodOverPeriodPct?: number;
+  qualityFlags?: string[];
+  status: 'draft' | 'submitted' | 'approved' | 'locked';
+  submittedByUserId?: string;
+  submittedAt?: string;
+  approvedByUserId?: string;
+  approvedAt?: string;
+}
+
+// ─── Indicator target ─────────────────────────────────────────────────────────
+
+export interface IndicatorTarget {
+  _id: string;
+  projectId: string;
+  reportingPeriodId: string;
+  indicatorId: string | Indicator;
+  baseline: number;
+  target: number;
+  notes?: string;
+}
+
+// ─── Partner ──────────────────────────────────────────────────────────────────
+
+export interface Partner {
+  _id: string;
+  name: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  country?: string;
+  region?: string;
+  district?: string;
+  geoPoint?: { latitude: number; longitude: number };
+  notes?: string;
+}
+
+// ─── Beneficiary ──────────────────────────────────────────────────────────────
+
+export interface Beneficiary {
+  _id: string;
+  name: string;
+  groupType?: string;
+  location?: string;
+  notes?: string;
+}
+
+// ─── Forms ────────────────────────────────────────────────────────────────────
 
 export interface FormQuestion {
   key: string;
@@ -214,6 +677,8 @@ export interface FormResponse {
   answers: Record<string, unknown>;
   status: 'draft' | 'submitted';
 }
+
+// ─── Donor report ─────────────────────────────────────────────────────────────
 
 export interface DonorReport {
   generatedAt: string;
@@ -264,7 +729,8 @@ export interface DonorReport {
   }>;
 }
 
-// Budget Tracking Models
+// ─── Budget ───────────────────────────────────────────────────────────────────
+
 export interface BudgetAllocation {
   _id: string;
   name: string;
@@ -288,7 +754,6 @@ export interface BudgetAllocation {
 
 export interface BudgetLineItem {
   _id: string;
-  /** References BudgetAllocation._id */
   budgetAllocationId: string;
   description: string;
   costCategory: string;
@@ -311,7 +776,6 @@ export interface BudgetLineItem {
 
 export interface BudgetVariance {
   _id: string;
-  /** References BudgetAllocation._id */
   budgetAllocationId: string;
   period: string;
   budgetedAmount: number;
@@ -350,7 +814,108 @@ export interface BudgetSummary {
   byCategory: Record<string, { allocated: number; spent: number }>;
 }
 
-// Balanced Scorecard Models
+// ─── Grants ───────────────────────────────────────────────────────────────────
+
+export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected' | 'completed' | 'pending';
+
+export interface Grant {
+  _id: string;
+  organizationId: string;
+  name: string;
+  referenceNumber?: string;
+  donorId?: any;
+  projectId?: string;
+  projectName?: string;
+  status?: GrantStatus;
+  currency: string;
+  amount: number;
+  disbursedAmount?: number;
+  amountSpent: number;
+  uncommittedAmount?: number;
+  startDate: string;
+  endDate: string;
+  submissionDeadline?: string;
+  reportingFrequency?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+  nextReportDue?: string;
+  description?: string;
+  objectives?: string;
+  conditionsPrecedent?: string[];
+  restrictedCostCategories?: string[];
+  isRestricted?: boolean;
+  attachmentUrls?: string[];
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  daysUntilExpiry?: number;
+  burnRate?: number;
+}
+
+export interface CreateGrantDto {
+  name: string;
+  referenceNumber?: string;
+  donorId?: string;
+  projectId?: string;
+  status?: GrantStatus;
+  currency?: string;
+  amount: number;
+  startDate: string;
+  endDate: string;
+  submissionDeadline?: string;
+  reportingFrequency?: string;
+  description?: string;
+  objectives?: string;
+  isRestricted?: boolean;
+}
+
+export interface GrantSummary {
+  totalGrantAmount: number;
+  activeGrants: number;
+  totalSpent: number;
+  remainingBudget: number;
+  expiringIn30Days?: Grant[];
+  overdueReports?: Grant[];
+  totalGrants?: number;
+}
+
+// ─── Donors ───────────────────────────────────────────────────────────────────
+
+export type DonorType = 'bilateral' | 'multilateral' | 'foundation' | 'corporate' | 'individual' | 'government' | 'other';
+
+export interface Donor {
+  _id: string;
+  organizationId: string;
+  name: string;
+  shortName?: string;
+  type: DonorType;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  description?: string;
+  preferredReportingFormat?: string;
+  requiresDisaggregation?: boolean;
+  activeGrants?: number;
+  totalFunded?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDonorDto {
+  name: string;
+  shortName?: string;
+  type: DonorType;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  description?: string;
+  requiresDisaggregation?: boolean;
+}
+
+// ─── Balanced Scorecard ───────────────────────────────────────────────────────
+
 export interface BalancedScorecardObjective {
   title: string;
   description?: string;
@@ -388,7 +953,8 @@ export interface BSCPerformanceSummary {
   };
 }
 
-// OKR Models
+// ─── OKR ──────────────────────────────────────────────────────────────────────
+
 export interface OKRKeyResult {
   title: string;
   description?: string;
@@ -428,14 +994,13 @@ export interface OKRProgress {
   }>;
 }
 
+// ─── Framework config ─────────────────────────────────────────────────────────
 
-// Framework Configuration
 export interface FrameworkConfig {
   availableFrameworks: Array<'logframe' | 'bsc' | 'okr'>;
   primaryFramework: 'logframe' | 'bsc' | 'okr';
 }
 
-// Strategic Overview Models
 export interface StrategicPillar {
   pillar: string;
   description: string;
@@ -451,341 +1016,50 @@ export interface StrategicOverview {
   timeframe?: string;
 }
 
-/**
- * ADD THESE INTERFACES TO web/src/app/core/models.ts
- * They extend the existing model file — do NOT replace it.
- */
-
-// ─── Grants ───────────────────────────────────────────────────────────────────
-
-export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected' | 'completed' | 'pending';
-
-export interface Grant {
-  _id: string;
-  organizationId: string;
-  // API returns title; name kept for backwards compat with old records
-  title: string;
-  name?: string;
-  referenceNumber?: string;
-  donorId?: { _id: string; name: string; shortName?: string; type?: string; country?: string; contactEmail?: string; website?: string; requiresDisaggregation?: boolean; preferredReportingFormat?: string };
-  donorName?: string;
-  linkedProjects?: Array<{ _id: string; name: string; status: string; startDate?: string; endDate?: string }>;
-  budgets?: Array<{ _id: string; name: string; allocatedAmount: number; spentAmount: number; currency: string; status: string; category?: string }>;
-  status?: GrantStatus;
-  currency: string;
-  totalAmount: number;
-  // Legacy field aliases returned by older records
-  amount?: number;
-  disbursedAmount: number;
-  spentAmount: number;
-  amountSpent?: number;
-  uncommittedAmount: number;
-  startDate: string;
-  endDate: string;
-  submissionDeadline?: string;
-  reportingFrequency?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
-  nextReportDue?: string;
-  description?: string;
-  objectives?: string;
-  termsAndConditions?: string;
-  conditionsPrecedent?: string[];
-  restrictedCostCategories?: string[];
-  isRestricted?: boolean;
-  attachmentUrls?: string[];
-  createdBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  daysUntilExpiry?: number;
-  burnRate?: number;
-}
-
-export interface CreateGrantDto {
-  title: string;
-  referenceNumber?: string;
-  donorId?: string;
-  linkedProjects?: string[];
-  status?: GrantStatus;
-  currency?: string;
-  totalAmount: number;
-  disbursedAmount?: number;
-  spentAmount?: number;
-  startDate: string;
-  endDate: string;
-  submissionDeadline?: string;
-  reportingFrequency?: string;
-  description?: string;
-  objectives?: string;
-  isRestricted?: boolean;
-  restrictedCostCategories?: string[];
-  termsAndConditions?: string;
-  conditionsPrecedent?: string[];
-}
-
-export interface GrantSummary {
-  totalGrants: number;
-  activeGrants: number;
-  totalAwarded: number;
-  totalSpent: number;
-  totalDisbursed: number;
-  expiringIn30Days: Grant[];
-  overdueReports: Grant[];
-}
-
-// ─── Donors ───────────────────────────────────────────────────────────────────
-
-export type DonorType = 'bilateral' | 'multilateral' | 'foundation' | 'corporate' | 'individual' | 'government' | 'other';
-export type DonorStatus = 'prospect' | 'active' | 'inactive' | 'former';
-
-export interface DonorAddress {
-  street?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
-}
-
-export interface DonorContact {
-  name: string;
-  title?: string;
-  email?: string;
-  phone?: string;
-  isPrimary?: boolean;
-}
-
-export interface DonorEngagement {
-  _id: string;
-  type: 'call' | 'email' | 'meeting' | 'site_visit' | 'proposal_submission' | 'report_submission' | 'other';
-  date: string;
-  summary: string;
-  outcome?: string;
-  recordedBy?: string;
-  relatedGrantId?: string;
-  createdAt?: string;
-}
-
-export interface ComplianceCondition {
-  _id: string;
-  description: string;
-  status: 'pending' | 'met' | 'waived' | 'overdue';
-  dueDate?: string;
-  metDate?: string;
-  notes?: string;
-}
-
-export interface Donor {
-  _id: string;
-  organizationId: string;
-  name: string;
-  shortName?: string;
-  type: DonorType;
-  status: DonorStatus;
-  address?: DonorAddress;
-  // Legacy flat contact fields
-  country?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  // Rich contacts list
-  contacts?: DonorContact[];
-  website?: string;
-  description?: string;
-  notes?: string;
-  preferredReportingFormat?: string;
-  requiresDisaggregation?: boolean;
-  requiredDisaggregationDimensions?: string[];
-  reportingCadence?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
-  currency?: string;
-  fiscalYearEnd?: number;
-  signedAgreementDate?: string;
-  agreementReferenceNumber?: string;
-  complianceConditions?: ComplianceCondition[];
-  engagements?: DonorEngagement[];
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateDonorDto {
-  name: string;
-  shortName?: string;
-  type: DonorType;
-  status?: DonorStatus;
-  address?: DonorAddress;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  contacts?: DonorContact[];
-  country?: string;
-  website?: string;
-  description?: string;
-  notes?: string;
-  requiresDisaggregation?: boolean;
-  requiredDisaggregationDimensions?: string[];
-  reportingCadence?: string;
-  preferredReportingFormat?: string;
-  currency?: string;
-  fiscalYearEnd?: number;
-  signedAgreementDate?: string;
-  agreementReferenceNumber?: string;
-  tags?: string[];
-}
-
-export interface DonorProfile {
-  donor: Donor;
-  grants: Grant[];
-  projects: Array<{ _id: string; name: string; status: string; startDate?: string; endDate?: string }>;
-  budgets: Array<{ _id: string; name: string; allocatedAmount: number; spentAmount: number; currency: string; status: string }>;
-  summary: {
-    totalGrants: number;
-    activeGrants: number;
-    totalAwarded: number;
-    totalSpent: number;
-    remaining: number;
-  };
-}
-
-export interface DonorPortfolioSummary {
-  totalDonors: number;
-  totalGrants: number;
-  activeGrants: number;
-  totalAwarded: number;
-  totalSpent: number;
-  totalDisbursed: number;
-  remaining: number;
-  countByType: Record<string, number>;
-  countByStatus: Record<string, number>;
-  expiringIn30Days: number;
-  overdueReports: number;
-  overdueCompliance: number;
-}
-
-export interface AddEngagementDto {
-  type: DonorEngagement['type'];
-  date: string;
-  summary: string;
-  outcome?: string;
-  relatedGrantId?: string;
-}
-
-export interface AddComplianceConditionDto {
-  description: string;
-  status?: ComplianceCondition['status'];
-  dueDate?: string;
-  notes?: string;
-}
-
-// ─── Reporting Periods ────────────────────────────────────────────────────────
-
-export type ReportingPeriodFrequency = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
-export type ReportingPeriodStatus = 'open' | 'submitted' | 'approved' | 'locked';
-
-export interface IndicatorResult {
-  // _id?: string;
-  // indicatorId: string;
-  indicatorTitle?: string;
-  targetValue?: number;
-  achievedValue: number;
-  calculatedValue?: number;
-  percentAchieved?: number;
-  disaggregation?: Record<string, number>;
-  narrative?: string;
-  dataQualityIssues?: string[];
-  source?: string;
-  verifiedBy?: string;
-}
-
-export interface ReportingPeriod {
-  _id: string;
-  organizationId: string;
-  projectId: string;
-  projectName?: string;
-  name: string;
-  frequency?: ReportingPeriodFrequency;
-  cadence: ReportingPeriodFrequency;
-  startDate: string;
-  endDate: string;
-  dueDate?: string;
-  status: ReportingPeriodStatus;
-  results?: IndicatorResult[];
-  narrative?: string;
-  challenges?: string;
-  lessonsLearned?: string;
-  nextPeriodPlans?: string;
-  submittedBy?: string;
-  submittedAt?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  lockedAt?: string;
-  totalActivities?: number;
-  approvedActivities?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateReportingPeriodDto {
-  projectId?: string;
-  name: string;
-  frequency?: ReportingPeriodFrequency;
-  cadence?: ReportingPeriodFrequency;
-  startDate: string;
-  endDate: string;
-  dueDate?: string;
-  notes?: string;
-}
-
-// ─── Period Targets (add to Indicator model) ─────────────────────────────────
-
-export interface PeriodTarget {
-  period: string;        // "2026-Q1", "2026-01", "2026"
-  targetValue: number;
-  disaggregation?: Record<string, number>;
-  notes?: string;
-}
-
-// Add to existing Indicator interface:
-// periodTargets?: PeriodTarget[];
-
-// ─── Audit Log ────────────────────────────────────────────────────────────────
+// ─── Audit ────────────────────────────────────────────────────────────────────
 
 export type AuditAction =
   | 'CREATE' | 'UPDATE' | 'DELETE'
   | 'APPROVE' | 'REJECT' | 'SUBMIT'
   | 'LOCK' | 'CLOSE' | 'ARCHIVE'
   | 'LOGIN' | 'EXPORT' | 'REVISE'
-  | 'CREATE_ALLOCATION' | 'APPROVE_ALLOCATION' | 'REVISE_ALLOCATION'
-  | 'CLOSE_ALLOCATION' | 'CREATE_LINE_ITEM' | 'UPDATE_LINE_ITEM'
-  | 'CALCULATE_VARIANCE' | 'DELETE_ALLOCATION' | 'DELETE_LINE_ITEM';
+  | 'project.created' | 'project.updated' | 'project.deleted' | 'project.archived' | 'project.closed' | 'project.duplicated'
+  | 'project.milestone.added' | 'project.milestone.updated' | 'project.milestone.removed'
+  | 'project.risk.added' | 'project.risk.updated' | 'project.risk.removed'
+  | 'project.workplan.added' | 'project.workplan.updated' | 'project.workplan.removed'
+  | 'indicator.created' | 'indicator.updated' | 'indicator.deleted' | 'indicator.reordered'
+  | 'activity.created' | 'activity.updated' | 'activity.deleted' | 'activity.approved' | 'activity.rejected'
+  | 'reporting_period.created' | 'reporting_period.submitted' | 'reporting_period.approved' | 'reporting_period.locked'
+  | string;
 
 export interface AuditEvent {
   _id: string;
   organizationId: string;
-  userId: string;
-  userEmail: string;
+  userId?: string;
+  actorUserId?: string;
+  userEmail?: string;
   action: AuditAction;
-  entity: string;
-  entityId: string;
+  entity?: string;
+  entityType?: string;
+  entityId?: string;
   before?: Record<string, any>;
   after?: Record<string, any>;
+  metadata?: Record<string, any>;
   ipAddress?: string;
   reason?: string;
   createdAt: string;
 }
 
-// ─── In-App Notifications ─────────────────────────────────────────────────────
+// ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =
-  | 'activity_pending_review'
-  | 'activity_approved'
-  | 'activity_rejected'
-  | 'grant_expiring_soon'
-  | 'grant_report_due'
-  | 'budget_threshold_warning'
-  | 'budget_threshold_critical'
-  | 'period_due_soon'
-  | 'period_submitted'
-  | 'period_approved'
-  | 'team_invite_accepted'
-  | 'indicator_target_missed';
+  | 'activity.submitted' | 'activity.approved' | 'activity.rejected'
+  | 'project.created' | 'project.updated'
+  | 'grant_expiring_soon' | 'grant_report_due'
+  | 'budget_threshold_warning' | 'budget_threshold_critical'
+  | 'period_due_soon' | 'period_submitted' | 'period_approved'
+  | 'team_invite_accepted' | 'indicator_target_missed'
+  | string;
 
 export interface AppNotification {
   _id: string;
@@ -801,52 +1075,188 @@ export interface AppNotification {
   createdAt: string;
 }
 
-// ─── Data Quality ─────────────────────────────────────────────────────────────
+// ─── Data quality ─────────────────────────────────────────────────────────────
 
 export interface DataQualityIssue {
-  indicatorId: string;
-  indicatorTitle: string;
-  issueType: 'missing_data' | 'outlier' | 'stale' | 'no_activities' | 'target_missed_by_50pct';
-  severity: 'low' | 'medium' | 'high';
-  description: string;
+  indicatorId?: string;
+  indicatorTitle?: string;
+  entityType?: string;
+  entityId?: string;
+  issueType?: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  description?: string;
   lastUpdated?: string;
 }
 
 export interface DataQualityReport {
-  projectId: string;
-  periodId?: string;
   generatedAt: string;
-  overallScore: number;  // 0-100
-  issues: DataQualityIssue[];
-  totalIndicators: number;
-  indicatorsWithData: number;
-  indicatorsOnTrack: number;
-  staleIndicators: number;
+  counts: {
+    indicators: number;
+    activities: number;
+    critical: number;
+    warning: number;
+    info: number;
+  };
+  alerts: DataQualityIssue[];
 }
+
+// ─── Period targets ───────────────────────────────────────────────────────────
+
+export interface PeriodTarget {
+  period: string;
+  targetValue: number;
+  disaggregation?: Record<string, number>;
+  notes?: string;
+}
+
+// ─── AI Copilot ───────────────────────────────────────────────────────────────
+
+export type ReportingPeriodStatus = 'open' | 'submitted' | 'approved' | 'locked';
 
 export interface CopilotResponse {
   answer: string;
   recommendations: string[];
   context: {
-    projects: Array<{
-      id: string;
-      name: string;
-      status: string;
-      donor?: string;
-      endDate?: string;
-    }>;
-    recentActivities: Array<{
-      id: string;
-      title: string;
-      status?: string;
-      activityDate: string;
-    }>;
-    reportingPeriods: Array<{
-      id: string;
-      name: string;
-      status: ReportingPeriodStatus;
-      startDate: string;
-      endDate: string;
-    }>;
+    projects: Array<{ id: string; name: string; status: string; donor?: string; endDate?: string }>;
+    recentActivities: Array<{ id: string; title: string; status?: string; activityDate: string }>;
+    reportingPeriods: Array<{ id: string; name: string; status: ReportingPeriodStatus; startDate: string; endDate: string }>;
   };
+}
+
+// ─── Create DTOs ──────────────────────────────────────────────────────────────
+
+export interface CreateReportingPeriodDto {
+  projectId: string;
+  name: string;
+  cadence?: string;
+  startDate: string;
+  endDate: string;
+  notes?: string;
+  donorRequirements?: string;
+}
+
+export interface CreateProjectDto {
+  name: string;
+  projectCode?: string;
+  description?: string;
+  objectives?: string[];
+  tags?: string[];
+  sector?: string;
+  subSectors?: string[];
+  status?: string;
+  projectPhase?: string;
+  donor?: string;
+  donorId?: string;
+  grantReference?: string;
+  totalBudget?: number;
+  currency?: string;
+  startDate?: string;
+  endDate?: string;
+  country?: string;
+  region?: string;
+  district?: string;
+  latitude?: number;
+  longitude?: number;
+  implementationAreas?: string[];
+  targetBeneficiaryCount?: number;
+  targetDirectBeneficiaries?: number;
+  targetIndirectBeneficiaries?: number;
+  targetGroups?: string[];
+  implementationPartners?: string[];
+  projectManagerId?: string;
+  projectManagerName?: string;
+  meOfficerId?: string;
+  meOfficerName?: string;
+  sdgGoals?: number[];
+  frameworks?: string[];
+  reportingFrequency?: string;
+  requiresEvidencePerActivity?: boolean;
+  requiresDisaggregation?: boolean;
+}
+
+export interface CreateIndicatorDto {
+  projectId: string;
+  parentId?: string;
+  level?: string;
+  code: string;
+  title: string;
+  definition?: string;
+  rationale?: string;
+  unit?: string;
+  indicatorType?: string;
+  direction?: string;
+  cumulative?: boolean;
+  baseline?: number;
+  baselineSource?: string;
+  target: number;
+  annualTargets?: AnnualTarget[];
+  frequency?: string;
+  disaggregation?: string[];
+  disaggregationCategories?: DisaggregationCategory[];
+  genderMarker?: string;
+  isGenderDisaggregated?: boolean;
+  isAgeDisaggregated?: boolean;
+  dataSource?: string;
+  dataCollectionMethod?: string;
+  meansOfVerification?: string;
+  dataCollectionTool?: string;
+  reportingResponsibility?: string;
+  verificationFrequency?: string;
+  responsiblePerson?: string;
+  responsibleUserId?: string;
+  assumptions?: string;
+  limitations?: string;
+  precautionsForDataQuality?: string;
+  isCore?: boolean;
+  isStandardIndicator?: boolean;
+  standardIndicatorCode?: string;
+  standardFramework?: string;
+  sdgGoals?: number[];
+  sdgTargets?: string[];
+  sortOrder?: number;
+}
+
+export interface CreateActivityDto {
+  projectId: string;
+  indicatorId?: string;
+  title: string;
+  description?: string;
+  activityDate: string;
+  activityType?: string;
+  location?: string;
+  country?: string;
+  region?: string;
+  district?: string;
+  village?: string;
+  site?: string;
+  latitude?: number;
+  longitude?: number;
+  participants?: number;
+  quantity?: number;
+  participantsMale?: number;
+  participantsFemale?: number;
+  participantsOther?: number;
+  participantsUnder18?: number;
+  participantsOver60?: number;
+  participantsPwd?: number;
+  participantsIdp?: number;
+  participantsRefugee?: number;
+  disaggregationData?: DisaggregationEntry[];
+  cost?: number;
+  costCurrency?: string;
+  grantId?: string;
+  budgetLine?: string;
+  evidenceUrl?: string;
+  evidenceNotes?: string;
+  hasPhotoEvidence?: boolean;
+  hasSignatureSheet?: boolean;
+  notes?: string;
+  challenges?: string;
+  recommendations?: string;
+  followUpActions?: string;
+  partnerId?: string;
+  beneficiaryIds?: string[];
+  templateId?: string;
+  status?: 'draft' | 'submitted';
 }
