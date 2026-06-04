@@ -295,7 +295,7 @@ export class ActivitiesService {
       submittedByUserId:    new Types.ObjectId(userId),
       submittedAt:          status === 'submitted' ? new Date() : undefined,
       qualityFlags,
-    });
+    } as any);
 
     if (status === 'submitted') {
       await this.notifications.notifyRoles(
@@ -326,7 +326,7 @@ export class ActivitiesService {
   // ─── Bulk create ───────────────────────────────────────────────────────────
 
   async bulkCreate(organizationId: string, dtos: CreateActivityDto[], role: OrgRole, userId: string) {
-    const results = [];
+    const results: any[] = [];
     const errors: Array<{ index: number; message: string }> = [];
 
     for (let i = 0; i < dtos.length; i++) {

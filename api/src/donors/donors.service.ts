@@ -326,20 +326,20 @@ export class DonorsService {
 
     return {
       reportsDue: grants
-        .filter(g => g.nextReportDue && new Date(g.nextReportDue) <= in90)
+        .filter(g => (g as any).nextReportDue && new Date((g as any).nextReportDue) <= in90)
         .map(g => ({
           grantId: g._id,
-          grantTitle: g.title,
-          nextReportDue: g.nextReportDue,
-          daysUntilDue: g.nextReportDue
-            ? Math.ceil((new Date(g.nextReportDue).getTime() - now.getTime()) / 86_400_000)
+          grantTitle: (g as any).title ?? (g as any).name,
+          nextReportDue: (g as any).nextReportDue,
+          daysUntilDue: (g as any).nextReportDue
+            ? Math.ceil((new Date((g as any).nextReportDue).getTime() - now.getTime()) / 86_400_000)
             : null,
         })),
       grantsExpiringSoon: grants
         .filter(g => g.endDate && new Date(g.endDate) <= in90)
         .map(g => ({
           grantId: g._id,
-          grantTitle: g.title,
+          grantTitle: (g as any).title ?? (g as any).name,
           endDate: g.endDate,
           daysRemaining: g.endDate
             ? Math.ceil((new Date(g.endDate).getTime() - now.getTime()) / 86_400_000)
@@ -468,7 +468,7 @@ export class DonorsService {
       g => g.endDate && new Date(g.endDate) >= now && new Date(g.endDate) <= in30 && g.status !== 'closed',
     );
     const overdueReports = grants.filter(
-      g => g.nextReportDue && new Date(g.nextReportDue) < now && g.status === 'active',
+      g => (g as any).nextReportDue && new Date((g as any).nextReportDue) < now && g.status === 'active',
     );
     const overdueCompliance = await this.donorModel.countDocuments({
       organizationId: orgId,
@@ -479,10 +479,10 @@ export class DonorsService {
       totalDonors:      donors.length,
       totalGrants:      grants.length,
       activeGrants:     grants.filter(g => g.status === 'active').length,
-      totalAwarded:     grants.reduce((s, g) => s + (g.totalAmount   ?? 0), 0),
-      totalSpent:       grants.reduce((s, g) => s + (g.spentAmount   ?? 0), 0),
-      totalDisbursed:   grants.reduce((s, g) => s + (g.disbursedAmount ?? 0), 0),
-      remaining:        grants.reduce((s, g) => s + ((g.totalAmount ?? 0) - (g.spentAmount ?? 0)), 0),
+      totalAwarded:     grants.reduce((s, g) => s + ((g as any).totalAmount   ?? g.amount  ?? 0), 0),
+      totalSpent:       grants.reduce((s, g) => s + ((g as any).spentAmount   ?? g.amountSpent ?? 0), 0),
+      totalDisbursed:   grants.reduce((s, g) => s + ((g as any).disbursedAmount ?? 0), 0),
+      remaining:        grants.reduce((s, g) => s + (((g as any).totalAmount ?? g.amount ?? 0) - ((g as any).spentAmount ?? g.amountSpent ?? 0)), 0),
       countByType,
       countByStatus,
       expiringIn30Days: expiringGrants.length,
@@ -512,8 +512,8 @@ export class DonorsService {
 
     return donors.map(d => {
       const dGrants    = grantsByDonor.get(d._id.toString()) ?? [];
-      const awarded    = dGrants.reduce((s, g) => s + (g.totalAmount  ?? 0), 0);
-      const spent      = dGrants.reduce((s, g) => s + (g.spentAmount  ?? 0), 0);
+      const awarded    = dGrants.reduce((s, g) => s + ((g as any).totalAmount  ?? g.amount       ?? 0), 0);
+      const spent      = dGrants.reduce((s, g) => s + ((g as any).spentAmount  ?? g.amountSpent ?? 0), 0);
       const active     = dGrants.filter(g => g.status === 'active').length;
       return {
         id:               d._id.toString(),
@@ -542,10 +542,10 @@ export class DonorsService {
     const now   = Date.now();
     const endMs = g.endDate ? new Date(g.endDate).getTime() : null;
     const daysUntilExpiry = endMs != null ? Math.ceil((endMs - now) / 86_400_000) : null;
-    const burnRate = (g.totalAmount ?? 0) > 0
-      ? parseFloat((((g.spentAmount ?? 0) / g.totalAmount) * 100).toFixed(1))
-      : 0;
-    const uncommittedAmount = Math.max((g.totalAmount ?? 0) - (g.spentAmount ?? 0), 0);
+    const total    = g.totalAmount  ?? g.amount       ?? 0;
+    const spent    = g.spentAmount  ?? g.amountSpent ?? 0;
+    const burnRate = total > 0 ? parseFloat(((spent / total) * 100).toFixed(1)) : 0;
+    const uncommittedAmount = Math.max(total - spent, 0);
     return { ...g, daysUntilExpiry, burnRate, uncommittedAmount };
   }
 }

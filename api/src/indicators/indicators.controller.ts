@@ -27,8 +27,19 @@ export class IndicatorsController {
 
   @Get()
   @Roles(...PERMISSIONS.VIEW_REPORTS)
-  findAll(@CurrentUser() user: JwtPayload, @Query('projectId') projectId?: string) {
-    return this.indicatorsService.findAll(user.organizationId, projectId);
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+    @Query('level') level?: string,
+    @Query('search') search?: string,
+    @Query('isCore') isCore?: string,
+  ) {
+    return this.indicatorsService.findAll(user.organizationId, {
+      projectId,
+      level,
+      search,
+      isCore: isCore === 'true' ? true : isCore === 'false' ? false : undefined,
+    });
   }
 
   @Get(':id')

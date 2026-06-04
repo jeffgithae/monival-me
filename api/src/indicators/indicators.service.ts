@@ -201,7 +201,7 @@ export class IndicatorsService {
     const update: Record<string, unknown> = { ...dto };
     if (dto.parentId)          update.parentId          = new Types.ObjectId(dto.parentId);
     if (dto.responsibleUserId) update.responsibleUserId = new Types.ObjectId(dto.responsibleUserId);
-    if (dto.projectId)         delete update.projectId; // never allow moving indicator to different project
+    if ((dto as any).projectId) delete update.projectId; // never allow moving indicator to different project
     Object.keys(update).forEach(k => update[k] === undefined && delete update[k]);
 
     const indicator = await this.indicatorModel
