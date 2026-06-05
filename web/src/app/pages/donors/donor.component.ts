@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api.service';
@@ -9,7 +9,7 @@ import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto
 @Component({
   selector: 'app-donors',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DecimalPipe, DatePipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DecimalPipe],
   template: `
 <!-- ─── Header ───────────────────────────────────────────────────────── -->
 <div class="page-header">

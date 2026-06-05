@@ -541,10 +541,12 @@ export interface ReportingPeriod {
   _id: string;
   organizationId?: string;
   projectId: string;
+  projectName?: string;
   name: string;
   cadence: 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom';
   startDate: string;
   endDate: string;
+  dueDate?: string;
   notes?: string;
   donorRequirements?: string;
   narrative?: string;
@@ -555,8 +557,13 @@ export interface ReportingPeriod {
   completionPct?: number;
   narrativeComplete?: boolean;
   financialsComplete?: boolean;
+  approvedActivities?: number;
+  totalActivities?: number;
+  results?: IndicatorResult[];
+  submittedBy?: string;
   submittedByUserId?: string;
   submittedAt?: string;
+  approvedBy?: string;
   approvedByUserId?: string;
   approvedAt?: string;
   lockedAt?: string;
@@ -578,7 +585,12 @@ export interface IndicatorResult {
   projectId: string;
   reportingPeriodId: string;
   indicatorId: string | Indicator;
+  indicatorTitle?: string;
   achieved: number;
+  achievedValue?: number;
+  calculatedValue?: number;
+  targetValue?: number;
+  percentAchieved?: number;
   activityCount: number;
   sourceActivityIds: string[];
   disaggregatedResults?: DisaggregatedResult[];
@@ -1150,6 +1162,12 @@ export interface DataQualityIssue {
 }
 
 export interface DataQualityReport {
+  overallScore: number;
+  indicatorsWithData: number;
+  totalIndicators: number;
+  indicatorsOnTrack: number;
+  staleIndicators: number;
+  issues: DataQualityIssue[];
   generatedAt: string;
   counts: {
     indicators: number;

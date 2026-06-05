@@ -38,6 +38,8 @@ import {
   DonorPortfolioSummary,
   AddEngagementDto,
   AddComplianceConditionDto,
+  AuditEvent,
+  ComplianceCondition,
   Grant,
   GrantSummary,
   PeriodTarget,
@@ -605,13 +607,22 @@ export class ApiService {
     return this.http.get<Grant[]>(`${this.base}/donors/${donorId}/grants`);
   }
   donorDeadlines(donorId: string) {
-    return this.http.get<any>(`${this.base}/donors/${donorId}/deadlines`);
+    return this.http.get<{
+      reportsDue: Array<{ grantId: string; grantTitle: string; nextReportDue: string; daysUntilDue: number | null }>;
+      grantsExpiringSoon: Array<{ grantId: string; grantTitle: string; endDate: string; daysRemaining: number | null }>;
+      overdueComplianceConditions: ComplianceCondition[];
+    }>(`${this.base}/donors/${donorId}/deadlines`);
   }
   donorPerformance(donorId: string) {
-    return this.http.get<any>(`${this.base}/donors/${donorId}/performance`);
+    return this.http.get<{
+      grants: Grant[];
+      projects: Array<{ _id: string; name: string; status?: string; startDate?: string; endDate?: string }>;
+      indicators: Array<{ _id: string; code: string; title: string; status: string; percentComplete: number; trend: string; projectId: string }>;
+      summary: { totalIndicators: number; onTrack: number; atRisk: number; behind: number; averageProgress: number };
+    }>(`${this.base}/donors/${donorId}/performance`);
   }
   donorAuditLog(donorId: string) {
-    return this.http.get<any[]>(`${this.base}/donors/${donorId}/audit`);
+    return this.http.get<AuditEvent[]>(`${this.base}/donors/${donorId}/audit`);
   }
   createDonor(body: CreateDonorDto) {
     return this.http.post<Donor>(`${this.base}/donors`, body);
@@ -621,6 +632,9 @@ export class ApiService {
   }
   deleteDonor(id: string) {
     return this.http.delete(`${this.base}/donors/${id}`);
+  }
+  exportDonors() {
+    return this.http.get(`${this.base}/donors/export`, { responseType: 'blob' });
   }
   addDonorEngagement(donorId: string, body: AddEngagementDto) {
     return this.http.post<Donor>(`${this.base}/donors/${donorId}/engagements`, body);
