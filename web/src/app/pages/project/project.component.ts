@@ -395,7 +395,7 @@ export class ProjectComponent implements OnInit {
   reload() {
     this.api.project(this.projectId).subscribe((p) => this.project.set(p));
     this.api.indicators(this.projectId).subscribe((items) => this.indicators.set(items));
-    this.api.activities(this.projectId).subscribe((items) => this.activities.set(items));
+    this.api.activities(this.projectId).subscribe((res: any) => this.activities.set(Array.isArray(res) ? res : (res.data ?? [])));
     this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
     this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
