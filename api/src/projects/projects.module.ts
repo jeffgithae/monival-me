@@ -6,6 +6,7 @@ import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.sche
 import { OrganizationMember, OrganizationMemberSchema } from '../members/schemas/organization-member.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ReportingModule } from '../reporting/reporting.module';
+import { AuditModule } from '../audit/audit.module';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 import { Project, ProjectSchema } from './schemas/project.schema';
@@ -15,6 +16,7 @@ import { Project, ProjectSchema } from './schemas/project.schema';
     OrganizationsModule,
     NotificationsModule,
     ReportingModule,
+    AuditModule,
     MongooseModule.forFeature([
       { name: Project.name, schema: ProjectSchema },
       { name: Organization.name, schema: OrganizationSchema },
