@@ -38,8 +38,6 @@ import {
   DonorPortfolioSummary,
   AddEngagementDto,
   AddComplianceConditionDto,
-  AuditEvent,
-  ComplianceCondition,
   Grant,
   GrantSummary,
   PeriodTarget,
@@ -610,7 +608,7 @@ export class ApiService {
     return this.http.get<{
       reportsDue: Array<{ grantId: string; grantTitle: string; nextReportDue: string; daysUntilDue: number | null }>;
       grantsExpiringSoon: Array<{ grantId: string; grantTitle: string; endDate: string; daysRemaining: number | null }>;
-      overdueComplianceConditions: ComplianceCondition[];
+      overdueComplianceConditions: AddComplianceConditionDto[];
     }>(`${this.base}/donors/${donorId}/deadlines`);
   }
   donorPerformance(donorId: string) {
@@ -647,9 +645,6 @@ export class ApiService {
   }
   updateDonorCompliance(donorId: string, conditionId: string, body: { status?: string; notes?: string; metDate?: string }) {
     return this.http.patch<Donor>(`${this.base}/donors/${donorId}/compliance/${conditionId}`, body);
-  }
-  exportDonors() {
-    return this.http.get(`${this.base}/donors/export`, { responseType: 'blob' });
   }
 
 // ─── Reporting Periods ────────────────────────────────────────────────────────
