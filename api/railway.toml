@@ -3,9 +3,14 @@ builder = "nixpacks"
 buildCommand = "rm -rf dist tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo && npm run build"
 
 [deploy]
-startCommand = "node dist/main"
+startCommand = "node --max-old-space-size=512 dist/main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
+[healthcheck]
+path = "/api/health"
+timeout = 30
+
 [nixpacks.environment]
 NIXPACKS_NODE_VERSION = "22"
+NODE_OPTIONS = "--max-old-space-size=512"
