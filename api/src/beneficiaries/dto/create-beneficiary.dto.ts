@@ -8,7 +8,7 @@ import { Type } from 'class-transformer';
 export class HouseholdMemberDto {
   @IsString() @MinLength(1) name!: string;
   @IsOptional() @IsString() relationship?: string;
-  @IsOptional() @IsIn(['male','female','other']) sex?: string;
+  @IsOptional() @IsIn(['male','female','other']) sex?: 'male' | 'female' | 'other';
   @IsOptional() @IsNumber() @Min(0) @Max(120) age?: number;
   @IsOptional() @IsBoolean() hasDisability?: boolean;
   @IsOptional() @IsString() disabilityType?: string;
