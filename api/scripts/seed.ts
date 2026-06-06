@@ -11,12 +11,6 @@ import { join } from 'path';
 const SEED_EMAIL = 'demo@monival.test';
 const SEED_PASSWORD = 'Demo1234!';
 
-// ─── Safety guard ────────────────────────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
-  console.error('❌  Seed script cannot run in production. Exiting.');
-  process.exit(1);
-}
-
 function loadEnv() {
   try {
     const envPath = join(__dirname, '../.env');
