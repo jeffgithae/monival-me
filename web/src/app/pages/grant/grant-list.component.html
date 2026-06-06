@@ -1,240 +1,416 @@
-<!-- web/src/app/pages/grants/grants-list.component.html -->
-<div class="projects-dashboard grants-page">
+<div class="grants-page">
 
-  <!-- Summary cards -->
+  <!-- KPI Strip -->
   @if (summary()) {
-    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem;">
-      <article class="metric-card">
-        <div class="metric-icon">📄</div>
-        <div class="metric-content">
-          <span class="label">Total Grants</span>
-          <strong>{{ total() }}</strong>
-        </div>
-      </article>
-      <article class="metric-card highlight">
-        <div class="metric-icon">🟢</div>
-        <div class="metric-content">
-          <span class="label">Active Grants</span>
-          <strong>{{ summary()!.activeGrants }}</strong>
-        </div>
-      </article>
-      <article class="metric-card">
-        <div class="metric-icon">💰</div>
-        <div class="metric-content">
-          <span class="label">Total Awarded</span>
-          <strong>${{ summary()!.totalGrantAmount | number }}</strong>
-        </div>
-      </article>
-      <article class="metric-card">
-        <div class="metric-icon">💸</div>
-        <div class="metric-content">
-          <span class="label">Total Spent</span>
-          <strong>${{ summary()!.totalSpent | number }}</strong>
-        </div>
-      </article>
+    <div class="kpi-strip">
+      <div class="kpi">
+        <span class="kpi-label">Total Grants</span>
+        <span class="kpi-value">{{ summary()!.totalGrants ?? total() }}</span>
+        <span class="kpi-sub">across all statuses</span>
+      </div>
+      <div class="kpi kpi-active">
+        <span class="kpi-label">Active</span>
+        <span class="kpi-value">{{ summary()!.activeGrants }}</span>
+        <span class="kpi-sub">currently running</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Total Awarded</span>
+        <span class="kpi-value">{{ summary()!.totalGrantAmount | number:'1.0-0' }}</span>
+        <span class="kpi-sub">cumulative portfolio</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Total Spent</span>
+        <span class="kpi-value">{{ summary()!.totalSpent | number:'1.0-0' }}</span>
+        <span class="kpi-sub">disbursed to date</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Remaining</span>
+        <span class="kpi-value">{{ summary()!.remainingBudget | number:'1.0-0' }}</span>
+        <span class="kpi-sub">available balance</span>
+      </div>
       @if (summary()!.expiringIn30Days?.length) {
-        <article class="metric-card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.1)); border-color: rgba(245, 158, 11, 0.2);">
-          <div class="metric-icon">⚠️</div>
-          <div class="metric-content">
-            <span class="label" style="color: #d97706;">Expiring 30d</span>
-            <strong style="color: #d97706;">{{ summary()!.expiringIn30Days?.length }}</strong>
-          </div>
-        </article>
+        <div class="kpi kpi-warn">
+          <span class="kpi-label">Expiring Soon</span>
+          <span class="kpi-value">{{ summary()!.expiringIn30Days!.length }}</span>
+          <span class="kpi-sub">within 30 days</span>
+        </div>
       }
       @if (summary()!.overdueReports?.length) {
-        <article class="metric-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.1)); border-color: rgba(239, 68, 68, 0.2);">
-          <div class="metric-icon">🔴</div>
-          <div class="metric-content">
-            <span class="label" style="color: #ef4444;">Overdue Reports</span>
-            <strong style="color: #ef4444;">{{ summary()!.overdueReports?.length }}</strong>
-          </div>
-        </article>
+        <div class="kpi kpi-danger">
+          <span class="kpi-label">Overdue Reports</span>
+          <span class="kpi-value">{{ summary()!.overdueReports!.length }}</span>
+          <span class="kpi-sub">need attention</span>
+        </div>
       }
     </div>
   }
 
-  <!-- Header + actions -->
-  <header class="dashboard-header glass-panel mt-4">
-    <div class="header-content">
-      <div class="header-titles">
-        <h1 class="gradient-text">Grants</h1>
-        <p class="muted">Manage donor-funded grants and track burn rates</p>
-      </div>
-      @if (canCreate()) {
-        <button class="btn-primary shadow-btn" (click)="showForm.set(!showForm())">
-          <span class="icon">{{ showForm() ? '✕' : '+' }}</span> {{ showForm() ? 'Cancel' : 'New Grant' }}
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Grants</h1>
+      <p class="subtitle">Track donor-funded grants, burn rates, and reporting deadlines</p>
+    </div>
+    @if (canCreate()) {
+      <button class="btn-new" (click)="showForm.set(true)">
+        <span>＋</span> New Grant
+      </button>
+    }
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="tab-group">
+      <button class="tab" [class.active]="filterStatus() === ''" (click)="setFilter('')">
+        All <span class="badge">{{ total() }}</span>
+      </button>
+      <button class="tab" [class.active]="filterStatus() === 'active'" (click)="setFilter('active')">
+        Active
+      </button>
+      <button class="tab" [class.active]="filterStatus() === 'awarded'" (click)="setFilter('awarded')">
+        Awarded
+      </button>
+      <button class="tab" [class.active]="filterStatus() === 'prospect'" (click)="setFilter('prospect')">
+        Prospect
+      </button>
+      <button class="tab" [class.active]="filterStatus() === 'applied'" (click)="setFilter('applied')">
+        Applied
+      </button>
+      <button class="tab" [class.active]="filterStatus() === 'completed'" (click)="setFilter('completed')">
+        Completed
+      </button>
+      @if (filteredCounts.expiring > 0) {
+        <button class="tab tab-warn" [class.active]="filterStatus() === '__expiring'" (click)="setFilter('')">
+          ⚠️ Expiring <span class="badge">{{ filteredCounts.expiring }}</span>
         </button>
       }
     </div>
-  </header>
 
-  <!-- Create form -->
-  @if (showForm() && canCreate()) {
-    <section class="form-panel glass-panel mt-4">
-      <div class="panel-header">
-        <h2>New Grant</h2>
-      </div>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
-        <div class="form-group">
-          <label>Grant Name *</label>
-          <input formControlName="name" class="glass-input" placeholder="e.g. USAID Year 2 Award" />
-        </div>
-        <div class="form-group">
-          <label>Reference Number</label>
-          <input formControlName="referenceNumber" class="glass-input" placeholder="AID-623-A-00-..." />
-        </div>
-        
-        <div class="form-group">
-          <label>Status</label>
-          <select formControlName="status" class="status-select">
-            @for (s of statuses; track s) {
-              <option [value]="s">{{ s | titlecase }}</option>
-            }
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Currency</label>
-          <select formControlName="currency" class="status-select">
-            @for (c of currencies; track c) {
-              <option [value]="c">{{ c }}</option>
-            }
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Total Amount *</label>
-          <input formControlName="amount" type="number" min="1" class="glass-input" />
-        </div>
-        
-        <div class="form-group">
-          <label>Start Date *</label>
-          <input formControlName="startDate" type="date" class="glass-input" />
-        </div>
-        <div class="form-group">
-          <label>End Date *</label>
-          <input formControlName="endDate" type="date" class="glass-input" />
-        </div>
-        <div class="form-group">
-          <label>Reporting Frequency</label>
-          <select formControlName="reportingFrequency" class="status-select">
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="semiannual">Semiannual</option>
-            <option value="annual">Annual</option>
-          </select>
-        </div>
-        
-        <div class="form-group full-width">
-          <label>Description / Objectives</label>
-          <textarea formControlName="objectives" rows="3" class="glass-input" placeholder="Grant purpose and key objectives..."></textarea>
-        </div>
-        <div class="form-group full-width field-checkbox">
-          <label style="display:flex; gap:0.5rem; align-items:center;">
-            <input formControlName="isRestricted" type="checkbox" id="restricted" />
-            Donor-restricted fund (restrict spending categories)
-          </label>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
-            {{ saving() ? 'Creating…' : 'Create Grant' }}
-          </button>
-          <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
-        </div>
-      </form>
-    </section>
-  }
-
-  <!-- Filters -->
-  <section class="toolbar glass-panel mt-4">
-    <div class="filter-wrap" style="display:flex; gap:1rem; align-items:center;">
-      <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilter()" class="status-select" style="min-width: 200px;">
-        <option value="">All Statuses</option>
-        @for (s of statuses; track s) {
-          <option [value]="s">{{ s | titlecase }}</option>
-        }
-      </select>
-      <button class="btn-ghost" (click)="clearFilter()" *ngIf="filterStatus()">Clear</button>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search grants…"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="search()"
+        (keydown.escape)="clearSearch()" />
+      @if (searchQuery()) {
+        <button class="clear-btn" (click)="clearSearch()">✕</button>
+      }
     </div>
-  </section>
+  </div>
 
   <!-- Error -->
   @if (error()) {
-    <div class="alert alert-error glass-panel mt-4">{{ error() }}</div>
+    <div class="alert-error">⚠️ {{ error() }}</div>
   }
 
-  <!-- Table -->
-  <section class="mt-4">
-    @if (loading()) {
-      <div class="state-message glass-panel">
-        <div class="spinner"></div>
-        <p>Loading grants…</p>
-      </div>
-    } @else if (grants().length === 0) {
-      <div class="state-message glass-panel empty-state">
-        <div class="empty-icon">📁</div>
-        <p>No grants found. {{ canCreate() ? 'Create your first grant above.' : '' }}</p>
-      </div>
-    } @else {
-      <div class="glass-panel" style="padding: 1.5rem; overflow-x: auto;">
-        <table class="documents-table">
-          <thead>
-            <tr>
-              <th>Grant</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Spent</th>
-              <th>Burn Rate</th>
-              <th>Expires</th>
-              <th>Next Report</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (g of grants(); track g._id) {
-              <tr class="clickable" (click)="openDetail(g._id)" style="cursor: pointer;">
-                <td>
-                  <div style="font-weight: 600; color: #1f2937;">{{ g.name }}</div>
-                  @if (g.referenceNumber) {
-                    <div style="font-size: 0.8rem; color: #6b7280;">{{ g.referenceNumber }}</div>
-                  }
-                  @if (g.donorId?.name) {
-                    <div style="font-size: 0.8rem; color: #4f46e5; margin-top: 0.2rem;">🏛️ {{ g.donorId?.name }}</div>
-                  }
-                </td>
-                <td><span class="status-pill status-{{ g.status }}">{{ g.status }}</span></td>
-                <td><strong>{{ g.currency }} {{ g.amount | number }}</strong></td>
-                <td><strong>{{ g.currency }} {{ g.amountSpent | number }}</strong></td>
-                <td>
-                  @if (g.burnRate != null) {
-                    <div class="progress-track" style="min-width: 120px;">
-                      <div class="progress-bar lighter">
-                        <div class="progress-fill achievement-fill" [style.width.%]="g.burnRate" [class.warning]="g.burnRate > 80"></div>
-                      </div>
-                      <span style="font-size: 0.75rem; color: #6b7280; margin-top: 0.2rem;">{{ g.burnRate | number:'1.0-0' }}%</span>
-                    </div>
-                  } @else {
-                    <span class="muted">—</span>
-                  }
-                </td>
-                <td [style.color]="(g.daysUntilExpiry ?? 999) <= 30 ? '#ef4444' : 'inherit'" [style.fontWeight]="(g.daysUntilExpiry ?? 999) <= 30 ? '600' : 'normal'">
-                  {{ g.endDate | date:'d MMM y' }}<br>
-                  <small>{{ daysLabel(g.daysUntilExpiry) }}</small>
-                </td>
-                <td>{{ g.nextReportDue ? (g.nextReportDue | date:'d MMM') : '—' }}</td>
-                <td><button class="btn-ghost" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" (click)="$event.stopPropagation(); openDetail(g._id)">View →</button></td>
-              </tr>
+  <!-- States -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading grants…</p>
+    </div>
+  } @else if (grants().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>No grants found</p>
+      <small>{{ canCreate() ? 'Create your first grant using the button above.' : 'No grants match your current filters.' }}</small>
+    </div>
+  } @else {
+
+    <!-- Cards grid -->
+    <div class="grants-grid">
+      @for (g of grants(); track g._id) {
+        <div class="grant-card"
+          [class.expiring]="(g.daysUntilExpiry ?? 999) <= 30 && (g.daysUntilExpiry ?? -1) >= 0"
+          [class.overbudget]="burnRate(g) >= 90">
+
+          <div class="card-accent accent-{{ g.status ?? 'prospect' }}"></div>
+
+          <div class="card-body">
+            <!-- Top row -->
+            <div class="card-top">
+              <div>
+                <div class="grant-name">{{ grantTitle(g) }}</div>
+                @if (g.referenceNumber) {
+                  <div class="ref-num">{{ g.referenceNumber }}</div>
+                }
+                @if (donorName(g)) {
+                  <div class="donor-tag">🏛 {{ donorName(g) }}</div>
+                }
+              </div>
+              <span class="status-chip chip-{{ g.status ?? 'prospect' }}">
+                {{ statusIcon(g.status ?? '') }} {{ g.status ?? 'prospect' }}
+              </span>
+            </div>
+
+            <!-- Burn bar -->
+            <div class="burn-section">
+              <div class="burn-header">
+                <span>Budget utilisation</span>
+                <span class="burn-pct">{{ burnRate(g) | number:'1.0-0' }}%</span>
+              </div>
+              <div class="burn-track">
+                <div class="burn-fill {{ burnClass(burnRate(g)) }}"
+                  [style.width.%]="burnRate(g)"></div>
+              </div>
+              <div class="amount-row">
+                <span>Spent: <strong>{{ g.currency }} {{ grantSpent(g) | number:'1.0-0' }}</strong></span>
+                <span>Total: <strong>{{ g.currency }} {{ grantAmount(g) | number:'1.0-0' }}</strong></span>
+              </div>
+            </div>
+
+            <!-- Meta -->
+            <div class="meta-row">
+              <div class="meta-item">
+                <span class="meta-label">Start</span>
+                <span class="meta-value">{{ g.startDate | date:'d MMM y' }}</span>
+              </div>
+              <div class="meta-item"
+                [class.warn]="(g.daysUntilExpiry ?? 999) <= 30 && (g.daysUntilExpiry ?? -1) > 0"
+                [class.danger]="(g.daysUntilExpiry ?? 0) < 0">
+                <span class="meta-label">Expires</span>
+                <span class="meta-value">{{ g.endDate | date:'d MMM y' }} · {{ daysLabel(g.daysUntilExpiry) }}</span>
+              </div>
+              @if (g.nextReportDue) {
+                <div class="meta-item">
+                  <span class="meta-label">Next Report</span>
+                  <span class="meta-value">{{ g.nextReportDue | date:'d MMM y' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="btn-sm primary" (click)="openDetail(g._id)">View details →</button>
+            @if (canCreate()) {
+              <button class="btn-sm" (click)="$event.stopPropagation(); openEdit(g)">Edit</button>
             }
-          </tbody>
-        </table>
-      </div>
-  
-      <!-- Pagination -->
-      @if (totalPages > 1) {
-        <div class="pagination glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 1rem; margin-top: 1.5rem;">
-          <button [disabled]="!hasPrev" (click)="prevPage()" class="btn-ghost">← Prev</button>
-          <span style="font-weight: 600; color: #4b5563;">{{ page() }} / {{ totalPages }}</span>
-          <button [disabled]="!hasNext" (click)="nextPage()" class="btn-ghost">Next →</button>
+            @if (canDelete()) {
+              <button class="btn-sm danger"
+                [disabled]="deleting() === g._id"
+                (click)="$event.stopPropagation(); deleteGrant(g._id, grantTitle(g))">
+                {{ deleting() === g._id ? '…' : 'Delete' }}
+              </button>
+            }
+          </div>
         </div>
       }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1) {
+      <div class="pagination">
+        <button [disabled]="!hasPrev" (click)="prevPage()">← Previous</button>
+        <span class="page-info">Page {{ page() }} of {{ totalPages }}</span>
+        <button [disabled]="!hasNext" (click)="nextPage()">Next →</button>
+      </div>
     }
-  </section>
+  }
 </div>
+
+<!-- ── Create Grant slide panel ───────────────────────────────────────────── -->
+@if (showForm()) {
+  <div class="modal-backdrop" (click)="showForm.set(false)">
+    <div class="slide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>New Grant</h2>
+        <button class="close-btn" (click)="showForm.set(false)">✕</button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="panel-body">
+        <div class="form-row">
+          <div class="field full">
+            <label>Grant Name *</label>
+            <input formControlName="name" placeholder="e.g. USAID Year 2 Award" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Reference Number</label>
+            <input formControlName="referenceNumber" placeholder="AID-623-A-00-…" />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select formControlName="status">
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ s | titlecase }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Donor</label>
+            <select formControlName="donorId">
+              <option value="">— No donor —</option>
+              @for (d of donors(); track d._id) {
+                <option [value]="d._id">{{ d.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Currency</label>
+            <select formControlName="currency">
+              @for (c of currencies; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Total Amount *</label>
+            <input formControlName="amount" type="number" min="1" placeholder="0" />
+          </div>
+          <div class="field"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Start Date *</label>
+            <input formControlName="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label>End Date *</label>
+            <input formControlName="endDate" type="date" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field full">
+            <label>Description</label>
+            <textarea formControlName="description" placeholder="Brief grant overview…"></textarea>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field full">
+            <label>Objectives</label>
+            <textarea formControlName="objectives" placeholder="Key objectives and deliverables…"></textarea>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field full">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="requiresMonthlyReporting" />
+              Requires monthly reporting
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field full">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="requiresFinalReport" />
+              Requires final report
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field full">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isRestricted" />
+              Donor-restricted fund
+            </label>
+          </div>
+        </div>
+      </form>
+
+      <div class="panel-footer">
+        <button class="btn-cancel" (click)="showForm.set(false)">Cancel</button>
+        <button class="btn-submit" (click)="submit()" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Creating…' : 'Create Grant' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Edit Grant slide panel ────────────────────────────────────────────── -->
+@if (editing()) {
+  <div class="modal-backdrop" (click)="editing.set(null)">
+    <div class="slide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>Edit Grant</h2>
+        <button class="close-btn" (click)="editing.set(null)">✕</button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()" class="panel-body">
+        <div class="form-row">
+          <div class="field full">
+            <label>Grant Name *</label>
+            <input formControlName="name" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Status</label>
+            <select formControlName="status">
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ s | titlecase }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Currency</label>
+            <select formControlName="currency">
+              @for (c of currencies; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Total Amount</label>
+            <input formControlName="amount" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label>Amount Spent</label>
+            <input formControlName="amountSpent" type="number" min="0" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Start Date</label>
+            <input formControlName="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label>End Date</label>
+            <input formControlName="endDate" type="date" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field full">
+            <label>Description</label>
+            <textarea formControlName="description"></textarea>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field full">
+            <label>Objectives</label>
+            <textarea formControlName="objectives"></textarea>
+          </div>
+        </div>
+      </form>
+
+      <div class="panel-footer">
+        <button class="btn-cancel" (click)="editing.set(null)">Cancel</button>
+        <button class="btn-submit" (click)="saveEdit()" [disabled]="editForm.invalid || saving()">
+          {{ saving() ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

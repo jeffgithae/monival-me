@@ -1,0 +1,518 @@
+// ─── Variables ────────────────────────────────────────────────────────────────
+$primary:  #4f46e5;
+$green:    #10b981;
+$amber:    #f59e0b;
+$red:      #ef4444;
+$text:     #111827;
+$muted:    #6b7280;
+$border:   rgba(15,23,42,.08);
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+.grants-page {
+  padding: 0;
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+
+  .eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: $primary;
+    margin: 0 0 .2rem;
+  }
+
+  h1 { margin: 0 0 .2rem; font-size: 1.65rem; font-weight: 700; color: $text; }
+  p  { margin: 0; font-size: .875rem; color: $muted; }
+
+  .header-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+}
+
+// ─── KPI strip ────────────────────────────────────────────────────────────────
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  cursor: default;
+  transition: box-shadow .15s;
+
+  &:hover { box-shadow: 0 8px 24px rgba($primary,.08); }
+  &.kpi-warn  { border-color: rgba($amber,.3); background: rgba($amber,.02); }
+  &.kpi-danger{ border-color: rgba($red,.3);  background: rgba($red,.02);  }
+
+  .kpi-val  { font-size: 1.65rem; font-weight: 700; color: $text; line-height: 1; }
+  .kpi-lbl  { font-size: .75rem; color: $muted; margin-top: .2rem; }
+  .kpi-sub  { font-size: .7rem; color: $muted; margin-top: .15rem; }
+}
+
+// ─── Expiry alert banner ──────────────────────────────────────────────────────
+.expiry-banner {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: rgba($amber,.08);
+  border: 1px solid rgba($amber,.25);
+  border-radius: 12px;
+  padding: .75rem 1.1rem;
+  margin-bottom: 1.25rem;
+  font-size: .875rem;
+  color: #92400e;
+  flex-wrap: wrap;
+
+  .banner-grants { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .banner-chip {
+    background: rgba($amber,.15);
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: .78rem;
+    &:hover { background: rgba($amber,.25); }
+  }
+}
+
+// ─── Toolbar ─────────────────────────────────────────────────────────────────
+.toolbar {
+  display: flex;
+  gap: .875rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    .si { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: $muted; pointer-events: none; font-size: .875rem; }
+    input { width: 100%; padding: .55rem .75rem .55rem 2.1rem; border: 1px solid $border; border-radius: 10px; background: #fff; font-size: .875rem; &:focus { outline: none; border-color: $primary; } }
+  }
+
+  select {
+    padding: .55rem .75rem;
+    border: 1px solid $border;
+    border-radius: 10px;
+    background: #fff;
+    font-size: .875rem;
+    cursor: pointer;
+    min-width: 130px;
+    &:focus { outline: none; border-color: $primary; }
+  }
+
+  .view-toggle {
+    display: flex;
+    border: 1px solid $border;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .vbtn {
+    border: none;
+    background: transparent;
+    padding: .5rem .75rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: $muted;
+    transition: background .15s;
+    &.active { background: $primary; color: #fff; }
+  }
+}
+
+// ─── Create / edit form panel ─────────────────────────────────────────────────
+.form-panel {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  .form-panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: $muted; }
+  }
+
+  .form-section {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: $primary;
+    margin: 1.1rem 0 .6rem;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: .875rem;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    font-size: .78rem;
+    font-weight: 500;
+    color: $muted;
+
+    &.full { grid-column: 1 / -1; }
+  }
+
+  input, select, textarea {
+    padding: .5rem .75rem;
+    border: 1px solid $border;
+    border-radius: 9px;
+    font-size: .875rem;
+    background: #fff;
+    color: $text;
+    &:focus { outline: none; border-color: $primary; }
+  }
+
+  textarea { resize: vertical; min-height: 70px; }
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .875rem;
+  color: $text;
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: $primary; cursor: pointer; }
+}
+
+.form-actions {
+  display: flex;
+  gap: .75rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+// ─── Main layout ──────────────────────────────────────────────────────────────
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+
+  &.split {
+    grid-template-columns: 1fr 420px;
+    @media (max-width: 1100px) { grid-template-columns: 1fr; }
+  }
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+.skeleton-grid { display: grid; gap: .75rem; }
+.skeleton-row  {
+  height: 60px;
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 12px;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+@keyframes shimmer { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #fff;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  .empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .4; }
+  h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 500; color: $text; }
+  p  { margin: 0 0 1.5rem; font-size: .875rem; color: $muted; }
+}
+
+// ─── Grant card (card view) ───────────────────────────────────────────────────
+.grant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+
+.grant-card {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+
+  &:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba($primary,.09); border-color: rgba($primary,.25); }
+  &.selected { border-color: $primary; box-shadow: 0 0 0 2px rgba($primary,.2); }
+
+  .card-top { padding: 1.1rem 1.25rem .75rem; }
+  .card-name { font-size: .975rem; font-weight: 600; color: $text; margin: 0 0 .2rem; }
+  .card-ref  { font-size: .75rem; color: $muted; }
+
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    padding: 0 1.25rem .75rem;
+    font-size: .78rem;
+    color: $muted;
+  }
+
+  .card-amounts {
+    display: flex;
+    justify-content: space-between;
+    padding: .75rem 1.25rem;
+    border-top: 1px solid $border;
+    .amt-block { text-align: center; }
+    .amt-val   { font-size: 1rem; font-weight: 700; color: $text; }
+    .amt-lbl   { font-size: .68rem; color: $muted; margin-top: 1px; }
+  }
+
+  .card-burn {
+    padding: .6rem 1.25rem 1rem;
+    .burn-label { display: flex; justify-content: space-between; font-size: .72rem; color: $muted; margin-bottom: .3rem; }
+    .burn-track { height: 5px; background: #f0eef8; border-radius: 99px; overflow: hidden; }
+    .burn-fill  { height: 100%; border-radius: 99px; transition: width .4s;
+      &.ok       { background: linear-gradient(90deg, $green, #059669); }
+      &.warning  { background: linear-gradient(90deg, $amber, #d97706); }
+      &.critical { background: linear-gradient(90deg, $red, #dc2626); }
+    }
+  }
+}
+
+// ─── Table view ───────────────────────────────────────────────────────────────
+.table-wrap {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+
+  th {
+    text-align: left;
+    padding: .65rem .875rem;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: $muted;
+    background: rgba($primary,.025);
+    border-bottom: 1px solid $border;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: .8rem .875rem;
+    border-bottom: 1px solid $border;
+    color: $text;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { cursor: pointer; transition: background .12s; }
+  tbody tr:hover td { background: rgba($primary,.02); }
+  tbody tr.selected td { background: rgba($primary,.04); }
+
+  .mini-track { height: 4px; background: #f0eef8; border-radius: 99px; min-width: 70px; overflow: hidden; margin-bottom: 2px; }
+  .mini-fill  { height: 100%; border-radius: 99px; }
+  .ok       { background: $green; }
+  .warning  { background: $amber; }
+  .critical { background: $red;   }
+}
+
+// ─── Status pill ──────────────────────────────────────────────────────────────
+.spill {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  white-space: nowrap;
+  &.active    { background: rgba($green,.12); color: #059669; }
+  &.completed { background: rgba($primary,.12); color: $primary; }
+  &.closed    { background: rgba($muted,.12); color: $muted; }
+  &.pending   { background: rgba($amber,.12); color: #d97706; }
+  &.applied   { background: rgba(59,130,246,.12); color: #1d4ed8; }
+  &.awarded   { background: rgba($green,.12); color: #059669; }
+  &.rejected  { background: rgba($red,.12); color: #dc2626; }
+  &.prospect  { background: rgba($muted,.1); color: #6b7280; }
+}
+
+// ─── Expiry badge ─────────────────────────────────────────────────────────────
+.expiry-chip {
+  font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+  &.urgent { background: rgba($red,.1); color: #dc2626; }
+  &.soon   { background: rgba($amber,.1); color: #d97706; }
+  &.ok     { background: rgba($green,.1); color: #059669; }
+}
+
+// ─── Detail panel ─────────────────────────────────────────────────────────────
+.detail-panel {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 16px;
+  overflow: hidden;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.detail-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid $border;
+  background: rgba($primary,.02);
+
+  .dh-row { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+  .dh-title { font-size: 1.05rem; font-weight: 700; color: $text; margin: 0 0 .25rem; }
+  .dh-ref   { font-size: .75rem; color: $muted; }
+  .dh-meta  { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; font-size: .78rem; color: $muted; }
+  .dh-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+}
+
+.detail-tabs {
+  display: flex;
+  border-bottom: 2px solid $border;
+  overflow-x: auto;
+
+  .dtab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    padding: .6rem 1rem;
+    font-size: .84rem;
+    font-weight: 500;
+    color: $muted;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+    &:hover  { color: $text; }
+    &.active { color: $primary; border-bottom-color: $primary; font-weight: 600; }
+  }
+}
+
+.detail-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi-box {
+  background: rgba($primary,.04);
+  border-radius: 10px;
+  padding: .75rem;
+  text-align: center;
+  .kv  { font-size: 1.3rem; font-weight: 700; color: $primary; }
+  .kl  { font-size: .7rem; color: $muted; margin-top: 2px; }
+  &.green .kv { color: #059669; }
+  &.amber .kv { color: #d97706; }
+  &.red   .kv { color: #dc2626; }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .4rem .875rem;
+  font-size: .84rem;
+  margin-bottom: 1.1rem;
+  dt { color: $muted; font-weight: 500; white-space: nowrap; }
+  dd { margin: 0; color: $text; word-break: break-all; }
+}
+
+.detail-section-title {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: $muted;
+  margin: 1.1rem 0 .6rem;
+}
+
+.burn-detail {
+  margin-bottom: 1rem;
+  .burn-row { display: flex; justify-content: space-between; font-size: .84rem; margin-bottom: .3rem; }
+  .burn-track-lg { height: 8px; background: #f0eef8; border-radius: 99px; overflow: hidden; }
+  .burn-fill-lg   { height: 100%; border-radius: 99px;
+    &.ok       { background: linear-gradient(90deg, $green, #059669); }
+    &.warning  { background: linear-gradient(90deg, $amber, #d97706); }
+    &.critical { background: linear-gradient(90deg, $red, #dc2626); }
+  }
+}
+
+// ─── Spend update form ────────────────────────────────────────────────────────
+.spend-form {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: .75rem;
+  input {
+    padding: .45rem .65rem;
+    border: 1px solid $border;
+    border-radius: 8px;
+    font-size: .84rem;
+    width: 130px;
+    &:focus { outline: none; border-color: $primary; }
+  }
+}
+
+// ─── Project chips ────────────────────────────────────────────────────────────
+.project-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .3rem; }
+.project-chip  { font-size: .75rem; padding: 3px 10px; background: rgba($primary,.07); color: $primary; border-radius: 20px; font-weight: 500; }
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  font-size: .875rem;
+  color: $muted;
+  .page-info { font-weight: 600; color: $text; }
+}
+
+// ─── Buttons ─────────────────────────────────────────────────────────────────
+.btn-primary {
+  background: $primary; color: #fff; border: none; border-radius: 10px;
+  padding: .6rem 1.1rem; font-size: .875rem; font-weight: 500; cursor: pointer;
+  transition: background .15s;
+  &:hover:not(:disabled) { background: #312e81; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+.btn-ghost {
+  background: #fff; color: $text; border: 1px solid $border; border-radius: 10px;
+  padding: .6rem 1.1rem; font-size: .875rem; cursor: pointer;
+  transition: background .15s;
+  &:hover { background: #f9f9fb; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+.btn-sm { padding: .35rem .75rem !important; font-size: .78rem !important; }
+.btn-danger { background: rgba($red,.08); color: #dc2626; border: 1px solid rgba($red,.2); border-radius: 8px; padding: .35rem .75rem; font-size: .78rem; cursor: pointer; &:hover { background: rgba($red,.15); } }
+
+.alert-error { background: rgba($red,.07); border: 1px solid rgba($red,.2); color: #dc2626; border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; margin-bottom: 1rem; }
+.muted { color: $muted; }

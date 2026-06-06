@@ -11,6 +11,7 @@ import { Grant, GrantSummary, CreateGrantDto, GrantStatus, Donor } from '../../c
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DecimalPipe, DatePipe],
   templateUrl: './grant-list.component.html',
+  styleUrl: './grant-list.component.scss',
 })
 export class GrantsListComponent implements OnInit {
   private api    = inject(ApiService);
@@ -25,52 +26,68 @@ export class GrantsListComponent implements OnInit {
   error        = signal('');
   showForm     = signal(false);
   saving       = signal(false);
+  deleting     = signal('');
   filterStatus = signal('');
-  filterDonor  = signal('');
+  searchQuery  = signal('');
   page         = signal(1);
   total        = signal(0);
-  limit        = 20;
+  limit        = 12;
 
-  canCreate = computed(() => this.auth.isOwner() || this.auth.isAdmin() || this.auth.isFinance());
+  canCreate  = computed(() => this.auth.isOwner() || this.auth.isAdmin() || this.auth.isFinance());
+  canDelete  = computed(() => this.auth.isOwner() || this.auth.isAdmin());
 
   readonly statuses: GrantStatus[] = ['prospect','applied','awarded','active','completed','closed','rejected'];
   readonly currencies = ['USD','KES','EUR','GBP','UGX','TZS','ZAR','NGN'];
-  readonly frequencies = ['monthly','quarterly','semiannual','annual'];
 
-  // Form uses API field names: title, totalAmount
   form = this.fb.group({
-    title:              ['', Validators.required],
-    referenceNumber:    [''],
-    donorId:            [''],
-    status:             ['active' as GrantStatus],
-    currency:           ['USD'],
-    totalAmount:        [0, [Validators.required, Validators.min(1)]],
-    startDate:          ['', Validators.required],
-    endDate:            ['', Validators.required],
-    submissionDeadline: [''],
-    reportingFrequency: ['quarterly'],
-    objectives:         [''],
-    isRestricted:       [false],
+    name:                 ['', Validators.required],
+    referenceNumber:      [''],
+    donorId:              [''],
+    status:               ['active' as GrantStatus],
+    currency:             ['USD'],
+    amount:               [0, [Validators.required, Validators.min(1)]],
+    startDate:            ['', Validators.required],
+    endDate:              ['', Validators.required],
+    description:          [''],
+    objectives:           [''],
+    requiresMonthlyReporting: [false],
+    requiresFinalReport:  [true],
+    isRestricted:         [false],
+  });
+
+  // Edit state
+  editing    = signal<Grant | null>(null);
+  editForm   = this.fb.group({
+    name:        ['', Validators.required],
+    status:      ['active' as GrantStatus],
+    amount:      [0, [Validators.min(0)]],
+    amountSpent: [0, [Validators.min(0)]],
+    currency:    ['USD'],
+    startDate:   [''],
+    endDate:     [''],
+    description: [''],
+    objectives:  [''],
   });
 
   ngOnInit() {
     this.load();
-    this.api.donors().subscribe({ next: ds => {
-      const list = Array.isArray(ds) ? ds : (ds as any).data ?? [];
-      this.donors.set(list);
-    }, error: () => {} });
+    this.api.donors().subscribe({
+      next: (ds: any) => this.donors.set(Array.isArray(ds) ? ds : (ds.data ?? [])),
+      error: () => {},
+    });
   }
 
   load() {
     this.loading.set(true);
+    this.error.set('');
     const params: any = { page: this.page(), limit: this.limit };
-    if (this.filterStatus()) params.status  = this.filterStatus();
-    if (this.filterDonor())  params.donorId = this.filterDonor();
+    if (this.filterStatus()) params.status = this.filterStatus();
+    if (this.searchQuery())  params.search = this.searchQuery();
 
     this.api.grants(params).subscribe({
-      next: res => {
-        const data = (res as any).data ?? [];
-        const total = (res as any).total ?? data.length;
+      next: (res: any) => {
+        const data  = Array.isArray(res) ? res : (res.data ?? []);
+        const total = Array.isArray(res) ? res.length : (res.total ?? data.length);
         this.grants.set(data);
         this.total.set(total);
         this.loading.set(false);
@@ -81,7 +98,7 @@ export class GrantsListComponent implements OnInit {
       },
     });
 
-    this.api.grantSummary().subscribe({ next: s => this.summary.set(s) });
+    this.api.grantSummary().subscribe({ next: s => this.summary.set(s), error: () => {} });
   }
 
   submit() {
@@ -89,9 +106,10 @@ export class GrantsListComponent implements OnInit {
     this.saving.set(true);
     this.api.createGrant(this.form.value as CreateGrantDto).subscribe({
       next: () => {
-        this.form.reset({ status: 'active', currency: 'USD', isRestricted: false, reportingFrequency: 'quarterly' });
+        this.form.reset({ status: 'active', currency: 'USD', isRestricted: false, requiresFinalReport: true });
         this.showForm.set(false);
         this.saving.set(false);
+        this.page.set(1);
         this.load();
       },
       error: err => {
@@ -101,20 +119,50 @@ export class GrantsListComponent implements OnInit {
     });
   }
 
-  nextPage()   { this.page.update(p => p + 1); this.load(); }
-  prevPage()   { this.page.update(p => Math.max(1, p - 1)); this.load(); }
-  applyFilter() { this.page.set(1); this.load(); }
-  clearFilter() { this.filterStatus.set(''); this.filterDonor.set(''); this.applyFilter(); }
+  openEdit(g: Grant) {
+    this.editing.set(g);
+    this.editForm.patchValue({
+      name:        g.name,
+      status:      g.status ?? 'active',
+      amount:      g.amount,
+      amountSpent: g.amountSpent ?? 0,
+      currency:    g.currency,
+      startDate:   g.startDate?.slice(0, 10) ?? '',
+      endDate:     g.endDate?.slice(0, 10) ?? '',
+      description: g.description ?? '',
+      objectives:  g.objectives ?? '',
+    });
+  }
+
+  saveEdit() {
+    const g = this.editing();
+    if (!g || this.editForm.invalid) return;
+    this.saving.set(true);
+    this.api.updateGrant(g._id, this.editForm.value as any).subscribe({
+      next: () => { this.editing.set(null); this.saving.set(false); this.load(); },
+      error: err => { this.error.set(err.error?.message || 'Update failed'); this.saving.set(false); },
+    });
+  }
+
+  deleteGrant(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    this.deleting.set(id);
+    this.api.deleteGrant(id).subscribe({
+      next: () => { this.deleting.set(''); this.load(); },
+      error: err => { this.error.set(err.error?.message || 'Delete failed'); this.deleting.set(''); },
+    });
+  }
+
+  setFilter(status: string) { this.filterStatus.set(status); this.page.set(1); this.load(); }
+  search()      { this.page.set(1); this.load(); }
+  clearSearch() { this.searchQuery.set(''); this.page.set(1); this.load(); }
+  nextPage()    { this.page.update(p => p + 1); this.load(); }
+  prevPage()    { this.page.update(p => Math.max(1, p - 1)); this.load(); }
   openDetail(id: string) { this.router.navigate(['/grants', id]); }
 
-  /** Returns display title — API returns `title`, older records may still have `name` */
-  grantTitle(g: Grant): string { return g.title || g.name || '—'; }
-
-  /** Effective amount — new field is totalAmount, old field was amount */
-  grantAmount(g: Grant): number { return g.totalAmount ?? g.amount ?? 0; }
-
-  /** Effective spent — new field is spentAmount, old field was amountSpent */
-  grantSpent(g: Grant): number { return g.spentAmount ?? g.amountSpent ?? 0; }
+  grantTitle(g: Grant)  { return g.title || g.name || '—'; }
+  grantAmount(g: Grant) { return g.totalAmount ?? g.amount ?? 0; }
+  grantSpent(g: Grant)  { return g.spentAmount ?? g.amountSpent ?? 0; }
 
   burnRate(g: Grant): number {
     const total = this.grantAmount(g);
@@ -122,23 +170,40 @@ export class GrantsListComponent implements OnInit {
   }
 
   burnClass(rate: number): string {
-    if (rate >= 90) return 'burn-critical';
-    if (rate >= 75) return 'burn-warning';
-    return 'burn-ok';
+    if (rate >= 90) return 'crit';
+    if (rate >= 70) return 'warn';
+    return 'ok';
+  }
+
+  statusIcon(s: string): string {
+    const m: Record<string, string> = {
+      active: '🟢', prospect: '🔵', applied: '🟡', awarded: '🏆',
+      completed: '✅', closed: '⭕', rejected: '❌',
+    };
+    return m[s] ?? '•';
   }
 
   daysLabel(days: number | undefined): string {
     if (days == null) return '—';
-    if (days < 0)  return 'Expired';
+    if (days < 0)   return 'Expired';
     if (days === 0) return 'Today';
+    if (days <= 30) return `${days}d ⚠️`;
     return `${days}d`;
   }
 
-  donorName(g: Grant): string {
-    return g.donorId?.name ?? g.donorName ?? '';
-  }
+  donorName(g: Grant): string { return g.donorId?.name ?? g.donorName ?? ''; }
 
-  get totalPages() { return Math.ceil(this.total() / this.limit); }
+  get totalPages() { return Math.ceil(this.total() / this.limit) || 1; }
   get hasNext()    { return this.page() < this.totalPages; }
   get hasPrev()    { return this.page() > 1; }
+
+  get filteredCounts() {
+    const gs = this.grants();
+    return {
+      all:       this.total(),
+      active:    gs.filter(g => g.status === 'active').length,
+      expiring:  gs.filter(g => (g.daysUntilExpiry ?? 999) <= 30 && (g.daysUntilExpiry ?? -1) >= 0).length,
+      overBudget: gs.filter(g => this.burnRate(g) >= 90).length,
+    };
+  }
 }
