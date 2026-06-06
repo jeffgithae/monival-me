@@ -1,518 +1,634 @@
-// ─── Variables ────────────────────────────────────────────────────────────────
-$primary:  #4f46e5;
+@use "sass:color";
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+$indigo:   #4f46e5;
+$indigo-d: #3730a3;
 $green:    #10b981;
 $amber:    #f59e0b;
 $red:      #ef4444;
-$text:     #111827;
-$muted:    #6b7280;
-$border:   rgba(15,23,42,.08);
+$blue:     #3b82f6;
+$surface:  #ffffff;
+$bg:       #f8f7ff;
+$text:     #0f172a;
+$muted:    #64748b;
+$border:   rgba(15, 23, 42, 0.08);
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-.grants-page {
-  padding: 0;
-}
-
-// ─── Header ───────────────────────────────────────────────────────────────────
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-
-  .eyebrow {
-    font-size: .7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: $primary;
-    margin: 0 0 .2rem;
-  }
-
-  h1 { margin: 0 0 .2rem; font-size: 1.65rem; font-weight: 700; color: $text; }
-  p  { margin: 0; font-size: .875rem; color: $muted; }
-
-  .header-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
-}
+// ─── Page shell ───────────────────────────────────────────────────────────────
+.grants-page { padding: 2rem 2.5rem; max-width: 1400px; margin: 0 auto; }
 
 // ─── KPI strip ────────────────────────────────────────────────────────────────
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-.kpi-card {
-  background: #fff;
+.kpi {
+  background: $surface;
   border: 1px solid $border;
   border-radius: 16px;
-  padding: 1rem 1.25rem;
-  cursor: default;
-  transition: box-shadow .15s;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: transform 0.18s, box-shadow 0.18s;
 
-  &:hover { box-shadow: 0 8px 24px rgba($primary,.08); }
-  &.kpi-warn  { border-color: rgba($amber,.3); background: rgba($amber,.02); }
-  &.kpi-danger{ border-color: rgba($red,.3);  background: rgba($red,.02);  }
+  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
 
-  .kpi-val  { font-size: 1.65rem; font-weight: 700; color: $text; line-height: 1; }
-  .kpi-lbl  { font-size: .75rem; color: $muted; margin-top: .2rem; }
-  .kpi-sub  { font-size: .7rem; color: $muted; margin-top: .15rem; }
+  .kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $muted;
+  }
+
+  .kpi-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: $text;
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 0.78rem;
+    color: $muted;
+  }
+
+  &.kpi-active   { border-color: rgba($green, 0.35); background: rgba($green, 0.03); .kpi-value { color: color.adjust($green, $lightness: -10%); } }
+  &.kpi-warn     { border-color: rgba($amber, 0.35); background: rgba($amber, 0.04); .kpi-value { color: color.adjust($amber, $lightness: -12%); } }
+  &.kpi-danger   { border-color: rgba($red, 0.3);   background: rgba($red, 0.03);   .kpi-value { color: color.adjust($red, $lightness: -8%);   } }
 }
 
-// ─── Expiry alert banner ──────────────────────────────────────────────────────
-.expiry-banner {
+// ─── Page header ──────────────────────────────────────────────────────────────
+.page-header {
   display: flex;
   align-items: center;
-  gap: .75rem;
-  background: rgba($amber,.08);
-  border: 1px solid rgba($amber,.25);
-  border-radius: 12px;
-  padding: .75rem 1.1rem;
-  margin-bottom: 1.25rem;
-  font-size: .875rem;
-  color: #92400e;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
   flex-wrap: wrap;
 
-  .banner-grants { display: flex; gap: .5rem; flex-wrap: wrap; }
-  .banner-chip {
-    background: rgba($amber,.15);
-    border-radius: 8px;
-    padding: 2px 10px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: .78rem;
-    &:hover { background: rgba($amber,.25); }
+  h1 {
+    margin: 0 0 0.2rem;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    color: $text;
   }
+
+  .subtitle { margin: 0; color: $muted; font-size: 0.92rem; }
 }
 
-// ─── Toolbar ─────────────────────────────────────────────────────────────────
+.btn-new {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, $indigo, $indigo-d);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba($indigo, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+
+  &:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba($indigo, 0.35); }
+}
+
+// ─── Toolbar (tabs + search) ──────────────────────────────────────────────────
 .toolbar {
   display: flex;
-  gap: .875rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 1.25rem;
-
-  .search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 180px;
-    .si { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: $muted; pointer-events: none; font-size: .875rem; }
-    input { width: 100%; padding: .55rem .75rem .55rem 2.1rem; border: 1px solid $border; border-radius: 10px; background: #fff; font-size: .875rem; &:focus { outline: none; border-color: $primary; } }
-  }
-
-  select {
-    padding: .55rem .75rem;
-    border: 1px solid $border;
-    border-radius: 10px;
-    background: #fff;
-    font-size: .875rem;
-    cursor: pointer;
-    min-width: 130px;
-    &:focus { outline: none; border-color: $primary; }
-  }
-
-  .view-toggle {
-    display: flex;
-    border: 1px solid $border;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #fff;
-  }
-
-  .vbtn {
-    border: none;
-    background: transparent;
-    padding: .5rem .75rem;
-    cursor: pointer;
-    font-size: 1rem;
-    color: $muted;
-    transition: background .15s;
-    &.active { background: $primary; color: #fff; }
-  }
-}
-
-// ─── Create / edit form panel ─────────────────────────────────────────────────
-.form-panel {
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-
-  .form-panel-title {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0 0 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: $muted; }
-  }
-
-  .form-section {
-    font-size: .7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: $primary;
-    margin: 1.1rem 0 .6rem;
-  }
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: .875rem;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: .25rem;
-    font-size: .78rem;
-    font-weight: 500;
-    color: $muted;
-
-    &.full { grid-column: 1 / -1; }
-  }
-
-  input, select, textarea {
-    padding: .5rem .75rem;
-    border: 1px solid $border;
-    border-radius: 9px;
-    font-size: .875rem;
-    background: #fff;
-    color: $text;
-    &:focus { outline: none; border-color: $primary; }
-  }
-
-  textarea { resize: vertical; min-height: 70px; }
-}
-
-.checkbox-row {
-  display: flex;
   align-items: center;
-  gap: .5rem;
-  font-size: .875rem;
-  color: $text;
-  input[type=checkbox] { width: 16px; height: 16px; accent-color: $primary; cursor: pointer; }
-}
-
-.form-actions {
-  display: flex;
-  gap: .75rem;
-  justify-content: flex-end;
-  margin-top: 1.25rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
 
-// ─── Main layout ──────────────────────────────────────────────────────────────
-.main-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-
-  &.split {
-    grid-template-columns: 1fr 420px;
-    @media (max-width: 1100px) { grid-template-columns: 1fr; }
-  }
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-.skeleton-grid { display: grid; gap: .75rem; }
-.skeleton-row  {
-  height: 60px;
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 12px;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-@keyframes shimmer { 0%,100%{opacity:.6} 50%{opacity:1} }
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: #fff;
-  border: 1px dashed $border;
-  border-radius: 16px;
-  .empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .4; }
-  h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 500; color: $text; }
-  p  { margin: 0 0 1.5rem; font-size: .875rem; color: $muted; }
-}
-
-// ─── Grant card (card view) ───────────────────────────────────────────────────
-.grant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-
-.grant-card {
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform .18s, box-shadow .18s, border-color .18s;
-
-  &:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba($primary,.09); border-color: rgba($primary,.25); }
-  &.selected { border-color: $primary; box-shadow: 0 0 0 2px rgba($primary,.2); }
-
-  .card-top { padding: 1.1rem 1.25rem .75rem; }
-  .card-name { font-size: .975rem; font-weight: 600; color: $text; margin: 0 0 .2rem; }
-  .card-ref  { font-size: .75rem; color: $muted; }
-
-  .card-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
-    padding: 0 1.25rem .75rem;
-    font-size: .78rem;
-    color: $muted;
-  }
-
-  .card-amounts {
-    display: flex;
-    justify-content: space-between;
-    padding: .75rem 1.25rem;
-    border-top: 1px solid $border;
-    .amt-block { text-align: center; }
-    .amt-val   { font-size: 1rem; font-weight: 700; color: $text; }
-    .amt-lbl   { font-size: .68rem; color: $muted; margin-top: 1px; }
-  }
-
-  .card-burn {
-    padding: .6rem 1.25rem 1rem;
-    .burn-label { display: flex; justify-content: space-between; font-size: .72rem; color: $muted; margin-bottom: .3rem; }
-    .burn-track { height: 5px; background: #f0eef8; border-radius: 99px; overflow: hidden; }
-    .burn-fill  { height: 100%; border-radius: 99px; transition: width .4s;
-      &.ok       { background: linear-gradient(90deg, $green, #059669); }
-      &.warning  { background: linear-gradient(90deg, $amber, #d97706); }
-      &.critical { background: linear-gradient(90deg, $red, #dc2626); }
-    }
-  }
-}
-
-// ─── Table view ───────────────────────────────────────────────────────────────
-.table-wrap {
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .84rem;
-
-  th {
-    text-align: left;
-    padding: .65rem .875rem;
-    font-size: .7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    color: $muted;
-    background: rgba($primary,.025);
-    border-bottom: 1px solid $border;
-    white-space: nowrap;
-  }
-
-  td {
-    padding: .8rem .875rem;
-    border-bottom: 1px solid $border;
-    color: $text;
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr { cursor: pointer; transition: background .12s; }
-  tbody tr:hover td { background: rgba($primary,.02); }
-  tbody tr.selected td { background: rgba($primary,.04); }
-
-  .mini-track { height: 4px; background: #f0eef8; border-radius: 99px; min-width: 70px; overflow: hidden; margin-bottom: 2px; }
-  .mini-fill  { height: 100%; border-radius: 99px; }
-  .ok       { background: $green; }
-  .warning  { background: $amber; }
-  .critical { background: $red;   }
-}
-
-// ─── Status pill ──────────────────────────────────────────────────────────────
-.spill {
-  display: inline-block;
-  font-size: .68rem;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 20px;
-  text-transform: capitalize;
-  white-space: nowrap;
-  &.active    { background: rgba($green,.12); color: #059669; }
-  &.completed { background: rgba($primary,.12); color: $primary; }
-  &.closed    { background: rgba($muted,.12); color: $muted; }
-  &.pending   { background: rgba($amber,.12); color: #d97706; }
-  &.applied   { background: rgba(59,130,246,.12); color: #1d4ed8; }
-  &.awarded   { background: rgba($green,.12); color: #059669; }
-  &.rejected  { background: rgba($red,.12); color: #dc2626; }
-  &.prospect  { background: rgba($muted,.1); color: #6b7280; }
-}
-
-// ─── Expiry badge ─────────────────────────────────────────────────────────────
-.expiry-chip {
-  font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px;
-  &.urgent { background: rgba($red,.1); color: #dc2626; }
-  &.soon   { background: rgba($amber,.1); color: #d97706; }
-  &.ok     { background: rgba($green,.1); color: #059669; }
-}
-
-// ─── Detail panel ─────────────────────────────────────────────────────────────
-.detail-panel {
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 16px;
-  overflow: hidden;
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
-
-.detail-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid $border;
-  background: rgba($primary,.02);
-
-  .dh-row { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
-  .dh-title { font-size: 1.05rem; font-weight: 700; color: $text; margin: 0 0 .25rem; }
-  .dh-ref   { font-size: .75rem; color: $muted; }
-  .dh-meta  { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; font-size: .78rem; color: $muted; }
-  .dh-actions { display: flex; gap: .5rem; flex-shrink: 0; }
-}
-
-.detail-tabs {
+.tab-group {
   display: flex;
-  border-bottom: 2px solid $border;
-  overflow-x: auto;
+  gap: 0.35rem;
+  background: rgba($indigo, 0.06);
+  border-radius: 12px;
+  padding: 0.3rem;
+  flex-wrap: wrap;
+}
 
-  .dtab {
+.tab {
+  padding: 0.45rem 1rem;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: $muted;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+
+  &:hover { background: rgba($indigo, 0.08); color: $indigo; }
+
+  &.active {
+    background: $surface;
+    color: $indigo;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: $indigo;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 0.4rem;
+  }
+
+  &.tab-warn .badge  { background: $amber; }
+  &.tab-danger .badge { background: $red; }
+}
+
+.search-wrap {
+  position: relative;
+  margin-left: auto;
+
+  input {
+    padding: 0.55rem 1rem 0.55rem 2.4rem;
+    border: 1px solid $border;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    background: $surface;
+    color: $text;
+    outline: none;
+    width: 240px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:focus { border-color: rgba($indigo, 0.4); box-shadow: 0 0 0 3px rgba($indigo, 0.08); }
+    &::placeholder { color: $muted; }
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $muted;
+    font-size: 0.95rem;
+    pointer-events: none;
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    padding: .6rem 1rem;
-    font-size: .84rem;
-    font-weight: 500;
     color: $muted;
     cursor: pointer;
-    white-space: nowrap;
-    transition: color .15s, border-color .15s;
-    &:hover  { color: $text; }
-    &.active { color: $primary; border-bottom-color: $primary; font-weight: 600; }
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+
+    &:hover { color: $text; }
   }
 }
 
-.detail-body {
-  padding: 1.25rem 1.5rem;
-}
-
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: .75rem;
-  margin-bottom: 1.25rem;
-}
-
-.kpi-box {
-  background: rgba($primary,.04);
-  border-radius: 10px;
-  padding: .75rem;
-  text-align: center;
-  .kv  { font-size: 1.3rem; font-weight: 700; color: $primary; }
-  .kl  { font-size: .7rem; color: $muted; margin-top: 2px; }
-  &.green .kv { color: #059669; }
-  &.amber .kv { color: #d97706; }
-  &.red   .kv { color: #dc2626; }
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: .4rem .875rem;
-  font-size: .84rem;
-  margin-bottom: 1.1rem;
-  dt { color: $muted; font-weight: 500; white-space: nowrap; }
-  dd { margin: 0; color: $text; word-break: break-all; }
-}
-
-.detail-section-title {
-  font-size: .72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: $muted;
-  margin: 1.1rem 0 .6rem;
-}
-
-.burn-detail {
-  margin-bottom: 1rem;
-  .burn-row { display: flex; justify-content: space-between; font-size: .84rem; margin-bottom: .3rem; }
-  .burn-track-lg { height: 8px; background: #f0eef8; border-radius: 99px; overflow: hidden; }
-  .burn-fill-lg   { height: 100%; border-radius: 99px;
-    &.ok       { background: linear-gradient(90deg, $green, #059669); }
-    &.warning  { background: linear-gradient(90deg, $amber, #d97706); }
-    &.critical { background: linear-gradient(90deg, $red, #dc2626); }
-  }
-}
-
-// ─── Spend update form ────────────────────────────────────────────────────────
-.spend-form {
+// ─── Error + empty states ─────────────────────────────────────────────────────
+.alert-error {
   display: flex;
-  gap: .5rem;
   align-items: center;
-  flex-wrap: wrap;
-  margin-top: .75rem;
-  input {
-    padding: .45rem .65rem;
-    border: 1px solid $border;
-    border-radius: 8px;
-    font-size: .84rem;
-    width: 130px;
-    &:focus { outline: none; border-color: $primary; }
-  }
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba($red, 0.06);
+  border: 1px solid rgba($red, 0.2);
+  border-radius: 12px;
+  color: color.adjust($red, $lightness: -8%);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
 }
 
-// ─── Project chips ────────────────────────────────────────────────────────────
-.project-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .3rem; }
-.project-chip  { font-size: .75rem; padding: 3px 10px; background: rgba($primary,.07); color: $primary; border-radius: 20px; font-weight: 500; }
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  color: $muted;
+  gap: 1rem;
+
+  .empty-icon { font-size: 3rem; }
+  p { font-size: 1rem; margin: 0; }
+  small { font-size: 0.85rem; }
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba($indigo, 0.15);
+  border-top-color: $indigo;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ─── Grant cards grid ─────────────────────────────────────────────────────────
+.grants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.grant-card {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.09);
+    border-color: rgba($indigo, 0.2);
+  }
+
+  &.expiring { border-color: rgba($amber, 0.4); }
+  &.overbudget { border-color: rgba($red, 0.35); }
+}
+
+.card-accent {
+  height: 4px;
+  background: linear-gradient(90deg, $indigo, color.adjust($indigo, $lightness: 15%));
+
+  &.accent-active    { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 12%)); }
+  &.accent-awarded   { background: linear-gradient(90deg, $blue, color.adjust($blue, $lightness: 12%)); }
+  &.accent-completed { background: linear-gradient(90deg, $muted, color.adjust($muted, $lightness: 15%)); }
+  &.accent-closed    { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+  &.accent-rejected  { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 12%)); }
+  &.accent-prospect  { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 10%)); }
+  &.accent-applied   { background: linear-gradient(90deg, $blue, color.adjust($blue, $lightness: 10%)); }
+}
+
+.card-body {
+  padding: 1.35rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.grant-name {
+  font-size: 1.0rem;
+  font-weight: 700;
+  color: $text;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.ref-num {
+  font-size: 0.75rem;
+  color: $muted;
+  margin-top: 0.2rem;
+  font-family: 'Courier New', monospace;
+}
+
+.donor-tag {
+  font-size: 0.78rem;
+  color: $indigo;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &.chip-active    { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
+  &.chip-awarded   { background: rgba($blue, 0.1); color: color.adjust($blue, $lightness: -10%); }
+  &.chip-prospect  { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
+  &.chip-applied   { background: rgba($blue, 0.08); color: color.adjust($blue, $lightness: -8%); }
+  &.chip-completed { background: rgba($muted, 0.1); color: $muted; }
+  &.chip-closed    { background: rgba($muted, 0.08); color: $muted; }
+  &.chip-rejected  { background: rgba($red, 0.08); color: color.adjust($red, $lightness: -8%); }
+}
+
+// ─── Burn bar ─────────────────────────────────────────────────────────────────
+.burn-section { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.burn-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: $muted;
+  font-weight: 600;
+
+  .burn-pct { font-weight: 700; color: $text; }
+}
+
+.burn-track {
+  height: 7px;
+  background: rgba($indigo, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.burn-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 10%));
+
+  &.warn { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 8%)); }
+  &.crit { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 8%)); }
+}
+
+.amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: $muted;
+
+  strong { color: $text; font-size: 0.85rem; }
+}
+
+// ─── Meta row (dates) ─────────────────────────────────────────────────────────
+.meta-row {
+  display: flex;
+  gap: 1rem;
+  border-top: 1px solid $border;
+  padding-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  .meta-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: $muted; }
+  .meta-value { font-size: 0.85rem; font-weight: 600; color: $text; }
+  &.warn .meta-value { color: color.adjust($amber, $lightness: -15%); }
+  &.danger .meta-value { color: color.adjust($red, $lightness: -8%); }
+}
+
+// ─── Card actions ─────────────────────────────────────────────────────────────
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.9rem 1.35rem;
+  border-top: 1px solid $border;
+  background: rgba($indigo, 0.015);
+}
+
+.btn-sm {
+  padding: 0.45rem 1rem;
+  border-radius: 9px;
+  border: 1px solid $border;
+  background: $surface;
+  color: $text;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover { background: rgba($indigo, 0.06); border-color: rgba($indigo, 0.2); color: $indigo; }
+
+  &.primary {
+    background: $indigo;
+    color: #fff;
+    border-color: $indigo;
+    &:hover { background: $indigo-d; border-color: $indigo-d; }
+  }
+
+  &.danger { color: $red; border-color: rgba($red, 0.25); &:hover { background: rgba($red, 0.06); border-color: rgba($red, 0.4); } }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 .pagination {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  font-size: .875rem;
+  margin-top: 2rem;
+
+  .page-info { font-size: 0.88rem; font-weight: 600; color: $muted; }
+
+  button {
+    padding: 0.5rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid $border;
+    background: $surface;
+    color: $text;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover:not(:disabled) { background: rgba($indigo, 0.06); border-color: rgba($indigo, 0.2); color: $indigo; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+}
+
+// ─── Slide-over modal (create / edit) ─────────────────────────────────────────
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.slide-panel {
+  width: min(520px, 100vw);
+  height: 100dvh;
+  background: $surface;
+  box-shadow: -8px 0 48px rgba(0,0,0,0.14);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem 1.25rem;
+  border-bottom: 1px solid $border;
+  position: sticky;
+  top: 0;
+  background: $surface;
+  z-index: 1;
+
+  h2 { margin: 0; font-size: 1.2rem; font-weight: 800; color: $text; }
+
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid $border;
+    background: transparent;
+    color: $muted;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, color 0.15s;
+    &:hover { background: rgba($red, 0.06); color: $red; border-color: rgba($red, 0.2); }
+  }
+}
+
+.panel-body {
+  padding: 1.75rem 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  &.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: $muted;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  input, select, textarea {
+    padding: 0.65rem 0.9rem;
+    border: 1px solid $border;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: $text;
+    background: $bg;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+
+    &:focus {
+      border-color: rgba($indigo, 0.45);
+      box-shadow: 0 0 0 3px rgba($indigo, 0.08);
+      background: $surface;
+    }
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: $text;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+
+    input[type=checkbox] { width: 16px; height: 16px; accent-color: $indigo; cursor: pointer; }
+  }
+}
+
+.panel-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.25rem 2rem;
+  border-top: 1px solid $border;
+  background: $surface;
+  position: sticky;
+  bottom: 0;
+}
+
+.btn-submit {
+  flex: 1;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, $indigo, $indigo-d);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba($indigo, 0.28);
+  transition: opacity 0.15s, transform 0.15s;
+
+  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn-cancel {
+  padding: 0.8rem 1.5rem;
+  border: 1px solid $border;
+  border-radius: 12px;
+  background: transparent;
   color: $muted;
-  .page-info { font-weight: 600; color: $text; }
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: $bg; }
 }
 
-// ─── Buttons ─────────────────────────────────────────────────────────────────
-.btn-primary {
-  background: $primary; color: #fff; border: none; border-radius: 10px;
-  padding: .6rem 1.1rem; font-size: .875rem; font-weight: 500; cursor: pointer;
-  transition: background .15s;
-  &:hover:not(:disabled) { background: #312e81; }
-  &:disabled { opacity: .5; cursor: not-allowed; }
+// ─── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .grants-page { padding: 1rem 1.25rem; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .search-wrap { margin-left: 0; input { width: 100%; } }
+  .grants-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .slide-panel { width: 100vw; }
 }
-.btn-ghost {
-  background: #fff; color: $text; border: 1px solid $border; border-radius: 10px;
-  padding: .6rem 1.1rem; font-size: .875rem; cursor: pointer;
-  transition: background .15s;
-  &:hover { background: #f9f9fb; }
-  &:disabled { opacity: .5; cursor: not-allowed; }
-}
-.btn-sm { padding: .35rem .75rem !important; font-size: .78rem !important; }
-.btn-danger { background: rgba($red,.08); color: #dc2626; border: 1px solid rgba($red,.2); border-radius: 8px; padding: .35rem .75rem; font-size: .78rem; cursor: pointer; &:hover { background: rgba($red,.15); } }
-
-.alert-error { background: rgba($red,.07); border: 1px solid rgba($red,.2); color: #dc2626; border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; margin-bottom: 1rem; }
-.muted { color: $muted; }
