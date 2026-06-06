@@ -1,3 +1,4 @@
+@use "sass:color";
 $indigo:      #4f46e5;
 $indigo-deep: #312e81;
 $indigo-mid:  #4338ca;
@@ -303,10 +304,10 @@ h1 {
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
 
-  &.label-active    { background: rgba($green, 0.1); color: darken($green, 12%); }
+  &.label-active    { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
   &.label-completed { background: rgba($indigo, 0.1); color: $indigo-deep; }
   &.label-paused    { background: rgba(148, 163, 184, 0.15); color: #475569; }
-  &.label-draft     { background: rgba($amber, 0.1); color: darken($amber, 15%); }
+  &.label-draft     { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
 }
 
 .card-arrow {
@@ -358,7 +359,7 @@ h1 {
 
   &.days-left {
     font-weight: 700;
-    color: darken($green, 8%);
+    color: color.adjust($green, $lightness: -8%);
   }
 
   &.days-left.urgent {

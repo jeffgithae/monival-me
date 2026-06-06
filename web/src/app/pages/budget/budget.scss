@@ -1,3 +1,4 @@
+@use "sass:color";
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 $indigo:      #4f46e5;
 $indigo-deep: #312e81;
@@ -176,7 +177,7 @@ h1 {
   &.sum-warn {
     background: rgba($amber, 0.06);
     border-color: rgba($amber, 0.25);
-    .sum-value { color: darken($amber, 12%); }
+    .sum-value { color: color.adjust($amber, $lightness: -12%); }
   }
   &.sum-alert {
     background: rgba($red, 0.06);
@@ -211,7 +212,7 @@ h1 {
   line-height: 1;
 
   &.spent-val { color: $red; }
-  &.avail-val { color: darken($green, 8%); }
+  &.avail-val { color: color.adjust($green, $lightness: -8%); }
   &.alert-val { color: $red; }
 }
 
@@ -263,7 +264,7 @@ h1 {
   line-height: 1;
 
   &.spent-val { color: $red; }
-  &.avail-val { color: darken($green, 8%); }
+  &.avail-val { color: color.adjust($green, $lightness: -8%); }
 }
 
 .kpi-bar-track {
@@ -509,7 +510,7 @@ h1 {
 .fy-cell { color: $muted; font-size: 0.85rem; }
 
 .spent-col { color: $red; }
-.avail-col { color: darken($green, 8%); }
+.avail-col { color: color.adjust($green, $lightness: -8%); }
 .dim       { color: $muted; font-size: 0.82rem; }
 
 // ─── Budget link (list) ────────────────────────────────────────────────────────
@@ -560,8 +561,8 @@ h1 {
   transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
 
   &.burn-ok       { background: linear-gradient(90deg, $indigo, $indigo-mid); }
-  &.burn-warning  { background: linear-gradient(90deg, $amber, darken($amber,5%)); }
-  &.burn-critical { background: linear-gradient(90deg, $red, darken($red,8%)); }
+  &.burn-warning  { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: -5%)); }
+  &.burn-critical { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: -8%)); }
 }
 
 .util-pct {
@@ -571,7 +572,7 @@ h1 {
   text-align: right;
 
   &.burn-ok       { color: $indigo; }
-  &.burn-warning  { color: darken($amber, 12%); }
+  &.burn-warning  { color: color.adjust($amber, $lightness: -12%); }
   &.burn-critical { color: $red; }
 }
 
@@ -619,10 +620,10 @@ h1 {
   &.cat-operational { background: rgba($indigo, 0.08); color: $indigo-deep; }
   &.cat-project     { background: rgba(139,92,246,0.1); color: #5b21b6; }
   &.cat-emergency   { background: rgba($red, 0.08); color: $red; }
-  &.cat-strategic   { background: rgba($green, 0.08); color: darken($green,12%); }
+  &.cat-strategic   { background: rgba($green, 0.08); color: color.adjust($green, $lightness: -12%); }
   &.cat-personnel   { background: rgba(16,185,129,0.08); color: #047857; }
   &.cat-travel      { background: rgba(59,130,246,0.1); color: #1d4ed8; }
-  &.cat-equipment   { background: rgba($amber, 0.1); color: darken($amber,15%); }
+  &.cat-equipment   { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.cat-indirect    { background: rgba(100,116,139,0.1); color: #334155; }
 }
 
@@ -638,11 +639,11 @@ h1 {
   background: rgba($muted, 0.1);
   color: $muted;
 
-  &.status-draft     { background: rgba($amber, 0.1); color: darken($amber,15%); }
+  &.status-draft     { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.status-submitted { background: rgba(59,130,246,0.1); color: #1d4ed8; }
   &.status-approved  { background: rgba($indigo, 0.1); color: $indigo-deep; }
-  &.status-active    { background: rgba($green, 0.1); color: darken($green,12%); }
-  &.status-review    { background: rgba($amber, 0.12); color: darken($amber,15%); }
+  &.status-active    { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
+  &.status-review    { background: rgba($amber, 0.12); color: color.adjust($amber, $lightness: -15%); }
   &.status-closed    { background: rgba($muted, 0.1); color: $muted; }
   &.status-archived  { background: rgba(100,116,139,0.1); color: #475569; }
 }
@@ -655,7 +656,7 @@ h1 {
   font-size: 0.74rem;
   font-weight: 700;
   &.li-planned   { background: rgba($muted, 0.1); color: $muted; }
-  &.li-committed { background: rgba($amber, 0.1); color: darken($amber,15%); }
+  &.li-committed { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.li-spent     { background: rgba($red, 0.08); color: $red; }
   &.li-cancelled { background: rgba(100,116,139,0.1); color: #475569; }
 }
@@ -687,7 +688,7 @@ h1 {
   font-weight: 700;
   text-transform: capitalize;
 
-  &.trend-favorable   { background: rgba($green,0.1); color: darken($green,12%); }
+  &.trend-favorable   { background: rgba($green,0.1); color: color.adjust($green, $lightness: -12%); }
   &.trend-unfavorable { background: rgba($red,0.08); color: $red; }
   &.trend-on_track    { background: rgba($indigo,0.08); color: $indigo-deep; }
 }
@@ -702,11 +703,11 @@ h1 {
   color: $muted;
 
   &.alert-info     { background: rgba($indigo,0.08); color: $indigo-deep; }
-  &.alert-warning  { background: rgba($amber,0.1); color: darken($amber,15%); }
+  &.alert-warning  { background: rgba($amber,0.1); color: color.adjust($amber, $lightness: -15%); }
   &.alert-critical { background: rgba($red,0.08); color: $red; }
 }
 
-.favorable   { color: darken($green,12%); }
+.favorable   { color: color.adjust($green, $lightness: -12%); }
 .unfavorable { color: $red; }
 
 // ─── Totals row ────────────────────────────────────────────────────────────────

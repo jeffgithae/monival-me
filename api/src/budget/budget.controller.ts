@@ -158,13 +158,14 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
 import { OrgRole } from '../common/constants/roles';
 
 
 
 @ApiTags('Budget Tracking')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 @Controller('budget')
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}

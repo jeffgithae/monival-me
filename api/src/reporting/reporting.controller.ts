@@ -6,7 +6,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
 import type { JwtPayload } from '../common/types/jwt-payload';
-import { CreateReportingPeriodDto, ReviewReportingPeriodDto, UpsertIndicatorResultDto, UpsertIndicatorTargetDto } from './dto/reporting.dto';
+import { CreateReportingPeriodDto, ReviewReportingPeriodDto, UpdateNarrativeDto, UpsertIndicatorResultDto, UpsertIndicatorTargetDto } from './dto/reporting.dto';
 import { ReportingService } from './reporting.service';
 
 @Controller('reporting')
@@ -50,6 +50,16 @@ export class ReportingController {
     @Body() dto: ReviewReportingPeriodDto,
   ) {
     return this.reportingService.transitionPeriod(user.organizationId, id, dto.status, user.sub);
+  }
+
+  @Patch('periods/:id/narrative')
+  @Roles(...PERMISSIONS.MANAGE_INDICATORS)
+  updateNarrative(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateNarrativeDto,
+  ) {
+    return this.reportingService.updateNarrative(user.organizationId, id, dto);
   }
 
   @Get('results')

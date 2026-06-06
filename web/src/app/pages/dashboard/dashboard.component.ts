@@ -73,7 +73,7 @@ export class DashboardComponent implements OnInit {
   }
 
   reload() {
-    this.api.projects().subscribe((items) => this.projects.set(items));
+    this.api.projects().subscribe((res: any) => this.projects.set(Array.isArray(res) ? res : (res.data ?? [])));
     this.api.dashboardOverview().subscribe({
       next: (o) => this.overview.set(o),
       error: () => this.overview.set(null),

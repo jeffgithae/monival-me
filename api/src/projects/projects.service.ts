@@ -425,19 +425,35 @@ export class ProjectsService {
   }
 
   async remove(organizationId: string, id: string, actorUserId?: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const projectId = new Types.ObjectId(id);
+
     const project = await this.projectModel
-      .findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) }).lean();
+      .findOne({ _id: id, organizationId: orgId }).lean();
     if (!project) throw new NotFoundException('Project not found');
 
-    await this.projectModel.deleteOne({ _id: id, organizationId: new Types.ObjectId(organizationId) });
+    // Count dependent records so caller can warn/confirm before deletion
+    const [indicatorCount, activityCount, periodCount] = await Promise.all([
+      this.indicatorModel.countDocuments({ projectId, organizationId: orgId }),
+      this.activityModel.countDocuments({ projectId, organizationId: orgId }),
+      this.periodModel.countDocuments({ projectId, organizationId: orgId }),
+    ]);
+
+    // Cascade delete all related records
+    await Promise.all([
+      this.indicatorModel.deleteMany({ projectId, organizationId: orgId }),
+      this.activityModel.deleteMany({ projectId, organizationId: orgId }),
+      this.periodModel.deleteMany({ projectId, organizationId: orgId }),
+      this.projectModel.deleteOne({ _id: id, organizationId: orgId }),
+    ]);
 
     await this.audit.record({
       organizationId, actorUserId,
       action: 'project.deleted', entityType: 'Project', entityId: id,
-      metadata: { name: project.name },
+      metadata: { name: project.name, cascadeDeleted: { indicatorCount, activityCount, periodCount } },
     });
 
-    return { deleted: true };
+    return { deleted: true, cascadeDeleted: { indicatorCount, activityCount, periodCount } };
   }
 
   // ─── Archive / close ───────────────────────────────────────────────────────

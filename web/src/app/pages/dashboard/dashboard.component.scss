@@ -1,3 +1,4 @@
+@use "sass:color";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 $indigo:      #4f46e5;
 $indigo-deep: #312e81;
@@ -98,7 +99,7 @@ h1 {
     background: linear-gradient(135deg, rgba($amber, 0.12), rgba($amber, 0.04));
     border-color: rgba($amber, 0.28);
 
-    .kpi-value { color: darken($amber, 10%); }
+    .kpi-value { color: color.adjust($amber, $lightness: -10%); }
   }
 }
 
@@ -176,7 +177,7 @@ h1 {
 .panel-tag {
   padding: 0.3rem 0.7rem;
   background: rgba($green, 0.12);
-  color: darken($green, 8%);
+  color: color.adjust($green, $lightness: -8%);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -287,7 +288,7 @@ h1 {
   min-width: 4px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &.active-fill    { background: linear-gradient(90deg, $green, lighten($green, 12%)); }
+  &.active-fill    { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 12%)); }
   &.completed-fill { background: linear-gradient(90deg, $indigo, $indigo-mid); }
   &.paused-fill    { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
 }
@@ -413,7 +414,7 @@ h1 {
   font-size: 0.78rem;
   font-weight: 700;
   background: rgba($green, 0.1);
-  color: darken($green, 10%);
+  color: color.adjust($green, $lightness: -10%);
 
   &.urgent {
     background: rgba($red, 0.1);
@@ -621,10 +622,10 @@ h1 {
   font-weight: 700;
   text-transform: capitalize;
 
-  &.status-active    { background: rgba($green, 0.12); color: darken($green, 10%); }
+  &.status-active    { background: rgba($green, 0.12); color: color.adjust($green, $lightness: -10%); }
   &.status-completed { background: rgba($indigo, 0.1);  color: $indigo-deep; }
   &.status-paused    { background: rgba($muted, 0.12);  color: $muted; }
-  &.status-draft     { background: rgba($amber, 0.12);  color: darken($amber, 15%); }
+  &.status-draft     { background: rgba($amber, 0.12);  color: color.adjust($amber, $lightness: -15%); }
 }
 
 .empty-state {
@@ -697,8 +698,8 @@ h1 {
   background: rgba($indigo, 0.08);
   color: $indigo-mid;
 
-  &.act-approved { background: rgba($green, 0.1); color: darken($green, 10%); }
-  &.act-pending  { background: rgba($amber, 0.1); color: darken($amber, 15%); }
+  &.act-approved { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -10%); }
+  &.act-pending  { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.act-rejected { background: rgba($red, 0.1); color: $red; }
 }
 

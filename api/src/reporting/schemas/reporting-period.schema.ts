@@ -21,9 +21,14 @@ export class ReportingPeriod {
   @Prop({ required: true }) endDate!: Date;
 
   @Prop({ trim: true }) notes?: string;
+  @Prop({ trim: true }) donorRequirements?: string;
+  @Prop({ trim: true }) reportTemplate?: string;
 
-  @Prop({ trim: true }) donorRequirements?: string;  // Donor-specific reporting requirements for this period
-  @Prop({ trim: true }) reportTemplate?: string;     // Which template to use for this period
+  // Narrative fields — filled in before submission
+  @Prop({ trim: true }) narrative?: string;
+  @Prop({ trim: true }) challenges?: string;
+  @Prop({ trim: true }) lessonsLearned?: string;
+  @Prop({ trim: true }) nextPeriodPlans?: string;
 
   @Prop({
     type: String,
@@ -39,7 +44,6 @@ export class ReportingPeriod {
   @Prop() approvedAt?: Date;
   @Prop() lockedAt?: Date;
 
-  // Completion tracking
   @Prop({ type: Number, min: 0, max: 100 }) completionPct?: number;
   @Prop({ type: Boolean, default: false }) narrativeComplete!: boolean;
   @Prop({ type: Boolean, default: false }) financialsComplete!: boolean;

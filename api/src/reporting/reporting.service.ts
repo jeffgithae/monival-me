@@ -296,6 +296,26 @@ export class ReportingService {
     return updated;
   }
 
+  async updateNarrative(
+    organizationId: string,
+    reportingPeriodId: string,
+    dto: { narrative?: string; challenges?: string; lessonsLearned?: string; nextPeriodPlans?: string },
+  ) {
+    const period = await this.periodModel.findOne({
+      _id: reportingPeriodId,
+      organizationId: new Types.ObjectId(organizationId),
+    });
+    if (!period) throw new NotFoundException('Reporting period not found');
+    if (period.status === 'locked') throw new ForbiddenException('Reporting period is locked');
+
+    const updated = await this.periodModel.findByIdAndUpdate(
+      reportingPeriodId,
+      { $set: dto },
+      { new: true },
+    ).lean();
+    return updated;
+  }
+
   async approvedResultsForPeriod(organizationId: string, reportingPeriodId: string) {
     return this.resultModel
       .find({

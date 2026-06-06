@@ -677,6 +677,10 @@ export class ApiService {
   calculatePeriodResults(id: string) {
     return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods/${id}/calculate`, {});
   }
+  updatePeriodNarrative(id: string, body: { narrative?: string; challenges?: string; lessonsLearned?: string; nextPeriodPlans?: string }) {
+    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}/narrative`, body);
+  }
+
   updatePeriodStatus(id: string, status: ReportingPeriodStatus, notes?: string) {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}/status`, { status, notes });
   }

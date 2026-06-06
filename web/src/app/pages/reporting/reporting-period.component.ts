@@ -40,7 +40,7 @@ export class ReportingPeriodsComponent implements OnInit {
 
   form = this.fb.group({
     name:       ['', Validators.required],
-    frequency:  ['quarterly', Validators.required],
+    cadence:    ['quarterly', Validators.required],
     startDate:  ['', Validators.required],
     endDate:    ['', Validators.required],
     dueDate:    [''],
@@ -65,7 +65,7 @@ export class ReportingPeriodsComponent implements OnInit {
     const params: any = {};
     if (this.filterProjectId()) params.projectId = this.filterProjectId();
     this.api.reportingPeriods(params).subscribe({
-      next: res => { this.periods.set(res.data); this.loading.set(false); },
+      next: (res: any) => { this.periods.set(Array.isArray(res) ? res : (res.data ?? [])); this.loading.set(false); },
       error: err => { this.error.set(err.error?.message || 'Load failed'); this.loading.set(false); }
     });
   }
@@ -76,7 +76,7 @@ export class ReportingPeriodsComponent implements OnInit {
     this.api.createReportingPeriod(this.form.value as CreateReportingPeriodDto).subscribe({
       next: p => {
         this.periods.update(arr => [p, ...arr]);
-        this.form.reset({ frequency: 'quarterly' });
+        this.form.reset({ cadence: 'quarterly' });
         this.showForm.set(false);
         this.saving.set(false);
       },
@@ -134,11 +134,13 @@ export class ReportingPeriodsComponent implements OnInit {
     const p = this.selected();
     if (!p) return;
     this.saving.set(true);
-    // patch narrative fields onto the period — reuse updatePeriodStatus endpoint
-    // or a dedicated PATCH endpoint; here we send to the results endpoint
-    this.api.updatePeriodStatus(p._id, p.status, JSON.stringify(this.narrativeForm.value)).subscribe({
-      next: updated => { this.selected.set(updated); this.saving.set(false); },
-      error: () => this.saving.set(false)
+    this.api.updatePeriodNarrative(p._id, this.narrativeForm.value as any).subscribe({
+      next: updated => {
+        this.selected.set(updated);
+        this.periods.update(arr => arr.map(x => x._id === updated._id ? updated : x));
+        this.saving.set(false);
+      },
+      error: err => { this.error.set(err.error?.message || 'Save failed'); this.saving.set(false); }
     });
   }
 

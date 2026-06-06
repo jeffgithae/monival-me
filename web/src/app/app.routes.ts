@@ -21,6 +21,7 @@ import { DonorsComponent } from './pages/donors/donor.component';
 import { ReportingPeriodsComponent } from './pages/reporting/reporting-period.component';
 import { GrantsListComponent } from './pages/grant/grant-list.component';
 import { AiCopilotComponent } from './pages/ai-copilot/ai-copilot.component';
+import { AuditLogComponent } from './pages/audit/audit-log.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -48,7 +49,8 @@ export const routes: Routes = [
       { path: 'reporting', component: ReportingPeriodsComponent },
       { path: 'grants', component: GrantsListComponent },
       { path: 'ai', component: AiCopilotComponent },
+      { path: 'audit', component: AuditLogComponent },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  { path: '**', redirectTo: '/dashboard', pathMatch: 'full' },
 ];

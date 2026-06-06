@@ -65,3 +65,21 @@ export class ReviewReportingPeriodDto {
   @IsIn(['submitted', 'approved', 'locked'])
   status!: 'submitted' | 'approved' | 'locked';
 }
+
+export class UpdateNarrativeDto {
+  @IsOptional()
+  @IsString()
+  narrative?: string;
+
+  @IsOptional()
+  @IsString()
+  challenges?: string;
+
+  @IsOptional()
+  @IsString()
+  lessonsLearned?: string;
+
+  @IsOptional()
+  @IsString()
+  nextPeriodPlans?: string;
+}

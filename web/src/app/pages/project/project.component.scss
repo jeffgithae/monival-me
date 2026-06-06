@@ -1,3 +1,4 @@
+@use "sass:color";
 $indigo:      #4f46e5;
 $indigo-deep: #312e81;
 $indigo-mid:  #4338ca;
@@ -49,10 +50,10 @@ $border:      rgba(15, 23, 42, 0.08);
   font-weight: 700;
   text-transform: capitalize;
 
-  &.badge-active    { background: rgba($green, 0.12); color: darken($green, 12%); }
+  &.badge-active    { background: rgba($green, 0.12); color: color.adjust($green, $lightness: -12%); }
   &.badge-completed { background: rgba($indigo, 0.1); color: $indigo-deep; }
   &.badge-paused    { background: rgba(148,163,184,0.15); color: #475569; }
-  &.badge-draft     { background: rgba($amber, 0.12); color: darken($amber, 15%); }
+  &.badge-draft     { background: rgba($amber, 0.12); color: color.adjust($amber, $lightness: -15%); }
 }
 
 .eval-badge {
@@ -62,8 +63,8 @@ $border:      rgba(15, 23, 42, 0.08);
   font-weight: 700;
 
   &.eval-not_started { background: rgba(148,163,184,0.12); color: #475569; }
-  &.eval-in_progress { background: rgba($amber, 0.1); color: darken($amber, 15%); }
-  &.eval-completed   { background: rgba($green, 0.1); color: darken($green, 12%); }
+  &.eval-in_progress { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
+  &.eval-completed   { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
   &.eval-under_review { background: rgba($indigo, 0.1); color: $indigo; }
 }
 
@@ -126,7 +127,7 @@ h1 {
   border-radius: 12px;
   padding: 0.55rem 0.9rem;
   font-size: 0.82rem;
-  color: darken($amber, 15%);
+  color: color.adjust($amber, $lightness: -15%);
 
   strong { font-weight: 700; }
 }
@@ -153,7 +154,7 @@ h1 {
 
   &.kpi-warn {
     background: rgba($amber, 0.06);
-    .kpi-val { color: darken($amber, 15%); }
+    .kpi-val { color: color.adjust($amber, $lightness: -15%); }
   }
 }
 
@@ -604,9 +605,9 @@ h1 {
   min-width: 3px;
   transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
 
-  &.fill-on_track  { background: linear-gradient(90deg, $green, lighten($green,12%)); }
-  &.fill-at_risk   { background: linear-gradient(90deg, $amber, lighten($amber,12%)); }
-  &.fill-behind    { background: linear-gradient(90deg, $red, lighten($red,12%)); }
+  &.fill-on_track  { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 12%)); }
+  &.fill-at_risk   { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 12%)); }
+  &.fill-behind    { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 12%)); }
 }
 
 // ─── Badges / pills ───────────────────────────────────────────────────────────
@@ -620,10 +621,10 @@ h1 {
   background: rgba($indigo, 0.08);
   color: $indigo-deep;
 
-  &.level-goal     { background: rgba($green, 0.1); color: darken($green, 12%); }
+  &.level-goal     { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
   &.level-outcome  { background: rgba($indigo, 0.1); color: $indigo-deep; }
   &.level-output   { background: rgba(139,92,246,0.1); color: #5b21b6; }
-  &.level-activity { background: rgba($amber, 0.1); color: darken($amber, 15%); }
+  &.level-activity { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
 }
 
 .trend-pill {
@@ -633,7 +634,7 @@ h1 {
   font-weight: 700;
   text-transform: capitalize;
 
-  &.trend-up     { background: rgba($green, 0.1); color: darken($green, 12%); }
+  &.trend-up     { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
   &.trend-down   { background: rgba($red, 0.1); color: $red; }
   &.trend-stable { background: rgba($muted, 0.1); color: $muted; }
   &.trend-n\/a   { background: rgba($muted, 0.08); color: $muted; }
@@ -648,8 +649,8 @@ h1 {
   background: rgba($muted, 0.1);
   color: $muted;
 
-  &.status-on_track { background: rgba($green, 0.1); color: darken($green, 12%); }
-  &.status-at_risk  { background: rgba($amber, 0.1); color: darken($amber, 15%); }
+  &.status-on_track { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
+  &.status-at_risk  { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.status-behind   { background: rgba($red, 0.1); color: $red; }
 }
 
@@ -662,8 +663,8 @@ h1 {
   background: rgba($indigo, 0.08);
   color: $indigo-mid;
 
-  &.act-approved { background: rgba($green, 0.1); color: darken($green, 10%); }
-  &.act-submitted { background: rgba($amber, 0.1); color: darken($amber, 15%); }
+  &.act-approved { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -10%); }
+  &.act-submitted { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
   &.act-rejected { background: rgba($red, 0.1); color: $red; }
   &.act-draft    { background: rgba($muted, 0.1); color: $muted; }
   &.act-locked   { background: rgba($indigo-deep, 0.1); color: $indigo-deep; }
@@ -836,7 +837,7 @@ h1 {
   &:hover { transform: translateY(-1px); }
 }
 
-.btn-approve { background: rgba($green, 0.12); color: darken($green, 12%); }
+.btn-approve { background: rgba($green, 0.12); color: color.adjust($green, $lightness: -12%); }
 .btn-reject  { background: rgba($red, 0.1); color: $red; }
 
 // ─── Reporting tab ────────────────────────────────────────────────────────────
