@@ -124,32 +124,69 @@ nav a.active {
 
 .user {
   margin-top: auto;
-  font-size: 0.92rem;
-  display: grid;
-  gap: 0.4rem;
   padding-top: 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.user small {
-  color: rgba(248, 250, 252, 0.7);
-  font-size: 0.8rem;
+.user-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  text-decoration: none;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  transition: background 0.15s;
+  color: #fff;
+
+  &:hover { background: rgba(255,255,255,0.1); }
 }
 
-.user button {
-  justify-self: start;
-  padding: 0.8rem 1rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: none;
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  small {
+    color: rgba(248, 250, 252, 0.65);
+    font-size: 0.75rem;
+    font-weight: 400;
   }
+}
+
+.signout-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+
+  &:hover { background: rgba(239,68,68,0.25); color: #fff; border-color: rgba(239,68,68,0.3); }
 }
 
 // ─── Main content ─────────────────────────────────────────────────────────────

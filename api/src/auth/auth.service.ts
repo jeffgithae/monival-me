@@ -142,6 +142,25 @@ export class AuthService {
     };
   }
 
+  async updateProfile(userId: string, dto: { name?: string }) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new UnauthorizedException();
+    if (dto.name?.trim()) user.name = dto.name.trim();
+    await user.save();
+    return this.me(userId);
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new UnauthorizedException();
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Current password is incorrect');
+    if (newPassword.length < 8) throw new Error('Password must be at least 8 characters');
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    return { success: true };
+  }
+
   private async buildAuthResponse(user: UserDocument, member: OrganizationMemberDocument) {
     const payload = {
       sub: user._id.toString(),

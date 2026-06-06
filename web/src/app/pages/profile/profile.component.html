@@ -1,0 +1,276 @@
+<div class="profile-page">
+
+  <!-- Hero card -->
+  <div class="hero-card">
+    <div class="avatar-ring">
+      <div class="avatar">{{ initials }}</div>
+    </div>
+    <div class="hero-info">
+      <h1>{{ user()?.name }}</h1>
+      <p class="hero-email">{{ user()?.email }}</p>
+      <div class="hero-badges">
+        <span class="role-badge {{ roleBadge }}">{{ roleLabel }}</span>
+        <span class="sub-badge {{ subscriptionClass }}">
+          {{ org()?.subscriptionStatus === 'trialing' ? '🕐 Trial' :
+             org()?.subscriptionStatus === 'active'   ? '✅ Active' : '⭕ Inactive' }}
+          · {{ planLabel }}
+        </span>
+      </div>
+    </div>
+    <div class="org-chip">
+      <span class="org-icon">🏢</span>
+      <div>
+        <div class="org-name">{{ org()?.name }}</div>
+        <div class="org-meta">{{ org()?.sector }} · {{ org()?.country }}</div>
+      </div>
+    </div>
+  </div>
+
+  @if (trialDaysLeft !== null && trialDaysLeft <= 7) {
+    <div class="trial-alert">
+      ⏳ Your free trial ends in <strong>{{ trialDaysLeft }} day{{ trialDaysLeft === 1 ? '' : 's' }}</strong>.
+      <a routerLink="/settings/billing">Upgrade now →</a>
+    </div>
+  }
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-btn" [class.active]="activeTab() === 'profile'"  (click)="activeTab.set('profile')">
+      👤 Profile
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'password'" (click)="activeTab.set('password')">
+      🔐 Password
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'org'"      (click)="activeTab.set('org')">
+      🏢 Organisation
+    </button>
+  </div>
+
+  <div class="tab-body">
+
+    <!-- ── Profile tab ──────────────────────────────────────────────────── -->
+    @if (activeTab() === 'profile') {
+      <div class="section-card" [formGroup]="profileForm">
+        <div class="section-header">
+          <div>
+            <h2>Personal Information</h2>
+            <p>Update your display name. Email changes are not yet supported.</p>
+          </div>
+        </div>
+
+        @if (profileMsg()) {
+          <div class="alert-success">✅ {{ profileMsg() }}</div>
+        }
+        @if (profileErr()) {
+          <div class="alert-error">⚠️ {{ profileErr() }}</div>
+        }
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Full Name</label>
+            <input formControlName="name" placeholder="Your full name" [class.invalid]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" />
+            @if (profileForm.get('name')?.invalid && profileForm.get('name')?.touched) {
+              <span class="field-error">Name must be at least 2 characters</span>
+            }
+          </div>
+
+          <div class="field">
+            <label>Email Address</label>
+            <div class="readonly-field">
+              <span>{{ user()?.email }}</span>
+              <span class="readonly-tag">Read-only</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Role</label>
+            <div class="readonly-field">
+              <span class="role-badge {{ roleBadge }} sm">{{ roleLabel }}</span>
+              <span class="readonly-tag">Managed by admin</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Member Since</label>
+            <div class="readonly-field">
+              <span>—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-save" (click)="saveProfile()" [disabled]="profileForm.invalid || savingProfile()">
+            {{ savingProfile() ? 'Saving…' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Password tab ─────────────────────────────────────────────────── -->
+    @if (activeTab() === 'password') {
+      <div class="section-card" [formGroup]="passwordForm">
+        <div class="section-header">
+          <div>
+            <h2>Change Password</h2>
+            <p>Choose a strong password of at least 8 characters.</p>
+          </div>
+        </div>
+
+        @if (passwordMsg()) {
+          <div class="alert-success">✅ {{ passwordMsg() }}</div>
+        }
+        @if (passwordErr()) {
+          <div class="alert-error">⚠️ {{ passwordErr() }}</div>
+        }
+
+        <div class="form-grid single">
+          <!-- Current password -->
+          <div class="field">
+            <label>Current Password</label>
+            <div class="password-wrap">
+              <input [type]="showCurrent() ? 'text' : 'password'"
+                formControlName="currentPassword"
+                placeholder="Enter current password"
+                [class.invalid]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched" />
+              <button type="button" class="eye-btn" (click)="toggleCurrent()">
+                {{ showCurrent() ? '🙈' : '👁' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- New password -->
+          <div class="field">
+            <label>New Password</label>
+            <div class="password-wrap">
+              <input [type]="showNew() ? 'text' : 'password'"
+                formControlName="newPassword"
+                placeholder="Min. 8 characters"
+                [class.invalid]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" />
+              <button type="button" class="eye-btn" (click)="toggleNew()">
+                {{ showNew() ? '🙈' : '👁' }}
+              </button>
+            </div>
+            @if (passwordForm.get('newPassword')?.value) {
+              <div class="strength-bar">
+                <div class="strength-fill"
+                  [class.weak]="(passwordForm.get('newPassword')?.value?.length ?? 0) < 10"
+                  [class.medium]="(passwordForm.get('newPassword')?.value?.length ?? 0) >= 10 && (passwordForm.get('newPassword')?.value?.length ?? 0) < 14"
+                  [class.strong]="(passwordForm.get('newPassword')?.value?.length ?? 0) >= 14"
+                  [style.width.%]="Math.min(100, ((passwordForm.get('newPassword')?.value?.length ?? 0) / 20) * 100)">
+                </div>
+                <span class="strength-label"
+                  [class.weak]="(passwordForm.get('newPassword')?.value?.length ?? 0) < 10"
+                  [class.medium]="(passwordForm.get('newPassword')?.value?.length ?? 0) >= 10"
+                  [class.strong]="(passwordForm.get('newPassword')?.value?.length ?? 0) >= 14">
+                  {{ (passwordForm.get('newPassword')?.value?.length ?? 0) < 10 ? 'Weak' :
+                     (passwordForm.get('newPassword')?.value?.length ?? 0) < 14 ? 'Medium' : 'Strong' }}
+                </span>
+              </div>
+            }
+            @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
+              <span class="field-error">Minimum 8 characters required</span>
+            }
+          </div>
+
+          <!-- Confirm password -->
+          <div class="field">
+            <label>Confirm New Password</label>
+            <div class="password-wrap">
+              <input [type]="showConfirm() ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                placeholder="Repeat new password"
+                [class.invalid]="passwordForm.errors?.['mismatch'] && passwordForm.get('confirmPassword')?.touched" />
+              <button type="button" class="eye-btn" (click)="toggleConfirm()">
+                {{ showConfirm() ? '🙈' : '👁' }}
+              </button>
+            </div>
+            @if (passwordForm.errors?.['mismatch'] && passwordForm.get('confirmPassword')?.touched) {
+              <span class="field-error">Passwords do not match</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-save" (click)="savePassword()"
+            [disabled]="passwordForm.invalid || savingPassword()">
+            {{ savingPassword() ? 'Changing…' : 'Change Password' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Organisation tab ─────────────────────────────────────────────── -->
+    @if (activeTab() === 'org') {
+      <div class="section-card">
+        <div class="section-header">
+          <div>
+            <h2>Organisation Details</h2>
+            <p>Your organisation's profile and subscription information.</p>
+          </div>
+        </div>
+
+        <div class="org-grid">
+          <div class="org-stat">
+            <span class="org-stat-label">Organisation</span>
+            <span class="org-stat-value">{{ org()?.name }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat-label">Country</span>
+            <span class="org-stat-value">{{ org()?.country || '—' }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat-label">Sector</span>
+            <span class="org-stat-value">{{ org()?.sector || '—' }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat-label">Plan</span>
+            <span class="org-stat-value">{{ planLabel }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat-label">Subscription Status</span>
+            <span class="sub-badge {{ subscriptionClass }}">
+              {{ org()?.subscriptionStatus || 'trialing' }}
+            </span>
+          </div>
+          @if (org()?.trialEndsAt) {
+            <div class="org-stat">
+              <span class="org-stat-label">Trial Ends</span>
+              <span class="org-stat-value" [class.warn-text]="(trialDaysLeft ?? 99) <= 7">
+                {{ org()?.trialEndsAt | date:'d MMM yyyy' }}
+                @if (trialDaysLeft !== null) {
+                  · {{ trialDaysLeft }}d left
+                }
+              </span>
+            </div>
+          }
+        </div>
+
+        @if (org()?.limits) {
+          <div class="limits-section">
+            <h3>Plan Limits</h3>
+            <div class="limits-grid">
+              <div class="limit-item">
+                <span class="limit-label">Projects</span>
+                <span class="limit-value">{{ org()!.limits!.maxProjects ?? '∞' }}</span>
+              </div>
+              <div class="limit-item">
+                <span class="limit-label">Team Members</span>
+                <span class="limit-value">{{ org()!.limits!.maxUsers ?? '∞' }}</span>
+              </div>
+              <div class="limit-item">
+                <span class="limit-label">Indicators / Project</span>
+                <span class="limit-value">{{ org()!.limits!.maxIndicatorsPerProject ?? '∞' }}</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="form-actions">
+          <a routerLink="/settings/billing" class="btn-save outline">Manage Subscription →</a>
+          <a routerLink="/settings/team" class="btn-save outline">Manage Team →</a>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

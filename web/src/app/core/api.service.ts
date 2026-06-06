@@ -759,4 +759,15 @@ export class ApiService {
       projectId: projectId || undefined,
     });
   }
+
+
+  // ─── Profile ──────────────────────────────────────────────────────────────
+
+  updateProfile(dto: { name: string }) {
+    return this.http.patch<any>(`${this.base}/auth/me`, dto);
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.patch<{ success: boolean }>(`${this.base}/auth/me/password`, { currentPassword, newPassword });
+  }
 }

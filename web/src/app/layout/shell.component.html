@@ -55,9 +55,14 @@
       <a routerLink="/settings/billing" routerLinkActive="active" (click)="closeSidebar()">💳 Billing</a>
     </nav>
     <div class="user">
-      <span>{{ auth.user()?.name }}</span>
-      <small>{{ roleLabel(auth.user()?.role ?? 'viewer') }}</small>
-      <button type="button" (click)="auth.logout()">Sign out</button>
+      <a routerLink="/profile" class="user-profile-link">
+        <div class="user-avatar">{{ auth.user()?.name?.charAt(0)?.toUpperCase() }}</div>
+        <div class="user-details">
+          <span>{{ auth.user()?.name }}</span>
+          <small>{{ roleLabel(auth.user()?.role ?? 'viewer') }}</small>
+        </div>
+      </a>
+      <button type="button" class="signout-btn" (click)="auth.logout()" title="Sign out">⏻</button>
     </div>
   </aside>
 
