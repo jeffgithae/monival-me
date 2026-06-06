@@ -1,295 +1,75 @@
-<div class="report-page" [class.print-mode]="printMode()">
+<div class="shell" [class.sidebar-open]="sidebarOpen()">
 
-  <!-- ── Config panel (hidden in print) ───────────────────────────────────── -->
-  <div class="config-panel no-print">
-    <div class="config-header">
-      <div>
-        <span class="eyebrow">Reports</span>
-        <h1>Donor Progress Report</h1>
-        <p class="subtitle">Generate a structured report for funders, boards, and stakeholders</p>
-      </div>
+  <!-- Mobile top bar -->
+  <header class="mobile-topbar">
+    <button class="hamburger" (click)="toggleSidebar()" [attr.aria-label]="sidebarOpen() ? 'Close menu' : 'Open menu'">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+    <div class="mobile-logo">
+      <span class="logo-icon">◔</span>
+      <strong>Monival M&amp;E</strong>
     </div>
+  </header>
 
-    <div class="config-form">
-      <!-- Project -->
-      <div class="config-field">
-        <label>Project *</label>
-        <select [(ngModel)]="selectedProject" (ngModelChange)="onProjectChange()">
-          <option value="">— Select a project —</option>
-          @for (p of projects(); track p._id) {
-            <option [value]="p._id">{{ p.name }}</option>
-          }
-        </select>
-      </div>
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" (click)="closeSidebar()"></div>
 
-      <!-- Filter mode toggle -->
-      @if (selectedProject()) {
-        <div class="config-field">
-          <label>Report Scope</label>
-          <div class="toggle-group">
-            <button class="toggle-btn" [class.active]="filterMode() === 'period'" (click)="filterMode.set('period')">
-              📋 Reporting Period
-            </button>
-            <button class="toggle-btn" [class.active]="filterMode() === 'range'" (click)="filterMode.set('range')">
-              📅 Date Range
-            </button>
-          </div>
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <span class="logo-icon">◔</span>
+        <div>
+          <strong>Monival M&amp;E</strong>
+          <small>{{ auth.organization()?.name ?? 'Organisation' }}</small>
         </div>
-
-        @if (filterMode() === 'period') {
-          <div class="config-field">
-            <label>Reporting Period *</label>
-            <select [(ngModel)]="selectedPeriod">
-              <option value="">— Select a period —</option>
-              @for (p of periods(); track p._id) {
-                <option [value]="p._id">{{ p.name }} · {{ p.status | titlecase }}</option>
-              }
-            </select>
-            @if (periods().length === 0) {
-              <span class="field-hint">No periods found for this project</span>
-            }
-          </div>
-        } @else {
-          <div class="config-row">
-            <div class="config-field">
-              <label>From Date *</label>
-              <input type="date" [(ngModel)]="fromDate" />
-            </div>
-            <div class="config-field">
-              <label>To Date *</label>
-              <input type="date" [(ngModel)]="toDate" />
-            </div>
+      </div>
+      @if (auth.organization(); as org) {
+        <div class="plan-pill">{{ org.planName ?? org.planId }}</div>
+        @if (org.subscriptionStatus === 'trialing' && org.trialEndsAt) {
+          <div class="trial-banner">
+            Trial ends {{ org.trialEndsAt | date: 'mediumDate' }}
+            <a routerLink="/settings/billing">Upgrade</a>
           </div>
         }
       }
-
-      <!-- Actions -->
-      <div class="config-actions">
-        <button class="btn-generate" [disabled]="!canGenerate() || loading()" (click)="generate()">
-          @if (loading()) {
-            <span class="btn-spinner"></span> Generating…
-          } @else {
-            ✦ Generate Report
-          }
-        </button>
-        @if (generated()) {
-          <button class="btn-export" [disabled]="exporting()" (click)="exportCsv()">
-            {{ exporting() ? 'Exporting…' : '⬇ CSV Export' }}
-          </button>
-          <button class="btn-print" (click)="print()">🖨 Print / PDF</button>
-        }
-      </div>
-
-      @if (error()) {
-        <div class="alert-error">⚠️ {{ error() }}</div>
-      }
     </div>
-  </div>
-
-  <!-- ── Report output ──────────────────────────────────────────────────────── -->
-  @if (loading()) {
-    <div class="loading-state no-print">
-      <div class="spinner"></div>
-      <p>Generating report…</p>
-      <small>Pulling indicators, activities and narratives</small>
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeSidebar()">📊 Dashboard</a>
+      <a routerLink="/projects" routerLinkActive="active" (click)="closeSidebar()">📁 Projects</a>
+      <a routerLink="/strategic" routerLinkActive="active" (click)="closeSidebar()">🎯 Strategic Overview</a>
+      <div class="nav-divider">Funding</div>
+      <a routerLink="/donors" routerLinkActive="active" (click)="closeSidebar()">🤝 Donors</a>
+      <a routerLink="/grants" routerLinkActive="active" (click)="closeSidebar()">💵 Grants</a>
+      <div class="nav-divider">Reporting</div>
+      <a routerLink="/reporting" routerLinkActive="active" (click)="closeSidebar()">📋 Reporting Periods</a>
+      <a routerLink="/reports/donor" routerLinkActive="active" (click)="closeSidebar()">📄 Donor Reports</a>
+      <a routerLink="/ai" routerLinkActive="active" (click)="closeSidebar()">AI Copilot</a>
+      <div class="nav-divider">Frameworks</div>
+      <a routerLink="/budget" routerLinkActive="active" (click)="closeSidebar()">💰 Budget Tracking</a>
+      <a routerLink="/bsc" routerLinkActive="active" (click)="closeSidebar()">📈 Balanced Scorecard</a>
+      <a routerLink="/okrs" routerLinkActive="active" (click)="closeSidebar()">🎯 OKRs</a>
+      <div class="nav-divider">Settings</div>
+      <a routerLink="/audit" routerLinkActive="active" (click)="closeSidebar()">🔍 Audit Log</a>
+      <a routerLink="/settings/team" routerLinkActive="active" (click)="closeSidebar()">👥 Team</a>
+      <a routerLink="/settings/billing" routerLinkActive="active" (click)="closeSidebar()">💳 Billing</a>
+    </nav>
+    <div class="user">
+      <a routerLink="/profile" class="user-profile-link">
+        <div class="user-avatar">{{ auth.user()?.name?.charAt(0)?.toUpperCase() }}</div>
+        <div class="user-details">
+          <span>{{ auth.user()?.name }}</span>
+          <small>{{ roleLabel(auth.user()?.role ?? 'viewer') }}</small>
+        </div>
+      </a>
+      <button type="button" class="signout-btn" (click)="auth.logout()" title="Sign out">⏻</button>
     </div>
-  }
+  </aside>
 
-  @if (report(); as r) {
-    <div class="report-document">
-
-      <!-- ── Report cover ───────────────────────────────────────────────────── -->
-      <div class="report-cover">
-        <div class="cover-brand">
-          <span class="cover-org">{{ r.organization?.name }}</span>
-          <span class="cover-badge">M&amp;E Report</span>
-        </div>
-
-        <div class="cover-title-block">
-          <h2 class="cover-title">{{ r.project.name }}</h2>
-          <p class="cover-sub">Donor Progress Report</p>
-          @if (r.reportingPeriod) {
-            <p class="cover-period">{{ r.reportingPeriod.name }} &nbsp;·&nbsp;
-              {{ r.reportingPeriod.startDate | date:'d MMM y' }} – {{ r.reportingPeriod.endDate | date:'d MMM y' }}
-            </p>
-          } @else {
-            <p class="cover-period">Custom date range</p>
-          }
-        </div>
-
-        <div class="cover-meta">
-          <div class="cover-meta-item">
-            <span class="cover-meta-label">Prepared by</span>
-            <span class="cover-meta-value">{{ r.organization?.name }}</span>
-          </div>
-          <div class="cover-meta-item">
-            <span class="cover-meta-label">Generated</span>
-            <span class="cover-meta-value">{{ r.generatedAt | date:'d MMMM yyyy, h:mm a' }}</span>
-          </div>
-          @if (r.project.donor) {
-            <div class="cover-meta-item">
-              <span class="cover-meta-label">Donor</span>
-              <span class="cover-meta-value">{{ r.project.donor }}</span>
-            </div>
-          }
-          <div class="cover-meta-item">
-            <span class="cover-meta-label">Project Status</span>
-            <span class="cover-meta-value">{{ statusLabel(r.project.status) }}</span>
-          </div>
-          @if (r.project.startDate) {
-            <div class="cover-meta-item">
-              <span class="cover-meta-label">Project Period</span>
-              <span class="cover-meta-value">
-                {{ r.project.startDate | date:'d MMM y' }} – {{ r.project.endDate | date:'d MMM y' }}
-              </span>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- ── Executive summary ──────────────────────────────────────────────── -->
-      <div class="report-section">
-        <h3 class="section-title">Executive Summary</h3>
-        <div class="summary-grid">
-          <div class="summary-kpi">
-            <span class="kpi-num">{{ r.summary.indicatorCount }}</span>
-            <span class="kpi-lbl">Indicators Tracked</span>
-          </div>
-          <div class="summary-kpi">
-            <span class="kpi-num">{{ r.summary.activityCount }}</span>
-            <span class="kpi-lbl">Activities Reported</span>
-          </div>
-          <div class="summary-kpi">
-            <span class="kpi-num">{{ r.summary.totalParticipants | number }}</span>
-            <span class="kpi-lbl">Total Participants</span>
-          </div>
-          <div class="summary-kpi highlight">
-            <span class="kpi-num">{{ r.summary.averageProgress }}%</span>
-            <span class="kpi-lbl">Avg. Progress</span>
-            <div class="mini-bar">
-              <div class="mini-fill {{ progressClass(r.summary.averageProgress) }}"
-                [style.width.%]="r.summary.averageProgress"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Indicator performance ──────────────────────────────────────────── -->
-      <div class="report-section">
-        <h3 class="section-title">Indicator Performance</h3>
-        <p class="section-intro">Performance against planned targets for the reporting period.</p>
-
-        <div class="indicator-table">
-          <div class="ind-table-header">
-            <span class="col-code">Code</span>
-            <span class="col-title">Indicator</span>
-            <span class="col-num">Baseline</span>
-            <span class="col-num">Target</span>
-            <span class="col-num">Achieved</span>
-            <span class="col-progress">Progress</span>
-            <span class="col-status">Status</span>
-          </div>
-
-          @for (ind of r.indicators; track ind.id) {
-            <div class="ind-row">
-              <span class="col-code">
-                <span class="ind-code">{{ ind.code || '—' }}</span>
-              </span>
-              <div class="col-title">
-                <span class="ind-title">{{ ind.title }}</span>
-                @if (ind.unit) { <span class="ind-unit">{{ ind.unit }}</span> }
-                @if (ind.narrative) {
-                  <p class="ind-narrative">{{ ind.narrative }}</p>
-                }
-                @if (ind.disaggregations && isObject(ind.disaggregations)) {
-                  <div class="disagg-block">
-                    @for (entry of objectEntries(ind.disaggregations); track entry[0]) {
-                      <span class="disagg-chip">{{ entry[0] }}: {{ entry[1] }}</span>
-                    }
-                  </div>
-                }
-              </div>
-              <span class="col-num">{{ ind.baseline | number }}</span>
-              <span class="col-num">{{ ind.target | number }}</span>
-              <span class="col-num achieved">{{ ind.achieved | number }}</span>
-              <div class="col-progress">
-                <div class="progress-track">
-                  <div class="progress-fill {{ progressClass(ind.percentComplete) }}"
-                    [style.width.%]="ind.percentComplete"></div>
-                </div>
-                <span class="progress-pct {{ progressClass(ind.percentComplete) }}">
-                  {{ ind.percentComplete }}%
-                </span>
-              </div>
-              <span class="col-status">
-                <span class="status-chip {{ progressClass(ind.percentComplete) }}">
-                  {{ progressLabel(ind.percentComplete) }}
-                </span>
-              </span>
-            </div>
-          }
-
-          @if (r.indicators.length === 0) {
-            <div class="empty-row">No indicators found for this period</div>
-          }
-        </div>
-      </div>
-
-      <!-- ── Recent Activities ──────────────────────────────────────────────── -->
-      @if (r.recentActivities.length > 0) {
-        <div class="report-section">
-          <h3 class="section-title">Recent Activities</h3>
-          <p class="section-intro">Most recent field activities reported during this period.</p>
-
-          <div class="activity-table">
-            <div class="act-header">
-              <span class="act-col-date">Date</span>
-              <span class="act-col-title">Activity</span>
-              <span class="act-col-loc">Location</span>
-              <span class="act-col-num">Participants</span>
-              <span class="act-col-num">Quantity</span>
-              <span class="act-col-ind">Indicator</span>
-            </div>
-            @for (a of r.recentActivities; track a.id) {
-              <div class="act-row">
-                <span class="act-col-date">{{ a.activityDate | date:'d MMM y' }}</span>
-                <span class="act-col-title">{{ a.title }}</span>
-                <span class="act-col-loc">{{ a.location || '—' }}</span>
-                <span class="act-col-num">{{ a.participants | number }}</span>
-                <span class="act-col-num">{{ a.quantity | number }}</span>
-                <span class="act-col-ind">
-                  @if (indicatorForActivity(a.indicatorId); as ind) {
-                    <span class="ind-ref">{{ ind.code || ind.title }}</span>
-                  } @else { — }
-                </span>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- ── Report footer ──────────────────────────────────────────────────── -->
-      <div class="report-footer">
-        <div class="footer-left">
-          <strong>{{ r.organization?.name }}</strong>
-          @if (r.organization?.country) { <span> · {{ r.organization?.country }}</span> }
-          @if (r.organization?.sector)  { <span> · {{ r.organization?.sector }}</span> }
-        </div>
-        <div class="footer-right">
-          Generated by Monival M&amp;E · {{ r.generatedAt | date:'d MMM yyyy' }}
-        </div>
-      </div>
-
+  <main>
+    <div class="app-frame">
+      <router-outlet />
     </div>
-  }
-
-  <!-- Empty state -->
-  @if (!loading() && !report()) {
-    <div class="empty-state no-print">
-      <div class="empty-icon">📄</div>
-      <p>Select a project and period above to generate your donor report</p>
-      <small>Reports include indicator performance, activity summaries, and narratives</small>
-    </div>
-  }
-
+  </main>
 </div>
