@@ -23,7 +23,9 @@ import { GrantsListComponent } from './pages/grant/grant-list.component';
 import { AiCopilotComponent } from './pages/ai-copilot/ai-copilot.component';
 import { AuditLogComponent } from './pages/audit/audit-log.component';
 import { ProfileComponent } from './pages/profile/profile.component';
-// import { BeneficiariesComponent } from './pages/beneficiaries/beneficiaries.component';
+import { DonorReportComponent } from './pages/donors/donor-report.component';
+import { DocumentsComponent } from './pages/documents/documents.component';
+import { WorkplanComponent } from './pages/workplan/workplan.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -52,8 +54,10 @@ export const routes: Routes = [
       { path: 'grants', component: GrantsListComponent },
       { path: 'ai', component: AiCopilotComponent },
       { path: 'audit', component: AuditLogComponent },
+      { path: 'reports/donor', component: DonorReportComponent },
+      { path: 'documents', component: DocumentsComponent },
+      { path: 'workplan', component: WorkplanComponent },
       { path: 'profile', component: ProfileComponent },
-      // { path: 'beneficiaries', component: BeneficiariesComponent },
     ],
   },
   { path: '**', redirectTo: '/dashboard', pathMatch: 'full' },
