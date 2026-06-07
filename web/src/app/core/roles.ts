@@ -45,3 +45,15 @@ export function canApproveActivities(role: OrgRole): boolean {
 export function canManageOrganization(role: OrgRole): boolean {
   return ['owner', 'admin'].includes(role);
 }
+
+export function canManageBeneficiaries(role: OrgRole): boolean {
+  return ['owner', 'admin', 'me_officer', 'finance', 'field_officer'].includes(role);
+}
+
+export function canManageGrants(role: OrgRole): boolean {
+  return ['owner', 'admin', 'finance'].includes(role);
+}
+
+export function canManageDonors(role: OrgRole): boolean {
+  return ['owner', 'admin', 'finance', 'me_officer'].includes(role);
+}
