@@ -1,0 +1,419 @@
+<div class="workplan-page">
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">Project Management</span>
+      <h1>Workplan</h1>
+      <p class="subtitle">Plan, track and manage project activities across all your programmes</p>
+    </div>
+    @if (canManage() && selectedProjectId()) {
+      <button class="btn-new" (click)="openCreate()">＋ Add Activity</button>
+    }
+  </div>
+
+  <!-- ── Project selector ──────────────────────────────────────────────────── -->
+  <div class="project-selector">
+    @for (p of projects(); track p._id) {
+      <button class="proj-tab"
+        [class.active]="selectedProjectId() === p._id"
+        (click)="selectProject(p._id)">
+        {{ p.name }}
+        @if (p.workplan?.length) {
+          <span class="proj-count">{{ p.workplan!.length }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="alert-error">⚠️ {{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading workplan…</p>
+    </div>
+  } @else if (!selectedProjectId()) {
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>No projects found</p>
+      <small>Create a project first to build its workplan</small>
+    </div>
+  } @else {
+
+    <!-- ── Summary strip ─────────────────────────────────────────────────── -->
+    <div class="summary-strip">
+      <div class="kpi">
+        <span class="kpi-val">{{ summary().total }}</span>
+        <span class="kpi-lbl">Total Activities</span>
+      </div>
+      <div class="kpi kpi-green">
+        <span class="kpi-val">{{ summary().completed }}</span>
+        <span class="kpi-lbl">Completed</span>
+      </div>
+      <div class="kpi kpi-blue">
+        <span class="kpi-val">{{ summary().inProgress }}</span>
+        <span class="kpi-lbl">In Progress</span>
+      </div>
+      <div class="kpi kpi-amber">
+        <span class="kpi-val">{{ summary().delayed }}</span>
+        <span class="kpi-lbl">Delayed</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-val">{{ summary().avgProgress }}%</span>
+        <span class="kpi-lbl">Avg Progress</span>
+        <div class="kpi-bar">
+          <div class="kpi-bar-fill" [style.width.%]="summary().avgProgress"></div>
+        </div>
+      </div>
+      @if (summary().totalCost > 0) {
+        <div class="kpi">
+          <span class="kpi-val">{{ summary().actualCost | number:'1.0-0' }}</span>
+          <span class="kpi-lbl">Actual vs Est. {{ summary().totalCost | number:'1.0-0' }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Toolbar ───────────────────────────────────────────────────────── -->
+    <div class="toolbar">
+      <!-- Status filter -->
+      <div class="tab-group">
+        <button class="tab" [class.active]="statusFilter() === ''" (click)="statusFilter.set('')">
+          All <span class="badge">{{ statusCounts()[''] }}</span>
+        </button>
+        @for (s of statuses; track s.value) {
+          @if (statusCounts()[s.value] > 0) {
+            <button class="tab" [class.active]="statusFilter() === s.value"
+              (click)="statusFilter.set(s.value)">
+              {{ s.icon }} {{ s.label }}
+              <span class="badge">{{ statusCounts()[s.value] }}</span>
+            </button>
+          }
+        }
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search activities…" [(ngModel)]="searchQuery" />
+        @if (searchQuery()) {
+          <button class="clear-btn" (click)="searchQuery.set('')">✕</button>
+        }
+      </div>
+
+      <!-- View toggle -->
+      <div class="view-toggle">
+        <button [class.active]="viewMode() === 'board'"    (click)="viewMode.set('board')">📊 Board</button>
+        <button [class.active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">📅 Timeline</button>
+        <button [class.active]="viewMode() === 'table'"    (click)="viewMode.set('table')">📋 Table</button>
+      </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    <!-- BOARD VIEW                                                             -->
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    @if (viewMode() === 'board') {
+      @if (filteredItems().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">🗂</div>
+          <p>No activities yet</p>
+          <small>{{ canManage() ? 'Click "+ Add Activity" to plan your first workplan item.' : 'No activities match your filters.' }}</small>
+        </div>
+      } @else {
+        <div class="board">
+          @for (col of boardColumns(); track col.value) {
+            @if (col.items.length > 0 || statusFilter() === '') {
+              <div class="board-col">
+                <div class="col-header">
+                  <span class="col-icon">{{ col.icon }}</span>
+                  <span class="col-label">{{ col.label }}</span>
+                  <span class="col-count">{{ col.items.length }}</span>
+                </div>
+                <div class="col-items">
+                  @for (item of col.items; track item._id) {
+                    <div class="activity-card {{ daysLeftClass(item) }}">
+                      <div class="ac-header">
+                        <h4 class="ac-title">{{ item.title }}</h4>
+                        @if (canManage()) {
+                          <div class="ac-menu">
+                            <button class="ac-btn" (click)="openEdit(item)">✏️</button>
+                            <button class="ac-btn danger" [disabled]="deleting() === item._id"
+                              (click)="deleteItem(item)">{{ deleting() === item._id ? '…' : '🗑' }}</button>
+                          </div>
+                        }
+                      </div>
+
+                      @if (item.description) {
+                        <p class="ac-desc">{{ item.description }}</p>
+                      }
+
+                      <div class="ac-progress">
+                        <div class="prog-track">
+                          <div class="prog-fill status-{{ item.status }}" [style.width.%]="item.progressPct"></div>
+                        </div>
+                        <span class="prog-pct">{{ item.progressPct }}%</span>
+                      </div>
+
+                      <div class="ac-meta">
+                        @if (item.responsibleName) {
+                          <span class="ac-chip">👤 {{ item.responsibleName }}</span>
+                        }
+                        @if (item.quarter) {
+                          <span class="ac-chip">📅 {{ item.quarter }}</span>
+                        }
+                        <span class="ac-chip due {{ daysLeftClass(item) }}">
+                          🗓 {{ daysLeftLabel(item.endDate) }}
+                        </span>
+                      </div>
+
+                      @if (canManage() && item.status !== 'completed' && item.status !== 'cancelled') {
+                        <div class="ac-quick-actions">
+                          @if (item.status !== 'in_progress') {
+                            <button class="qa-btn" (click)="quickStatus(item, 'in_progress')">▶ Start</button>
+                          }
+                          <button class="qa-btn success" (click)="quickStatus(item, 'completed')">✓ Complete</button>
+                          @if (item.status !== 'delayed') {
+                            <button class="qa-btn warn" (click)="quickStatus(item, 'delayed')">⚠ Delay</button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (col.items.length === 0) {
+                    <div class="col-empty">No items</div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+    }
+
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    <!-- TIMELINE VIEW                                                          -->
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    @if (viewMode() === 'timeline') {
+      @if (filteredItems().length === 0) {
+        <div class="empty-state"><div class="empty-icon">📅</div><p>No activities to display</p></div>
+      } @else {
+        <div class="timeline">
+          @for (group of timelineGroups(); track group[0]) {
+            <div class="tl-group">
+              <div class="tl-quarter-label">{{ group[0] }}</div>
+              <div class="tl-items">
+                @for (item of group[1]; track item._id) {
+                  <div class="tl-row">
+                    <div class="tl-info">
+                      <div class="tl-status-dot status-dot-{{ item.status }}"></div>
+                      <div class="tl-content">
+                        <span class="tl-title">{{ item.title }}</span>
+                        @if (item.responsibleName) {
+                          <span class="tl-meta">👤 {{ item.responsibleName }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="tl-dates">
+                      <span class="tl-date">{{ item.startDate | date:'d MMM' }}</span>
+                      <span class="tl-arrow">→</span>
+                      <span class="tl-date">{{ item.endDate | date:'d MMM y' }}</span>
+                      <span class="tl-due {{ daysLeftClass(item) }}">{{ daysLeftLabel(item.endDate) }}</span>
+                    </div>
+                    <div class="tl-progress">
+                      <div class="prog-track sm">
+                        <div class="prog-fill status-{{ item.status }}" [style.width.%]="item.progressPct"></div>
+                      </div>
+                      <span class="tl-pct">{{ item.progressPct }}%</span>
+                    </div>
+                    <span class="tl-status-chip status-chip-{{ item.status }}">
+                      {{ statusInfo(item.status).icon }} {{ statusInfo(item.status).label }}
+                    </span>
+                    @if (canManage()) {
+                      <div class="tl-actions">
+                        <button class="ac-btn" (click)="openEdit(item)">✏️</button>
+                        <button class="ac-btn danger" (click)="deleteItem(item)">🗑</button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    <!-- TABLE VIEW                                                             -->
+    <!-- ────────────────────────────────────────────────────────────────────── -->
+    @if (viewMode() === 'table') {
+      @if (filteredItems().length === 0) {
+        <div class="empty-state"><div class="empty-icon">📋</div><p>No activities to display</p></div>
+      } @else {
+        <div class="table-wrap">
+          <table class="wp-table">
+            <thead>
+              <tr>
+                <th>Activity</th>
+                <th>Quarter</th>
+                <th>Responsible</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Est. Cost</th>
+                @if (canManage()) { <th></th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredItems(); track item._id) {
+                <tr>
+                  <td class="td-title">
+                    <span class="td-name">{{ item.title }}</span>
+                    @if (item.description) {
+                      <span class="td-desc">{{ item.description }}</span>
+                    }
+                  </td>
+                  <td>{{ item.quarter ?? '—' }}</td>
+                  <td>{{ item.responsibleName ?? '—' }}</td>
+                  <td class="td-date">{{ item.startDate | date:'d MMM y' }}</td>
+                  <td class="td-date {{ daysLeftClass(item) }}">
+                    {{ item.endDate | date:'d MMM y' }}
+                    <span class="td-due">{{ daysLeftLabel(item.endDate) }}</span>
+                  </td>
+                  <td>
+                    <div class="td-progress">
+                      <div class="prog-track sm">
+                        <div class="prog-fill status-{{ item.status }}" [style.width.%]="item.progressPct"></div>
+                      </div>
+                      <span>{{ item.progressPct }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status-chip-{{ item.status }} status-chip-sm">
+                      {{ statusInfo(item.status).icon }} {{ statusInfo(item.status).label }}
+                    </span>
+                  </td>
+                  <td class="td-cost">{{ item.estimatedCost ? (item.estimatedCost | number:'1.0-0') : '—' }}</td>
+                  @if (canManage()) {
+                    <td class="td-actions">
+                      <button class="ac-btn" (click)="openEdit(item)">✏️</button>
+                      <button class="ac-btn danger" [disabled]="deleting() === item._id"
+                        (click)="deleteItem(item)">{{ deleting() === item._id ? '…' : '🗑' }}</button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  }
+</div>
+
+<!-- ── Create / Edit Panel ───────────────────────────────────────────────── -->
+@if (showCreatePanel()) {
+  <div class="modal-backdrop" (click)="closePanel()">
+    <div class="slide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>{{ editingItem() ? 'Edit Activity' : 'New Activity' }}</h2>
+        <button class="close-btn" (click)="closePanel()">✕</button>
+      </div>
+
+      <form [formGroup]="form" class="panel-body">
+        <div class="field full">
+          <label>Title *</label>
+          <input formControlName="title" placeholder="e.g. Baseline data collection" />
+        </div>
+        <div class="field full">
+          <label>Description</label>
+          <textarea formControlName="description" placeholder="What will this activity achieve?"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Start Date *</label>
+            <input type="date" formControlName="startDate" />
+          </div>
+          <div class="field">
+            <label>End Date *</label>
+            <input type="date" formControlName="endDate" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Status</label>
+            <select formControlName="status">
+              @for (s of statuses; track s.value) {
+                <option [value]="s.value">{{ s.icon }} {{ s.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Quarter</label>
+            <select formControlName="quarter">
+              <option value="">— None —</option>
+              @for (q of quarters; track q) {
+                <option [value]="q">{{ q }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Progress ({{ form.get('progressPct')?.value }}%)</label>
+          <input type="range" formControlName="progressPct" min="0" max="100" step="5" class="range-input" />
+          <div class="range-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+        </div>
+
+        <div class="field full">
+          <label>Responsible Person</label>
+          <input formControlName="responsibleName" placeholder="Name of responsible team member" />
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Estimated Cost</label>
+            <input type="number" formControlName="estimatedCost" min="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Actual Cost</label>
+            <input type="number" formControlName="actualCost" min="0" placeholder="0" />
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Expected Output</label>
+          <textarea formControlName="outputDescription" placeholder="Describe the expected deliverable or output…"></textarea>
+        </div>
+
+        @if (indicators().length > 0) {
+          <div class="field full">
+            <label>Linked Indicators</label>
+            <div class="indicator-picker">
+              @for (ind of indicators(); track ind._id) {
+                <button type="button" class="ind-pick-btn"
+                  [class.selected]="isLinked(ind._id)"
+                  (click)="toggleIndicator(ind._id)">
+                  @if (ind.code) { <span class="ind-code">{{ ind.code }}</span> }
+                  {{ ind.title }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </form>
+
+      <div class="panel-footer">
+        <button class="btn-cancel" (click)="closePanel()">Cancel</button>
+        <button class="btn-submit" [disabled]="form.invalid || saving()" (click)="saveItem()">
+          {{ saving() ? 'Saving…' : (editingItem() ? 'Save Changes' : 'Add Activity') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

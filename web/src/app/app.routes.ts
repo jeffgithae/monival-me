@@ -25,6 +25,7 @@ import { AuditLogComponent } from './pages/audit/audit-log.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { DonorReportComponent } from './pages/donors/donor-report.component';
 import { DocumentsComponent } from './pages/documents/documents.component';
+import { WorkplanComponent } from './pages/workplan/workplan.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -55,6 +56,7 @@ export const routes: Routes = [
       { path: 'audit', component: AuditLogComponent },
       { path: 'reports/donor', component: DonorReportComponent },
       { path: 'documents', component: DocumentsComponent },
+      { path: 'workplan', component: WorkplanComponent },
       { path: 'profile', component: ProfileComponent },
     ],
   },

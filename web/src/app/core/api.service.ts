@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { map } from 'rxjs';
 import { environment } from '../../environments/environment.prod';
 import {
+  WorkplanItem,
   OrgDocument,
   DocumentVersion,
   CreateDocumentDto,
@@ -803,5 +804,19 @@ export class ApiService {
 
   createDocumentVersion(documentId: string, dto: CreateDocumentVersionDto) {
     return this.http.post<DocumentVersion>(`${this.base}/documents/${documentId}/versions`, dto);
+  }
+
+  // ─── Workplan ─────────────────────────────────────────────────────────────
+
+  addWorkplanItem(projectId: string, dto: Partial<WorkplanItem>) {
+    return this.http.post<Project>(`${this.base}/projects/${projectId}/workplan`, dto);
+  }
+
+  updateWorkplanItem(projectId: string, itemId: string, dto: Partial<WorkplanItem>) {
+    return this.http.patch<Project>(`${this.base}/projects/${projectId}/workplan/${itemId}`, dto);
+  }
+
+  removeWorkplanItem(projectId: string, itemId: string) {
+    return this.http.delete<Project>(`${this.base}/projects/${projectId}/workplan/${itemId}`);
   }
 }
