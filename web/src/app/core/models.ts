@@ -1341,3 +1341,48 @@ export interface CreateActivityDto {
   templateId?: string;
   status?: 'draft' | 'submitted';
 }
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+export interface OrgDocument {
+  _id: string;
+  organizationId: string;
+  projectId?: string;
+  createdByUserId?: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  storageKey?: string;
+  fileUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DocumentVersion {
+  _id: string;
+  organizationId: string;
+  documentId: string;
+  versionNumber: number;
+  releaseNotes?: string;
+  storageKey?: string;
+  fileUrl?: string;
+  createdByUserId?: string;
+  createdAt?: string;
+}
+
+export interface CreateDocumentDto {
+  title: string;
+  description?: string;
+  projectId?: string;
+  category?: string;
+  tags?: string[];
+  fileUrl?: string;
+  storageKey?: string;
+}
+
+export interface CreateDocumentVersionDto {
+  releaseNotes?: string;
+  fileUrl?: string;
+  storageKey?: string;
+}

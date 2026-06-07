@@ -3,6 +3,10 @@ import { Injectable } from '@angular/core';
 import { map } from 'rxjs';
 import { environment } from '../../environments/environment.prod';
 import {
+  OrgDocument,
+  DocumentVersion,
+  CreateDocumentDto,
+  CreateDocumentVersionDto,
   Activity,
   ActivityTemplate,
   FormTemplate,
@@ -769,5 +773,35 @@ export class ApiService {
 
   changePassword(currentPassword: string, newPassword: string) {
     return this.http.patch<{ success: boolean }>(`${this.base}/auth/me/password`, { currentPassword, newPassword });
+  }
+
+  // ─── Documents ────────────────────────────────────────────────────────────
+
+  documents(params?: { projectId?: string }) {
+    return this.http.get<OrgDocument[]>(`${this.base}/documents`, { params: params as any });
+  }
+
+  document(id: string) {
+    return this.http.get<OrgDocument>(`${this.base}/documents/${id}`);
+  }
+
+  createDocument(dto: CreateDocumentDto) {
+    return this.http.post<OrgDocument>(`${this.base}/documents`, dto);
+  }
+
+  updateDocument(id: string, dto: Partial<CreateDocumentDto>) {
+    return this.http.patch<OrgDocument>(`${this.base}/documents/${id}`, dto);
+  }
+
+  deleteDocument(id: string) {
+    return this.http.delete(`${this.base}/documents/${id}`);
+  }
+
+  documentVersions(documentId: string) {
+    return this.http.get<DocumentVersion[]>(`${this.base}/documents/${documentId}/versions`);
+  }
+
+  createDocumentVersion(documentId: string, dto: CreateDocumentVersionDto) {
+    return this.http.post<DocumentVersion>(`${this.base}/documents/${documentId}/versions`, dto);
   }
 }

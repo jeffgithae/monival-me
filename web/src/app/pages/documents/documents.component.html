@@ -1,0 +1,298 @@
+<div class="docs-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">Evidence &amp; Records</span>
+      <h1>Documents</h1>
+      <p class="subtitle">Upload, organise and version-control your project evidence and reports</p>
+    </div>
+    @if (canManage()) {
+      <button class="btn-new" (click)="showCreatePanel.set(true)">＋ Upload Document</button>
+    }
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="alert-error">⚠️ {{ error() }}</div>
+  }
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <!-- Category tabs -->
+    <div class="tab-group">
+      <button class="tab" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
+        All <span class="badge">{{ categoryCounts()['All'] }}</span>
+      </button>
+      @for (cat of categories; track cat) {
+        @if (categoryCounts()[cat] > 0) {
+          <button class="tab" [class.active]="filterCategory() === cat" (click)="filterCategory.set(cat)">
+            {{ categoryIcons[cat] }} {{ cat }}
+            <span class="badge">{{ categoryCounts()[cat] }}</span>
+          </button>
+        }
+      }
+    </div>
+
+    <!-- Project filter -->
+    @if (projects().length > 0) {
+      <select class="proj-filter" [(ngModel)]="filterProject">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+    }
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search documents…" [(ngModel)]="searchQuery" />
+      @if (searchQuery()) {
+        <button class="clear-btn" (click)="searchQuery.set('')">✕</button>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading documents…</p>
+    </div>
+  } @else if (filteredDocs().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <p>No documents found</p>
+      <small>{{ canManage() ? 'Upload your first document using the button above.' : 'No documents match your current filters.' }}</small>
+    </div>
+  } @else {
+    <div class="docs-grid">
+      @for (doc of filteredDocs(); track doc._id) {
+        <div class="doc-card">
+
+          <!-- Category stripe -->
+          <div class="card-stripe cat-{{ (doc.category ?? 'Other').toLowerCase() }}"></div>
+
+          <div class="card-body">
+            <div class="card-top">
+              <div class="cat-icon">{{ categoryIcon(doc.category) }}</div>
+              <div class="doc-meta">
+                <h3 class="doc-title">{{ doc.title }}</h3>
+                @if (doc.description) {
+                  <p class="doc-desc">{{ doc.description }}</p>
+                }
+                <div class="doc-chips">
+                  @if (doc.category) {
+                    <span class="chip chip-cat">{{ doc.category }}</span>
+                  }
+                  @if (projectName(doc.projectId)) {
+                    <span class="chip chip-proj">📁 {{ projectName(doc.projectId) }}</span>
+                  }
+                  @for (tag of (doc.tags ?? []).slice(0, 3); track tag) {
+                    <span class="chip chip-tag">{{ tag }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <span class="doc-date">{{ doc.createdAt | date:'d MMM y' }}</span>
+              <div class="card-actions">
+                @if (doc.fileUrl) {
+                  <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">
+                    ↗ Open
+                  </a>
+                }
+                <button class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
+                @if (canManage()) {
+                  <button class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
+                  <button class="btn-action danger"
+                    [disabled]="deleting() === doc._id"
+                    (click)="deleteDoc(doc)">
+                    {{ deleting() === doc._id ? '…' : '🗑' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ── Create Document Panel ──────────────────────────────────────────────── -->
+@if (showCreatePanel()) {
+  <div class="modal-backdrop" (click)="closeAll()">
+    <div class="slide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>Upload Document</h2>
+        <button class="close-btn" (click)="closeAll()">✕</button>
+      </div>
+
+      <form [formGroup]="createForm" class="panel-body">
+        <div class="field full">
+          <label>Title *</label>
+          <input formControlName="title" placeholder="e.g. Q2 Field Report" />
+        </div>
+        <div class="field full">
+          <label>Description</label>
+          <textarea formControlName="description" placeholder="Brief description of this document…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Category</label>
+            <select formControlName="category">
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Project</label>
+            <select formControlName="projectId">
+              <option value="">— None —</option>
+              @for (p of projects(); track p._id) {
+                <option [value]="p._id">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="field full">
+          <label>File URL</label>
+          <input formControlName="fileUrl" placeholder="https://drive.google.com/…" />
+          <span class="field-hint">Paste a link to the file (Google Drive, Dropbox, SharePoint, etc.)</span>
+        </div>
+        <div class="field full">
+          <label>Tags</label>
+          <input formControlName="tags" placeholder="q2, field-report, nairobi (comma-separated)" />
+        </div>
+      </form>
+
+      <div class="panel-footer">
+        <button class="btn-cancel" (click)="closeAll()">Cancel</button>
+        <button class="btn-submit" [disabled]="createForm.invalid || saving()" (click)="create()">
+          {{ saving() ? 'Uploading…' : 'Upload Document' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Edit Document Panel ────────────────────────────────────────────────── -->
+@if (showEditPanel() && selectedDoc()) {
+  <div class="modal-backdrop" (click)="closeAll()">
+    <div class="slide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>Edit Document</h2>
+        <button class="close-btn" (click)="closeAll()">✕</button>
+      </div>
+
+      <form [formGroup]="editForm" class="panel-body">
+        <div class="field full">
+          <label>Title *</label>
+          <input formControlName="title" />
+        </div>
+        <div class="field full">
+          <label>Description</label>
+          <textarea formControlName="description"></textarea>
+        </div>
+        <div class="field full">
+          <label>Category</label>
+          <select formControlName="category">
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
+            }
+          </select>
+        </div>
+        <div class="field full">
+          <label>File URL</label>
+          <input formControlName="fileUrl" placeholder="https://…" />
+        </div>
+        <div class="field full">
+          <label>Tags</label>
+          <input formControlName="tags" placeholder="comma-separated" />
+        </div>
+      </form>
+
+      <div class="panel-footer">
+        <button class="btn-cancel" (click)="closeAll()">Cancel</button>
+        <button class="btn-submit" [disabled]="editForm.invalid || saving()" (click)="saveEdit()">
+          {{ saving() ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Version History Panel ──────────────────────────────────────────────── -->
+@if (showVersionPanel() && selectedDoc()) {
+  <div class="modal-backdrop" (click)="closeAll()">
+    <div class="slide-panel wide" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <div>
+          <h2>Version History</h2>
+          <p class="panel-sub">{{ selectedDoc()!.title }}</p>
+        </div>
+        <button class="close-btn" (click)="closeAll()">✕</button>
+      </div>
+
+      <div class="panel-body">
+        <!-- Add new version -->
+        @if (canManage()) {
+          <div class="version-upload-box" [formGroup]="versionForm">
+            <h4>Add New Version</h4>
+            <div class="field full">
+              <label>File URL *</label>
+              <input formControlName="fileUrl" placeholder="https://drive.google.com/…" />
+            </div>
+            <div class="field full">
+              <label>Release Notes</label>
+              <textarea formControlName="releaseNotes" placeholder="What changed in this version?"></textarea>
+            </div>
+            <button class="btn-submit sm" [disabled]="versionForm.invalid || saving()" (click)="addVersion()">
+              {{ saving() ? 'Uploading…' : '↑ Upload New Version' }}
+            </button>
+          </div>
+        }
+
+        <!-- Version list -->
+        <h4 class="versions-title">Version History</h4>
+        @if (loadingVersions()) {
+          <div class="loading-state sm">
+            <div class="spinner"></div>
+          </div>
+        } @else if (versions().length === 0) {
+          <div class="empty-state sm">
+            <p>No versions yet. Upload the first version above.</p>
+          </div>
+        } @else {
+          <div class="version-list">
+            @for (v of versions(); track v._id; let i = $index) {
+              <div class="version-row" [class.latest]="i === 0">
+                <div class="version-badge" [class.latest-badge]="i === 0">
+                  v{{ v.versionNumber }}
+                  @if (i === 0) { <span class="latest-label">Latest</span> }
+                </div>
+                <div class="version-info">
+                  @if (v.releaseNotes) {
+                    <p class="version-notes">{{ v.releaseNotes }}</p>
+                  } @else {
+                    <p class="version-notes muted">No release notes</p>
+                  }
+                  <span class="version-date">{{ v.createdAt | date:'d MMM y, h:mm a' }}</span>
+                </div>
+                <div class="version-actions">
+                  @if (v.fileUrl) {
+                    <a [href]="v.fileUrl" target="_blank" class="btn-action primary sm">↗ Open</a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
