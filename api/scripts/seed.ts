@@ -1067,7 +1067,7 @@ async function seed() {
     },
   ]);
 
-  await BudgetVariance.create({
+  const budgetVariance1 = await BudgetVariance.create({
     organizationId: org._id,
     budgetAllocationId: budget._id,
     period: '2026-03',
@@ -1080,6 +1080,90 @@ async function seed() {
     notes: 'Slight underspending due to delayed procurement.',
     calculatedBy: user._id,
   });
+
+  await BudgetLineItem.insertMany([
+    {
+      budgetAllocationId: budget2._id,
+      organizationId: org._id,
+      description: 'Medical supplies for outreach',
+      amount: 15000,
+      spent: 5000,
+      costCategory: 'supplies',
+      unitDescription: 'kits',
+      quantity: 50,
+      unitCost: 300,
+      status: 'committed',
+      createdBy: user._id,
+    },
+    {
+      budgetAllocationId: budget2._id,
+      organizationId: org._id,
+      description: 'Transport costs',
+      amount: 5000,
+      spent: 2500,
+      costCategory: 'travel',
+      unitDescription: 'trips',
+      quantity: 10,
+      unitCost: 500,
+      status: 'committed',
+      createdBy: user._id,
+    },
+  ]);
+
+  const budgetVariance2 = await BudgetVariance.create({
+    organizationId: org._id,
+    budgetAllocationId: budget2._id,
+    period: '2026-04',
+    budgetedAmount: 15000,
+    actualAmount: 7500,
+    variance: 7500,
+    variancePercentage: 50,
+    trend: 'favorable',
+    burnRate: 50,
+    notes: 'Procurement of kits underway, spending is on track.',
+    calculatedBy: user._id,
+  });
+
+  const BudgetAuditEvent = mongoose.model('BudgetAuditEvent', require('../src/budget/schemas/budget.schema').BudgetAuditEventSchema) as mongoose.Model<unknown>;
+  await BudgetAuditEvent.deleteMany({ organizationId: org._id });
+  await BudgetAuditEvent.insertMany([
+    {
+      organizationId: org._id,
+      userId: user._id,
+      userEmail: SEED_EMAIL,
+      action: 'CREATE_ALLOCATION',
+      entity: 'BudgetAllocation',
+      entityId: budget._id,
+      reason: 'Initial setup for FY26 Core Operations',
+    },
+    {
+      organizationId: org._id,
+      userId: user._id,
+      userEmail: SEED_EMAIL,
+      action: 'APPROVE_ALLOCATION',
+      entity: 'BudgetAllocation',
+      entityId: budget._id,
+      reason: 'Approved by board',
+    },
+    {
+      organizationId: org._id,
+      userId: user._id,
+      userEmail: SEED_EMAIL,
+      action: 'CREATE_ALLOCATION',
+      entity: 'BudgetAllocation',
+      entityId: budget2._id,
+      reason: 'Q2 Expansion setup',
+    },
+    {
+      organizationId: org._id,
+      userId: user._id,
+      userEmail: SEED_EMAIL,
+      action: 'CALCULATE_VARIANCE',
+      entity: 'BudgetVariance',
+      entityId: budgetVariance1._id,
+      reason: 'End of month review',
+    },
+  ]);
 
   const bsc = await BalancedScorecard.create({
     organizationId: org._id,
