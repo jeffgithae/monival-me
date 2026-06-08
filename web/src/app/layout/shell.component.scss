@@ -189,6 +189,214 @@ nav a.active {
   &:hover { background: rgba(239,68,68,0.25); color: #fff; border-color: rgba(239,68,68,0.3); }
 }
 
+.notif-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+
+  &.has-unread {
+    color: #fff;
+  }
+
+  .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.35rem;
+    border-radius: 999px;
+    line-height: 1;
+    border: 2px solid #312e81;
+  }
+}
+
+// ─── Notifications Panel ──────────────────────────────────────────────────────
+
+.notif-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 900;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.notifications-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  background: #ffffff;
+  z-index: 1000;
+  box-shadow: -4px 0 24px rgba(15, 23, 42, 0.1);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &.open {
+    transform: translateX(0);
+  }
+
+  @media (max-width: 480px) {
+    width: 100vw;
+  }
+}
+
+.np-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+
+  h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+}
+
+.np-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .text-btn {
+    background: none;
+    border: none;
+    color: #4f46e5;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1.25rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+
+    &:hover {
+      color: #0f172a;
+    }
+  }
+}
+
+.np-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.np-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #64748b;
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+  p {
+    font-size: 0.95rem;
+  }
+}
+
+.np-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  &.unread {
+    background: rgba(79, 70, 229, 0.03);
+
+    .npi-icon {
+      background: #4f46e5;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    }
+
+    .npi-content strong {
+      color: #0f172a;
+    }
+  }
+}
+
+.npi-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.npi-content {
+  flex: 1;
+
+  strong {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    margin: 0 0 0.4rem;
+    font-size: 0.85rem;
+    color: #475569;
+    line-height: 1.4;
+  }
+
+  small {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+}
+
 // ─── Main content ─────────────────────────────────────────────────────────────
 
 main {
