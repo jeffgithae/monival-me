@@ -1692,6 +1692,275 @@ async function seed() {
       ],
     },
   });
+
+  // ─── Workflow Definitions & Instances ────────────────────────────────────────
+
+  const WorkflowDefinitionSchema = new Schema(
+    {
+      organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
+      name: String,
+      description: String,
+      entityType: String,
+      steps: [
+        {
+          order: Number, name: String, description: String,
+          approverRole: String,
+          approverUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+          escalateAfterHours: { type: Number, default: 72 },
+          escalateTo: { type: Schema.Types.ObjectId, ref: 'User' },
+          requiresComment: { type: Boolean, default: false },
+          isOptional: { type: Boolean, default: false },
+        },
+      ],
+      isActive: { type: Boolean, default: true },
+      isDefault: { type: Boolean, default: false },
+      createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    },
+    { timestamps: true, collection: 'workflow_definitions' },
+  );
+
+  const WorkflowInstanceSchema = new Schema(
+    {
+      organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
+      definitionId: { type: Schema.Types.ObjectId, ref: 'WorkflowDefinition' },
+      entityType: String,
+      entityId: { type: Schema.Types.ObjectId },
+      entityTitle: String,
+      initiatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      initiatedByName: String,
+      status: { type: String, default: 'pending' },
+      currentStep: { type: Number, default: 1 },
+      totalSteps: Number,
+      steps: [Schema.Types.Mixed],
+      history: [
+        {
+          stepOrder: Number, stepName: String, action: String,
+          actorUserId: { type: Schema.Types.ObjectId }, actorName: String, actorRole: String,
+          comment: String, createdAt: { type: Date, default: Date.now },
+          delegatedFrom: { type: Schema.Types.ObjectId },
+        },
+      ],
+      escalatedAt: Date,
+      escalatedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+      escalationReason: String,
+      stepDeadline: Date,
+      completedAt: Date,
+      rejectionReason: String,
+    },
+    { timestamps: true, collection: 'workflow_instances' },
+  );
+
+  const WorkflowDefinition = mongoose.model('WorkflowDefinition', WorkflowDefinitionSchema);
+  const WorkflowInstance = mongoose.model('WorkflowInstance', WorkflowInstanceSchema);
+
+  await WorkflowDefinition.deleteMany({ organizationId: org._id });
+  await WorkflowInstance.deleteMany({ organizationId: org._id });
+
+  // — 3-step Activity Approval: Field Officer → M&E Officer → Director (Owner)
+  const activityWf = await WorkflowDefinition.create({
+    organizationId: org._id,
+    name: 'Activity Approval Workflow',
+    description: 'Standard approval chain for field activity reports.',
+    entityType: 'activity',
+    isDefault: true,
+    isActive: true,
+    createdBy: user._id,
+    steps: [
+      {
+        order: 1, name: 'Supervisor Review',
+        description: 'Field Supervisor verifies activity data quality and accuracy.',
+        approverRole: 'me_officer',
+        escalateAfterHours: 48, requiresComment: false, isOptional: false,
+      },
+      {
+        order: 2, name: 'M&E Officer Validation',
+        description: 'M&E Officer validates indicators and confirms data against targets.',
+        approverRole: 'me_officer',
+        escalateAfterHours: 72, requiresComment: true, isOptional: false,
+      },
+      {
+        order: 3, name: 'Director Sign-off',
+        description: 'Director reviews and approves for reporting.',
+        approverRole: 'owner',
+        escalateAfterHours: 96, requiresComment: false, isOptional: false,
+      },
+    ],
+  });
+
+  // — 2-step Grant Report: Finance → Admin
+  const grantWf = await WorkflowDefinition.create({
+    organizationId: org._id,
+    name: 'Grant Report Approval',
+    description: 'Financial review followed by administrative sign-off.',
+    entityType: 'grant',
+    isDefault: true,
+    isActive: true,
+    createdBy: financeUser._id,
+    steps: [
+      {
+        order: 1, name: 'Finance Review',
+        description: 'Finance team verifies expenditure against grant budget.',
+        approverRole: 'finance',
+        escalateAfterHours: 48, requiresComment: true, isOptional: false,
+      },
+      {
+        order: 2, name: 'Admin Approval',
+        description: 'Admin approves final grant report for submission to donor.',
+        approverRole: 'admin',
+        escalateAfterHours: 72, requiresComment: false, isOptional: false,
+      },
+    ],
+  });
+
+  // — 2-step Budget Approval: Finance → Owner
+  const budgetWf = await WorkflowDefinition.create({
+    organizationId: org._id,
+    name: 'Budget Allocation Approval',
+    description: 'Finance review and owner approval for budget allocations.',
+    entityType: 'budget',
+    isDefault: true,
+    isActive: true,
+    createdBy: financeUser._id,
+    steps: [
+      {
+        order: 1, name: 'Finance Review',
+        description: 'Finance validates budget against available funds.',
+        approverRole: 'finance',
+        escalateAfterHours: 48, requiresComment: true, isOptional: false,
+      },
+      {
+        order: 2, name: 'Director Approval',
+        description: 'Director authorises expenditure.',
+        approverRole: 'owner',
+        escalateAfterHours: 72, requiresComment: false, isOptional: false,
+      },
+    ],
+  });
+
+  // — Demo instances —
+
+  // 1. Fully approved activity
+  const approvedSteps = activityWf.toObject().steps;
+  await WorkflowInstance.create({
+    organizationId: org._id,
+    definitionId: activityWf._id,
+    entityType: 'activity',
+    entityId: wash._id,
+    entityTitle: 'Borehole commissioning — Ward A',
+    initiatedBy: meOfficerUser._id,
+    initiatedByName: 'M&E Officer',
+    status: 'approved',
+    currentStep: 3,
+    totalSteps: 3,
+    steps: approvedSteps,
+    completedAt: new Date('2025-04-06'),
+    history: [
+      {
+        stepOrder: 1, stepName: 'Supervisor Review',
+        action: 'approve', actorUserId: adminUser._id,
+        actorName: 'Grace Otieno', actorRole: 'me_officer',
+        comment: 'Data verified against field registers.',
+        createdAt: new Date('2025-04-02T09:00:00Z'),
+      },
+      {
+        stepOrder: 2, stepName: 'M&E Officer Validation',
+        action: 'approve', actorUserId: adminUser._id,
+        actorName: 'Grace Otieno', actorRole: 'me_officer',
+        comment: 'Indicator W1 target achieved. All source documents validated.',
+        createdAt: new Date('2025-04-04T11:30:00Z'),
+      },
+      {
+        stepOrder: 3, stepName: 'Director Sign-off',
+        action: 'approve', actorUserId: user._id,
+        actorName: 'Amina Wanjiku', actorRole: 'owner',
+        comment: 'Excellent work. Approved for Q1 reporting.',
+        createdAt: new Date('2025-04-06T08:00:00Z'),
+      },
+    ],
+  });
+
+  // 2. In-review at step 2 (pending M&E validation)
+  const pendingSteps = activityWf.toObject().steps;
+  await WorkflowInstance.create({
+    organizationId: org._id,
+    definitionId: activityWf._id,
+    entityType: 'activity',
+    entityId: maternal._id,
+    entityTitle: 'Mobile clinic — ANC day',
+    initiatedBy: meOfficerUser._id,
+    initiatedByName: 'M&E Officer',
+    status: 'in_review',
+    currentStep: 2,
+    totalSteps: 3,
+    steps: pendingSteps,
+    stepDeadline: new Date(Date.now() + 40 * 60 * 60 * 1000), // 40h from now
+    history: [
+      {
+        stepOrder: 1, stepName: 'Supervisor Review',
+        action: 'approve', actorUserId: adminUser._id,
+        actorName: 'Grace Otieno', actorRole: 'me_officer',
+        comment: 'Field data cross-checked with CHW registers.',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  // 3. Rejected grant report
+  const rejectedGrantSteps = grantWf.toObject().steps;
+  await WorkflowInstance.create({
+    organizationId: org._id,
+    definitionId: grantWf._id,
+    entityType: 'grant',
+    entityId: grant._id,
+    entityTitle: 'WASH and Maternal Health Integrated Grant — Q1 Report',
+    initiatedBy: meOfficerUser._id,
+    initiatedByName: 'M&E Officer',
+    status: 'rejected',
+    currentStep: 1,
+    totalSteps: 2,
+    steps: rejectedGrantSteps,
+    rejectionReason: 'Expenditure receipts missing for 3 line items.',
+    completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    history: [
+      {
+        stepOrder: 1, stepName: 'Finance Review',
+        action: 'reject', actorUserId: financeUser._id,
+        actorName: 'Finance User', actorRole: 'finance',
+        comment: 'Expenditure receipts missing for 3 line items. Please resubmit with full documentation.',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  // 4. Escalated budget workflow
+  const escalatedBudgetSteps = budgetWf.toObject().steps;
+  await WorkflowInstance.create({
+    organizationId: org._id,
+    definitionId: budgetWf._id,
+    entityType: 'budget',
+    entityId: budget._id,
+    entityTitle: 'FY26 Core Operations — Revision Request',
+    initiatedBy: financeUser._id,
+    initiatedByName: 'Finance User',
+    status: 'escalated',
+    currentStep: 1,
+    totalSteps: 2,
+    steps: escalatedBudgetSteps,
+    escalatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    escalationReason: 'Step "Finance Review" exceeded SLA of 48h',
+    escalatedTo: user._id,
+    stepDeadline: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    history: [
+      {
+        stepOrder: 1, stepName: 'Finance Review',
+        action: 'escalate', actorUserId: new Types.ObjectId(),
+        actorName: 'System (Auto-Escalation)', actorRole: 'system',
+        comment: 'Step "Finance Review" exceeded SLA of 48h',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
   // --- End demo data ---
 
   console.log('\n✓ Seed complete\n');

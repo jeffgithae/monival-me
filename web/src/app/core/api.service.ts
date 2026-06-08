@@ -850,4 +850,56 @@ export class ApiService {
   removeWorkplanItem(projectId: string, itemId: string) {
     return this.http.delete<Project>(`${this.base}/projects/${projectId}/workplan/${itemId}`);
   }
+
+  // ─── Workflows ────────────────────────────────────────────────────────────
+
+  workflowDefinitions(entityType?: string) {
+    const params: any = {};
+    if (entityType) params['entityType'] = entityType;
+    return this.http.get<any[]>(`${this.base}/workflows/definitions`, { params });
+  }
+
+  workflowDefinition(id: string) {
+    return this.http.get<any>(`${this.base}/workflows/definitions/${id}`);
+  }
+
+  createWorkflowDefinition(dto: any) {
+    return this.http.post<any>(`${this.base}/workflows/definitions`, dto);
+  }
+
+  updateWorkflowDefinition(id: string, dto: any) {
+    return this.http.patch<any>(`${this.base}/workflows/definitions/${id}`, dto);
+  }
+
+  deleteWorkflowDefinition(id: string) {
+    return this.http.delete(`${this.base}/workflows/definitions/${id}`);
+  }
+
+  workflowInstances(params?: { status?: string; entityType?: string; assignedToMe?: string; page?: number; limit?: number }) {
+    return this.http.get<{ data: any[]; total: number; page: number; limit: number }>(
+      `${this.base}/workflows/instances`, { params: params as any }
+    );
+  }
+
+  workflowInstance(id: string) {
+    return this.http.get<any>(`${this.base}/workflows/instances/${id}`);
+  }
+
+  startWorkflow(dto: { definitionId: string; entityType: string; entityId: string; entityTitle: string }) {
+    return this.http.post<any>(`${this.base}/workflows/instances`, dto);
+  }
+
+  actOnWorkflow(id: string, dto: { action: string; comment?: string; escalateToUserId?: string }) {
+    return this.http.post<any>(`${this.base}/workflows/instances/${id}/action`, dto);
+  }
+
+  myWorkflowTasks() {
+    return this.http.get<any[]>(`${this.base}/workflows/instances/my-tasks`);
+  }
+
+  workflowSummary() {
+    return this.http.get<{ pending: number; inReview: number; escalated: number; approved: number; rejected: number; overdue: number }>(
+      `${this.base}/workflows/summary`
+    );
+  }
 }

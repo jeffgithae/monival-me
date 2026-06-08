@@ -30,6 +30,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { AIModule } from './AI/ai.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { AIModule } from './AI/ai.module';
     DocumentsModule,
     NotificationsModule,
     AIModule,
+    WorkflowsModule,
   ],
   controllers: [HealthController],
   providers: [
