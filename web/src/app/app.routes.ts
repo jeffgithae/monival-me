@@ -26,6 +26,7 @@ import { ProfileComponent } from './pages/profile/profile.component';
 import { DonorReportComponent } from './pages/donors/donor-report.component';
 import { DocumentsComponent } from './pages/documents/documents.component';
 import { WorkplanComponent } from './pages/workplan/workplan.component';
+import { WorkflowsComponent } from './pages/workflows/workflows.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -57,6 +58,7 @@ export const routes: Routes = [
       { path: 'reports/donor', component: DonorReportComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'workplan', component: WorkplanComponent },
+      { path: 'workflows', component: WorkflowsComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'beneficiaries', loadComponent: () => import('./pages/beneficiaries/beneficiaries.component').then(m => m.BeneficiariesComponent) },
     ],

@@ -1,0 +1,550 @@
+<div class="wf-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Workflows & Approvals</h1>
+      <p class="page-subtitle">Track submissions, approvals, and escalations across your organisation</p>
+    </div>
+    <div class="page-header-actions">
+      @if (canManageDefs()) {
+        <button class="btn-ghost" (click)="openCreateDef()">⚙ New Definition</button>
+      }
+      <button class="btn-primary" (click)="openStartWorkflow()">▶ Start Workflow</button>
+    </div>
+  </div>
+
+  <!-- ── Summary cards ─────────────────────────────────────────────────── -->
+  @if (summary(); as s) {
+    <div class="summary-cards">
+      <div class="summary-card card-pending">
+        <div class="card-val">{{ s.pending }}</div>
+        <div class="card-label">Pending</div>
+      </div>
+      <div class="summary-card card-review">
+        <div class="card-val">{{ s.inReview }}</div>
+        <div class="card-label">In Review</div>
+      </div>
+      <div class="summary-card card-escalated">
+        <div class="card-val">{{ s.escalated }}</div>
+        <div class="card-label">Escalated</div>
+      </div>
+      <div class="summary-card card-overdue">
+        <div class="card-val">{{ s.overdue }}</div>
+        <div class="card-label">Overdue</div>
+      </div>
+      <div class="summary-card card-approved">
+        <div class="card-val">{{ s.approved }}</div>
+        <div class="card-label">Approved</div>
+      </div>
+      <div class="summary-card card-rejected">
+        <div class="card-val">{{ s.rejected }}</div>
+        <div class="card-label">Rejected</div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Error banner ───────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="error-banner">{{ error() }} <button (click)="error.set('')">✕</button></div>
+  }
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button [class.active]="activeTab() === 'tasks'" (click)="setTab('tasks')">
+      My Tasks
+      @if (myTasks().length > 0) { <span class="tab-badge">{{ myTasks().length }}</span> }
+    </button>
+    <button [class.active]="activeTab() === 'instances'" (click)="setTab('instances')">
+      All Workflows
+    </button>
+    @if (canManageDefs()) {
+      <button [class.active]="activeTab() === 'definitions'" (click)="setTab('definitions')">
+        Definitions
+        <span class="tab-badge muted">{{ definitions().length }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: MY TASKS
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'tasks') {
+    <div class="tab-content">
+      @if (loading()) {
+        <div class="loading-state">Loading tasks…</div>
+      } @else if (myTasks().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <h3>No pending tasks</h3>
+          <p>You're all caught up. There are no workflows waiting for your action.</p>
+        </div>
+      } @else {
+        <div class="instance-list">
+          @for (inst of myTasks(); track inst._id) {
+            <div class="instance-card" [class.overdue]="isOverdue(inst)" (click)="viewInstance(inst)">
+              <div class="ic-main">
+                <div class="ic-title">{{ inst.entityTitle }}</div>
+                <div class="ic-meta">
+                  <span class="badge" [ngClass]="statusClass(inst.status)">{{ statusLabel(inst.status) }}</span>
+                  <span class="entity-chip">{{ entityLabel(inst.entityType) }}</span>
+                  <span class="step-info">Step {{ inst.currentStep }}/{{ inst.totalSteps }}</span>
+                  @if (isOverdue(inst)) {
+                    <span class="overdue-chip">⚠ Overdue</span>
+                  }
+                </div>
+                @if (currentStepDef(inst); as step) {
+                  <div class="step-name">Current step: <strong>{{ step.name }}</strong> — requires <em>{{ step.approverRole }}</em></div>
+                }
+              </div>
+              <div class="ic-right">
+                <div class="ic-date">{{ inst.createdAt | date: 'mediumDate' }}</div>
+                <div class="ic-initiator">by {{ inst.initiatedByName }}</div>
+                @if (inst.stepDeadline) {
+                  <div class="ic-deadline" [class.past]="isOverdue(inst)">
+                    Due {{ inst.stepDeadline | date: 'mediumDate' }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: ALL INSTANCES
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'instances') {
+    <div class="tab-content">
+      <!-- Filters -->
+      <div class="filter-bar">
+        <select [(ngModel)]="filterStatus" (change)="applyFilters()">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="in_review">In Review</option>
+          <option value="escalated">Escalated</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="recalled">Recalled</option>
+        </select>
+        <select [(ngModel)]="filterEntityType" (change)="applyFilters()">
+          <option value="">All entity types</option>
+          @for (et of entityTypes; track et) {
+            <option [value]="et">{{ entityLabel(et) }}</option>
+          }
+        </select>
+        <span class="filter-count">{{ instanceTotal }} total</span>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-state">Loading workflows…</div>
+      } @else if (instances().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No workflows found</h3>
+          <p>Start a workflow to submit an entity for approval.</p>
+          <button class="btn-primary" (click)="openStartWorkflow()">Start Workflow</button>
+        </div>
+      } @else {
+        <div class="instance-list">
+          @for (inst of instances(); track inst._id) {
+            <div class="instance-card" [class.overdue]="isOverdue(inst)" (click)="viewInstance(inst)">
+              <div class="ic-main">
+                <div class="ic-title">{{ inst.entityTitle }}</div>
+                <div class="ic-meta">
+                  <span class="badge" [ngClass]="statusClass(inst.status)">{{ statusLabel(inst.status) }}</span>
+                  <span class="entity-chip">{{ entityLabel(inst.entityType) }}</span>
+                  <span class="step-info">Step {{ inst.currentStep }}/{{ inst.totalSteps }}</span>
+                  @if (isOverdue(inst)) { <span class="overdue-chip">⚠ Overdue</span> }
+                </div>
+                @if (currentStepDef(inst); as step) {
+                  <div class="step-name">Current: <strong>{{ step.name }}</strong></div>
+                }
+              </div>
+              <div class="ic-right">
+                <div class="ic-date">{{ inst.createdAt | date: 'mediumDate' }}</div>
+                <div class="ic-initiator">by {{ inst.initiatedByName }}</div>
+                @if (inst.stepDeadline && ['pending','in_review','escalated'].includes(inst.status)) {
+                  <div class="ic-deadline" [class.past]="isOverdue(inst)">
+                    Due {{ inst.stepDeadline | date: 'mediumDate' }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button [disabled]="instancePage === 1" (click)="prevPage()">← Prev</button>
+            <span>Page {{ instancePage }} of {{ totalPages }}</span>
+            <button [disabled]="instancePage >= totalPages" (click)="nextPage()">Next →</button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: DEFINITIONS
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'definitions') {
+    <div class="tab-content">
+      <div class="filter-bar">
+        <select [(ngModel)]="filterDefEntityType">
+          <option value="">All entity types</option>
+          @for (et of entityTypes; track et) {
+            <option [value]="et">{{ entityLabel(et) }}</option>
+          }
+        </select>
+        <button class="btn-primary sm" (click)="openCreateDef()">+ New Definition</button>
+      </div>
+
+      @if (filteredDefinitions().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">⚙</div>
+          <h3>No workflow definitions</h3>
+          <p>Create a definition to configure approval steps for your entities.</p>
+          <button class="btn-primary" (click)="openCreateDef()">Create Definition</button>
+        </div>
+      } @else {
+        <div class="def-grid">
+          @for (def of filteredDefinitions(); track def._id) {
+            <div class="def-card" [class.inactive]="!def.isActive">
+              <div class="def-card-header">
+                <div class="def-title">{{ def.name }}</div>
+                <div class="def-chips">
+                  <span class="entity-chip">{{ entityLabel(def.entityType) }}</span>
+                  @if (def.isDefault) { <span class="chip-default">Default</span> }
+                  <span class="chip-status" [class.active]="def.isActive">
+                    {{ def.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+              @if (def.description) {
+                <p class="def-desc">{{ def.description }}</p>
+              }
+              <div class="def-steps">
+                @for (step of def.steps; track step.order) {
+                  <div class="def-step">
+                    <span class="step-num">{{ step.order }}</span>
+                    <span class="step-sname">{{ step.name }}</span>
+                    <span class="step-role">{{ step.approverRole }}</span>
+                    <span class="step-sla">{{ step.escalateAfterHours }}h SLA</span>
+                    @if (step.requiresComment) { <span class="step-tag">comment req.</span> }
+                    @if (step.isOptional) { <span class="step-tag optional">optional</span> }
+                  </div>
+                }
+              </div>
+              <div class="def-actions">
+                <button class="btn-ghost sm" (click)="openEditDef(def)">Edit</button>
+                <button class="btn-ghost sm" (click)="toggleDefActive(def)">
+                  {{ def.isActive ? 'Deactivate' : 'Activate' }}
+                </button>
+                <button class="btn-danger sm" (click)="deleteDef(def)">Delete</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL: VIEW INSTANCE
+════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'view-instance' && selectedInstance(); as inst) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ inst.entityTitle }}</h2>
+        <button class="modal-close" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Meta row -->
+        <div class="inst-meta-row">
+          <span class="badge" [ngClass]="statusClass(inst.status)">{{ statusLabel(inst.status) }}</span>
+          <span class="entity-chip">{{ entityLabel(inst.entityType) }}</span>
+          <span>Step {{ inst.currentStep }}/{{ inst.totalSteps }}</span>
+          <span class="muted-text">Started by {{ inst.initiatedByName }} on {{ inst.createdAt | date: 'mediumDate' }}</span>
+        </div>
+
+        @if (inst.rejectionReason) {
+          <div class="rejection-box">
+            <strong>Rejection reason:</strong> {{ inst.rejectionReason }}
+          </div>
+        }
+        @if (inst.escalationReason) {
+          <div class="escalation-box">
+            <strong>Escalation reason:</strong> {{ inst.escalationReason }}
+          </div>
+        }
+        @if (inst.completedAt) {
+          <div class="completed-box">
+            Completed: {{ inst.completedAt | date: 'medium' }}
+          </div>
+        }
+
+        <!-- Steps progress -->
+        <div class="steps-progress">
+          <h3>Approval Steps</h3>
+          <div class="steps-track">
+            @for (step of inst.steps; track step.order) {
+              <div class="step-node"
+                [class.done]="step.order < inst.currentStep || inst.status === 'approved'"
+                [class.active]="step.order === inst.currentStep && !['approved','rejected','recalled','cancelled'].includes(inst.status)"
+                [class.rejected]="inst.status === 'rejected' && step.order === inst.currentStep">
+                <div class="step-circle">{{ step.order }}</div>
+                <div class="step-info-box">
+                  <div class="step-node-name">{{ step.name }}</div>
+                  <div class="step-node-role">{{ step.approverRole }}</div>
+                  @if (step.requiresComment) { <div class="step-tag">comment req.</div> }
+                </div>
+              </div>
+              @if (!$last) { <div class="step-connector"></div> }
+            }
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="history-section">
+          <h3>Approval History</h3>
+          @if (inst.history.length === 0) {
+            <p class="muted-text">No actions yet.</p>
+          } @else {
+            <div class="history-list">
+              @for (ev of inst.history; track $index) {
+                <div class="history-item">
+                  <div class="hi-left">
+                    <div class="hi-actor">{{ ev.actorName }}</div>
+                    <div class="hi-role muted-text">{{ ev.actorRole }}</div>
+                  </div>
+                  <div class="hi-action">{{ actionLabel(ev.action) }}</div>
+                  <div class="hi-right">
+                    <div class="hi-step muted-text">Step {{ ev.stepOrder }}: {{ ev.stepName }}</div>
+                    <div class="hi-date muted-text">{{ ev.createdAt | date: 'medium' }}</div>
+                    @if (ev.comment) { <div class="hi-comment">{{ ev.comment }}</div> }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Action panel -->
+        @if (canAct(inst) || canRecall(inst)) {
+          <div class="action-panel">
+            <h3>Take Action</h3>
+            @if (error()) {
+              <div class="field-error">{{ error() }}</div>
+            }
+            <div class="action-form">
+              <div class="action-buttons">
+                @if (canAct(inst)) {
+                  <button class="act-btn approve" [class.selected]="actForm.action === 'approve'" (click)="actForm.action = 'approve'">✅ Approve</button>
+                  <button class="act-btn reject" [class.selected]="actForm.action === 'reject'" (click)="actForm.action = 'reject'">❌ Reject</button>
+                  <button class="act-btn escalate" [class.selected]="actForm.action === 'escalate'" (click)="actForm.action = 'escalate'">⬆ Escalate</button>
+                  <button class="act-btn comment" [class.selected]="actForm.action === 'comment'" (click)="actForm.action = 'comment'">💬 Comment</button>
+                }
+                @if (canRecall(inst)) {
+                  <button class="act-btn recall" [class.selected]="actForm.action === 'recall'" (click)="actForm.action = 'recall'">↩ Recall</button>
+                }
+              </div>
+
+              @if (actForm.action === 'escalate') {
+                <div class="form-field">
+                  <label>Escalate to user ID</label>
+                  <input type="text" [(ngModel)]="actForm.escalateToUserId" placeholder="MongoDB user ID" />
+                </div>
+              }
+
+              @if (actForm.action !== 'approve') {
+                <div class="form-field">
+                  <label>Comment @if (actForm.action === 'reject') { <span class="req">*</span> }</label>
+                  <textarea [(ngModel)]="actForm.comment" rows="3" placeholder="Add a comment…"></textarea>
+                </div>
+              }
+
+              <button class="btn-primary" [disabled]="saving()" (click)="actOnInstance()">
+                {{ saving() ? 'Saving…' : 'Submit Action' }}
+              </button>
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL: CREATE / EDIT DEFINITION
+════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'create-def' || modalMode() === 'edit-def') {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modalMode() === 'create-def' ? 'New Workflow Definition' : 'Edit Definition' }}</h2>
+        <button class="modal-close" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Name <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="defForm.name" placeholder="e.g. Activity Approval Workflow" />
+          </div>
+          <div class="form-field">
+            <label>Entity Type <span class="req">*</span></label>
+            <select [(ngModel)]="defForm.entityType">
+              @for (et of entityTypes; track et) {
+                <option [value]="et">{{ entityLabel(et) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Description</label>
+          <textarea [(ngModel)]="defForm.description" rows="2" placeholder="Optional description"></textarea>
+        </div>
+
+        <div class="form-row checkboxes">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="defForm.isDefault" />
+            Set as default for this entity type
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="defForm.isActive" />
+            Active
+          </label>
+        </div>
+
+        <!-- Steps -->
+        <div class="steps-editor">
+          <div class="steps-editor-header">
+            <h3>Approval Steps</h3>
+            <button class="btn-ghost sm" (click)="addStep()">+ Add Step</button>
+          </div>
+
+          @for (step of defForm.steps; track step.order; let i = $index) {
+            <div class="step-editor-row">
+              <div class="step-order-badge">{{ step.order }}</div>
+              <div class="step-editor-fields">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Step Name <span class="req">*</span></label>
+                    <input type="text" [(ngModel)]="step.name" placeholder="e.g. Supervisor Review" />
+                  </div>
+                  <div class="form-field">
+                    <label>Approver Role <span class="req">*</span></label>
+                    <select [(ngModel)]="step.approverRole">
+                      @for (r of roleOptions; track r.value) {
+                        <option [value]="r.value">{{ r.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="form-field sm-field">
+                    <label>SLA (hours)</label>
+                    <input type="number" [(ngModel)]="step.escalateAfterHours" min="1" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Specific Approver User ID</label>
+                    <input type="text" [(ngModel)]="step.approverUserId" placeholder="Optional override" />
+                  </div>
+                  <div class="form-field">
+                    <label>Escalate-To User ID</label>
+                    <input type="text" [(ngModel)]="step.escalateTo" placeholder="Auto-escalate to…" />
+                  </div>
+                </div>
+                <div class="form-row checkboxes">
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="step.requiresComment" /> Requires comment
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="step.isOptional" /> Optional step
+                  </label>
+                </div>
+              </div>
+              <button class="remove-step-btn" (click)="removeStep(i)" title="Remove step">✕</button>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="saveDef()">
+            {{ saving() ? 'Saving…' : (modalMode() === 'create-def' ? 'Create Definition' : 'Save Changes') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL: START WORKFLOW
+════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'start-workflow') {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Start Workflow</h2>
+        <button class="modal-close" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+
+        <div class="form-field">
+          <label>Workflow Definition <span class="req">*</span></label>
+          <select [(ngModel)]="startForm.definitionId">
+            <option value="">Select a definition…</option>
+            @for (def of definitions(); track def._id) {
+              @if (def.isActive) {
+                <option [value]="def._id">{{ def.name }} ({{ entityLabel(def.entityType) }})</option>
+              }
+            }
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Entity Type <span class="req">*</span></label>
+            <select [(ngModel)]="startForm.entityType">
+              @for (et of entityTypes; track et) {
+                <option [value]="et">{{ entityLabel(et) }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Entity ID <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="startForm.entityId" placeholder="MongoDB ID of the entity" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Entity Title <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="startForm.entityTitle" placeholder="Human-readable title for notifications" />
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="startWorkflow()">
+            {{ saving() ? 'Starting…' : 'Start Workflow' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

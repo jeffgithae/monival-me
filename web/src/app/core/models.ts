@@ -1558,3 +1558,97 @@ export interface CreateBeneficiaryDto {
   notes?: string;
   tags?: string[];
 }
+// ─── Workflows ────────────────────────────────────────────────────────────────
+
+export type WorkflowEntityType =
+  | 'activity'
+  | 'report'
+  | 'grant'
+  | 'budget'
+  | 'document'
+  | 'beneficiary'
+  | 'indicator_result';
+
+export type ApprovalAction = 'approve' | 'reject' | 'escalate' | 'recall' | 'comment';
+
+export type WorkflowStatus =
+  | 'pending'
+  | 'in_review'
+  | 'approved'
+  | 'rejected'
+  | 'escalated'
+  | 'cancelled'
+  | 'recalled';
+
+export interface WorkflowStepDefinition {
+  order: number;
+  name: string;
+  description?: string;
+  approverRole: string;
+  approverUserId?: string;
+  escalateAfterHours: number;
+  escalateTo?: string;
+  requiresComment: boolean;
+  isOptional: boolean;
+}
+
+export interface ApprovalEvent {
+  stepOrder: number;
+  stepName: string;
+  action: ApprovalAction;
+  actorUserId: string;
+  actorName: string;
+  actorRole: string;
+  comment?: string;
+  createdAt: string;
+  delegatedFrom?: string;
+}
+
+export interface WorkflowDefinition {
+  _id: string;
+  organizationId: string;
+  name: string;
+  description?: string;
+  entityType: WorkflowEntityType;
+  steps: WorkflowStepDefinition[];
+  isActive: boolean;
+  isDefault: boolean;
+  createdBy: string;
+  lastModifiedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkflowInstance {
+  _id: string;
+  organizationId: string;
+  definitionId: string;
+  entityType: WorkflowEntityType;
+  entityId: string;
+  entityTitle: string;
+  initiatedBy: string;
+  initiatedByName?: string;
+  status: WorkflowStatus;
+  currentStep: number;
+  totalSteps: number;
+  steps: WorkflowStepDefinition[];
+  history: ApprovalEvent[];
+  escalatedAt?: string;
+  escalatedTo?: string;
+  escalationReason?: string;
+  stepDeadline?: string;
+  completedAt?: string;
+  rejectionReason?: string;
+  approvalNotes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkflowSummary {
+  pending: number;
+  inReview: number;
+  escalated: number;
+  approved: number;
+  rejected: number;
+  overdue: number;
+}
