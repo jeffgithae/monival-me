@@ -1381,8 +1381,180 @@ export interface CreateDocumentDto {
   storageKey?: string;
 }
 
+
 export interface CreateDocumentVersionDto {
   releaseNotes?: string;
   fileUrl?: string;
   storageKey?: string;
+}
+
+// ─── Beneficiary ──────────────────────────────────────────────────────────────
+
+export interface HouseholdMember {
+  name: string;
+  relationship?: string;
+  sex?: 'male' | 'female' | 'other';
+  age?: number;
+  hasDisability?: boolean;
+  disabilityType?: string;
+}
+
+export interface ServiceRecord {
+  _id?: string;
+  projectId?: string;
+  activityId?: string;
+  serviceType: string;
+  serviceDate: string;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+  isExited?: boolean;
+}
+
+export interface ProgramEnrollment {
+  _id?: string;
+  projectId: string | { _id: string; name: string };
+  enrolledAt: string;
+  exitedAt?: string;
+  status: 'active' | 'completed' | 'transferred' | 'dropped_out' | 'deceased';
+  exitReason?: string;
+  notes?: string;
+}
+
+export type BeneficiaryRegistrationType = 'individual' | 'household' | 'group' | 'community';
+export type BeneficiaryStatus = 'active' | 'inactive' | 'closed' | 'transferred' | 'deceased';
+export type BeneficiaryAgeGroup = 'child_under5' | 'child_5_17' | 'youth_18_24' | 'adult_25_59' | 'elderly_60plus';
+
+export interface Beneficiary {
+  _id: string;
+  organizationId?: string;
+  registrationType: BeneficiaryRegistrationType;
+  name: string;
+  caseId?: string;
+  nationalId?: string;
+  phoneNumber?: string;
+  email?: string;
+  // Demographics
+  sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  dateOfBirth?: string;
+  age?: number;
+  ageGroup?: BeneficiaryAgeGroup;
+  nationality?: string;
+  ethnicity?: string;
+  primaryLanguage?: string;
+  education?: string;
+  // Household
+  householdSize: number;
+  householdMembers?: HouseholdMember[];
+  childrenUnder5?: number;
+  childrenUnder18?: number;
+  // Vulnerability
+  hasDisability: boolean;
+  disabilityType?: string;
+  isIdp: boolean;
+  isRefugee: boolean;
+  isFemaleHeadedHousehold: boolean;
+  isOrphan: boolean;
+  isChronicallyIll: boolean;
+  isElderly: boolean;
+  vulnerabilityCategories?: string[];
+  vulnerabilityScore?: number;
+  // Location
+  country?: string;
+  region?: string;
+  district?: string;
+  village?: string;
+  location?: string;
+  geoPoint?: { latitude: number; longitude: number };
+  settlementType?: string;
+  // Program
+  programEnrollments?: ProgramEnrollment[];
+  serviceHistory?: ServiceRecord[];
+  // Status
+  status: BeneficiaryStatus;
+  groupType?: string;
+  groupSize?: number;
+  caseWorker?: string;
+  assignedUserId?: string;
+  registrationDate?: string;
+  lastContactDate?: string;
+  // Consent
+  consentGiven: boolean;
+  consentDate?: string;
+  consentMethod?: string;
+  // Misc
+  notes?: string;
+  customFields?: Record<string, unknown>;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BeneficiaryStatistics {
+  total: number;
+  bySex: Record<string, number>;
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  byAgeGroup: Record<string, number>;
+  vulnerable: {
+    disabled: number;
+    idp: number;
+    refugee: number;
+    femaleHeaded: number;
+    orphan: number;
+    chronicallyIll: number;
+    elderly: number;
+    consentGiven: number;
+    totalHouseholdSize: number;
+  };
+}
+
+export interface CreateBeneficiaryDto {
+  registrationType?: string;
+  name: string;
+  caseId?: string;
+  nationalId?: string;
+  phoneNumber?: string;
+  email?: string;
+  sex?: string;
+  dateOfBirth?: string;
+  age?: number;
+  ageGroup?: string;
+  nationality?: string;
+  ethnicity?: string;
+  primaryLanguage?: string;
+  education?: string;
+  householdSize?: number;
+  householdMembers?: HouseholdMember[];
+  childrenUnder5?: number;
+  childrenUnder18?: number;
+  hasDisability?: boolean;
+  disabilityType?: string;
+  isIdp?: boolean;
+  isRefugee?: boolean;
+  isFemaleHeadedHousehold?: boolean;
+  isOrphan?: boolean;
+  isChronicallyIll?: boolean;
+  isElderly?: boolean;
+  vulnerabilityCategories?: string[];
+  vulnerabilityScore?: number;
+  country?: string;
+  region?: string;
+  district?: string;
+  village?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  settlementType?: string;
+  programEnrollments?: Array<{ projectId: string; enrolledAt?: string; status?: string; notes?: string }>;
+  status?: string;
+  groupType?: string;
+  groupSize?: number;
+  caseWorker?: string;
+  registrationDate?: string;
+  consentGiven?: boolean;
+  consentDate?: string;
+  consentMethod?: string;
+  notes?: string;
+  tags?: string[];
 }

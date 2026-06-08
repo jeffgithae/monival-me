@@ -48,6 +48,8 @@ import {
   PeriodTarget,
   ReportingPeriodStatus,
   CopilotResponse,
+  CreateBeneficiaryDto,
+  BeneficiaryStatistics,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -252,8 +254,37 @@ export class ApiService {
     return this.http.get<Beneficiary[]>(`${this.base}/beneficiaries`);
   }
 
+  enrollBeneficiary(id: string, body: { projectId: string; enrolledAt?: string; notes?: string }) {
+    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/enroll`, body);
+  }
+
+  addBeneficiaryServiceRecord(id: string, body: {
+    serviceType: string; serviceDate: string; projectId?: string;
+    activityId?: string; description?: string; quantity?: number; unit?: string;
+  }) {
+    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/service-records`, body);
+  }
+
+
+   beneficiaryStats(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<BeneficiaryStatistics>(`${this.base}/beneficiaries/statistics`, { params });
+  }
   createBeneficiary(body: Partial<Beneficiary>) {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
+  }
+
+  exitBeneficiaryProgram(id: string, projectId: string, exitReason?: string) {
+    return this.http.patch<Beneficiary>(`${this.base}/beneficiaries/${id}/exit/${projectId}`, { exitReason });
+  }
+
+  updateBeneficiary(id: string, body: Partial<CreateBeneficiaryDto>) {
+    return this.http.patch<Beneficiary>(`${this.base}/beneficiaries/${id}`, body);
+  }
+
+  deleteBeneficiary(id: string) {
+    return this.http.delete(`${this.base}/beneficiaries/${id}`);
   }
 
   activityTemplates(projectId?: string) {
