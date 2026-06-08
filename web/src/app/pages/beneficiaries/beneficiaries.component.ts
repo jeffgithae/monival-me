@@ -592,4 +592,5 @@ export class BeneficiariesComponent implements OnInit {
   }
 
   skeletons(): number[] { return Array(8).fill(0); }
+  
 }
