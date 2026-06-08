@@ -39,13 +39,13 @@
       <div class="stat-lbl">Consent obtained</div>
       <div class="stat-sub">{{ s.vulnerable.consentGiven | number }} of {{ s.total | number }}</div>
     </div>
-    @if (s.bySex?.['female']) {
+    @if (s.bySex['female']) {
       <div class="stat-card">
         <div class="stat-val">{{ s.bySex['female'] | number }}</div>
         <div class="stat-lbl">Female</div>
       </div>
     }
-    @if (s.bySex?.['male']) {
+    @if (s.bySex['male']) {
       <div class="stat-card">
         <div class="stat-val">{{ s.bySex['male'] | number }}</div>
         <div class="stat-lbl">Male</div>
@@ -290,7 +290,7 @@
         <span class="tab-n">{{ stats()!.total }}</span>
       }
       @if (s !== 'all' && stats()) {
-        <span class="tab-n">{{ stats()!.byStatus?.[s] ?? 0 }}</span>
+        <span class="tab-n">{{ (stats()!.byStatus[s] ?? 0) }}</span>
       }
     </button>
   }
@@ -518,7 +518,7 @@
           <dl class="info-grid">
             @if (b.dateOfBirth) { <dt>Date of birth</dt><dd>{{ b.dateOfBirth | date:'d MMM y' }} ({{ ageLabel(b) }})</dd> }
             @else if (b.age)    { <dt>Age</dt><dd>{{ b.age }} years</dd> }
-            @if (b.ageGroup)    { <dt>Age group</dt><dd>{{ AGE_LABELS[b.ageGroup] ?? b.ageGroup }}</dd> }
+            @if (b.ageGroup)    { <dt>Age group</dt><dd>{{ AGE_LABELS[b.ageGroup!] || b.ageGroup }}</dd> }
             @if (b.nationality) { <dt>Nationality</dt><dd>{{ b.nationality }}</dd> }
             @if (b.primaryLanguage) { <dt>Language</dt><dd>{{ b.primaryLanguage }}</dd> }
             @if (b.education)   { <dt>Education</dt><dd>{{ b.education | titlecase }}</dd> }
