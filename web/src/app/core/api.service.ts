@@ -250,8 +250,8 @@ export class ApiService {
   }
 
   // Beneficiaries
-  beneficiaries() {
-    return this.http.get<Beneficiary[]>(`${this.base}/beneficiaries`);
+  beneficiaries(params?: Record<string, string | number | boolean>) {
+    return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: params as any });
   }
 
   enrollBeneficiary(id: string, body: { projectId: string; enrolledAt?: string; notes?: string }) {
@@ -271,7 +271,7 @@ export class ApiService {
     if (projectId) params = params.set('projectId', projectId);
     return this.http.get<BeneficiaryStatistics>(`${this.base}/beneficiaries/statistics`, { params });
   }
-  createBeneficiary(body: Partial<Beneficiary>) {
+  createBeneficiary(body: CreateBeneficiaryDto) {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
   }
 

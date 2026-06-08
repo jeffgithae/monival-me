@@ -407,7 +407,7 @@ export class ProjectComponent implements OnInit {
       }
     });
     this.api.partners().subscribe((items) => this.partners.set(items));
-    this.api.beneficiaries().subscribe((items) => this.beneficiaries.set(items));
+    this.api.beneficiaries().subscribe((res: any) => this.beneficiaries.set(Array.isArray(res) ? res : (res.data ?? [])));
   }
 
   loadReport() {
