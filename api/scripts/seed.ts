@@ -218,9 +218,9 @@ async function seed() {
   const Beneficiary = mongoose.model('Beneficiary', require('../src/beneficiaries/schemas/beneficiary.schema').BeneficiarySchema) as mongoose.Model<unknown>;
   const Invite = mongoose.model('Invite', require('../src/members/schemas/invite.schema').InviteSchema) as mongoose.Model<unknown>;
   const Grant = mongoose.model('Grant', require('../src/grants/schemas/grant.schema').GrantSchema) as mongoose.Model<unknown>;
-  const BudgetAllocation = mongoose.model('BudgetAllocation', require('../src/budget/schemas/budget-allocation.schema').BudgetAllocationSchema) as mongoose.Model<unknown>;
-  const BudgetLineItem = mongoose.model('BudgetLineItem', require('../src/budget/schemas/budget-line-item.schema').BudgetLineItemSchema) as mongoose.Model<unknown>;
-  const BudgetVariance = mongoose.model('BudgetVariance', require('../src/budget/schemas/budget-variance.schema').BudgetVarianceSchema) as mongoose.Model<unknown>;
+  const BudgetAllocation = mongoose.model('BudgetAllocation', require('../src/budget/schemas/budget.schema').BudgetAllocationSchema) as mongoose.Model<unknown>;
+  const BudgetLineItem = mongoose.model('BudgetLineItem', require('../src/budget/schemas/budget.schema').BudgetLineItemSchema) as mongoose.Model<unknown>;
+  const BudgetVariance = mongoose.model('BudgetVariance', require('../src/budget/schemas/budget.schema').BudgetVarianceSchema) as mongoose.Model<unknown>;
   const BalancedScorecard = mongoose.model('BalancedScorecard', require('../src/bsc/schemas/balanced-scorecard.schema').BalancedScorecardSchema) as mongoose.Model<unknown>;
   const OKR = mongoose.model('OKR', require('../src/okrs/schemas/okr.schema').OKRSchema) as mongoose.Model<unknown>;
   const ActivityTemplate = mongoose.model('ActivityTemplate', require('../src/activities/schemas/activity-template.schema').ActivityTemplateSchema) as mongoose.Model<unknown>;
@@ -1018,6 +1018,7 @@ async function seed() {
     startDate: new Date('2026-01-01'),
     endDate: new Date('2026-12-31'),
     allowedExpenseTypes: ['personnel', 'supplies', 'travel', 'training'],
+    createdBy: user._id,
   });
 
   const budget2 = await BudgetAllocation.create({
@@ -1034,6 +1035,7 @@ async function seed() {
     startDate: new Date('2026-04-01'),
     endDate: new Date('2026-06-30'),
     allowedExpenseTypes: ['personnel', 'supplies', 'travel'],
+    createdBy: user._id,
   });
 
   await BudgetLineItem.insertMany([
@@ -1043,8 +1045,12 @@ async function seed() {
       description: 'Staff salaries',
       amount: 60000,
       spent: 20000,
-      category: 'personnel',
+      costCategory: 'personnel',
+      unitDescription: 'months',
+      quantity: 12,
+      unitCost: 5000,
       status: 'committed',
+      createdBy: user._id,
     },
     {
       budgetAllocationId: budget._id,
@@ -1052,8 +1058,12 @@ async function seed() {
       description: 'Field supplies',
       amount: 25000,
       spent: 8000,
-      category: 'supplies',
+      costCategory: 'supplies',
+      unitDescription: 'units',
+      quantity: 100,
+      unitCost: 250,
       status: 'committed',
+      createdBy: user._id,
     },
   ]);
 
@@ -1066,7 +1076,9 @@ async function seed() {
     variance: 2000,
     variancePercentage: 6.67,
     trend: 'favorable',
-    notes: 'Slight underspending due to delayed procurement.'
+    burnRate: 93.33,
+    notes: 'Slight underspending due to delayed procurement.',
+    calculatedBy: user._id,
   });
 
   const bsc = await BalancedScorecard.create({

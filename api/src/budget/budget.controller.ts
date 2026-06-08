@@ -221,7 +221,6 @@ export class BudgetController {
   }
 
   /**
-   * Premium feature: full revision history with donor amendment tracking.
    * Records who changed the amount, why, and when — immutable audit trail.
    */
   @Post('allocations/:id/revise')
