@@ -1020,6 +1020,22 @@ async function seed() {
     allowedExpenseTypes: ['personnel', 'supplies', 'travel', 'training'],
   });
 
+  const budget2 = await BudgetAllocation.create({
+    organizationId: org._id,
+    name: 'Maternal Health Q2 Expansion',
+    description: 'Quarterly budget for maternal health outreach.',
+    projectId: maternal._id,
+    allocatedAmount: 45000,
+    spentAmount: 15000,
+    currency: 'USD',
+    category: 'project',
+    status: 'active',
+    fiscalYear: 2026,
+    startDate: new Date('2026-04-01'),
+    endDate: new Date('2026-06-30'),
+    allowedExpenseTypes: ['personnel', 'supplies', 'travel'],
+  });
+
   await BudgetLineItem.insertMany([
     {
       budgetAllocationId: budget._id,
