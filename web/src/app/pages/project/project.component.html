@@ -131,7 +131,7 @@
   </button>
   <button type="button" class="tab-btn" [class.active]="tab() === 'activities'" (click)="setTab('activities')">
     ⚡ Activities
-    @if ((activityStatusCounts()['submitted'] ?? 0) > 0) {
+    @if ((activityStatusCounts()['submitted'] || 0) > 0) {
       <span class="tab-badge">{{ activityStatusCounts()['submitted'] }}</span>
     }
   </button>
@@ -301,7 +301,7 @@
           <tbody>
             @for (s of indicatorSummaries(); track s._id) {
               <tr>
-                <td><span class="level-tag level-{{ s.level ?? 'output' }}">{{ s.level ?? 'output' }}</span></td>
+                <td><span class="level-tag level-{{ s.level || 'output' }}">{{ s.level || 'output' }}</span></td>
                 <td><strong>{{ s.code }}</strong></td>
                 <td>
                   <span class="ind-title">{{ s.title }}</span>

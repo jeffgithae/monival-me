@@ -9,7 +9,7 @@ import { DonorReport, Project, ReportingPeriod } from '../../core/models';
 @Component({
   selector: 'app-donor-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DatePipe, DecimalPipe, PercentPipe],
+  imports: [CommonModule, FormsModule, RouterModule, DatePipe, DecimalPipe],
   templateUrl: './donor-report.component.html',
   styleUrl: './donor-report.component.scss',
 })

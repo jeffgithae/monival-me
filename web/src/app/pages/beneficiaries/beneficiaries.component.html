@@ -290,7 +290,7 @@
         <span class="tab-n">{{ stats()!.total }}</span>
       }
       @if (s !== 'all' && stats()) {
-        <span class="tab-n">{{ (stats()!.byStatus[s] ?? 0) }}</span>
+        <span class="tab-n">{{ (stats()!.byStatus[s] || 0) }}</span>
       }
     </button>
   }
