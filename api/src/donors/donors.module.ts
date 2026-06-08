@@ -4,7 +4,7 @@ import { DonorsController } from './donors.controller';
 import { DonorsService } from './donors.service';
 import { Donor, DonorSchema } from './schemas/donor.schema';
 import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
-import { BudgetAllocation, BudgetAllocationSchema } from '../budget/schemas/budget-allocation.schema';
+import { BudgetAllocation, BudgetAllocationSchema } from '../budget/schemas/budget.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';

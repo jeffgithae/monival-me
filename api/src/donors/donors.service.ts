@@ -11,7 +11,7 @@ import { AddEngagementDto } from './dto/add-engagement.dto';
 import { AddComplianceConditionDto, UpdateComplianceConditionDto } from './dto/add-compliance-condition.dto';
 import { Donor, DonorDocument } from './schemas/donor.schema';
 import { Grant, GrantDocument } from '../grants/schemas/grant.schema';
-import { BudgetAllocation } from '../budget/schemas/budget-allocation.schema';
+import { BudgetAllocation } from '../budget/schemas/budget.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { AuditService } from '../audit/audit.service';
