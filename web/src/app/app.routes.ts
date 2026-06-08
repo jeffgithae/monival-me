@@ -58,6 +58,7 @@ export const routes: Routes = [
       { path: 'documents', component: DocumentsComponent },
       { path: 'workplan', component: WorkplanComponent },
       { path: 'profile', component: ProfileComponent },
+      { path: 'beneficiaries', loadComponent: () => import('./pages/beneficiaries/beneficiaries.component').then(m => m.BeneficiariesComponent) },
     ],
   },
   { path: '**', redirectTo: '/dashboard', pathMatch: 'full' },
