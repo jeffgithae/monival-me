@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ExternalIntegration } from './schemas/external-integration.schema';
+import { ExternalIntegration, IntegrationPlatform } from './schemas/external-integration.schema';
 import { FormResponse } from './schemas/form-response.schema';
 import { FormTemplate } from './schemas/form-template.schema';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
@@ -54,7 +54,7 @@ export class IntegrationsService {
       templateId: dto.templateId ? new Types.ObjectId(dto.templateId) : undefined,
       name: dto.name,
       description: dto.description,
-      platform: dto.platform,
+      platform: dto.platform as IntegrationPlatform,
       isActive: dto.isActive ?? true,
       config: dto.config ?? {},
       fieldMapping: dto.fieldMapping ?? {},
@@ -62,7 +62,7 @@ export class IntegrationsService {
       activityId: dto.activityId,
       syncIntervalMinutes: dto.syncIntervalMinutes,
       createdBy: new Types.ObjectId(userId),
-      syncStatus: 'idle',
+      syncStatus: 'idle' as const,
     });
   }
 

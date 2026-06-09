@@ -11,6 +11,14 @@ import { IntegrationsService } from './integrations.service';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
 import { UpdateIntegrationDto } from './dto/update-integration.dto';
 
+/** Minimal type covering what we need from multer's File object */
+interface UploadedMulterFile {
+  buffer: Buffer;
+  originalname: string;
+  size: number;
+  mimetype: string;
+}
+
 @Controller('forms/integrations')
 @UseGuards(JwtAuthGuard, SubscriptionGuard)
 export class IntegrationsController {
@@ -82,7 +90,7 @@ export class IntegrationsController {
   async uploadCsv(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedMulterFile,
     @Body('delimiter') delimiter?: string,
   ) {
     const csv = file.buffer.toString('utf-8');
