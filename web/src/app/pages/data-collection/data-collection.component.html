@@ -1,0 +1,756 @@
+<div class="dc-page">
+  <div class="ambient" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div></div>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="dc-header">
+    <div class="header-left">
+      <span class="eyebrow">M&E Platform</span>
+      <h1>Data Collection</h1>
+      <p class="dc-sub">Build forms, connect KoboToolbox &amp; ODK, import CSV, receive webhooks</p>
+    </div>
+    <div class="header-actions">
+      @if (activeTab() === 'forms') {
+        <button class="btn-primary" (click)="openCreateForm()">+ New Form</button>
+      }
+      @if (activeTab() === 'integrations') {
+        <button class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
+      }
+      @if (activeTab() === 'responses') {
+        <button class="btn-ghost" (click)="exportResponsesCsv()">⬇ Export CSV</button>
+      }
+    </div>
+  </header>
+
+  <!-- ── Stats row ──────────────────────────────────────────────────────── -->
+  @if (stats(); as s) {
+    <div class="stats-row">
+      <div class="stat-pill">
+        <span class="stat-num">{{ s.total }}</span>
+        <span class="stat-lbl">Integrations</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num">{{ s.active }}</span>
+        <span class="stat-lbl">Active</span>
+      </div>
+      <div class="stat-pill accent">
+        <span class="stat-num">{{ s.totalSynced | number }}</span>
+        <span class="stat-lbl">Records synced</span>
+      </div>
+      @if (s.errors > 0) {
+        <div class="stat-pill danger">
+          <span class="stat-num">{{ s.errors }}</span>
+          <span class="stat-lbl">Errors</span>
+        </div>
+      }
+      <div class="stat-pill">
+        <span class="stat-num">{{ forms().length }}</span>
+        <span class="stat-lbl">Forms</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num">{{ responses().length }}</span>
+        <span class="stat-lbl">Responses</span>
+      </div>
+    </div>
+  }
+
+  <!-- ── Error ──────────────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="error-bar">{{ error() }} <button (click)="error.set('')">✕</button></div>
+  }
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button [class.active]="activeTab()==='forms'" (click)="setTab('forms')">
+      📋 Form Templates <span class="tab-count">{{ forms().length }}</span>
+    </button>
+    <button [class.active]="activeTab()==='integrations'" (click)="setTab('integrations')">
+      🔌 Integrations <span class="tab-count">{{ integrations().length }}</span>
+    </button>
+    <button [class.active]="activeTab()==='responses'" (click)="setTab('responses')">
+      📊 Responses <span class="tab-count">{{ responses().length }}</span>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: FORMS
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'forms') {
+    <div class="filter-bar">
+      <select [(ngModel)]="filterProject">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+      <select [(ngModel)]="filterStatus">
+        <option value="">All statuses</option>
+        <option value="draft">Draft</option>
+        <option value="active">Active</option>
+      </select>
+    </div>
+
+    @if (loading()) {
+      <div class="loading">Loading forms…</div>
+    } @else if (filteredForms().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No forms yet</h3>
+        <p>Create a form template to collect structured field data.</p>
+        <button class="btn-primary" (click)="openCreateForm()">+ Create Form</button>
+      </div>
+    } @else {
+      <div class="cards-grid">
+        @for (f of filteredForms(); track f._id) {
+          <div class="form-card">
+            <div class="card-top-row">
+              <span class="form-status" [class.active-status]="f.status === 'active'">
+                {{ f.status }}
+              </span>
+              <span class="card-project-tag">{{ projectName(f.projectId) }}</span>
+            </div>
+            <h3>{{ f.name }}</h3>
+            @if (f.description) { <p class="card-desc">{{ f.description }}</p> }
+            <div class="card-meta">
+              <span>{{ f.sections?.length ?? 0 }} sections</span>
+              <span class="dot-sep">·</span>
+              <span>{{ countQuestions(f) }} questions</span>
+              <span class="dot-sep">·</span>
+              <span>{{ f.updatedAt | date:'mediumDate' }}</span>
+            </div>
+            <div class="card-actions">
+              <button class="act-btn" (click)="openViewForm(f)">Preview</button>
+              <button class="act-btn" (click)="openEditForm(f)">Edit</button>
+              <button class="act-btn" (click)="toggleFormStatus(f)">
+                {{ f.status === 'active' ? 'Deactivate' : 'Activate' }}
+              </button>
+              <button class="act-btn danger" (click)="deleteForm(f)">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: INTEGRATIONS
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'integrations') {
+    <!-- Platform filter pills -->
+    <div class="platform-pills">
+      <button [class.active-pill]="filterPlatform===''" (click)="filterPlatform=''">All</button>
+      @for (p of platforms; track p.id) {
+        <button [class.active-pill]="filterPlatform===p.id" (click)="filterPlatform=p.id">
+          {{ p.icon }} {{ p.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Guide cards -->
+    <div class="platform-guide">
+      @for (p of platforms; track p.id) {
+        <div class="guide-card" [style.--accent]="p.color">
+          <div class="guide-icon">{{ p.icon }}</div>
+          <div class="guide-body">
+            <strong>{{ p.label }}</strong>
+            <p>
+              @switch (p.id) {
+                @case ('kobo') { Pull submissions via KoboToolbox REST API v2 using an API token. }
+                @case ('odk') { Sync ODK Central submissions via session-authenticated REST API. }
+                @case ('ona') { Pull Ona.io form data using an API token. }
+                @case ('commcare') { Sync CommCare HQ form submissions via the v0.5 API. }
+                @case ('webhook') { Receive push payloads at a generated webhook URL. }
+                @case ('csv') { Upload CSV files — mapped to your form template fields. }
+              }
+            </p>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (filteredIntegrations().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">🔌</div>
+        <h3>No integrations yet</h3>
+        <p>Connect KoboToolbox, ODK Central, Ona, CommCare, a webhook, or import CSV data.</p>
+        <button class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
+      </div>
+    } @else {
+      <div class="integrations-list">
+        @for (i of filteredIntegrations(); track i._id) {
+          <div class="integration-row" [class.inactive-row]="!i.isActive">
+            <div class="int-platform-badge" [style.background]="platformMeta(i.platform).color + '22'" [style.color]="platformMeta(i.platform).color">
+              {{ platformMeta(i.platform).icon }}
+            </div>
+            <div class="int-main">
+              <div class="int-name">{{ i.name }}</div>
+              <div class="int-meta">
+                <span class="platform-chip" [style.--c]="platformMeta(i.platform).color">{{ platformMeta(i.platform).label }}</span>
+                <span class="meta-item">{{ projectName(i.projectId) }}</span>
+                @if (i.templateId) { <span class="meta-item">→ {{ formName(i.templateId) }}</span> }
+              </div>
+            </div>
+            <div class="int-stats">
+              <div class="int-stat">
+                <span class="istat-num">{{ i.totalSynced | number }}</span>
+                <span class="istat-lbl">synced</span>
+              </div>
+              <div class="int-stat">
+                <span class="istat-num">{{ i.lastBatchCount }}</span>
+                <span class="istat-lbl">last batch</span>
+              </div>
+            </div>
+            <div class="int-status-col">
+              <span class="sync-dot" [ngClass]="syncStatusClass(i.syncStatus)"></span>
+              <span class="sync-lbl">{{ syncStatusLabel(i.syncStatus) }}</span>
+              @if (i.lastSyncAt) {
+                <span class="sync-time">{{ i.lastSyncAt | date:'MMM d, HH:mm' }}</span>
+              }
+              @if (i.lastSyncError) {
+                <span class="sync-err" [title]="i.lastSyncError">⚠ Error</span>
+              }
+            </div>
+            <div class="int-actions">
+              @if (['kobo','odk','ona','commcare'].includes(i.platform) && i.isActive) {
+                <button class="act-btn sync-btn" [disabled]="syncing() === i._id" (click)="triggerSync(i)">
+                  {{ syncing() === i._id ? '⟳ Syncing…' : '⟳ Sync' }}
+                </button>
+              }
+              @if (i.platform === 'csv') {
+                <button class="act-btn" (click)="openCsvUpload(i)">⬆ Upload</button>
+              }
+              @if (i.templateId) {
+                <button class="act-btn" (click)="openFieldMap(i)">🗺 Map</button>
+              }
+              <button class="act-btn" (click)="openEditIntegration(i)">Edit</button>
+              <button class="act-btn" (click)="toggleIntegration(i)">
+                {{ i.isActive ? 'Disable' : 'Enable' }}
+              </button>
+              <button class="act-btn danger" (click)="deleteIntegration(i)">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TAB: RESPONSES
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'responses') {
+    <div class="filter-bar">
+      <select [(ngModel)]="filterProject">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+      <input [(ngModel)]="responseFilter" placeholder="Search responses…" class="search-input" />
+      <span class="filter-count">{{ filteredResponses().length }} records</span>
+    </div>
+
+    @if (filteredResponses().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>No responses yet</h3>
+        <p>Sync an integration or upload a CSV to see responses here.</p>
+      </div>
+    } @else {
+      <div class="responses-table-wrap">
+        <table class="responses-table">
+          <thead>
+            <tr>
+              <th>Collected</th>
+              <th>Form</th>
+              <th>Status</th>
+              <th>Fields</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of filteredResponses(); track r._id) {
+              <tr (click)="viewResponse(r)">
+                <td class="td-date">{{ r.collectedAt | date:'mediumDate' }}</td>
+                <td class="td-form">{{ formName(r.templateId) }}</td>
+                <td>
+                  <span class="resp-status" [class.submitted]="r.status==='submitted'">{{ r.status }}</span>
+                </td>
+                <td class="td-preview">
+                  @for (k of responseKeys(r).slice(0,3); track k) {
+                    <span class="field-chip">{{ k }}: {{ r.answers[k] }}</span>
+                  }
+                  @if (responseKeys(r).length > 3) {
+                    <span class="more-chip">+{{ responseKeys(r).length - 3 }}</span>
+                  }
+                </td>
+                <td><button class="act-btn" (click)="viewResponse(r); $event.stopPropagation()">View</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: CREATE / EDIT FORM
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'create-form' || modalMode() === 'edit-form') {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal xl" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ modalMode() === 'create-form' ? 'New Form Template' : 'Edit Form' }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+
+        <div class="form-row-2">
+          <div class="ff"><label>Name *</label>
+            <input [(ngModel)]="formDraft.name" placeholder="e.g. Household Survey" /></div>
+          <div class="ff"><label>Status</label>
+            <select [(ngModel)]="formDraft.status">
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="ff"><label>Project</label>
+            <select [(ngModel)]="formDraft.projectId">
+              <option value="">None</option>
+              @for (p of projects(); track p._id) {
+                <option [value]="p._id">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="ff"><label>Description</label>
+            <input [(ngModel)]="formDraft.description" placeholder="Optional description" /></div>
+        </div>
+
+        <!-- Sections -->
+        <div class="sections-editor">
+          <div class="sections-hd">
+            <h3>Sections</h3>
+            <button class="btn-ghost sm" (click)="addSection()">+ Add section</button>
+          </div>
+
+          @for (sec of formDraft.sections; track $index; let si = $index) {
+            <div class="section-block">
+              <div class="section-hd-row">
+                <input class="section-title-input" [(ngModel)]="sec.title" placeholder="Section title" />
+                <input class="section-desc-input" [(ngModel)]="sec.description" placeholder="Description (optional)" />
+                <button class="icon-btn danger" (click)="removeSection(si)" title="Remove section">✕</button>
+              </div>
+
+              @for (q of sec.questions; track $index; let qi = $index) {
+                <div class="question-row">
+                  <div class="q-order">{{ qi + 1 }}</div>
+                  <div class="q-fields">
+                    <div class="form-row-3">
+                      <div class="ff"><label>Label *</label>
+                        <input [(ngModel)]="q.label" placeholder="Question label" /></div>
+                      <div class="ff"><label>Key *</label>
+                        <input [(ngModel)]="q.key" placeholder="field_key" /></div>
+                      <div class="ff"><label>Type</label>
+                        <select [(ngModel)]="q.type">
+                          @for (t of questionTypes; track t) {
+                            <option [value]="t">{{ t }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-row-2">
+                      <div class="ff"><label>Description</label>
+                        <input [(ngModel)]="q.description" placeholder="Help text" /></div>
+                      <div class="ff inline-check">
+                        <label class="chk-label">
+                          <input type="checkbox" [(ngModel)]="q.required" /> Required
+                        </label>
+                      </div>
+                    </div>
+                    @if (needsOptions(q.type)) {
+                      <div class="ff"><label>Options (one per line)</label>
+                        <textarea [(ngModel)]="q.options" rows="3" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+                      </div>
+                    }
+                    @if (needsValidation(q.type)) {
+                      <div class="form-row-3">
+                        <div class="ff"><label>Min</label>
+                          <input type="number" [(ngModel)]="q.validation.min" placeholder="—" /></div>
+                        <div class="ff"><label>Max</label>
+                          <input type="number" [(ngModel)]="q.validation.max" placeholder="—" /></div>
+                        <div class="ff"><label>Regex pattern</label>
+                          <input [(ngModel)]="q.validation.pattern" placeholder="e.g. ^\d+$" /></div>
+                      </div>
+                    }
+                  </div>
+                  <button class="icon-btn danger" (click)="removeQuestion(si, qi)" title="Remove question">✕</button>
+                </div>
+              }
+              <button class="btn-ghost sm add-q-btn" (click)="addQuestion(si)">+ Add question</button>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="saveForm()">
+            {{ saving() ? 'Saving…' : (modalMode() === 'create-form' ? 'Create Form' : 'Save Changes') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: PREVIEW FORM
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'view-form' && selectedForm(); as f) {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal lg" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ f.name }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (f.description) { <p class="preview-desc">{{ f.description }}</p> }
+        @for (sec of f.sections; track $index) {
+          <div class="preview-section">
+            <div class="preview-section-title">{{ sec.title }}</div>
+            @if (sec.description) { <p class="preview-section-desc">{{ sec.description }}</p> }
+            @for (q of sec.questions; track q.key) {
+              <div class="preview-question">
+                <label class="pq-label">
+                  {{ q.label }}
+                  @if (q.required) { <span class="req">*</span> }
+                </label>
+                @if (q.description) { <p class="pq-desc">{{ q.description }}</p> }
+                @switch (q.type) {
+                  @case ('text') { <input class="preview-input" disabled placeholder="{{ q.type }}" /> }
+                  @case ('textarea') { <textarea class="preview-input" disabled rows="3" placeholder="Long text…"></textarea> }
+                  @case ('number') { <input class="preview-input" type="number" disabled placeholder="0" /> }
+                  @case ('date') { <input class="preview-input" type="date" disabled /> }
+                  @case ('boolean') {
+                    <div class="preview-radio-group">
+                      <label><input type="radio" disabled /> Yes</label>
+                      <label><input type="radio" disabled /> No</label>
+                    </div>
+                  }
+                  @case ('select') {
+                    <select class="preview-input" disabled>
+                      @for (o of q.options; track o) { <option>{{ o }}</option> }
+                    </select>
+                  }
+                  @case ('radio') {
+                    <div class="preview-radio-group">
+                      @for (o of q.options; track o) {
+                        <label><input type="radio" disabled /> {{ o }}</label>
+                      }
+                    </div>
+                  }
+                  @case ('checkbox') {
+                    <div class="preview-radio-group">
+                      @for (o of q.options; track o) {
+                        <label><input type="checkbox" disabled /> {{ o }}</label>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: CREATE / EDIT INTEGRATION
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'create-integration' || modalMode() === 'edit-integration') {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal lg" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ modalMode() === 'create-integration' ? 'Connect Data Source' : 'Edit Integration' }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+
+        <!-- Platform picker (create only) -->
+        @if (modalMode() === 'create-integration') {
+          <div class="platform-picker">
+            @for (p of platforms; track p.id) {
+              <button class="plat-opt" [class.selected-plat]="intDraft.platform === p.id"
+                [style.--c]="p.color" (click)="intDraft.platform = p.id">
+                <span class="plat-icon">{{ p.icon }}</span>
+                <span>{{ p.label }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <div class="form-row-2">
+          <div class="ff"><label>Name *</label>
+            <input [(ngModel)]="intDraft.name" placeholder="e.g. Household Survey – KoboToolbox" /></div>
+          <div class="ff"><label>Project</label>
+            <select [(ngModel)]="intDraft.projectId">
+              <option value="">None</option>
+              @for (p of projects(); track p._id) {
+                <option [value]="p._id">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="ff"><label>Link to Form Template</label>
+            <select [(ngModel)]="intDraft.templateId">
+              <option value="">None</option>
+              @for (f of forms(); track f._id) {
+                <option [value]="f._id">{{ f.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="ff"><label>Auto-sync every (minutes)</label>
+            <input type="number" [(ngModel)]="intDraft.syncIntervalMinutes" placeholder="e.g. 60" min="5" /></div>
+        </div>
+        <div class="ff"><label>Description</label>
+          <input [(ngModel)]="intDraft.description" placeholder="Optional" /></div>
+
+        <!-- Platform-specific config -->
+        <div class="platform-config-block">
+          @switch (intDraft.platform) {
+            @case ('kobo') {
+              <div class="config-title">🟦 KoboToolbox Configuration</div>
+              <div class="ff"><label>Server URL</label>
+                <input [(ngModel)]="intDraft.koboServer" placeholder="https://kf.kobotoolbox.org" /></div>
+              <div class="ff"><label>API Token *</label>
+                <input [(ngModel)]="intDraft.koboToken" placeholder="Your KoboToolbox API token" /></div>
+              <div class="ff"><label>Asset UID *</label>
+                <input [(ngModel)]="intDraft.koboAssetUid" placeholder="aXXXXXXXXXXXXXXXXXXXX" /></div>
+              <p class="config-hint">Find your API token at <code>Account Settings → API Token</code>. The Asset UID is in the form URL.</p>
+            }
+            @case ('odk') {
+              <div class="config-title">🟩 ODK Central Configuration</div>
+              <div class="ff"><label>Server URL *</label>
+                <input [(ngModel)]="intDraft.odkServer" placeholder="https://your-odk-central.example.com" /></div>
+              <div class="form-row-2">
+                <div class="ff"><label>Project ID *</label>
+                  <input [(ngModel)]="intDraft.odkProject" placeholder="1" /></div>
+                <div class="ff"><label>Form ID *</label>
+                  <input [(ngModel)]="intDraft.odkForm" placeholder="household_survey" /></div>
+              </div>
+              <div class="form-row-2">
+                <div class="ff"><label>Email *</label>
+                  <input [(ngModel)]="intDraft.odkEmail" placeholder="admin@example.com" /></div>
+                <div class="ff"><label>Password *</label>
+                  <input type="password" [(ngModel)]="intDraft.odkPassword" placeholder="••••••••" /></div>
+              </div>
+            }
+            @case ('ona') {
+              <div class="config-title">🟧 Ona Configuration</div>
+              <div class="ff"><label>Server URL</label>
+                <input [(ngModel)]="intDraft.onaServer" placeholder="https://api.ona.io" /></div>
+              <div class="ff"><label>API Token *</label>
+                <input [(ngModel)]="intDraft.onaToken" placeholder="Your Ona API token" /></div>
+              <div class="ff"><label>Form ID *</label>
+                <input [(ngModel)]="intDraft.onaFormId" placeholder="12345" /></div>
+            }
+            @case ('commcare') {
+              <div class="config-title">🟪 CommCare HQ Configuration</div>
+              <div class="ff"><label>Project Space *</label>
+                <input [(ngModel)]="intDraft.ccProjectSpace" placeholder="your-project-space" /></div>
+              <div class="ff"><label>API Key *</label>
+                <input [(ngModel)]="intDraft.ccApiKey" placeholder="Your CommCare API key" /></div>
+              <div class="ff"><label>Form XMLNS (optional filter)</label>
+                <input [(ngModel)]="intDraft.ccFormId" placeholder="http://openrosa.org/formdesigner/..." /></div>
+            }
+            @case ('webhook') {
+              <div class="config-title">🔗 Webhook Configuration</div>
+              <div class="config-info-box">
+                <p>Once saved, external systems can POST JSON to your webhook endpoint:</p>
+                <code class="webhook-url">POST /api/forms/integrations/[ID]/webhook</code>
+                <p>Include your JWT Bearer token in the <code>Authorization</code> header, or configure HMAC signing.</p>
+              </div>
+            }
+            @case ('csv') {
+              <div class="config-title">📄 CSV Import</div>
+              <div class="config-info-box">
+                <p>After saving, use the <strong>Upload</strong> button on the integration row to import CSV files.</p>
+                <p>First row must be a header row. Set up field mapping after connecting to a form template.</p>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="chk-row">
+          <label class="chk-label">
+            <input type="checkbox" [(ngModel)]="intDraft.isActive" /> Active
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="saveIntegration()">
+            {{ saving() ? 'Saving…' : (modalMode() === 'create-integration' ? 'Connect' : 'Save Changes') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: FIELD MAPPING
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'field-map' && fieldMapIntegration(); as i) {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal md" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>Field Mapping — {{ i.name }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="mapping-hint">Map <strong>external field names</strong> (from {{ platformMeta(i.platform).label }}) to <strong>local form question keys</strong>.</p>
+
+        <div class="map-header-row">
+          <span>External field name</span>
+          <span>→</span>
+          <span>Local question key</span>
+          <span></span>
+        </div>
+
+        @for (key of fieldMapKeys(); track key) {
+          <div class="map-row">
+            <input [ngModel]="key" (ngModelChange)="updateMapKey(key, $event)" placeholder="e.g. _submission_time" />
+            <span class="map-arrow">→</span>
+            <select [ngModel]="fieldMappingDraft[key]" (ngModelChange)="updateMapVal(key, $event)">
+              <option value="">Select local field</option>
+              @for (f of externalFields; track f) {
+                <option [value]="f">{{ f }}</option>
+              }
+            </select>
+            <button class="icon-btn danger" (click)="removeMapRow(key)">✕</button>
+          </div>
+        }
+
+        <button class="btn-ghost sm" (click)="addFieldMapRow()">+ Add mapping</button>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="saveFieldMap()">
+            {{ saving() ? 'Saving…' : 'Save Mapping' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: CSV UPLOAD
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'csv-upload') {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal md" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>Upload CSV</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+        <div class="ff">
+          <label>CSV File *</label>
+          <div class="file-drop" [class.has-file]="csvFile">
+            <input type="file" accept=".csv,text/csv" (change)="onCsvFileChange($event)" />
+            @if (csvFile) {
+              <span>📄 {{ csvFile.name }} ({{ (csvFile.size / 1024).toFixed(1) }} KB)</span>
+            } @else {
+              <span>Click to select or drag a CSV file here</span>
+            }
+          </div>
+        </div>
+        <div class="ff"><label>Delimiter</label>
+          <select [(ngModel)]="csvDelimiter">
+            <option value=",">Comma (,)</option>
+            <option value=";">Semicolon (;)</option>
+            <option value="&#9;">Tab</option>
+            <option value="|">Pipe (|)</option>
+          </select>
+        </div>
+        <p class="config-hint">First row must be a header. Duplicate rows (matched by row index) will be skipped.</p>
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="!csvFile || saving()" (click)="uploadCsv()">
+            {{ saving() ? 'Uploading…' : 'Import CSV' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: SYNC RESULT
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'sync-result' && lastSyncResult(); as r) {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal sm" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>Sync Complete</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="sync-result-grid">
+          <div class="sr-card ok"><div class="sr-num">{{ r.synced }}</div><div class="sr-lbl">Imported</div></div>
+          <div class="sr-card skip"><div class="sr-num">{{ r.skipped }}</div><div class="sr-lbl">Skipped (dupes)</div></div>
+          <div class="sr-card err"><div class="sr-num">{{ r.errors.length }}</div><div class="sr-lbl">Errors</div></div>
+        </div>
+        @if (r.errors.length > 0) {
+          <div class="sync-errors">
+            <strong>Errors:</strong>
+            @for (e of r.errors; track e) {
+              <div class="sync-err-row">{{ e }}</div>
+            }
+          </div>
+        }
+        <div class="modal-footer">
+          <button class="btn-primary" (click)="closeModal()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: VIEW RESPONSE
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'view-response' && selectedResponse(); as r) {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal md" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>Response Detail</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="resp-meta">
+          <span>{{ r.collectedAt | date:'medium' }}</span>
+          <span class="resp-status" [class.submitted]="r.status==='submitted'">{{ r.status }}</span>
+          <span>{{ formName(r.templateId) }}</span>
+        </div>
+        <div class="resp-fields">
+          @for (k of responseKeys(r); track k) {
+            <div class="resp-field">
+              <span class="resp-key">{{ k }}</span>
+              <span class="resp-val">{{ r.answers[k] }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

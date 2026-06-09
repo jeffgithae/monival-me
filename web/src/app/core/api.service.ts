@@ -902,4 +902,71 @@ export class ApiService {
       `${this.base}/workflows/summary`
     );
   }
+
+  // ── Data Collection / Integrations ─────────────────────────────────────────
+
+  integrations(projectId?: string) {
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.get<any[]>(`${this.base}/forms/integrations`, { params });
+  }
+
+  integration(id: string) {
+    return this.http.get<any>(`${this.base}/forms/integrations/${id}`);
+  }
+
+  integrationStats() {
+    return this.http.get<any>(`${this.base}/forms/integrations/stats`);
+  }
+
+  createIntegration(dto: Record<string, unknown>) {
+    return this.http.post<any>(`${this.base}/forms/integrations`, dto);
+  }
+
+  updateIntegration(id: string, dto: Record<string, unknown>) {
+    return this.http.patch<any>(`${this.base}/forms/integrations/${id}`, dto);
+  }
+
+  deleteIntegration(id: string) {
+    return this.http.delete(`${this.base}/forms/integrations/${id}`);
+  }
+
+  syncIntegration(id: string) {
+    return this.http.post<any>(`${this.base}/forms/integrations/${id}/sync`, {});
+  }
+
+  uploadCsvData(id: string, file: File, delimiter = ',') {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('delimiter', delimiter);
+    return this.http.post<any>(`${this.base}/forms/integrations/${id}/upload`, form);
+  }
+
+  formTemplatesAll(projectId?: string) {
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.get<any[]>(`${this.base}/forms/templates`, { params });
+  }
+
+  formResponsesAll(projectId?: string) {
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.get<any[]>(`${this.base}/forms/responses`, { params });
+  }
+
+  createFormTemplateNew(dto: Record<string, unknown>) {
+    return this.http.post<any>(`${this.base}/forms/templates`, dto);
+  }
+
+  updateFormTemplateById(id: string, dto: Record<string, unknown>) {
+    return this.http.patch<any>(`${this.base}/forms/templates/${id}`, dto);
+  }
+
+  deleteFormTemplateById(id: string) {
+    return this.http.delete(`${this.base}/forms/templates/${id}`);
+  }
+
+  submitFormResponseNew(dto: Record<string, unknown>) {
+    return this.http.post<any>(`${this.base}/forms/responses`, dto);
+  }
 }

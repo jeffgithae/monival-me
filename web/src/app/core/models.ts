@@ -1652,3 +1652,62 @@ export interface WorkflowSummary {
   rejected: number;
   overdue: number;
 }
+
+// ─── Data Collection / External Integrations ─────────────────────────────────
+
+export type IntegrationPlatform = 'kobo' | 'odk' | 'commcare' | 'ona' | 'webhook' | 'csv';
+export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'disabled';
+
+export interface ExternalIntegration {
+  _id: string;
+  organizationId: string;
+  projectId?: string;
+  templateId?: string;
+  name: string;
+  description?: string;
+  platform: IntegrationPlatform;
+  isActive: boolean;
+  config: Record<string, unknown>;
+  fieldMapping: Record<string, string>;
+  indicatorId?: string;
+  activityId?: string;
+  syncStatus: SyncStatus;
+  lastSyncAt?: string;
+  lastSyncError?: string;
+  totalSynced: number;
+  lastBatchCount: number;
+  syncIntervalMinutes?: number;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IntegrationStats {
+  total: number;
+  active: number;
+  totalSynced: number;
+  errors: number;
+}
+
+export interface SyncResult {
+  synced: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface DataCollectionQuestion {
+  key: string;
+  label: string;
+  description?: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'radio' | 'checkbox' | 'date' | 'boolean';
+  required?: boolean;
+  options?: string[];
+  validation?: { min?: number; max?: number; pattern?: string; patternMessage?: string };
+  conditional?: { dependsOn?: string; operator?: 'equals' | 'not_equals' | 'in' | 'not_in'; value?: unknown };
+}
+
+export interface DataCollectionSection {
+  title: string;
+  description?: string;
+  questions: DataCollectionQuestion[];
+}
