@@ -15,8 +15,8 @@ import {
   CloudProvider,
 } from '../schemas/cloud-storage-connection.schema';
 import { Document } from '../schemas/document.schema';
-import { ConnectCloudStorageDto } from './dto/connect-cloud-storage.dto';
-import { ImportCloudFileDto } from './dto/import-cloud-file.dto';
+import { ConnectCloudStorageDto } from '../dto/connect-cloud-storage.dto';
+import { ImportCloudFileDto } from '../dto/import-cloud-file.dto';
 
 // ─── Shape returned by listFiles ─────────────────────────────────────────────
 export interface CloudFile {
