@@ -6,6 +6,7 @@ import { ApiService } from '../core/api.service';
 import { roleLabel } from '../core/roles';
 import { AppNotification } from '../core/models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ThemeService } from '../core/theme.service';
 
 @Component({
   selector: 'app-shell',
@@ -26,6 +27,7 @@ export class ShellComponent implements OnInit {
 
   constructor(
     readonly auth: AuthService,
+    readonly theme: ThemeService,
     private readonly api: ApiService,
     private readonly router: Router
   ) {}
