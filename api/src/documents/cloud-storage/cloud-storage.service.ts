@@ -417,7 +417,8 @@ export class CloudStorageService {
       params: { q, fields, pageSize: 100, orderBy: 'folder,name' },
     });
 
-    return resp.data.files.map((f) => ({
+    type GDriveFile = { id: string; name: string; mimeType: string; size?: string; modifiedTime?: string; webViewLink?: string; iconLink?: string; parents?: string[] };
+    return resp.data.files.map((f: GDriveFile) => ({
       id: f.id,
       name: f.name,
       mimeType: f.mimeType,
@@ -456,7 +457,8 @@ export class CloudStorageService {
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      return resp.data.matches.map((m) => {
+      type DropboxMatch = { metadata: { metadata: { id: string; name: string; '.tag': string; size?: number; server_modified?: string; preview_url?: string; path_display?: string } } };
+      return resp.data.matches.map((m: DropboxMatch) => {
         const f = m.metadata.metadata;
         return {
           id: f.id || f.path_display || '',
@@ -488,7 +490,8 @@ export class CloudStorageService {
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
-    return resp.data.entries.map((f) => ({
+    type DropboxEntry = { '.tag': string; id: string; name: string; size?: number; server_modified?: string; preview_url?: string; path_display?: string };
+    return resp.data.entries.map((f: DropboxEntry) => ({
       id: f.id || f.path_display || '',
       name: f.name,
       mimeType: undefined,
@@ -531,7 +534,8 @@ export class CloudStorageService {
       }>;
     }>(url, { headers: { Authorization: `Bearer ${token}` } });
 
-    return resp.data.value.map((f) => ({
+    type SPItem = { id: string; name: string; file?: { mimeType: string }; folder?: object; size?: number; lastModifiedDateTime?: string; webUrl?: string; parentReference?: { id: string } };
+    return resp.data.value.map((f: SPItem) => ({
       id: f.id,
       name: f.name,
       mimeType: f.file?.mimeType,
