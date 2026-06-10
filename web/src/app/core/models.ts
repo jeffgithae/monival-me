@@ -1444,6 +1444,8 @@ export interface CloudAuthUrlResult {
   state: string;
 }
 
+export type CloudProvidersConfig = Record<CloudProvider, { configured: boolean; label: string }>;
+
 // ─── Beneficiary ──────────────────────────────────────────────────────────────
 
 export interface HouseholdMember {

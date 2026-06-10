@@ -26,6 +26,16 @@ export class CloudStorageController {
   constructor(private readonly cloudService: CloudStorageService) {}
 
   /**
+   * GET /documents/cloud/providers-config
+   * Returns which providers have OAuth credentials configured (no secrets exposed).
+   */
+  @Get('providers-config')
+  @Roles(...PERMISSIONS.VIEW_DOCUMENTS)
+  getProvidersConfig() {
+    return this.cloudService.getProvidersConfig();
+  }
+
+  /**
    * GET /documents/cloud/auth-url?provider=google_drive&redirectUri=https://…&state=xyz
    * Returns the OAuth authorization URL to redirect the user to.
    */

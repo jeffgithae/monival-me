@@ -51,7 +51,32 @@ export class CloudStorageService {
 
   // ─── Auth URL ──────────────────────────────────────────────────────────────
 
+  getProvidersConfig(): Record<CloudProvider, { configured: boolean; label: string }> {
+    return {
+      google_drive: {
+        configured: !!this.config.get<string>('GOOGLE_CLIENT_ID', ''),
+        label: 'Google Drive',
+      },
+      dropbox: {
+        configured: !!this.config.get<string>('DROPBOX_CLIENT_ID', ''),
+        label: 'Dropbox',
+      },
+      sharepoint: {
+        configured: !!this.config.get<string>('SHAREPOINT_CLIENT_ID', ''),
+        label: 'SharePoint',
+      },
+    };
+  }
+
   getAuthUrl(provider: CloudProvider, redirectUri: string, state: string): AuthUrlResult {
+    // Validate that credentials are configured before building URL
+    const cfg = this.getProvidersConfig();
+    if (!cfg[provider]?.configured) {
+      throw new BadRequestException(
+        `${cfg[provider]?.label ?? provider} is not configured on this server. ` +
+        `Ask your administrator to add the required OAuth credentials.`,
+      );
+    }
     switch (provider) {
       case 'google_drive':
         return this.googleAuthUrl(redirectUri, state);

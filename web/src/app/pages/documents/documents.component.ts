@@ -11,6 +11,7 @@ import {
   CloudStorageConnection,
   CloudFile,
   CloudProvider,
+  CloudProvidersConfig,
 } from '../../core/models';
 
 const CATEGORIES = ['Report', 'Evidence', 'Policy', 'Agreement', 'Financial', 'Training', 'Other'];
@@ -23,6 +24,42 @@ const PROVIDER_META: Record<CloudProvider, { label: string; icon: string; color:
   google_drive: { label: 'Google Drive', icon: '🔵', color: '#4285F4' },
   dropbox:      { label: 'Dropbox',      icon: '🟦', color: '#0061FF' },
   sharepoint:   { label: 'SharePoint',   icon: '🟩', color: '#038387' },
+};
+
+// Setup instructions per provider shown when credentials aren't configured
+const PROVIDER_SETUP: Record<CloudProvider, { docsUrl: string; steps: string[] }> = {
+  google_drive: {
+    docsUrl: 'https://console.cloud.google.com/apis/credentials',
+    steps: [
+      'Go to Google Cloud Console → APIs & Services → Credentials',
+      'Create an OAuth 2.0 Client ID (Web application)',
+      'Add authorized redirect URI: <YOUR_DOMAIN>/documents?cloud_callback=1&provider=google_drive',
+      'Copy Client ID and Client Secret',
+      'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Railway environment variables',
+    ],
+  },
+  dropbox: {
+    docsUrl: 'https://www.dropbox.com/developers/apps',
+    steps: [
+      'Go to Dropbox Developer Console → Create app',
+      'Choose "Scoped access" → "Full Dropbox" → name your app',
+      'Under Permissions, enable: files.content.read, account_info.read',
+      'Under Settings, add redirect URI: <YOUR_DOMAIN>/documents?cloud_callback=1&provider=dropbox',
+      'Copy App key and App secret',
+      'Set DROPBOX_CLIENT_ID and DROPBOX_CLIENT_SECRET in Railway environment variables',
+    ],
+  },
+  sharepoint: {
+    docsUrl: 'https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps',
+    steps: [
+      'Go to Azure Portal → App registrations → New registration',
+      'Add redirect URI: <YOUR_DOMAIN>/documents?cloud_callback=1&provider=sharepoint',
+      'Under API Permissions, add Microsoft Graph → Files.Read.All (Delegated)',
+      'Under Certificates & secrets, create a new client secret',
+      'Copy Application (client) ID and the secret value',
+      'Set SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET (and SHAREPOINT_TENANT_ID if single-tenant) in Railway',
+    ],
+  },
 };
 
 type Panel = 'none' | 'create' | 'edit' | 'versions' | 'cloud-manager' | 'cloud-browser';
@@ -62,6 +99,8 @@ export class DocumentsComponent implements OnInit {
   cloudConnections   = signal<CloudStorageConnection[]>([]);
   loadingConnections = signal(false);
   connectingProvider = signal<CloudProvider | null>(null);
+  providersConfig    = signal<CloudProvidersConfig | null>(null);
+  setupProvider      = signal<CloudProvider | null>(null); // which provider's setup guide is open
 
   // Cloud browser
   activeBrowserConn  = signal<CloudStorageConnection | null>(null);
@@ -77,6 +116,7 @@ export class DocumentsComponent implements OnInit {
   readonly categories    = CATEGORIES;
   readonly categoryIcons = CATEGORY_ICONS;
   readonly providerMeta  = PROVIDER_META;
+  readonly providerSetup = PROVIDER_SETUP;
   readonly providers: CloudProvider[] = ['google_drive', 'dropbox', 'sharepoint'];
 
   canManage = computed(() =>
@@ -251,6 +291,11 @@ export class DocumentsComponent implements OnInit {
   openCloudManager() {
     this.activePanel.set('cloud-manager');
     this.loadConnections();
+    // Fetch which providers have credentials configured on the server
+    this.api.cloudProvidersConfig().subscribe({
+      next: cfg => this.providersConfig.set(cfg),
+      error: ()  => this.providersConfig.set(null),
+    });
   }
 
   loadConnections() {
@@ -263,6 +308,13 @@ export class DocumentsComponent implements OnInit {
   }
 
   connectProvider(provider: CloudProvider) {
+    // If server credentials aren't configured, show setup guide instead of broken OAuth
+    const cfg = this.providersConfig();
+    if (cfg && !cfg[provider]?.configured) {
+      this.setupProvider.set(provider);
+      return;
+    }
+
     this.connectingProvider.set(provider);
     const redirectUri = `${window.location.origin}/documents?cloud_callback=1&provider=${provider}`;
     const state = `${provider}_${Date.now()}`;
@@ -424,6 +476,11 @@ export class DocumentsComponent implements OnInit {
   providerIcon(p: CloudProvider): string   { return PROVIDER_META[p]?.icon ?? '☁️'; }
   providerColor(p: CloudProvider): string  { return PROVIDER_META[p]?.color ?? '#666'; }
 
+  isConfigured(provider: CloudProvider): boolean {
+    const cfg = this.providersConfig();
+    return cfg ? !!cfg[provider]?.configured : true; // optimistic while loading
+  }
+
   isConnected(provider: CloudProvider): boolean {
     return this.cloudConnections().some(c => c.provider === provider);
   }
@@ -461,5 +518,6 @@ export class DocumentsComponent implements OnInit {
     this.cloudFolderStack.set([]);
     this.cloudError.set('');
     this.importingFileId.set('');
+    this.setupProvider.set(null);
   }
 }

@@ -972,6 +972,12 @@ export class ApiService {
 
   // ─── Cloud Storage Integrations ────────────────────────────────────────────
 
+  cloudProvidersConfig() {
+    return this.http.get<import('./models').CloudProvidersConfig>(
+      `${this.base}/documents/cloud/providers-config`,
+    );
+  }
+
   cloudAuthUrl(provider: import('./models').CloudProvider, redirectUri: string, state: string) {
     return this.http.get<import('./models').CloudAuthUrlResult>(`${this.base}/documents/cloud/auth-url`, {
       params: { provider, redirectUri, state },

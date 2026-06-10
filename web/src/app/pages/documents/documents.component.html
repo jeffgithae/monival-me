@@ -320,7 +320,9 @@
         <!-- Provider cards -->
         <div class="provider-grid">
           @for (provider of providers; track provider) {
-            <div class="provider-card" [class.connected]="isConnected(provider)">
+            <div class="provider-card"
+                 [class.connected]="isConnected(provider)"
+                 [class.not-configured]="!isConfigured(provider)">
               <div class="provider-header">
                 <div class="provider-logo" [style.background]="providerColor(provider)">
                   @if (provider === 'google_drive') { 
@@ -338,6 +340,8 @@
                   @if (isConnected(provider)) {
                     <span class="conn-status connected">✓ Connected</span>
                     <span class="conn-email">{{ getConnection(provider)?.accountMeta?.email }}</span>
+                  } @else if (!isConfigured(provider)) {
+                    <span class="conn-status unconfigured">⚙ Setup required</span>
                   } @else {
                     <span class="conn-status">Not connected</span>
                   }
@@ -352,6 +356,10 @@
                   <button class="btn-disconnect"
                     (click)="disconnectProvider(getConnection(provider)!)">
                     Disconnect
+                  </button>
+                } @else if (!isConfigured(provider)) {
+                  <button class="btn-setup" (click)="setupProvider.set(provider)">
+                    📋 View Setup Guide
                   </button>
                 } @else {
                   <button class="btn-connect"
@@ -369,6 +377,30 @@
             </div>
           }
         </div>
+
+        <!-- Setup guide (shown inline when a provider is not configured) -->
+        @if (setupProvider()) {
+          <div class="setup-guide">
+            <div class="setup-guide-header">
+              <div>
+                <h4>🔧 Setting up {{ providerLabel(setupProvider()!) }}</h4>
+                <p class="setup-sub">Ask your system administrator to complete these steps in Railway:</p>
+              </div>
+              <button class="close-btn" (click)="setupProvider.set(null)">✕</button>
+            </div>
+            <ol class="setup-steps">
+              @for (step of providerSetup[setupProvider()!].steps; track step) {
+                <li>{{ step }}</li>
+              }
+            </ol>
+            <div class="setup-footer">
+              <a [href]="providerSetup[setupProvider()!].docsUrl" target="_blank" rel="noopener" class="btn-docs">
+                📖 Open Developer Console ↗
+              </a>
+              <span class="setup-note">After adding the env vars, redeploy the API and refresh this page.</span>
+            </div>
+          </div>
+        }
 
         <!-- All connections list (handles multiple accounts per provider) -->
         @if (cloudConnections().length > 0) {

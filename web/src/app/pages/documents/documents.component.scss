@@ -522,3 +522,98 @@ $border:   rgba(15, 23, 42, 0.08);
   border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
   border-radius: 50%; animation: spin 0.7s linear infinite;
 }
+// ─── Not-configured provider card state ───────────────────────────────────────
+.provider-card.not-configured {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.conn-status.unconfigured {
+  color: var(--amber);
+}
+
+.btn-setup {
+  flex: 1;
+  padding: 0.55rem 0.9rem;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(245, 158, 11, 0.15); }
+}
+
+// ─── Setup guide panel ────────────────────────────────────────────────────────
+.setup-guide {
+  background: var(--surface-soft);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.setup-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  h4 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-strong);
+  }
+  .setup-sub {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+}
+
+.setup-steps {
+  margin: 0 0 1rem;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+}
+
+.setup-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.btn-docs {
+  padding: 0.5rem 1rem;
+  background: var(--primary-ghost);
+  color: var(--primary-lt);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(99, 102, 241, 0.15); }
+}
+
+.setup-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
+}
