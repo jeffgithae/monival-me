@@ -969,4 +969,46 @@ export class ApiService {
   submitFormResponseNew(dto: Record<string, unknown>) {
     return this.http.post<any>(`${this.base}/forms/responses`, dto);
   }
+
+  // ─── Cloud Storage Integrations ────────────────────────────────────────────
+
+  cloudAuthUrl(provider: import('./models').CloudProvider, redirectUri: string, state: string) {
+    return this.http.get<import('./models').CloudAuthUrlResult>(`${this.base}/documents/cloud/auth-url`, {
+      params: { provider, redirectUri, state },
+    });
+  }
+
+  connectCloudStorage(dto: import('./models').ConnectCloudStorageDto) {
+    return this.http.post<import('./models').CloudStorageConnection>(
+      `${this.base}/documents/cloud/connect`,
+      dto,
+    );
+  }
+
+  cloudConnections() {
+    return this.http.get<import('./models').CloudStorageConnection[]>(
+      `${this.base}/documents/cloud/connections`,
+    );
+  }
+
+  removeCloudConnection(connectionId: string) {
+    return this.http.delete(`${this.base}/documents/cloud/connections/${connectionId}`);
+  }
+
+  listCloudFiles(connectionId: string, folderId?: string, search?: string) {
+    const params: Record<string, string> = {};
+    if (folderId) params['folderId'] = folderId;
+    if (search)   params['search']   = search;
+    return this.http.get<import('./models').CloudFile[]>(
+      `${this.base}/documents/cloud/files/${connectionId}`,
+      { params },
+    );
+  }
+
+  importCloudFile(dto: import('./models').ImportCloudFileDto) {
+    return this.http.post<import('./models').OrgDocument>(
+      `${this.base}/documents/cloud/import`,
+      dto,
+    );
+  }
 }

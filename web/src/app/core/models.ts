@@ -1388,6 +1388,62 @@ export interface CreateDocumentVersionDto {
   storageKey?: string;
 }
 
+// ─── Cloud Storage Integrations ───────────────────────────────────────────────
+
+export type CloudProvider = 'google_drive' | 'dropbox' | 'sharepoint';
+
+export interface CloudStorageConnection {
+  _id: string;
+  organizationId: string;
+  connectedByUserId: string;
+  provider: CloudProvider;
+  label: string;
+  accountMeta: {
+    email?: string;
+    name?: string;
+    accountId?: string;
+    [key: string]: unknown;
+  };
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CloudFile {
+  id: string;
+  name: string;
+  mimeType?: string;
+  size?: number;
+  modifiedAt?: string;
+  webViewLink?: string;
+  iconUrl?: string;
+  isFolder: boolean;
+  parentId?: string | null;
+}
+
+export interface ConnectCloudStorageDto {
+  provider: CloudProvider;
+  code: string;
+  codeVerifier?: string;
+  redirectUri: string;
+  label?: string;
+}
+
+export interface ImportCloudFileDto {
+  connectionId: string;
+  fileId: string;
+  fileName: string;
+  fileUrl?: string;
+  mimeType?: string;
+  projectId?: string;
+  category?: string;
+}
+
+export interface CloudAuthUrlResult {
+  authUrl: string;
+  state: string;
+}
+
 // ─── Beneficiary ──────────────────────────────────────────────────────────────
 
 export interface HouseholdMember {

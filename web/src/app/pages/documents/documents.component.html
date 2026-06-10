@@ -7,9 +7,17 @@
       <h1>Documents</h1>
       <p class="subtitle">Upload, organise and version-control your project evidence and reports</p>
     </div>
-    @if (canManage()) {
-      <button class="btn-new" (click)="showCreatePanel.set(true)">＋ Upload Document</button>
-    }
+    <div class="header-actions">
+      <button class="btn-cloud" (click)="openCloudManager()" title="Connect Google Drive, Dropbox or SharePoint">
+        ☁️ Cloud Storage
+        @if (cloudConnections().length > 0) {
+          <span class="cloud-badge">{{ cloudConnections().length }}</span>
+        }
+      </button>
+      @if (canManage()) {
+        <button class="btn-new" (click)="activePanel.set('create')">＋ Upload Document</button>
+      }
+    </div>
   </div>
 
   <!-- Error -->
@@ -19,7 +27,6 @@
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <!-- Category tabs -->
     <div class="tab-group">
       <button class="tab" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
         All <span class="badge">{{ categoryCounts()['All'] }}</span>
@@ -34,7 +41,6 @@
       }
     </div>
 
-    <!-- Project filter -->
     @if (projects().length > 0) {
       <select class="proj-filter" [(ngModel)]="filterProject">
         <option value="">All projects</option>
@@ -44,7 +50,6 @@
       </select>
     }
 
-    <!-- Search -->
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" placeholder="Search documents…" [(ngModel)]="searchQuery" />
@@ -56,64 +61,73 @@
 
   <!-- Loading -->
   @if (loading()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading documents…</p>
-    </div>
-  } @else if (filteredDocs().length === 0) {
+    <div class="loading-state"><div class="spinner"></div></div>
+  }
+
+  <!-- Empty -->
+  @else if (filteredDocs().length === 0) {
     <div class="empty-state">
       <div class="empty-icon">📂</div>
-      <p>No documents found</p>
-      <small>{{ canManage() ? 'Upload your first document using the button above.' : 'No documents match your current filters.' }}</small>
+      @if (documents().length === 0) {
+        <h3>No documents yet</h3>
+        <p>Upload your first document or import files from Google Drive, Dropbox or SharePoint.</p>
+        <div class="empty-actions">
+          @if (canManage()) {
+            <button class="btn-new" (click)="activePanel.set('create')">＋ Upload Document</button>
+          }
+          <button class="btn-cloud" (click)="openCloudManager()">☁️ Connect Cloud Storage</button>
+        </div>
+      } @else {
+        <h3>No documents match your filters</h3>
+        <p>Try adjusting your search or category filter.</p>
+      }
     </div>
-  } @else {
-    <div class="docs-grid">
+  }
+
+  <!-- Document Grid -->
+  @else {
+    <div class="doc-grid">
       @for (doc of filteredDocs(); track doc._id) {
         <div class="doc-card">
-
-          <!-- Category stripe -->
-          <div class="card-stripe cat-{{ (doc.category ?? 'Other').toLowerCase() }}"></div>
-
-          <div class="card-body">
-            <div class="card-top">
-              <div class="cat-icon">{{ categoryIcon(doc.category) }}</div>
-              <div class="doc-meta">
-                <h3 class="doc-title">{{ doc.title }}</h3>
-                @if (doc.description) {
-                  <p class="doc-desc">{{ doc.description }}</p>
-                }
-                <div class="doc-chips">
-                  @if (doc.category) {
-                    <span class="chip chip-cat">{{ doc.category }}</span>
-                  }
-                  @if (projectName(doc.projectId)) {
-                    <span class="chip chip-proj">📁 {{ projectName(doc.projectId) }}</span>
-                  }
-                  @for (tag of (doc.tags ?? []).slice(0, 3); track tag) {
-                    <span class="chip chip-tag">{{ tag }}</span>
+          <div class="card-top">
+            <span class="cat-icon">{{ categoryIcon(doc.category) }}</span>
+            <div class="card-meta">
+              @if (doc.category) {
+                <span class="cat-chip">{{ doc.category }}</span>
+              }
+              @if (doc.tags?.length) {
+                <div class="tag-row">
+                  @for (tag of (doc.tags ?? []); track tag) {
+                    @if (tag === 'google-drive' || tag === 'dropbox' || tag === 'sharepoint') {
+                      <span class="tag cloud-tag">☁️ {{ tag }}</span>
+                    } @else {
+                      <span class="tag">{{ tag }}</span>
+                    }
                   }
                 </div>
-              </div>
+              }
             </div>
-
-            <div class="card-footer">
-              <span class="doc-date">{{ doc.createdAt | date:'d MMM y' }}</span>
-              <div class="card-actions">
-                @if (doc.fileUrl) {
-                  <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">
-                    ↗ Open
-                  </a>
-                }
-                <button class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
-                @if (canManage()) {
-                  <button class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
-                  <button class="btn-action danger"
-                    [disabled]="deleting() === doc._id"
-                    (click)="deleteDoc(doc)">
-                    {{ deleting() === doc._id ? '…' : '🗑' }}
-                  </button>
-                }
-              </div>
+          </div>
+          <h3 class="doc-title">{{ doc.title }}</h3>
+          @if (doc.description) {
+            <p class="doc-desc">{{ doc.description }}</p>
+          }
+          @if (projectName(doc.projectId)) {
+            <div class="doc-project">📁 {{ projectName(doc.projectId) }}</div>
+          }
+          <div class="card-footer">
+            <span class="doc-date">{{ doc.createdAt | date:'d MMM y' }}</span>
+            <div class="card-actions">
+              @if (doc.fileUrl) {
+                <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">↗ Open</a>
+              }
+              <button class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
+              @if (canManage()) {
+                <button class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
+                <button class="btn-action danger" [disabled]="deleting() === doc._id" (click)="deleteDoc(doc)">
+                  {{ deleting() === doc._id ? '…' : '🗑' }}
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -123,14 +137,13 @@
 </div>
 
 <!-- ── Create Document Panel ──────────────────────────────────────────────── -->
-@if (showCreatePanel()) {
+@if (activePanel() === 'create') {
   <div class="modal-backdrop" (click)="closeAll()">
     <div class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <h2>Upload Document</h2>
         <button class="close-btn" (click)="closeAll()">✕</button>
       </div>
-
       <form [formGroup]="createForm" class="panel-body">
         <div class="field full">
           <label>Title *</label>
@@ -138,7 +151,7 @@
         </div>
         <div class="field full">
           <label>Description</label>
-          <textarea formControlName="description" placeholder="Brief description of this document…"></textarea>
+          <textarea formControlName="description" placeholder="Brief description…"></textarea>
         </div>
         <div class="form-row">
           <div class="field">
@@ -162,14 +175,13 @@
         <div class="field full">
           <label>File URL</label>
           <input formControlName="fileUrl" placeholder="https://drive.google.com/…" />
-          <span class="field-hint">Paste a link to the file (Google Drive, Dropbox, SharePoint, etc.)</span>
+          <span class="field-hint">Paste a link (Google Drive, Dropbox, SharePoint, etc.)</span>
         </div>
         <div class="field full">
           <label>Tags</label>
           <input formControlName="tags" placeholder="q2, field-report, nairobi (comma-separated)" />
         </div>
       </form>
-
       <div class="panel-footer">
         <button class="btn-cancel" (click)="closeAll()">Cancel</button>
         <button class="btn-submit" [disabled]="createForm.invalid || saving()" (click)="create()">
@@ -181,14 +193,13 @@
 }
 
 <!-- ── Edit Document Panel ────────────────────────────────────────────────── -->
-@if (showEditPanel() && selectedDoc()) {
+@if (activePanel() === 'edit' && selectedDoc()) {
   <div class="modal-backdrop" (click)="closeAll()">
     <div class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <h2>Edit Document</h2>
         <button class="close-btn" (click)="closeAll()">✕</button>
       </div>
-
       <form [formGroup]="editForm" class="panel-body">
         <div class="field full">
           <label>Title *</label>
@@ -215,7 +226,6 @@
           <input formControlName="tags" placeholder="comma-separated" />
         </div>
       </form>
-
       <div class="panel-footer">
         <button class="btn-cancel" (click)="closeAll()">Cancel</button>
         <button class="btn-submit" [disabled]="editForm.invalid || saving()" (click)="saveEdit()">
@@ -227,7 +237,7 @@
 }
 
 <!-- ── Version History Panel ──────────────────────────────────────────────── -->
-@if (showVersionPanel() && selectedDoc()) {
+@if (activePanel() === 'versions' && selectedDoc()) {
   <div class="modal-backdrop" (click)="closeAll()">
     <div class="slide-panel wide" (click)="$event.stopPropagation()">
       <div class="panel-header">
@@ -237,9 +247,7 @@
         </div>
         <button class="close-btn" (click)="closeAll()">✕</button>
       </div>
-
       <div class="panel-body">
-        <!-- Add new version -->
         @if (canManage()) {
           <div class="version-upload-box" [formGroup]="versionForm">
             <h4>Add New Version</h4>
@@ -256,17 +264,11 @@
             </button>
           </div>
         }
-
-        <!-- Version list -->
         <h4 class="versions-title">Version History</h4>
         @if (loadingVersions()) {
-          <div class="loading-state sm">
-            <div class="spinner"></div>
-          </div>
+          <div class="loading-state sm"><div class="spinner"></div></div>
         } @else if (versions().length === 0) {
-          <div class="empty-state sm">
-            <p>No versions yet. Upload the first version above.</p>
-          </div>
+          <div class="empty-state sm"><p>No versions yet.</p></div>
         } @else {
           <div class="version-list">
             @for (v of versions(); track v._id; let i = $index) {
@@ -286,6 +288,229 @@
                 <div class="version-actions">
                   @if (v.fileUrl) {
                     <a [href]="v.fileUrl" target="_blank" class="btn-action primary sm">↗ Open</a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Cloud Storage Manager ──────────────────────────────────────────────── -->
+@if (activePanel() === 'cloud-manager') {
+  <div class="modal-backdrop" (click)="closeAll()">
+    <div class="slide-panel wide" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <div>
+          <h2>☁️ Cloud Storage</h2>
+          <p class="panel-sub">Connect your cloud accounts to browse and import files directly</p>
+        </div>
+        <button class="close-btn" (click)="closeAll()">✕</button>
+      </div>
+
+      <div class="panel-body">
+
+        @if (cloudError()) {
+          <div class="alert-error">⚠️ {{ cloudError() }}</div>
+        }
+
+        <!-- Provider cards -->
+        <div class="provider-grid">
+          @for (provider of providers; track provider) {
+            <div class="provider-card" [class.connected]="isConnected(provider)">
+              <div class="provider-header">
+                <div class="provider-logo" [style.background]="providerColor(provider)">
+                  @if (provider === 'google_drive') { 
+                    <svg viewBox="0 0 24 24" fill="white" width="22" height="22"><path d="M4.433 22l3.464-6h11.206l-3.464 6H4.433zM1 16l3.433-6 3.433 6H1zm7.433-6L12 4l3.567 6H8.433zm3.567 0l3.567-6L19 10h-7zM15.433 4L12 10 8.567 4h6.866z"/></svg>
+                  }
+                  @if (provider === 'dropbox') {
+                    <svg viewBox="0 0 24 24" fill="white" width="22" height="22"><path d="M12 14.56l-5.67-3.63L0 14.91l5.67 3.63L12 14.56zm0 0l5.67 3.98L24 14.91l-6.33-3.98L12 14.56zM12 3L6.33 6.98 12 10.96l5.67-3.98L12 3zM6.33 6.98L0 10.96l6.33 3.98 5.67-3.98-5.67-3.98zm11.34 0L12 10.96l6.33 3.98L24 10.96l-6.33-3.98zM6.33 19.53L12 23.5l5.67-3.97-5.67-3.97-5.67 3.97z"/></svg>
+                  }
+                  @if (provider === 'sharepoint') {
+                    <svg viewBox="0 0 24 24" fill="white" width="22" height="22"><path d="M9.5 2a4.5 4.5 0 0 1 0 9 4.5 4.5 0 0 1 0-9zm0 1.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM2 14.5C2 12.6 5.36 11 9.5 11s7.5 1.6 7.5 3.5V16H2v-1.5zM17 11l1 .3A5 5 0 0 1 22 16v.5h-5V16c0-1.36-.74-2.6-1.9-3.5l1.9-1.5zM15.5 7a3 3 0 0 1 0 6 3 3 0 0 1 0-6z"/></svg>
+                  }
+                </div>
+                <div class="provider-info">
+                  <h4>{{ providerLabel(provider) }}</h4>
+                  @if (isConnected(provider)) {
+                    <span class="conn-status connected">✓ Connected</span>
+                    <span class="conn-email">{{ getConnection(provider)?.accountMeta?.email }}</span>
+                  } @else {
+                    <span class="conn-status">Not connected</span>
+                  }
+                </div>
+              </div>
+
+              <div class="provider-actions">
+                @if (isConnected(provider)) {
+                  <button class="btn-browse" (click)="openBrowser(getConnection(provider)!)">
+                    🗂 Browse Files
+                  </button>
+                  <button class="btn-disconnect"
+                    (click)="disconnectProvider(getConnection(provider)!)">
+                    Disconnect
+                  </button>
+                } @else {
+                  <button class="btn-connect"
+                    [disabled]="connectingProvider() === provider"
+                    [style.background]="providerColor(provider)"
+                    (click)="connectProvider(provider)">
+                    @if (connectingProvider() === provider) {
+                      <span class="spinner-sm"></span> Connecting…
+                    } @else {
+                      Connect {{ providerLabel(provider) }}
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- All connections list (handles multiple accounts per provider) -->
+        @if (cloudConnections().length > 0) {
+          <div class="connections-list">
+            <h4 class="list-title">All Connected Accounts</h4>
+            @for (conn of cloudConnections(); track conn._id) {
+              <div class="conn-row">
+                <div class="conn-dot" [style.background]="providerColor(conn.provider)"></div>
+                <div class="conn-detail">
+                  <strong>{{ conn.label }}</strong>
+                  <span class="conn-provider">{{ providerLabel(conn.provider) }}</span>
+                </div>
+                <div class="conn-row-actions">
+                  <button class="btn-action" (click)="openBrowser(conn)">🗂 Browse</button>
+                  <button class="btn-action danger" (click)="disconnectProvider(conn)">Disconnect</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="cloud-note">
+          <p>🔒 Monival only reads files you explicitly import. We never modify or delete your cloud storage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Cloud File Browser ─────────────────────────────────────────────────── -->
+@if (activePanel() === 'cloud-browser' && activeBrowserConn()) {
+  <div class="modal-backdrop" (click)="closeAll()">
+    <div class="slide-panel x-wide" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <div>
+          <h2>
+            <span class="provider-dot" [style.background]="providerColor(activeBrowserConn()!.provider)"></span>
+            {{ activeBrowserConn()!.label }}
+          </h2>
+          <p class="panel-sub">Select files to import into your document library</p>
+        </div>
+        <button class="close-btn" (click)="closeAll()">✕</button>
+      </div>
+
+      <div class="browser-body">
+
+        @if (cloudError()) {
+          <div class="alert-error">⚠️ {{ cloudError() }}</div>
+        }
+
+        <!-- Search + breadcrumb bar -->
+        <div class="browser-toolbar">
+          <!-- Breadcrumb -->
+          <div class="breadcrumb">
+            <button class="crumb root" (click)="navigateToRoot()">
+              {{ providerLabel(activeBrowserConn()!.provider) }}
+            </button>
+            @for (crumb of cloudFolderStack(); track crumb.id; let i = $index) {
+              <span class="crumb-sep">›</span>
+              <button class="crumb" (click)="cloudFolderStack.set(cloudFolderStack().slice(0, i + 1)); fetchCloudFiles()">
+                {{ crumb.name }}
+              </button>
+            }
+          </div>
+
+          <!-- Search -->
+          <div class="browser-search">
+            <input
+              type="text"
+              placeholder="Search files…"
+              [(ngModel)]="cloudSearch"
+              (keyup.enter)="searchCloud()" />
+            @if (cloudSearch()) {
+              <button class="clear-btn" (click)="clearSearch()">✕</button>
+            }
+            <button class="btn-search-go" (click)="searchCloud()">Search</button>
+          </div>
+        </div>
+
+        <!-- Import settings bar -->
+        <div class="import-settings">
+          <span class="import-label">Import options:</span>
+          <select class="import-select" [(ngModel)]="importProjectId">
+            <option value="">No project</option>
+            @for (p of projects(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+          <select class="import-select" [(ngModel)]="importCategory">
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Back button -->
+        @if (cloudFolderStack().length > 0) {
+          <button class="btn-back" (click)="navigateUp()">← Back</button>
+        }
+
+        <!-- File list -->
+        @if (loadingCloudFiles()) {
+          <div class="loading-state"><div class="spinner"></div></div>
+        } @else if (cloudFiles().length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <p>{{ cloudSearch() ? 'No files matched your search.' : 'This folder is empty.' }}</p>
+          </div>
+        } @else {
+          <div class="file-list">
+            @for (file of cloudFiles(); track file.id) {
+              <div class="file-row" [class.folder]="file.isFolder" (click)="file.isFolder ? enterFolder(file) : null">
+                <span class="file-icon">
+                  {{ file.isFolder ? '📁' : getFileIcon(file.mimeType) }}
+                </span>
+                <div class="file-info">
+                  <span class="file-name">{{ file.name }}</span>
+                  <div class="file-meta">
+                    @if (file.size) { <span>{{ formatFileSize(file.size) }}</span> }
+                    @if (file.modifiedAt) { <span>{{ file.modifiedAt | date:'d MMM y' }}</span> }
+                    @if (file.mimeType) { <span class="mime">{{ file.mimeType | slice:0:30 }}</span> }
+                  </div>
+                </div>
+                <div class="file-actions">
+                  @if (file.webViewLink) {
+                    <a [href]="file.webViewLink" target="_blank" class="btn-action sm" (click)="$event.stopPropagation()">
+                      ↗ Preview
+                    </a>
+                  }
+                  @if (!file.isFolder) {
+                    <button
+                      class="btn-import"
+                      [disabled]="importingFileId() === file.id"
+                      (click)="$event.stopPropagation(); importFile(file)">
+                      @if (importingFileId() === file.id) {
+                        <span class="spinner-sm"></span>
+                      } @else {
+                        ↓ Import
+                      }
+                    </button>
+                  } @else {
+                    <span class="open-folder-hint">Click to open →</span>
                   }
                 </div>
               </div>
