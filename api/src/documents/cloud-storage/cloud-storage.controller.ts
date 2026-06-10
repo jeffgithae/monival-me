@@ -15,10 +15,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PERMISSIONS } from '../../common/constants/roles';
 import type { JwtPayload } from '../../common/types/jwt-payload';
+import { ConnectCloudStorageDto } from '../dto/connect-cloud-storage.dto';
+import { ImportCloudFileDto } from '../dto/import-cloud-file.dto';
+import { CloudProvider } from '../schemas/cloud-storage-connection.schema';
 import { CloudStorageService } from './cloud-storage.service';
-import { ConnectCloudStorageDto } from './dto/connect-cloud-storage.dto';
-import { ImportCloudFileDto } from './dto/import-cloud-file.dto';
-import type { CloudProvider } from './dto/connect-cloud-storage.dto';
 
 @Controller('documents/cloud')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
