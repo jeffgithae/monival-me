@@ -1,7 +1,8 @@
 import { CommonModule, DecimalPipe, SlicePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import {
   BalancedScorecard,
   BudgetSummary,
@@ -23,7 +24,10 @@ export class StrategicDashboardComponent implements OnInit {
   okrs = signal<OKR[]>([]);
   loading = signal(true);
 
-  constructor(private readonly api: ApiService) {}
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+
+  constructor() {}
 
   ngOnInit() {
     this.loadDashboard();
@@ -34,7 +38,7 @@ export class StrategicDashboardComponent implements OnInit {
 
     Promise.all([
       this.api.getFrameworkConfig().toPromise(),
-      this.api.budgetSummary().toPromise(),
+      this.api.budgetSummary(this.auth.organization()?.id ?? '').toPromise(),
       this.api.balancedScorecards().toPromise(),
       this.api.okrs().toPromise(),
     ]).then(([config, budget, bscs, okrs_data]) => {
