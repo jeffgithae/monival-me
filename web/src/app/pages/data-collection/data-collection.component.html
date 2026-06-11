@@ -111,7 +111,7 @@
             <h3>{{ f.name }}</h3>
             @if (f.description) { <p class="card-desc">{{ f.description }}</p> }
             <div class="card-meta">
-              <span>{{ f.sections?.length ?? 0 }} sections</span>
+              <span>{{ f.sections.length }} sections</span>
               <span class="dot-sep">·</span>
               <span>{{ countQuestions(f) }} questions</span>
               <span class="dot-sep">·</span>
