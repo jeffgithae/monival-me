@@ -1459,6 +1459,16 @@ export interface ServiceRecord {
   isExited?: boolean;
 }
 
+export interface ServiceRecordDto {
+  projectId?: string;
+  activityId?: string;
+  serviceType: string;
+  serviceDate: string;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+}
+
 export interface ProgramEnrollment {
   _id?: string;
   projectId: string | { _id: string; name: string };

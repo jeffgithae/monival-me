@@ -1,13 +1,5 @@
 @use "sass:color";
 
-#4f46e5:   #4f46e5;
-#4f46e5-d: #3730a3;
-#10b981:    #10b981;
-#f59e0b:    #f59e0b;
-#ef4444:      #ef4444;
-$blue:     #3b82f6;
-$purple:   #8b5cf6;
-$bg:       #f8f7ff;
 
 // ─── Status colours ───────────────────────────────────────────────────────────
 @mixin status-color($color) {
@@ -78,7 +70,7 @@ $bg:       #f8f7ff;
   .kpi-bar { height: 4px; background: rgba(#4f46e5, 0.1); border-radius: 999px; overflow: hidden; margin-top: 0.4rem; }
   .kpi-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4f46e5, color.adjust(#4f46e5, $lightness: 12%)); transition: width 0.5s ease; }
   &.kpi-green .kpi-val { color: color.adjust(#10b981, $lightness: -10%); }
-  &.kpi-blue  .kpi-val { color: color.adjust($blue,  $lightness: -8%);  }
+  &.kpi-blue  .kpi-val { color: color.adjust(#3b82f6,  $lightness: -8%);  }
   &.kpi-amber .kpi-val { color: color.adjust(#f59e0b, $lightness: -12%); }
 }
 
@@ -185,7 +177,7 @@ $bg:       #f8f7ff;
 .prog-fill {
   height: 100%; border-radius: 999px; transition: width 0.4s ease;
   &.status-planned     { background: linear-gradient(90deg, var(--muted), color.adjust(var(--muted), $lightness: 12%)); }
-  &.status-in_progress { background: linear-gradient(90deg, $blue, color.adjust($blue, $lightness: 10%)); }
+  &.status-in_progress { background: linear-gradient(90deg, #3b82f6, color.adjust(#3b82f6, $lightness: 10%)); }
   &.status-completed   { background: linear-gradient(90deg, #10b981, color.adjust(#10b981, $lightness: 10%)); }
   &.status-delayed     { background: linear-gradient(90deg, #f59e0b, color.adjust(#f59e0b, $lightness: 8%)); }
   &.status-cancelled   { background: linear-gradient(90deg, #ef4444, color.adjust(#ef4444, $lightness: 10%)); }
@@ -196,7 +188,7 @@ $bg:       #f8f7ff;
 %status-chip-base { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 
 .status-chip-planned     { @extend %status-chip-base; background: rgba(var(--muted), 0.1); color: var(--muted); }
-.status-chip-in_progress { @extend %status-chip-base; background: rgba($blue, 0.1); color: color.adjust($blue, $lightness: -10%); }
+.status-chip-in_progress { @extend %status-chip-base; background: rgba(#3b82f6, 0.1); color: color.adjust(#3b82f6, $lightness: -10%); }
 .status-chip-completed   { @extend %status-chip-base; background: rgba(#10b981, 0.1); color: color.adjust(#10b981, $lightness: -12%); }
 .status-chip-delayed     { @extend %status-chip-base; background: rgba(#f59e0b, 0.1); color: color.adjust(#f59e0b, $lightness: -15%); }
 .status-chip-cancelled   { @extend %status-chip-base; background: rgba(#ef4444, 0.08); color: color.adjust(#ef4444, $lightness: -8%); }
@@ -204,7 +196,7 @@ $bg:       #f8f7ff;
 
 // ─── Status dots ─────────────────────────────────────────────────────────────
 .status-dot-planned     { background: var(--muted); }
-.status-dot-in_progress { background: $blue; }
+.status-dot-in_progress { background: #3b82f6; }
 .status-dot-completed   { background: #10b981; }
 .status-dot-delayed     { background: #f59e0b; }
 .status-dot-cancelled   { background: #ef4444; }
@@ -283,7 +275,7 @@ $bg:       #f8f7ff;
   display: flex; flex-direction: column; gap: 0.4rem;
   &.full { grid-column: 1 / -1; }
   label { font-size: 0.74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.09em; }
-  input, select, textarea { padding: 0.65rem 0.9rem; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; color: var(--text); background: $bg; outline: none; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; &:focus { border-color: rgba(#4f46e5, 0.4); box-shadow: 0 0 0 3px rgba(#4f46e5, 0.07); background: var(--card-bg); } }
+  input, select, textarea { padding: 0.65rem 0.9rem; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; color: var(--text); background: var(--bg); outline: none; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; &:focus { border-color: rgba(#4f46e5, 0.4); box-shadow: 0 0 0 3px rgba(#4f46e5, 0.07); background: var(--card-bg); } }
   textarea { resize: vertical; min-height: 70px; }
 }
 
@@ -294,7 +286,7 @@ $bg:       #f8f7ff;
 .ind-pick-btn {
   display: flex; align-items: center; gap: 0.6rem; text-align: left;
   padding: 0.55rem 0.9rem; border: 1px solid var(--border); border-radius: 9px;
-  background: $bg; color: var(--text); font-size: 0.82rem; cursor: pointer; transition: all 0.15s;
+  background: var(--bg); color: var(--text); font-size: 0.82rem; cursor: pointer; transition: all 0.15s;
   &:hover { border-color: rgba(#4f46e5, 0.3); }
   &.selected { background: rgba(#4f46e5, 0.07); border-color: rgba(#4f46e5, 0.35); color: #4f46e5; }
   .ind-code { background: rgba(#4f46e5, 0.1); color: #4f46e5; border-radius: 5px; padding: 0.1rem 0.4rem; font-size: 0.72rem; font-weight: 700; font-family: 'Courier New', monospace; flex-shrink: 0; }
@@ -302,7 +294,7 @@ $bg:       #f8f7ff;
 
 .panel-footer { display: flex; gap: 0.75rem; padding: 1.25rem 2rem; border-top: 1px solid var(--border); background: var(--card-bg); position: sticky; bottom: 0; }
 .btn-submit { flex: 1; padding: 0.8rem; background: linear-gradient(135deg, #4f46e5, #4f46e5-d); color: #fff; border: none; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(#4f46e5, 0.28); transition: opacity 0.15s, transform 0.15s; &:hover:not(:disabled) { transform: translateY(-1px); } &:disabled { opacity: 0.55; cursor: not-allowed; } }
-.btn-cancel { padding: 0.8rem 1.5rem; border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; transition: background 0.15s; &:hover { background: $bg; } }
+.btn-cancel { padding: 0.8rem 1.5rem; border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; transition: background 0.15s; &:hover { background: var(--bg); } }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 900px) {

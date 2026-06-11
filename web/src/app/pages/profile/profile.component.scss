@@ -1,11 +1,5 @@
 @use "sass:color";
 
-#4f46e5:   #4f46e5;
-#4f46e5-d: #3730a3;
-#10b981:    #10b981;
-#f59e0b:    #f59e0b;
-#ef4444:      #ef4444;
-$bg:       #f8f7ff;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 .profile-page {
@@ -286,7 +280,7 @@ $bg:       #f8f7ff;
     border-radius: 11px;
     font-size: 0.92rem;
     color: var(--text);
-    background: $bg;
+    background: var(--bg);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     font-family: inherit;
@@ -426,7 +420,7 @@ $bg:       #f8f7ff;
   flex-direction: column;
   gap: 0.3rem;
   padding: 1rem 1.25rem;
-  background: $bg;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
 }
