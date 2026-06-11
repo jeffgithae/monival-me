@@ -50,6 +50,12 @@ import {
   CopilotResponse,
   CreateBeneficiaryDto,
   BeneficiaryStatistics,
+  ServiceRecordDto,
+  ProjectSummary,
+  PortfolioStats,
+  ProjectRisk,
+  ProjectMilestone,
+  ProjectStakeholder,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -202,18 +208,18 @@ export class ApiService {
   }
 
   projectSummary(id: string) {
-    return this.http.get<import('./models').ProjectSummary>(`${this.base}/projects/${id}/summary`);
+    return this.http.get<ProjectSummary>(`${this.base}/projects/${id}/summary`);
   }
 
   portfolioStats() {
-    return this.http.get<import('./models').PortfolioStats>(`${this.base}/projects/portfolio-stats`);
+    return this.http.get<PortfolioStats>(`${this.base}/projects/portfolio-stats`);
   }
 
-  archiveProject(id: string, notes?: string) {
-    return this.http.patch<Project>(`${this.base}/projects/${id}/archive`, { notes });
+  archiveProject(id: string, archiveNotes: string) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/archive`, { archiveNotes });
   }
 
-  closeProject(id: string, dto: { closeReason?: string; lessonsLearned?: string; finalBudgetUtilisation?: number }) {
+  closeProject(id: string, dto: { closureDate: string; lessonsLearned?: string; evaluationSummary?: string }) {
     return this.http.patch<Project>(`${this.base}/projects/${id}/close`, dto);
   }
 
@@ -225,44 +231,47 @@ export class ApiService {
     return this.http.post<Project>(`${this.base}/projects/${id}/refresh-data-quality`, {});
   }
 
-  // ── Milestones ──────────────────────────────────────────────────────────────
-  addMilestone(id: string, dto: { title: string; dueDate?: string; description?: string; assignedTo?: string }) {
-    return this.http.post<import('./models').ProjectMilestone>(`${this.base}/projects/${id}/milestones`, dto);
+  // ── Project Milestones ──────────────────────────────────────────────────────
+  addMilestone(id: string, dto: Partial<ProjectMilestone>) {
+    return this.http.post<Project>(`${this.base}/projects/${id}/milestones`, dto);
   }
 
-  updateMilestone(id: string, mid: string, dto: Partial<import('./models').ProjectMilestone>) {
-    return this.http.patch<import('./models').ProjectMilestone>(`${this.base}/projects/${id}/milestones/${mid}`, dto);
+  updateMilestone(id: string, milestoneId: string, dto: Partial<ProjectMilestone>) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/milestones/${milestoneId}`, dto);
   }
 
-  deleteMilestone(id: string, mid: string) {
-    return this.http.delete(`${this.base}/projects/${id}/milestones/${mid}`);
+  deleteMilestone(id: string, milestoneId: string) {
+    return this.http.delete<Project>(`${this.base}/projects/${id}/milestones/${milestoneId}`);
   }
 
-  // ── Risks ───────────────────────────────────────────────────────────────────
-  addRisk(id: string, dto: { title: string; description?: string; likelihood?: string; impact?: string; mitigationPlan?: string }) {
-    return this.http.post<import('./models').ProjectRisk>(`${this.base}/projects/${id}/risks`, dto);
+  // ── Project Risks ───────────────────────────────────────────────────────────
+  addRisk(id: string, dto: Partial<ProjectRisk>) {
+    return this.http.post<Project>(`${this.base}/projects/${id}/risks`, dto);
   }
 
-  updateRisk(id: string, rid: string, dto: Partial<import('./models').ProjectRisk>) {
-    return this.http.patch<import('./models').ProjectRisk>(`${this.base}/projects/${id}/risks/${rid}`, dto);
+  updateRisk(id: string, riskId: string, dto: Partial<ProjectRisk>) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/risks/${riskId}`, dto);
   }
 
-  deleteRisk(id: string, rid: string) {
-    return this.http.delete(`${this.base}/projects/${id}/risks/${rid}`);
+  deleteRisk(id: string, riskId: string) {
+    return this.http.delete<Project>(`${this.base}/projects/${id}/risks/${riskId}`);
   }
 
-  // ── Stakeholders ─────────────────────────────────────────────────────────────
-  addStakeholder(id: string, dto: { name: string; role?: string; organisation?: string; email?: string; phone?: string; notes?: string }) {
-    return this.http.post<import('./models').ProjectStakeholder>(`${this.base}/projects/${id}/stakeholders`, dto);
+  // ── Project Stakeholders ────────────────────────────────────────────────────
+  addStakeholder(id: string, dto: Partial<ProjectStakeholder>) {
+    return this.http.post<Project>(`${this.base}/projects/${id}/stakeholders`, dto);
   }
 
-  updateStakeholder(id: string, sid: string, dto: Partial<import('./models').ProjectStakeholder>) {
-    return this.http.patch<import('./models').ProjectStakeholder>(`${this.base}/projects/${id}/stakeholders/${sid}`, dto);
+  updateStakeholder(id: string, stakeholderId: string, dto: Partial<ProjectStakeholder>) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/stakeholders/${stakeholderId}`, dto);
   }
 
-  deleteStakeholder(id: string, sid: string) {
-    return this.http.delete(`${this.base}/projects/${id}/stakeholders/${sid}`);
+  deleteStakeholder(id: string, stakeholderId: string) {
+    return this.http.delete<Project>(`${this.base}/projects/${id}/stakeholders/${stakeholderId}`);
   }
+
+  // ── Project Workplan (sub-resource) ────────────────────────────────────────
+  // Note: addWorkplanItem / updateWorkplanItem / removeWorkplanItem already exist below
 
   indicators(projectId?: string) {
     let params = new HttpParams();
@@ -274,6 +283,10 @@ export class ApiService {
 
   createIndicator(body: Record<string, unknown>) {
     return this.http.post<Indicator>(`${this.base}/indicators`, body);
+  }
+
+  deleteIndicator(id: string) {
+    return this.http.delete(`${this.base}/indicators/${id}`);
   }
 
   activities(projectId?: string) {
@@ -288,34 +301,37 @@ export class ApiService {
     return this.http.post<Activity>(`${this.base}/activities`, body);
   }
 
+  updateActivity(id: string, body: Partial<Activity>) {
+    return this.http.patch<Activity>(`${this.base}/activities/${id}`, body);
+  }
+
+  activityStatistics(projectId?: string) {
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.get<{ total: number; approved: number; pending: number; rejected: number; byType: Record<string, number> }>(
+      `${this.base}/activities/statistics`, { params }
+    );
+  }
+
+  bulkCreateActivities(dto: Record<string, unknown>) {
+    return this.http.post<Activity[]>(`${this.base}/activities/bulk`, dto);
+  }
+
+  bulkReviewActivities(dto: { ids: string[]; status: 'approved' | 'rejected'; rejectionReason?: string }) {
+    return this.http.patch<{ updated: number }>(`${this.base}/activities/bulk-review`, dto);
+  }
+
   // Beneficiaries
   beneficiaries(params?: Record<string, string | number | boolean>) {
     return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: params as any });
   }
 
-  enrollBeneficiary(id: string, body: { projectId: string; enrolledAt?: string; notes?: string }) {
-    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/enroll`, body);
+  beneficiary(id: string) {
+    return this.http.get<Beneficiary>(`${this.base}/beneficiaries/${id}`);
   }
 
-  addBeneficiaryServiceRecord(id: string, body: {
-    serviceType: string; serviceDate: string; projectId?: string;
-    activityId?: string; description?: string; quantity?: number; unit?: string;
-  }) {
-    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/service-records`, body);
-  }
-
-
-   beneficiaryStats(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) params = params.set('projectId', projectId);
-    return this.http.get<BeneficiaryStatistics>(`${this.base}/beneficiaries/statistics`, { params });
-  }
   createBeneficiary(body: CreateBeneficiaryDto) {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
-  }
-
-  exitBeneficiaryProgram(id: string, projectId: string, exitReason?: string) {
-    return this.http.patch<Beneficiary>(`${this.base}/beneficiaries/${id}/exit/${projectId}`, { exitReason });
   }
 
   updateBeneficiary(id: string, body: Partial<CreateBeneficiaryDto>) {
@@ -324,6 +340,24 @@ export class ApiService {
 
   deleteBeneficiary(id: string) {
     return this.http.delete(`${this.base}/beneficiaries/${id}`);
+  }
+
+  beneficiaryStats(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<BeneficiaryStatistics>(`${this.base}/beneficiaries/statistics`, { params });
+  }
+
+  enrollBeneficiary(id: string, body: { projectId: string; enrolledAt?: string; notes?: string }) {
+    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/enroll`, body);
+  }
+
+  exitBeneficiaryProgram(id: string, projectId: string, exitReason?: string) {
+    return this.http.patch<Beneficiary>(`${this.base}/beneficiaries/${id}/exit/${projectId}`, { exitReason });
+  }
+
+  addBeneficiaryServiceRecord(id: string, body: ServiceRecordDto) {
+    return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/service-records`, body);
   }
 
   activityTemplates(projectId?: string) {
@@ -381,32 +415,7 @@ export class ApiService {
   }
 
   reviewActivity(id: string, status: 'approved' | 'rejected', rejectionReason?: string) {
-    return this.http.patch(`${this.base}/activities/${id}/review`, { status, rejectionReason });
-  }
-
-  updateActivity(id: string, body: Record<string, unknown>) {
-    return this.http.patch(`${this.base}/activities/${id}`, body);
-  }
-
-  activityStatistics(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) params = params.set('projectId', projectId);
-    return this.http.get<{
-      total: number; completed: number; inProgress: number; planned: number;
-      overdue: number; approved: number; pending: number;
-    }>(`${this.base}/activities/statistics`, { params });
-  }
-
-  bulkCreateActivities(dto: { activities: Record<string, unknown>[] }) {
-    return this.http.post<unknown[]>(`${this.base}/activities/bulk`, dto);
-  }
-
-  bulkReviewActivities(dto: { activityIds: string[]; status: 'approved' | 'rejected'; rejectionReason?: string }) {
-    return this.http.patch(`${this.base}/activities/bulk-review`, dto);
-  }
-
-  indicatorPerformance(id: string) {
-    return this.http.get<import('./models').IndicatorPerformance>(`${this.base}/indicators/${id}/performance`);
+    return this.http.patch(`${this.base}/activities/${id}/review`, { status, ...(rejectionReason ? { rejectionReason } : {}) });
   }
 
   // donorReport(projectId: string, fromDate?: string, toDate?: string, reportingPeriodId?: string) {
@@ -771,7 +780,7 @@ export class ApiService {
     return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, {
       ...rest,
       cadence: cadence ?? frequency,
-      dueDate,
+      ...(dueDate ? { dueDate } : {}),
     });
   }
   calculatePeriodResults(id: string) {
