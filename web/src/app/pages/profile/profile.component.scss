@@ -5,11 +5,6 @@ $indigo-d: #3730a3;
 $green:    #10b981;
 $amber:    #f59e0b;
 $red:      #ef4444;
-$surface:  #ffffff;
-$bg:       #f8f7ff;
-$text:     #0f172a;
-$muted:    #64748b;
-$border:   rgba(15, 23, 42, 0.08);
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 .profile-page {
@@ -126,7 +121,7 @@ $border:   rgba(15, 23, 42, 0.08);
 
   &.sub-active   { background: rgba($green, 0.15); color: color.adjust($green, $lightness: -10%); }
   &.sub-trial    { background: rgba($amber, 0.15); color: color.adjust($amber, $lightness: -12%); }
-  &.sub-inactive { background: rgba($muted, 0.1);  color: $muted; }
+  &.sub-inactive { background: rgba(var(--muted), 0.1);  color: var(--muted); }
 
   // white variant inside hero
   .hero-badges & {
@@ -198,7 +193,7 @@ $border:   rgba(15, 23, 42, 0.08);
   border-radius: 11px;
   border: none;
   background: transparent;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -207,7 +202,7 @@ $border:   rgba(15, 23, 42, 0.08);
   &:hover { background: rgba($indigo, 0.07); color: $indigo; }
 
   &.active {
-    background: $surface;
+    background: var(--card-bg);
     color: $indigo;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   }
@@ -215,8 +210,8 @@ $border:   rgba(15, 23, 42, 0.08);
 
 // ─── Section card ─────────────────────────────────────────────────────────────
 .section-card {
-  background: $surface;
-  border: 1px solid $border;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
@@ -236,9 +231,9 @@ $border:   rgba(15, 23, 42, 0.08);
     margin: 0 0 0.3rem;
     font-size: 1.15rem;
     font-weight: 800;
-    color: $text;
+    color: var(--text);
   }
-  p { margin: 0; color: $muted; font-size: 0.88rem; }
+  p { margin: 0; color: var(--muted); font-size: 0.88rem; }
 }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
@@ -281,16 +276,16 @@ $border:   rgba(15, 23, 42, 0.08);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: $muted;
+    color: var(--muted);
   }
 
   input {
     padding: 0.7rem 0.95rem;
-    border: 1px solid $border;
+    border: 1px solid var(--border);
     border-radius: 11px;
     font-size: 0.92rem;
-    color: $text;
-    background: $bg;
+    color: var(--text);
+    background: var(--bg);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     font-family: inherit;
@@ -298,7 +293,7 @@ $border:   rgba(15, 23, 42, 0.08);
     &:focus {
       border-color: rgba($indigo, 0.45);
       box-shadow: 0 0 0 3px rgba($indigo, 0.08);
-      background: $surface;
+      background: var(--card-bg);
     }
 
     &.invalid { border-color: rgba($red, 0.4); }
@@ -316,19 +311,19 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   justify-content: space-between;
   padding: 0.7rem 0.95rem;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 11px;
-  background: rgba($muted, 0.04);
+  background: rgba(var(--muted), 0.04);
   font-size: 0.92rem;
-  color: $text;
+  color: var(--text);
   min-height: 42px;
 }
 
 .readonly-tag {
   font-size: 0.72rem;
   font-weight: 700;
-  color: $muted;
-  background: rgba($muted, 0.1);
+  color: var(--muted);
+  background: rgba(var(--muted), 0.1);
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
 }
@@ -386,7 +381,7 @@ $border:   rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 0.75rem;
   padding-top: 0.5rem;
-  border-top: 1px solid $border;
+  border-top: 1px solid var(--border);
 }
 
 .btn-save {
@@ -429,8 +424,8 @@ $border:   rgba(15, 23, 42, 0.08);
   flex-direction: column;
   gap: 0.3rem;
   padding: 1rem 1.25rem;
-  background: $bg;
-  border: 1px solid $border;
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
@@ -439,13 +434,13 @@ $border:   rgba(15, 23, 42, 0.08);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: $muted;
+  color: var(--muted);
 }
 
 .org-stat-value {
   font-size: 0.95rem;
   font-weight: 700;
-  color: $text;
+  color: var(--text);
 
   &.warn-text { color: color.adjust($amber, $lightness: -15%); }
 }
@@ -455,7 +450,7 @@ $border:   rgba(15, 23, 42, 0.08);
     margin: 0 0 0.85rem;
     font-size: 0.9rem;
     font-weight: 700;
-    color: $muted;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -482,7 +477,7 @@ $border:   rgba(15, 23, 42, 0.08);
 .limit-label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: $muted;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

@@ -119,24 +119,6 @@ export class ApiService {
     return this.http.delete(`${this.base}/members/${memberId}`);
   }
 
-  // reportingPeriods(projectId?: string) {
-  //   let params = new HttpParams();
-  //   if (projectId) params = params.set('projectId', projectId);
-  //   return this.http.get<ReportingPeriod[]>(`${this.base}/reporting/periods`, { params });
-  // }
-
-  // createReportingPeriod(payload: {
-  //   projectId: string;
-  //   name: string;
-  //   cadence?: string;
-  //   startDate: string;
-  //   endDate: string;
-  //   notes?: string;
-  // }) {
-  //   return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, payload);
-  // }
-  
-
   calculateReportingResults(periodId: string) {
     return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${periodId}/calculate`, {});
   }
@@ -179,16 +161,6 @@ export class ApiService {
     return this.http.post<IndicatorTarget>(`${this.base}/reporting/targets`, payload);
   }
 
-  dataQuality(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) params = params.set('projectId', projectId);
-    return this.http.get<{
-      generatedAt: string;
-      counts: { indicators: number; activities: number; critical: number; warning: number; info: number };
-      alerts: Array<{ severity: 'critical' | 'warning' | 'info'; entityType: string; entityId?: string; message: string }>;
-    }>(`${this.base}/reporting/data-quality`, { params });
-  }
-
   // donors() {
   //   return this.http.get<Array<{ _id: string; name: string; contactEmail?: string }>>(
   //     `${this.base}/donors`,
@@ -223,6 +195,73 @@ export class ApiService {
 
   updateProject(id: string, body: Partial<Project>) {
     return this.http.patch<Project>(`${this.base}/projects/${id}`, body);
+  }
+
+  deleteProject(id: string) {
+    return this.http.delete(`${this.base}/projects/${id}`);
+  }
+
+  projectSummary(id: string) {
+    return this.http.get<import('./models').ProjectSummary>(`${this.base}/projects/${id}/summary`);
+  }
+
+  portfolioStats() {
+    return this.http.get<import('./models').PortfolioStats>(`${this.base}/projects/portfolio-stats`);
+  }
+
+  archiveProject(id: string, notes?: string) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/archive`, { notes });
+  }
+
+  closeProject(id: string, dto: { closeReason?: string; lessonsLearned?: string; finalBudgetUtilisation?: number }) {
+    return this.http.patch<Project>(`${this.base}/projects/${id}/close`, dto);
+  }
+
+  duplicateProject(id: string, newName: string) {
+    return this.http.post<Project>(`${this.base}/projects/${id}/duplicate`, { newName });
+  }
+
+  refreshDataQuality(id: string) {
+    return this.http.post<Project>(`${this.base}/projects/${id}/refresh-data-quality`, {});
+  }
+
+  // ── Milestones ──────────────────────────────────────────────────────────────
+  addMilestone(id: string, dto: { title: string; dueDate?: string; description?: string; assignedTo?: string }) {
+    return this.http.post<import('./models').ProjectMilestone>(`${this.base}/projects/${id}/milestones`, dto);
+  }
+
+  updateMilestone(id: string, mid: string, dto: Partial<import('./models').ProjectMilestone>) {
+    return this.http.patch<import('./models').ProjectMilestone>(`${this.base}/projects/${id}/milestones/${mid}`, dto);
+  }
+
+  deleteMilestone(id: string, mid: string) {
+    return this.http.delete(`${this.base}/projects/${id}/milestones/${mid}`);
+  }
+
+  // ── Risks ───────────────────────────────────────────────────────────────────
+  addRisk(id: string, dto: { title: string; description?: string; likelihood?: string; impact?: string; mitigationPlan?: string }) {
+    return this.http.post<import('./models').ProjectRisk>(`${this.base}/projects/${id}/risks`, dto);
+  }
+
+  updateRisk(id: string, rid: string, dto: Partial<import('./models').ProjectRisk>) {
+    return this.http.patch<import('./models').ProjectRisk>(`${this.base}/projects/${id}/risks/${rid}`, dto);
+  }
+
+  deleteRisk(id: string, rid: string) {
+    return this.http.delete(`${this.base}/projects/${id}/risks/${rid}`);
+  }
+
+  // ── Stakeholders ─────────────────────────────────────────────────────────────
+  addStakeholder(id: string, dto: { name: string; role?: string; organisation?: string; email?: string; phone?: string; notes?: string }) {
+    return this.http.post<import('./models').ProjectStakeholder>(`${this.base}/projects/${id}/stakeholders`, dto);
+  }
+
+  updateStakeholder(id: string, sid: string, dto: Partial<import('./models').ProjectStakeholder>) {
+    return this.http.patch<import('./models').ProjectStakeholder>(`${this.base}/projects/${id}/stakeholders/${sid}`, dto);
+  }
+
+  deleteStakeholder(id: string, sid: string) {
+    return this.http.delete(`${this.base}/projects/${id}/stakeholders/${sid}`);
   }
 
   indicators(projectId?: string) {
@@ -341,8 +380,33 @@ export class ApiService {
     return this.http.delete(`${this.base}/activities/templates/${id}`);
   }
 
-  reviewActivity(id: string, status: 'approved' | 'rejected') {
-    return this.http.patch(`${this.base}/activities/${id}/review`, { status });
+  reviewActivity(id: string, status: 'approved' | 'rejected', rejectionReason?: string) {
+    return this.http.patch(`${this.base}/activities/${id}/review`, { status, rejectionReason });
+  }
+
+  updateActivity(id: string, body: Record<string, unknown>) {
+    return this.http.patch(`${this.base}/activities/${id}`, body);
+  }
+
+  activityStatistics(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<{
+      total: number; completed: number; inProgress: number; planned: number;
+      overdue: number; approved: number; pending: number;
+    }>(`${this.base}/activities/statistics`, { params });
+  }
+
+  bulkCreateActivities(dto: { activities: Record<string, unknown>[] }) {
+    return this.http.post<unknown[]>(`${this.base}/activities/bulk`, dto);
+  }
+
+  bulkReviewActivities(dto: { activityIds: string[]; status: 'approved' | 'rejected'; rejectionReason?: string }) {
+    return this.http.patch(`${this.base}/activities/bulk-review`, dto);
+  }
+
+  indicatorPerformance(id: string) {
+    return this.http.get<import('./models').IndicatorPerformance>(`${this.base}/indicators/${id}/performance`);
   }
 
   // donorReport(projectId: string, fromDate?: string, toDate?: string, reportingPeriodId?: string) {
@@ -707,7 +771,7 @@ export class ApiService {
     return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods`, {
       ...rest,
       cadence: cadence ?? frequency,
-      notes: dueDate ? `Due date: ${dueDate}` : (rest as any).notes,
+      dueDate,
     });
   }
   calculatePeriodResults(id: string) {
@@ -940,18 +1004,6 @@ export class ApiService {
     form.append('file', file);
     form.append('delimiter', delimiter);
     return this.http.post<any>(`${this.base}/forms/integrations/${id}/upload`, form);
-  }
-
-  formTemplatesAll(projectId?: string) {
-    const params: Record<string, string> = {};
-    if (projectId) params['projectId'] = projectId;
-    return this.http.get<any[]>(`${this.base}/forms/templates`, { params });
-  }
-
-  formResponsesAll(projectId?: string) {
-    const params: Record<string, string> = {};
-    if (projectId) params['projectId'] = projectId;
-    return this.http.get<any[]>(`${this.base}/forms/responses`, { params });
   }
 
   createFormTemplateNew(dto: Record<string, unknown>) {

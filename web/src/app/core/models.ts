@@ -639,16 +639,6 @@ export interface Partner {
   notes?: string;
 }
 
-// ─── Beneficiary ──────────────────────────────────────────────────────────────
-
-export interface Beneficiary {
-  _id: string;
-  name: string;
-  groupType?: string;
-  location?: string;
-  notes?: string;
-}
-
 // ─── Forms ────────────────────────────────────────────────────────────────────
 
 export interface FormQuestion {

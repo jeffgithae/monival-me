@@ -153,7 +153,7 @@ export class DataCollectionComponent implements OnInit {
       next: (res: any) => this.projects.set(Array.isArray(res) ? res : (res.data ?? [])),
       error: () => {},
     });
-    this.api.formTemplatesAll().subscribe({
+    this.api.formTemplates().subscribe({
       next: f => { this.forms.set(f); if (this.activeTab() === 'forms') this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -161,7 +161,7 @@ export class DataCollectionComponent implements OnInit {
       next: i => { this.integrations.set(i); if (this.activeTab() === 'integrations') this.loading.set(false); },
       error: () => {},
     });
-    this.api.formResponsesAll().subscribe({
+    this.api.formResponses().subscribe({
       next: r => { this.responses.set(r); if (this.activeTab() === 'responses') this.loading.set(false); },
       error: () => {},
     });
@@ -266,8 +266,8 @@ export class DataCollectionComponent implements OnInit {
 
     const isEdit = this.modalMode() === 'edit-form';
     const obs = isEdit
-      ? this.api.updateFormTemplateById(this.selectedForm()!._id, payload)
-      : this.api.createFormTemplateNew(payload);
+      ? this.api.updateFormTemplate(this.selectedForm()!._id, payload)
+      : this.api.createFormTemplate(payload);
 
     obs.subscribe({
       next: () => { this.saving.set(false); this.closeModal(); this.loadAll(); },
@@ -276,13 +276,13 @@ export class DataCollectionComponent implements OnInit {
   }
 
   toggleFormStatus(f: FormTemplate) {
-    this.api.updateFormTemplateById(f._id, { status: f.status === 'active' ? 'draft' : 'active' })
+    this.api.updateFormTemplate(f._id, { status: f.status === 'active' ? 'draft' : 'active' })
       .subscribe({ next: () => this.loadAll(), error: (e: any) => this.error.set(e?.error?.message) });
   }
 
   deleteForm(f: FormTemplate) {
     if (!confirm(`Delete form "${f.name}"?`)) return;
-    this.api.deleteFormTemplateById(f._id).subscribe({
+    this.api.deleteFormTemplate(f._id).subscribe({
       next: () => this.loadAll(),
       error: (e: any) => this.error.set(e?.error?.message),
     });
