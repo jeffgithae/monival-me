@@ -8,4 +8,5 @@ export interface JwtPayload {
   memberId: string;
   projectScopeIds?: string[];
   partnerScopeIds?: string[];
+  tokenVersion?: number;
 }

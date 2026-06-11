@@ -27,3 +27,7 @@ export class DocumentVersion {
 
 export type DocumentVersionDocument = DocumentVersion & MongooseDocument;
 export const DocumentVersionSchema = SchemaFactory.createForClass(DocumentVersion);
+
+// ─── Indexes ──────────────────────────────────────────────────────────────────
+DocumentVersionSchema.index({ organizationId: 1, documentId: 1, versionNumber: -1 });
+DocumentVersionSchema.index({ documentId: 1 });

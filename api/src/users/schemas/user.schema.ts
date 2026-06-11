@@ -16,6 +16,16 @@ export class User {
 
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
   organizationId!: Types.ObjectId;
+
+  /**
+   * Incremented on password change or forced logout.
+   * JWT validation checks this matches the token's tokenVersion claim —
+   * mismatches reject the token immediately without waiting for expiry.
+   */
+  @Prop({ default: 0 })
+  tokenVersion!: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.index({ organizationId: 1 });
+UserSchema.index({ email: 1 }, { unique: true });

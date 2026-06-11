@@ -40,3 +40,7 @@ export class ActivityTemplate {
 }
 
 export const ActivityTemplateSchema = SchemaFactory.createForClass(ActivityTemplate);
+
+// ─── Indexes ──────────────────────────────────────────────────────────────────
+ActivityTemplateSchema.index({ organizationId: 1 });
+ActivityTemplateSchema.index({ organizationId: 1, projectId: 1 });

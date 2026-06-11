@@ -93,38 +93,57 @@ export class ReportingService {
       .lean();
     const targetMap = new Map(targets.map((target) => [target.indicatorId.toString(), target]));
 
-    const results = [];
-    for (const indicator of indicators) {
-      const linked = activities.filter((activity) => activity.indicatorId?.toString() === indicator._id.toString());
-      const achieved = linked.reduce((sum, activity) => sum + (activity.quantity ?? 0), 0);
-      const periodTarget = targetMap.get(indicator._id.toString());
-      results.push(
-        await this.resultModel.findOneAndUpdate(
-          {
-            organizationId: orgId,
-            reportingPeriodId: new Types.ObjectId(reportingPeriodId),
-            indicatorId: indicator._id,
-          },
-          {
-            organizationId: orgId,
-            projectId,
-            reportingPeriodId: new Types.ObjectId(reportingPeriodId),
-            indicatorId: indicator._id,
-            achieved,
-            qualityFlags: this.qualityFlags({
-              achieved,
-              target: periodTarget?.target ?? indicator.target,
-              activityCount: linked.length,
-              evidenceMissing: linked.filter((activity) => !activity.evidenceUrl && !activity.evidenceNotes).length,
-            }),
-            activityCount: linked.length,
-            sourceActivityIds: linked.map((activity) => activity._id),
-            status: 'draft',
-          },
-          { new: true, upsert: true },
-        ),
+    // Build all updates in memory first, then send as a single bulkWrite (C2 fix)
+    const bulkOps = indicators.map((indicator) => {
+      const linked = activities.filter(
+        (a) => a.indicatorId?.toString() === indicator._id.toString(),
       );
+      const achieved = linked.reduce((sum, a) => sum + (a.quantity ?? 0), 0);
+      const periodTarget = targetMap.get(indicator._id.toString());
+
+      const doc = {
+        organizationId: orgId,
+        projectId,
+        reportingPeriodId: new Types.ObjectId(reportingPeriodId),
+        indicatorId: indicator._id,
+        achieved,
+        qualityFlags: this.qualityFlags({
+          achieved,
+          target: periodTarget?.target ?? indicator.target,
+          activityCount: linked.length,
+          evidenceMissing: linked.filter(
+            (a) => !a.evidenceUrl && !a.evidenceNotes,
+          ).length,
+        }),
+        activityCount: linked.length,
+        sourceActivityIds: linked.map((a) => a._id),
+        status: 'draft',
+      };
+
+      return {
+        updateOne: {
+          filter: {
+            organizationId: orgId,
+            reportingPeriodId: new Types.ObjectId(reportingPeriodId),
+            indicatorId: indicator._id,
+          },
+          update: { $set: doc },
+          upsert: true,
+        },
+      };
+    });
+
+    // Single round-trip to MongoDB instead of N sequential round-trips
+    if (bulkOps.length > 0) {
+      await this.resultModel.bulkWrite(bulkOps as any[], { ordered: false });
     }
+
+    const results = await this.resultModel
+      .find({
+        organizationId: orgId,
+        reportingPeriodId: new Types.ObjectId(reportingPeriodId),
+      })
+      .lean();
 
     await this.audit.record({
       organizationId,
@@ -329,44 +348,109 @@ export class ReportingService {
   async dataQuality(organizationId: string, projectId?: string) {
     const orgId = new Types.ObjectId(organizationId);
     const projectFilter: Record<string, unknown> = { organizationId: orgId };
-    if (projectId) projectFilter.projectId = new Types.ObjectId(projectId);
-    const [indicators, activities] = await Promise.all([
-      this.indicatorModel.find(projectFilter).lean(),
-      this.activityModel.find(projectFilter).lean(),
+    if (projectId) projectFilter['projectId'] = new Types.ObjectId(projectId);
+
+    const now = new Date();
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // Single aggregation — join activities into indicators server-side (H2 fix)
+    // No full collection loaded into Node.js heap
+    const indicatorAlerts = await this.indicatorModel.aggregate([
+      { $match: projectFilter },
+      {
+        $lookup: {
+          from: 'activities',
+          let: { indId: '$_id', orgId: '$organizationId', projId: '$projectId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$indicatorId', '$$indId'] },
+                    { $eq: ['$organizationId', '$$orgId'] },
+                  ],
+                },
+              },
+            },
+            { $project: { activityDate: 1, evidenceUrl: 1, evidenceNotes: 1, status: 1 } },
+          ],
+          as: 'activities',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          code: 1,
+          target: 1,
+          activityCount: { $size: '$activities' },
+          hasNoTarget: { $not: ['$target'] },
+          latestActivity: { $max: '$activities.activityDate' },
+          staleData: {
+            $lt: [{ $max: '$activities.activityDate' }, sixtyDaysAgo],
+          },
+        },
+      },
     ]);
-    const alerts: Array<{ severity: 'critical' | 'warning' | 'info'; entityType: string; entityId?: string; message: string }> = [];
-    const now = Date.now();
-    for (const indicator of indicators) {
-      const linked = activities.filter((activity) => activity.indicatorId?.toString() === indicator._id.toString());
-      if (!indicator.target) {
-        alerts.push({ severity: 'critical', entityType: 'Indicator', entityId: indicator._id.toString(), message: `${indicator.code} has no target.` });
+
+    const activityAlerts = await this.activityModel.aggregate([
+      { $match: { ...projectFilter, status: 'approved' } },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          quantity: 1,
+          participants: 1,
+          evidenceUrl: 1,
+          evidenceNotes: 1,
+          missingEvidence: {
+            $and: [
+              { $not: ['$evidenceUrl'] },
+              { $not: ['$evidenceNotes'] },
+            ],
+          },
+          hasNegativeValues: {
+            $or: [{ $lt: ['$quantity', 0] }, { $lt: ['$participants', 0] }],
+          },
+        },
+      },
+    ]);
+
+    const alerts: Array<{
+      severity: 'critical' | 'warning' | 'info';
+      entityType: string;
+      entityId?: string;
+      message: string;
+    }> = [];
+
+    for (const ind of indicatorAlerts) {
+      if (ind.hasNoTarget) {
+        alerts.push({ severity: 'critical', entityType: 'Indicator', entityId: ind._id.toString(), message: `${ind.code} has no target.` });
       }
-      if (!linked.length) {
-        alerts.push({ severity: 'warning', entityType: 'Indicator', entityId: indicator._id.toString(), message: `${indicator.code} has no approved activity evidence.` });
+      if (ind.activityCount === 0) {
+        alerts.push({ severity: 'warning', entityType: 'Indicator', entityId: ind._id.toString(), message: `${ind.code} has no approved activity evidence.` });
       }
-      const latest = linked
-        .map((activity) => new Date(activity.activityDate).getTime())
-        .sort((a, b) => b - a)[0];
-      if (latest && Math.ceil((now - latest) / (1000 * 60 * 60 * 24)) > 60) {
-        alerts.push({ severity: 'warning', entityType: 'Indicator', entityId: indicator._id.toString(), message: `${indicator.code} has stale data older than 60 days.` });
+      if (ind.latestActivity && ind.staleData) {
+        alerts.push({ severity: 'warning', entityType: 'Indicator', entityId: ind._id.toString(), message: `${ind.code} has stale data older than 60 days.` });
       }
     }
-    for (const activity of activities) {
-      if (activity.status === 'approved' && !activity.evidenceUrl && !activity.evidenceNotes) {
-        alerts.push({ severity: 'info', entityType: 'Activity', entityId: activity._id.toString(), message: `${activity.title} is approved without evidence notes or link.` });
+
+    for (const act of activityAlerts) {
+      if (act.missingEvidence) {
+        alerts.push({ severity: 'info', entityType: 'Activity', entityId: act._id.toString(), message: `${act.title} is approved without evidence notes or link.` });
       }
-      if (activity.quantity < 0 || activity.participants < 0) {
-        alerts.push({ severity: 'critical', entityType: 'Activity', entityId: activity._id.toString(), message: `${activity.title} has negative values.` });
+      if (act.hasNegativeValues) {
+        alerts.push({ severity: 'critical', entityType: 'Activity', entityId: act._id.toString(), message: `${act.title} has negative values.` });
       }
     }
+
     return {
-      generatedAt: new Date().toISOString(),
+      generatedAt: now.toISOString(),
       counts: {
-        indicators: indicators.length,
-        activities: activities.length,
-        critical: alerts.filter((alert) => alert.severity === 'critical').length,
-        warning: alerts.filter((alert) => alert.severity === 'warning').length,
-        info: alerts.filter((alert) => alert.severity === 'info').length,
+        indicators: indicatorAlerts.length,
+        activities: activityAlerts.length,
+        critical: alerts.filter((a) => a.severity === 'critical').length,
+        warning:  alerts.filter((a) => a.severity === 'warning').length,
+        info:     alerts.filter((a) => a.severity === 'info').length,
       },
       alerts,
     };

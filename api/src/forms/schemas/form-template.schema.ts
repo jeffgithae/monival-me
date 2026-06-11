@@ -67,3 +67,7 @@ export class FormTemplate {
 
 export const FormTemplateSchema = SchemaFactory.createForClass(FormTemplate);
 export { FormSectionSchema, FormQuestionSchema };
+
+// ─── Indexes ──────────────────────────────────────────────────────────────────
+FormTemplateSchema.index({ organizationId: 1, status: 1 });
+FormTemplateSchema.index({ organizationId: 1, projectId: 1 });

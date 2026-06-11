@@ -1078,4 +1078,94 @@ export class ApiService {
       dto,
     );
   }
+
+  // ─── Enterprise: API Keys ─────────────────────────────────────────────────
+
+  apiKeys() {
+    return this.http.get<import('./models').ApiKey[]>(`${this.base}/api-keys`);
+  }
+
+  createApiKey(dto: import('./models').CreateApiKeyDto) {
+    return this.http.post<import('./models').ApiKeyCreatedResponse>(`${this.base}/api-keys`, dto);
+  }
+
+  revokeApiKey(id: string) {
+    return this.http.delete<{ revoked: boolean }>(`${this.base}/api-keys/${id}`);
+  }
+
+  // ─── Enterprise: SSO ──────────────────────────────────────────────────────
+
+  ssoConfig() {
+    return this.http.get<import('./models').SsoConfig>(`${this.base}/sso/config`);
+  }
+
+  upsertSsoConfig(dto: import('./models').UpsertSsoConfigDto) {
+    return this.http.post<import('./models').SsoConfig>(`${this.base}/sso/config`, dto);
+  }
+
+  toggleSsoEnforcement(enforce: boolean) {
+    return this.http.patch<import('./models').SsoConfig>(`${this.base}/sso/config/enforce`, { enforce });
+  }
+
+  samlSpMetadataUrl(orgId: string) {
+    return `${this.base}/sso/${orgId}/saml/metadata`;
+  }
+
+  // ─── Enterprise: Branding ─────────────────────────────────────────────────
+
+  brandingConfig() {
+    return this.http.get<import('./models').BrandingConfig | null>(`${this.base}/branding/current`);
+  }
+
+  updateBranding(dto: import('./models').UpdateBrandingDto) {
+    return this.http.patch<import('./models').BrandingConfig>(`${this.base}/branding`, dto);
+  }
+
+  initiateDomainVerification() {
+    return this.http.post<{ token: string; txtRecord: string; domain: string }>(
+      `${this.base}/branding/domain/initiate`, {}
+    );
+  }
+
+  verifyDomain() {
+    return this.http.post<{ verified: boolean; message: string }>(
+      `${this.base}/branding/domain/verify`, {}
+    );
+  }
+
+  // ─── Enterprise: Networks (Multi-org) ────────────────────────────────────
+
+  networks() {
+    return this.http.get<import('./models').OrgNetwork[]>(`${this.base}/networks`);
+  }
+
+  network(id: string) {
+    return this.http.get<import('./models').OrgNetwork>(`${this.base}/networks/${id}`);
+  }
+
+  createNetwork(dto: { name: string; description?: string }) {
+    return this.http.post<import('./models').OrgNetwork>(`${this.base}/networks`, dto);
+  }
+
+  inviteNetworkMember(networkId: string, dto: { organizationId: string; role?: string; label?: string }) {
+    return this.http.post<import('./models').OrgNetwork>(`${this.base}/networks/${networkId}/members`, dto);
+  }
+
+  respondToNetworkInvite(networkId: string, accept: boolean) {
+    return this.http.patch<import('./models').OrgNetwork>(
+      `${this.base}/networks/${networkId}/members/respond`, { accept }
+    );
+  }
+
+  removeNetworkMember(networkId: string, orgId: string) {
+    return this.http.delete<import('./models').OrgNetwork>(
+      `${this.base}/networks/${networkId}/members/${orgId}`
+    );
+  }
+
+  networkRollup(networkId: string) {
+    return this.http.get<import('./models').NetworkRollupResult>(
+      `${this.base}/networks/${networkId}/rollup`
+    );
+  }
 }

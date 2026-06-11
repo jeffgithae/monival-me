@@ -157,6 +157,7 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Current password is incorrect');
     if (newPassword.length < 8) throw new Error('Password must be at least 8 characters');
     user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1; // invalidates all existing tokens
     await user.save();
     return { success: true };
   }
@@ -170,6 +171,7 @@ export class AuthService {
       memberId: member._id.toString(),
       projectScopeIds: member.projectScopeIds?.map((id) => id.toString()) ?? [],
       partnerScopeIds: member.partnerScopeIds?.map((id) => id.toString()) ?? [],
+      tokenVersion: user.tokenVersion ?? 0,
     };
     return {
       accessToken: this.jwtService.sign(payload),

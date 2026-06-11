@@ -70,7 +70,9 @@ export class GrantsService {
     status?: string;
     donorId?: string;
     search?: string;
-  }): Promise<GrantDocument[]> {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: GrantDocument[]; total: number; page: number; pages: number }> {
     const query: any = { organizationId: new Types.ObjectId(organizationId) };
 
     if (filters?.status) {
@@ -88,7 +90,17 @@ export class GrantsService {
       ];
     }
 
-    return this.grantModel.find(query).sort({ createdAt: -1 }).populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy']);
+    const page  = Math.max(1, filters?.page  ?? 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit ?? 50));
+    const skip  = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.grantModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
+        .populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy']),
+      this.grantModel.countDocuments(query),
+    ]);
+
+    return { data, total, page, pages: Math.ceil(total / limit) };
   }
 
   async findOne(id: string, organizationId: string): Promise<GrantDocument> {
@@ -164,10 +176,11 @@ export class GrantsService {
     remainingBudget: number;
     activeGrants: number;
   }> {
-    const grants = await this.findAll(organizationId, { status: 'active' });
+    const result = await this.findAll(organizationId, { status: 'active', limit: 1000 });
+    const grants = result.data;
 
-    const totalGrantAmount = grants.reduce((sum, g) => sum + (g.amount || 0), 0);
-    const totalSpent = grants.reduce((sum, g) => sum + (g.amountSpent || 0), 0);
+    const totalGrantAmount = grants.reduce((sum: number, g: any) => sum + (g.amount || 0), 0);
+    const totalSpent = grants.reduce((sum: number, g: any) => sum + (g.amountSpent || 0), 0);
 
     return {
       totalGrantAmount,

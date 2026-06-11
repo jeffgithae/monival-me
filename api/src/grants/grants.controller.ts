@@ -27,8 +27,14 @@ export class GrantsController {
     @Query('status') status?: string,
     @Query('donorId') donorId?: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.grantsService.findAll(user.organizationId, { status, donorId, search });
+    return this.grantsService.findAll(user.organizationId, {
+      status, donorId, search,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 50,
+    });
   }
 
   @Get('summary')

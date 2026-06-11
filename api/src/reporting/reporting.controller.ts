@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -94,6 +96,9 @@ export class ReportingController {
 
   @Get('data-quality')
   @Roles(...PERMISSIONS.VIEW_REPORTS)
+  @SkipThrottle()
+  @CacheKey('reporting:data-quality')
+  @CacheTTL(300_000) // 5 minutes — expensive aggregation
   dataQuality(@CurrentUser() user: JwtPayload, @Query('projectId') projectId?: string) {
     return this.reportingService.dataQuality(user.organizationId, projectId);
   }

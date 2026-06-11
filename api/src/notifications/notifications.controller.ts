@@ -1,4 +1,5 @@
 import { Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -15,6 +16,7 @@ export class NotificationsController {
 
   @Get()
   @Roles(...PERMISSIONS.VIEW_REPORTS)
+  @SkipThrottle()
   list(
     @CurrentUser() user: JwtPayload,
     @Query('isRead') isRead?: string,

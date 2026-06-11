@@ -26,3 +26,7 @@ export class AuditEvent {
 
 export const AuditEventSchema = SchemaFactory.createForClass(AuditEvent);
 AuditEventSchema.index({ organizationId: 1, createdAt: -1 });
+AuditEventSchema.index({ createdAt: 1 }, {
+  expireAfterSeconds: 180 * 24 * 60 * 60, // 180 days TTL (enterprise can extend)
+  name: 'audit_ttl',
+});

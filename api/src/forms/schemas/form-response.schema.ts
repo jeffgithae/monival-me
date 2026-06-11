@@ -34,3 +34,8 @@ export class FormResponse {
 }
 
 export const FormResponseSchema = SchemaFactory.createForClass(FormResponse);
+
+// ─── Indexes ──────────────────────────────────────────────────────────────────
+FormResponseSchema.index({ organizationId: 1, templateId: 1, createdAt: -1 });
+FormResponseSchema.index({ organizationId: 1, projectId: 1 });
+FormResponseSchema.index({ 'answers.__integrationId': 1, 'answers.__externalId': 1 });
