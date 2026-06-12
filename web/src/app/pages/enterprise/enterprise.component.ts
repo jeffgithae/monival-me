@@ -178,6 +178,11 @@ export class EnterpriseComponent implements OnInit {
     this.ssoForm.update(f => ({ ...f, [field]: value }));
   }
 
+  updateAllowedDomains(event: string | null | undefined) {
+    const domains = event ? event.split(',').map(s => s.trim()).filter(Boolean) : [];
+    this.updateSsoForm('allowedDomains', domains);
+  }
+
   samlMetadataUrl = computed(() => this.api.samlSpMetadataUrl(this.orgId()));
 
   // ── Branding ──────────────────────────────────────────────────────────────

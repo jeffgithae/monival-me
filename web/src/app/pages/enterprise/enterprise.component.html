@@ -85,8 +85,8 @@
                   <strong>{{ key.name }}</strong>
                   <div class="key-meta">
                     <code class="key-prefix">{{ key.keyPrefix }}…</code>
-                    @if (key.scopes?.length) { <span class="meta-chip">{{ key.scopes.join(', ') }}</span> }
-                    @if (key.allowedIps?.length) { <span class="meta-chip ip">{{ key.allowedIps.length }} IP(s)</span> }
+                    @if (key.scopes.length) { <span class="meta-chip">{{ key.scopes.join(', ') }}</span> }
+                    @if (key.allowedIps.length) { <span class="meta-chip ip">{{ key.allowedIps.length }} IP(s)</span> }
                     @if (key.expiresAt) { <span class="meta-chip exp">Expires {{ key.expiresAt | date:'d MMM y' }}</span> }
                   </div>
                   <div class="key-stats">
@@ -180,7 +180,7 @@
           <div class="ff">
             <label>Allowed domains <span class="hint">(comma-separated — leave blank to allow all)</span></label>
             <input [ngModel]="ssoForm().allowedDomains?.join(', ')"
-              (ngModelChange)="updateSsoForm('allowedDomains', $event ? $event.split(',').map((s: string) => s.trim()) : [])"
+              (ngModelChange)="updateAllowedDomains($event)"
               placeholder="acme.org, acme.com" />
           </div>
           <div class="ff">
