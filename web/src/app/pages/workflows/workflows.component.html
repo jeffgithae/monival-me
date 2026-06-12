@@ -359,8 +359,13 @@
 
               @if (actForm.action === 'escalate') {
                 <div class="form-field">
-                  <label>Escalate to user ID</label>
-                  <input type="text" [(ngModel)]="actForm.escalateToUserId" placeholder="MongoDB user ID" />
+                  <label>Escalate to User</label>
+                  <select [(ngModel)]="actForm.escalateToUserId">
+                    <option value="">Select a user…</option>
+                    @for (m of members(); track m.userId) {
+                      <option [value]="m.userId">{{ m.name }} ({{ m.email }})</option>
+                    }
+                  </select>
                 </div>
               }
 
@@ -459,12 +464,22 @@
                 </div>
                 <div class="form-row">
                   <div class="form-field">
-                    <label>Specific Approver User ID</label>
-                    <input type="text" [(ngModel)]="step.approverUserId" placeholder="Optional override" />
+                    <label>Specific Approver User</label>
+                    <select [(ngModel)]="step.approverUserId">
+                      <option value="">Optional override…</option>
+                      @for (m of members(); track m.userId) {
+                        <option [value]="m.userId">{{ m.name }} ({{ m.email }})</option>
+                      }
+                    </select>
                   </div>
                   <div class="form-field">
-                    <label>Escalate-To User ID</label>
-                    <input type="text" [(ngModel)]="step.escalateTo" placeholder="Auto-escalate to…" />
+                    <label>Escalate-To User</label>
+                    <select [(ngModel)]="step.escalateTo">
+                      <option value="">Auto-escalate to…</option>
+                      @for (m of members(); track m.userId) {
+                        <option [value]="m.userId">{{ m.name }} ({{ m.email }})</option>
+                      }
+                    </select>
                   </div>
                 </div>
                 <div class="form-row checkboxes">
@@ -521,15 +536,24 @@
         <div class="form-row">
           <div class="form-field">
             <label>Entity Type <span class="req">*</span></label>
-            <select [(ngModel)]="startForm.entityType">
+            <select [(ngModel)]="startForm.entityType" (change)="onEntityTypeChange()">
               @for (et of entityTypes; track et) {
                 <option [value]="et">{{ entityLabel(et) }}</option>
               }
             </select>
           </div>
           <div class="form-field">
-            <label>Entity ID <span class="req">*</span></label>
-            <input type="text" [(ngModel)]="startForm.entityId" placeholder="MongoDB ID of the entity" />
+            <label>Entity <span class="req">*</span></label>
+            @if (availableEntities().length > 0) {
+              <select [(ngModel)]="startForm.entityId" (change)="onEntityChange()">
+                <option value="">Select an entity…</option>
+                @for (e of availableEntities(); track e.id) {
+                  <option [value]="e.id">{{ e.name }}</option>
+                }
+              </select>
+            } @else {
+              <input type="text" [(ngModel)]="startForm.entityId" placeholder="Enter ID manually (not found in list)" />
+            }
           </div>
         </div>
 

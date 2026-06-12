@@ -30,6 +30,8 @@ export class WorkflowsComponent implements OnInit {
   myTasks     = signal<WorkflowInstance[]>([]);
   instances   = signal<WorkflowInstance[]>([]);
   definitions = signal<WorkflowDefinition[]>([]);
+  members     = signal<Array<{ id: string; userId: string; email: string; name: string; role: string }>>([]);
+  availableEntities = signal<Array<{ id: string; name: string }>>([]);
 
   // Instance filters
   filterStatus     = '';
@@ -134,11 +136,17 @@ export class WorkflowsComponent implements OnInit {
       error: () => {},
     });
 
-    // Load all instances
+    // Load instances
     this.loadInstances();
 
     // Load definitions
     this.loadDefinitions();
+
+    // Load members
+    this.api.members().subscribe({
+      next: m => this.members.set(m),
+      error: () => {},
+    });
   }
 
   loadInstances() {
@@ -278,7 +286,45 @@ export class WorkflowsComponent implements OnInit {
 
   openStartWorkflow() {
     this.startForm = { definitionId: '', entityType: 'activity', entityId: '', entityTitle: '' };
+    this.onEntityTypeChange();
     this.modalMode.set('start-workflow');
+  }
+
+  onEntityTypeChange() {
+    this.startForm.entityId = '';
+    this.startForm.entityTitle = '';
+    const et = this.startForm.entityType;
+    if (et === 'activity') {
+      this.api.activities().subscribe(res => this.availableEntities.set(res.map(a => ({ id: a._id, name: a.title }))));
+    } else if (et === 'grant') {
+      this.api.grants().subscribe((res: any) => {
+        const data = res.data || res;
+        this.availableEntities.set(data.map((g: any) => ({ id: g._id, name: g.title })));
+      });
+    } else if (et === 'report') {
+      this.api.reportingPeriods().subscribe((res: any) => {
+        const data = res.data || res;
+        this.availableEntities.set(data.map((r: any) => ({ id: r._id, name: r.name })));
+      });
+    } else if (et === 'budget') {
+      this.api.budgetAllocations().subscribe((res: any) => {
+        this.availableEntities.set(res.map((b: any) => ({ id: b._id, name: b.name })));
+      });
+    } else if (et === 'beneficiary') {
+      this.api.beneficiaries().subscribe((res: any) => {
+        const data = res.data || res;
+        this.availableEntities.set(data.map((b: any) => ({ id: b._id, name: b.name || b.caseId })));
+      });
+    } else {
+      this.availableEntities.set([]);
+    }
+  }
+
+  onEntityChange() {
+    const selected = this.availableEntities().find(e => e.id === this.startForm.entityId);
+    if (selected) {
+      this.startForm.entityTitle = selected.name;
+    }
   }
 
   startWorkflow() {
