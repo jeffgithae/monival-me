@@ -459,9 +459,9 @@
             <!-- Invite form -->
             <div class="invite-form">
               <div class="ff">
-                <label>Organisation ID</label>
-                <input [ngModel]="inviteOrgId()" (ngModelChange)="inviteOrgId.set($event)"
-                  placeholder="Paste the partner org's ID from their Settings page" />
+                <label>Organisation Slug</label>
+                <input [ngModel]="inviteOrgSlug()" (ngModelChange)="inviteOrgSlug.set($event)"
+                  placeholder="Enter the partner organisation's unique slug" />
               </div>
               <div class="form-row-2">
                 <div class="ff">
@@ -478,7 +478,7 @@
                     placeholder="East region" />
                 </div>
               </div>
-              <button class="btn-primary sm" [disabled]="!inviteOrgId().trim() || saving()" (click)="inviteMember()">
+              <button class="btn-primary sm" [disabled]="!inviteOrgSlug().trim() || saving()" (click)="inviteMember()">
                 Send Invitation
               </button>
             </div>
@@ -488,7 +488,7 @@
                 <div class="member-row">
                   <div class="member-dot" [style.background]="memberStatusColor(member.status)"></div>
                   <div class="member-info">
-                    <strong>{{ member.organizationId }}</strong>
+                    <strong>{{ member.organizationName || member.organizationSlug || member.organizationId }}</strong>
                     @if (member.label) { <span class="meta-chip">{{ member.label }}</span> }
                     <div class="member-meta">
                       <span class="meta-chip role">{{ member.role }}</span>

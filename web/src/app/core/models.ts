@@ -1873,6 +1873,8 @@ export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
 
 export interface NetworkMember {
   organizationId: string;
+  organizationName?: string;
+  organizationSlug?: string;
   role: NetworkMemberRole;
   status: InviteStatus;
   invitedAt?: string;

@@ -58,7 +58,7 @@ export class EnterpriseComponent implements OnInit {
   activeNetwork = signal<OrgNetwork | null>(null);
   rollup        = signal<NetworkRollupResult | null>(null);
   loadingRollup = signal(false);
-  inviteOrgId   = signal('');
+  inviteOrgSlug   = signal('');
   inviteRole    = signal<'implementing' | 'lead' | 'observer'>('implementing');
   inviteLabel   = signal('');
 
@@ -302,16 +302,16 @@ export class EnterpriseComponent implements OnInit {
 
   inviteMember() {
     const net = this.activeNetwork();
-    if (!net || !this.inviteOrgId().trim()) return;
+    if (!net || !this.inviteOrgSlug().trim()) return;
     this.saving.set(true);
     this.api.inviteNetworkMember(net._id, {
-      organizationId: this.inviteOrgId().trim(),
+      organizationSlug: this.inviteOrgSlug().trim(),
       role: this.inviteRole(),
       label: this.inviteLabel() || undefined,
     }).subscribe({
       next: updated => {
         this.activeNetwork.set(updated);
-        this.inviteOrgId.set('');
+        this.inviteOrgSlug.set('');
         this.inviteLabel.set('');
         this.saving.set(false);
         this.success.set('Invitation sent.');

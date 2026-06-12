@@ -19,7 +19,7 @@ export interface CreateNetworkDto {
 }
 
 export interface InviteMemberDto {
-  organizationId: string;
+  organizationSlug: string;
   role?: 'lead' | 'implementing' | 'observer';
   label?: string;
   sharedIndicatorCodes?: string[];
@@ -91,7 +91,7 @@ export class NetworksService {
   }
 
   async findAllForOrg(organizationId: string): Promise<OrgNetworkDocument[]> {
-    return this.networkModel
+    const networks = await this.networkModel
       .find({
         $or: [
           { hubOrganizationId: new Types.ObjectId(organizationId) },
@@ -99,14 +99,38 @@ export class NetworksService {
         ],
         isActive: true,
       })
-      .lean() as any;
+      .populate('members.organizationId', 'name slug')
+      .lean() as any[];
+
+    return networks.map(n => ({
+      ...n,
+      members: n.members.map((m: any) => ({
+        ...m,
+        organizationName: m.organizationId?.name,
+        organizationSlug: m.organizationId?.slug,
+        organizationId: m.organizationId?._id?.toString() || m.organizationId?.toString(),
+      }))
+    })) as any;
   }
 
   async findOne(networkId: string, requestingOrgId: string): Promise<OrgNetworkDocument> {
-    const network = await this.networkModel.findById(networkId).lean() as any;
+    const network = await this.networkModel
+      .findById(networkId)
+      .populate('members.organizationId', 'name slug')
+      .lean() as any;
+      
     if (!network) throw new NotFoundException('Network not found.');
     this.assertNetworkAccess(network, requestingOrgId);
-    return network;
+
+    return {
+      ...network,
+      members: network.members.map((m: any) => ({
+        ...m,
+        organizationName: m.organizationId?.name,
+        organizationSlug: m.organizationId?.slug,
+        organizationId: m.organizationId?._id?.toString() || m.organizationId?.toString(),
+      }))
+    } as any;
   }
 
   // ── Member Management ──────────────────────────────────────────────────────
@@ -125,16 +149,16 @@ export class NetworksService {
     });
     if (!network) throw new NotFoundException('Network not found or you are not the hub organisation.');
 
+    const invitedOrg = await this.orgModel.findOne({ slug: dto.organizationSlug }).lean();
+    if (!invitedOrg) throw new NotFoundException('Invited organisation not found by that slug.');
+
     const alreadyMember = network.members.some(
-      m => m.organizationId.toString() === dto.organizationId,
+      m => m.organizationId.toString() === invitedOrg._id.toString(),
     );
     if (alreadyMember) throw new BadRequestException('Organisation is already a member of this network.');
 
-    const invitedOrg = await this.orgModel.findById(dto.organizationId).lean();
-    if (!invitedOrg) throw new NotFoundException('Invited organisation not found.');
-
     network.members.push({
-      organizationId: new Types.ObjectId(dto.organizationId),
+      organizationId: invitedOrg._id,
       role: dto.role ?? 'implementing',
       status: 'pending',
       invitedByUserId: new Types.ObjectId(userId),

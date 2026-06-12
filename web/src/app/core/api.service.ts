@@ -1147,7 +1147,7 @@ export class ApiService {
     return this.http.post<import('./models').OrgNetwork>(`${this.base}/networks`, dto);
   }
 
-  inviteNetworkMember(networkId: string, dto: { organizationId: string; role?: string; label?: string }) {
+  inviteNetworkMember(networkId: string, dto: { organizationSlug: string; role?: string; label?: string }) {
     return this.http.post<import('./models').OrgNetwork>(`${this.base}/networks/${networkId}/members`, dto);
   }
 
