@@ -28,6 +28,7 @@ import { DocumentsComponent } from './pages/documents/documents.component';
 import { WorkplanComponent } from './pages/workplan/workplan.component';
 import { WorkflowsComponent } from './pages/workflows/workflows.component';
 import { DataCollectionComponent } from './pages/data-collection/data-collection.component';
+import { EnterpriseComponent } from './pages/enterprise/enterprise.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -62,6 +63,7 @@ export const routes: Routes = [
       { path: 'workflows', component: WorkflowsComponent },
       { path: 'data-collection', component: DataCollectionComponent },
       { path: 'profile', component: ProfileComponent },
+      { path: 'enterprise', component: EnterpriseComponent },
       { path: 'beneficiaries', loadComponent: () => import('./pages/beneficiaries/beneficiaries.component').then(m => m.BeneficiariesComponent) },
     ],
   },

@@ -1769,3 +1769,165 @@ export interface DataCollectionSection {
   description?: string;
   questions: DataCollectionQuestion[];
 }
+// ─── Enterprise / Scale Features ──────────────────────────────────────────────
+
+export interface ApiKey {
+  _id: string;
+  organizationId: string;
+  name: string;
+  keyPrefix: string;
+  allowedIps: string[];
+  scopes: string[];
+  isActive: boolean;
+  expiresAt?: string;
+  lastUsedAt?: string;
+  useCount: number;
+  createdAt: string;
+}
+
+export interface CreateApiKeyDto {
+  name: string;
+  allowedIps?: string[];
+  scopes?: string[];
+  expiresAt?: string;
+}
+
+export interface ApiKeyCreatedResponse {
+  key: string;  // raw key shown ONCE
+  record: ApiKey;
+}
+
+export type SsoProtocol = 'saml' | 'oidc';
+
+export interface SsoConfig {
+  _id: string;
+  organizationId: string;
+  protocol: SsoProtocol;
+  isEnabled: boolean;
+  enforced: boolean;
+  samlMetadataUrl?: string;
+  samlEntryPoint?: string;
+  samlIssuer?: string;
+  oidcIssuer?: string;
+  oidcClientId?: string;
+  oidcDiscoveryUrl?: string;
+  attributeMapping: { email: string; firstName?: string; lastName?: string; role?: string };
+  allowedDomains: string[];
+  defaultRole: string;
+  lastTestedAt?: string;
+  lastTestResult?: 'success' | 'failed';
+}
+
+export interface UpsertSsoConfigDto {
+  protocol: SsoProtocol;
+  isEnabled?: boolean;
+  enforced?: boolean;
+  samlMetadataUrl?: string;
+  samlMetadataXml?: string;
+  samlEntryPoint?: string;
+  samlIssuer?: string;
+  samlCert?: string;
+  oidcIssuer?: string;
+  oidcClientId?: string;
+  oidcClientSecret?: string;
+  oidcDiscoveryUrl?: string;
+  attributeMapping?: { email: string; firstName?: string; lastName?: string };
+  allowedDomains?: string[];
+  defaultRole?: string;
+}
+
+export interface BrandingConfig {
+  _id: string;
+  organizationId: string;
+  appName?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  customDomain?: string;
+  customDomainVerified: boolean;
+  domainVerificationToken?: string;
+  reportFooterText?: string;
+  hidePoweredBy: boolean;
+  defaultTheme: 'light' | 'dark' | 'system';
+  supportEmail?: string;
+  supportUrl?: string;
+}
+
+export interface UpdateBrandingDto {
+  appName?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  customDomain?: string;
+  reportFooterText?: string;
+  hidePoweredBy?: boolean;
+  defaultTheme?: 'light' | 'dark' | 'system';
+  supportEmail?: string;
+  supportUrl?: string;
+}
+
+export type NetworkMemberRole = 'lead' | 'implementing' | 'observer';
+export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
+
+export interface NetworkMember {
+  organizationId: string;
+  role: NetworkMemberRole;
+  status: InviteStatus;
+  invitedAt?: string;
+  acceptedAt?: string;
+  label?: string;
+  sharedIndicatorCodes: string[];
+}
+
+export interface OrgNetwork {
+  _id: string;
+  hubOrganizationId: string;
+  name: string;
+  description?: string;
+  members: NetworkMember[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface NetworkRollupIndicator {
+  code: string;
+  title: string;
+  unit?: string;
+  totalTarget: number;
+  totalAchieved: number;
+  progressPct: number;
+  byOrg: Array<{ orgId: string; orgName: string; target: number; achieved: number }>;
+}
+
+export interface NetworkRollupResult {
+  networkId: string;
+  networkName: string;
+  generatedAt: string;
+  memberCount: number;
+  indicators: NetworkRollupIndicator[];
+  activities: {
+    total: number;
+    approved: number;
+    pending: number;
+    totalParticipants: number;
+    byOrg: Array<{ orgId: string; orgName: string; count: number; participants: number }>;
+  };
+  projects: {
+    total: number;
+    active: number;
+    completed: number;
+    totalBudget: number;
+    totalExpenditure: number;
+  };
+}
+
+export interface PlanFeatures {
+  hasApiAccess: boolean;
+  hasSso: boolean;
+  hasWhiteLabel: boolean;
+  hasMultiOrgAggregation: boolean;
+  hasDedicatedSupport: boolean;
+  hasAuditLog: boolean;
+}

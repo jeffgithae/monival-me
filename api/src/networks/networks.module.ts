@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { OrgNetwork, OrgNetworkSchema } from './schemas/org-network.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Activity, ActivitySchema } from '../activities/schemas/activity.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
-import { NetworksController } from './networks.controller';
 import { NetworksService } from './networks.service';
-import { OrgNetwork, OrgNetworkSchema } from './schemas/org-network.schema';
+import { NetworksController } from './networks.controller';
 
 @Module({
   imports: [

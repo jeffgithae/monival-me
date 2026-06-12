@@ -1,0 +1,585 @@
+<div class="ent-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">Scale &amp; Enterprise</span>
+      <h1>Enterprise Settings</h1>
+      <p class="sub">API access, SSO, white-labelling, and multi-partner networks</p>
+    </div>
+  </div>
+
+  @if (error()) { <div class="alert alert-error">⚠ {{ error() }} <button (click)="error.set('')">✕</button></div> }
+  @if (success()) { <div class="alert alert-success">✓ {{ success() }}</div> }
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab() === 'api-keys'" (click)="setTab('api-keys')">🔑 API Keys</button>
+    <button class="tab-btn" [class.active]="activeTab() === 'sso'" (click)="setTab('sso')">🔐 SSO / SAML</button>
+    <button class="tab-btn" [class.active]="activeTab() === 'branding'" (click)="setTab('branding')">🎨 White-Label</button>
+    <button class="tab-btn" [class.active]="activeTab() === 'networks'" (click)="setTab('networks')">🌐 Partner Networks</button>
+  </div>
+
+  <!-- ── API Keys ──────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'api-keys') {
+    <div class="tab-content">
+      <div class="section-intro">
+        <h2>API Keys</h2>
+        <p>Use API keys to authenticate machine-to-machine integrations with the Monival REST API.
+           Keys are prefixed <code>mk_live_</code> and shown only once on creation.</p>
+      </div>
+
+      <!-- New key shown once after creation -->
+      @if (newKeyResult()) {
+        <div class="key-reveal">
+          <div class="key-reveal-hd">
+            <span class="key-reveal-icon">🔑</span>
+            <div>
+              <strong>Key created — copy it now!</strong>
+              <p>This is the only time we'll show you the full key.</p>
+            </div>
+          </div>
+          <div class="key-value-row">
+            <code class="key-value">{{ newKeyResult()!.key }}</code>
+            <button class="btn-copy" (click)="copyKey(newKeyResult()!.key)">Copy</button>
+          </div>
+          <button class="btn-ghost sm" (click)="newKeyResult.set(null)">Dismiss</button>
+        </div>
+      }
+
+      <!-- Create key form -->
+      <div class="card">
+        <h3 class="card-title">Create new key</h3>
+        <div class="form-grid">
+          <div class="ff">
+            <label>Key name *</label>
+            <input [ngModel]="newKeyName()" (ngModelChange)="newKeyName.set($event)" placeholder="e.g. DHIS2 sync, PowerBI dashboard" />
+          </div>
+          <div class="ff">
+            <label>Scopes <span class="hint">(comma-separated, blank = all)</span></label>
+            <input [ngModel]="newKeyScopes()" (ngModelChange)="newKeyScopes.set($event)" placeholder="indicators:read, activities:read" />
+          </div>
+          <div class="ff">
+            <label>Allowed IPs <span class="hint">(comma-separated, blank = unrestricted)</span></label>
+            <input [ngModel]="newKeyIps()" (ngModelChange)="newKeyIps.set($event)" placeholder="203.0.113.5, 10.0.0.0/8" />
+          </div>
+          <div class="ff">
+            <label>Expires at <span class="hint">(optional)</span></label>
+            <input type="date" [ngModel]="newKeyExpiry()" (ngModelChange)="newKeyExpiry.set($event)" />
+          </div>
+        </div>
+        <button class="btn-primary" [disabled]="!newKeyName().trim() || saving()" (click)="createApiKey()">
+          {{ saving() ? 'Creating…' : '＋ Create Key' }}
+        </button>
+      </div>
+
+      <!-- Keys list -->
+      <div class="card">
+        <h3 class="card-title">Active keys <span class="count-badge">{{ apiKeys().length }}</span></h3>
+        @if (loadingKeys()) { <div class="loading-row">Loading…</div> }
+        @else if (apiKeys().length === 0) {
+          <div class="empty-row">No API keys yet. Create one above.</div>
+        } @else {
+          <div class="keys-table">
+            @for (key of apiKeys(); track key._id) {
+              <div class="key-row">
+                <div class="key-info">
+                  <strong>{{ key.name }}</strong>
+                  <div class="key-meta">
+                    <code class="key-prefix">{{ key.keyPrefix }}…</code>
+                    @if (key.scopes?.length) { <span class="meta-chip">{{ key.scopes.join(', ') }}</span> }
+                    @if (key.allowedIps?.length) { <span class="meta-chip ip">{{ key.allowedIps.length }} IP(s)</span> }
+                    @if (key.expiresAt) { <span class="meta-chip exp">Expires {{ key.expiresAt | date:'d MMM y' }}</span> }
+                  </div>
+                  <div class="key-stats">
+                    Used {{ key.useCount }} times
+                    @if (key.lastUsedAt) { · Last used {{ key.lastUsedAt | date:'d MMM y' }} }
+                  </div>
+                </div>
+                <button class="btn-danger-sm"
+                  [disabled]="revokingKeyId() === key._id"
+                  (click)="revokeKey(key._id)">
+                  {{ revokingKeyId() === key._id ? 'Revoking…' : 'Revoke' }}
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="info-box">
+        <strong>Using the API:</strong> Send requests with header
+        <code>Authorization: Bearer mk_live_your_key_here</code>.
+        Base URL: <code>{{ 'https://api.monival.app' }}</code>.
+        Full API reference available in the developer docs.
+      </div>
+    </div>
+  }
+
+  <!-- ── SSO ────────────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'sso') {
+    <div class="tab-content">
+      <div class="section-intro">
+        <h2>Single Sign-On</h2>
+        <p>Connect your identity provider (IdP) so your team logs in with their corporate credentials.
+           Supports SAML 2.0 and OIDC. New users are automatically provisioned on first login.</p>
+      </div>
+
+      <!-- Protocol selector -->
+      <div class="protocol-toggle">
+        <button class="proto-btn" [class.active]="ssoTab() === 'saml'"
+          (click)="ssoTab.set('saml'); updateSsoForm('protocol', 'saml')">SAML 2.0</button>
+        <button class="proto-btn" [class.active]="ssoTab() === 'oidc'"
+          (click)="ssoTab.set('oidc'); updateSsoForm('protocol', 'oidc')">OIDC</button>
+      </div>
+
+      <div class="two-col">
+        <!-- Config form -->
+        <div class="card">
+          <h3 class="card-title">{{ ssoTab() === 'saml' ? 'SAML 2.0 Configuration' : 'OIDC Configuration' }}</h3>
+
+          @if (ssoTab() === 'saml') {
+            <div class="ff">
+              <label>IdP Metadata URL <span class="hint">(recommended — we fetch and parse it)</span></label>
+              <input [ngModel]="ssoForm().samlMetadataUrl"
+                (ngModelChange)="updateSsoForm('samlMetadataUrl', $event)"
+                placeholder="https://accounts.google.com/o/saml2/idp?idpid=…" />
+            </div>
+            <p class="or-divider">— or configure manually —</p>
+            <div class="ff">
+              <label>IdP Entry Point (SSO URL)</label>
+              <input [ngModel]="ssoForm().samlEntryPoint"
+                (ngModelChange)="updateSsoForm('samlEntryPoint', $event)"
+                placeholder="https://idp.example.com/sso/saml" />
+            </div>
+            <div class="ff">
+              <label>IdP Issuer / Entity ID</label>
+              <input [ngModel]="ssoForm().samlIssuer"
+                (ngModelChange)="updateSsoForm('samlIssuer', $event)" />
+            </div>
+          }
+
+          @if (ssoTab() === 'oidc') {
+            <div class="ff">
+              <label>Discovery URL <span class="hint">(.well-known/openid-configuration)</span></label>
+              <input [ngModel]="ssoForm().oidcDiscoveryUrl"
+                (ngModelChange)="updateSsoForm('oidcDiscoveryUrl', $event)"
+                placeholder="https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration" />
+            </div>
+            <div class="ff">
+              <label>Client ID</label>
+              <input [ngModel]="ssoForm().oidcClientId"
+                (ngModelChange)="updateSsoForm('oidcClientId', $event)" />
+            </div>
+            <div class="ff">
+              <label>Client Secret</label>
+              <input type="password" [ngModel]="ssoForm().oidcClientSecret"
+                (ngModelChange)="updateSsoForm('oidcClientSecret', $event)"
+                placeholder="Leave blank to keep existing" />
+            </div>
+          }
+
+          <div class="ff">
+            <label>Allowed domains <span class="hint">(comma-separated — leave blank to allow all)</span></label>
+            <input [ngModel]="ssoForm().allowedDomains?.join(', ')"
+              (ngModelChange)="updateSsoForm('allowedDomains', $event ? $event.split(',').map((s: string) => s.trim()) : [])"
+              placeholder="acme.org, acme.com" />
+          </div>
+          <div class="ff">
+            <label>Default role for new SSO users</label>
+            <select [ngModel]="ssoForm().defaultRole" (ngModelChange)="updateSsoForm('defaultRole', $event)">
+              <option value="viewer">Viewer</option>
+              <option value="field_officer">Field Officer</option>
+              <option value="me_officer">M&amp;E Officer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <strong>Enable SSO</strong>
+              <p>Allow users to log in via your IdP.</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" [ngModel]="ssoForm().isEnabled"
+                (ngModelChange)="updateSsoForm('isEnabled', $event)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button class="btn-primary" [disabled]="saving()" (click)="saveSso()">
+            {{ saving() ? 'Saving…' : 'Save SSO Configuration' }}
+          </button>
+        </div>
+
+        <!-- SP details & enforcement -->
+        <div class="side-col">
+          <div class="card">
+            <h3 class="card-title">Service Provider Details</h3>
+            <p class="sp-hint">Paste these into your IdP:</p>
+            <div class="sp-field">
+              <label>SP Metadata URL</label>
+              <div class="sp-value-row">
+                <code>{{ samlMetadataUrl() }}</code>
+                <button class="btn-copy" (click)="copyKey(samlMetadataUrl())">Copy</button>
+              </div>
+            </div>
+            <div class="sp-field">
+              <label>ACS URL</label>
+              <code>{{ samlMetadataUrl().replace('/metadata', '/acs') }}</code>
+            </div>
+          </div>
+
+          @if (ssoConfig()?.isEnabled) {
+            <div class="card danger-card">
+              <h3 class="card-title">Enforcement</h3>
+              <p>When enforcement is on, password login is blocked — all users must log in via SSO.
+                 Only toggle this once you have tested SSO and confirmed it works.</p>
+              <div class="toggle-row">
+                <strong>{{ ssoConfig()!.enforced ? '🔒 Enforced' : '🔓 Not enforced' }}</strong>
+                <button class="btn-danger-sm" (click)="toggleEnforcement(!ssoConfig()!.enforced)" [disabled]="saving()">
+                  {{ ssoConfig()!.enforced ? 'Disable enforcement' : 'Enable enforcement' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Branding ────────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'branding') {
+    <div class="tab-content">
+      <div class="section-intro">
+        <h2>White-Label Branding</h2>
+        <p>Customise the app name, logo, colours, and custom domain to match your organisation's brand.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h3 class="card-title">Brand Identity</h3>
+
+          <div class="ff">
+            <label>App name</label>
+            <input [ngModel]="brandingForm().appName"
+              (ngModelChange)="updateBrandingForm('appName', $event)"
+              placeholder="My Org M&E Platform" />
+          </div>
+          <div class="ff">
+            <label>Logo URL <span class="hint">(square, min 64px)</span></label>
+            <input [ngModel]="brandingForm().logoUrl"
+              (ngModelChange)="updateBrandingForm('logoUrl', $event)"
+              placeholder="https://cdn.acme.org/logo.png" />
+            @if (brandingForm().logoUrl) {
+              <img [src]="brandingForm().logoUrl" class="logo-preview" alt="logo preview" />
+            }
+          </div>
+          <div class="ff">
+            <label>Favicon URL</label>
+            <input [ngModel]="brandingForm().faviconUrl"
+              (ngModelChange)="updateBrandingForm('faviconUrl', $event)" />
+          </div>
+
+          <div class="form-row-2">
+            <div class="ff">
+              <label>Primary colour</label>
+              <div class="color-row">
+                <input type="color" [ngModel]="colorPreview()"
+                  (ngModelChange)="updateBrandingForm('primaryColor', $event)" />
+                <input [ngModel]="brandingForm().primaryColor"
+                  (ngModelChange)="updateBrandingForm('primaryColor', $event)"
+                  placeholder="#4f46e5" />
+              </div>
+            </div>
+            <div class="ff">
+              <label>Accent colour</label>
+              <div class="color-row">
+                <input type="color" [ngModel]="brandingForm().accentColor || '#2dd4bf'"
+                  (ngModelChange)="updateBrandingForm('accentColor', $event)" />
+                <input [ngModel]="brandingForm().accentColor"
+                  (ngModelChange)="updateBrandingForm('accentColor', $event)"
+                  placeholder="#2dd4bf" />
+              </div>
+            </div>
+          </div>
+
+          <div class="ff">
+            <label>Default theme</label>
+            <select [ngModel]="brandingForm().defaultTheme"
+              (ngModelChange)="updateBrandingForm('defaultTheme', $event)">
+              <option value="system">Follow system</option>
+              <option value="light">Always light</option>
+              <option value="dark">Always dark</option>
+            </select>
+          </div>
+
+          <div class="ff">
+            <label>Report footer text</label>
+            <input [ngModel]="brandingForm().reportFooterText"
+              (ngModelChange)="updateBrandingForm('reportFooterText', $event)"
+              placeholder="Confidential — prepared by ACME Organisation" />
+          </div>
+
+          <div class="ff">
+            <label>Support email</label>
+            <input type="email" [ngModel]="brandingForm().supportEmail"
+              (ngModelChange)="updateBrandingForm('supportEmail', $event)"
+              placeholder="support@acme.org" />
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <strong>Hide "Powered by Monival"</strong>
+              <p>Remove the Monival badge from the UI and reports.</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" [ngModel]="brandingForm().hidePoweredBy"
+                (ngModelChange)="updateBrandingForm('hidePoweredBy', $event)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button class="btn-primary" [disabled]="saving()" (click)="saveBranding()">
+            {{ saving() ? 'Saving…' : 'Save Branding' }}
+          </button>
+        </div>
+
+        <!-- Custom domain -->
+        <div class="side-col">
+          <div class="card">
+            <h3 class="card-title">Custom Domain</h3>
+            <p>Serve the app from your own domain, e.g. <code>me.acme.org</code>.</p>
+
+            <div class="ff">
+              <label>Domain</label>
+              <input [ngModel]="brandingForm().customDomain"
+                (ngModelChange)="updateBrandingForm('customDomain', $event)"
+                placeholder="me.acme.org" />
+            </div>
+
+            @if (branding()?.customDomain) {
+              @if (branding()?.customDomainVerified) {
+                <div class="verified-badge">✓ Domain verified</div>
+              } @else {
+                <button class="btn-ghost sm" [disabled]="saving()" (click)="initiateDomainVerification()">
+                  Get DNS verification record
+                </button>
+
+                @if (domainVerInfo()) {
+                  <div class="dns-info">
+                    <p>Add this TXT record to your DNS:</p>
+                    <div class="dns-record-row">
+                      <code>{{ domainVerInfo()!.txtRecord }}</code>
+                      <button class="btn-copy" (click)="copyTxtRecord()">Copy</button>
+                    </div>
+                    <button class="btn-ghost sm" [disabled]="saving()" (click)="verifyDomain()">
+                      Check verification
+                    </button>
+                  </div>
+                }
+              }
+            }
+          </div>
+
+          <!-- Colour preview -->
+          <div class="card brand-preview">
+            <h3 class="card-title">Colour preview</h3>
+            <div class="color-preview-bar" [style.background]="colorPreview()"></div>
+            <p class="brand-preview-note">The selected primary colour applied to buttons and navigation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Networks ────────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'networks') {
+    <div class="tab-content">
+      <div class="section-intro">
+        <h2>Partner Networks</h2>
+        <p>Create a network of implementing partner organisations and aggregate their results into a
+           unified cross-partner dashboard. Each partner manages their own data — you see the rollup.</p>
+      </div>
+
+      @if (!activeNetwork()) {
+        <!-- Network list -->
+        <div class="two-col">
+          <div class="card">
+            <h3 class="card-title">Create network</h3>
+            <div class="ff">
+              <label>Network name *</label>
+              <input [ngModel]="newNetName()" (ngModelChange)="newNetName.set($event)"
+                placeholder="East Africa WASH Consortium" />
+            </div>
+            <div class="ff">
+              <label>Description</label>
+              <input [ngModel]="newNetDesc()" (ngModelChange)="newNetDesc.set($event)"
+                placeholder="USAID-funded water &amp; sanitation program" />
+            </div>
+            <button class="btn-primary" [disabled]="!newNetName().trim() || saving()" (click)="createNetwork()">
+              {{ saving() ? 'Creating…' : '＋ Create Network' }}
+            </button>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Your networks <span class="count-badge">{{ networks().length }}</span></h3>
+            @if (loadingNets()) { <div class="loading-row">Loading…</div> }
+            @else if (networks().length === 0) {
+              <div class="empty-row">No networks yet.</div>
+            } @else {
+              @for (net of networks(); track net._id) {
+                <div class="net-row" (click)="openNetwork(net)">
+                  <div class="net-info">
+                    <strong>{{ net.name }}</strong>
+                    <span class="net-meta">
+                      {{ net.members.length }} member(s) ·
+                      {{ net.members | networkAccepted }} accepted
+                    </span>
+                  </div>
+                  <span class="chevron">›</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+      } @else {
+        <!-- Network detail -->
+        <button class="btn-back" (click)="activeNetwork.set(null); rollup.set(null)">← Back to networks</button>
+
+        <div class="net-detail-header">
+          <h2>{{ activeNetwork()!.name }}</h2>
+          @if (activeNetwork()!.description) { <p>{{ activeNetwork()!.description }}</p> }
+        </div>
+
+        <div class="two-col">
+          <!-- Members -->
+          <div class="card">
+            <h3 class="card-title">Members</h3>
+
+            <!-- Invite form -->
+            <div class="invite-form">
+              <div class="ff">
+                <label>Organisation ID</label>
+                <input [ngModel]="inviteOrgId()" (ngModelChange)="inviteOrgId.set($event)"
+                  placeholder="Paste the partner org's ID from their Settings page" />
+              </div>
+              <div class="form-row-2">
+                <div class="ff">
+                  <label>Role</label>
+                  <select [(ngModel)]="inviteRole">
+                    <option value="implementing">Implementing</option>
+                    <option value="lead">Lead</option>
+                    <option value="observer">Observer</option>
+                  </select>
+                </div>
+                <div class="ff">
+                  <label>Label <span class="hint">(optional)</span></label>
+                  <input [ngModel]="inviteLabel()" (ngModelChange)="inviteLabel.set($event)"
+                    placeholder="East region" />
+                </div>
+              </div>
+              <button class="btn-primary sm" [disabled]="!inviteOrgId().trim() || saving()" (click)="inviteMember()">
+                Send Invitation
+              </button>
+            </div>
+
+            <div class="member-list">
+              @for (member of activeNetwork()!.members; track member.organizationId) {
+                <div class="member-row">
+                  <div class="member-dot" [style.background]="memberStatusColor(member.status)"></div>
+                  <div class="member-info">
+                    <strong>{{ member.organizationId }}</strong>
+                    @if (member.label) { <span class="meta-chip">{{ member.label }}</span> }
+                    <div class="member-meta">
+                      <span class="meta-chip role">{{ member.role }}</span>
+                      <span class="meta-chip status" [style.color]="memberStatusColor(member.status)">
+                        {{ member.status }}
+                      </span>
+                    </div>
+                  </div>
+                  @if (member.status !== 'revoked') {
+                    <button class="btn-danger-sm sm" (click)="removeMember(member.organizationId)">Remove</button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Rollup dashboard -->
+          <div class="card rollup-card">
+            <div class="rollup-hd">
+              <h3 class="card-title">Aggregated Results</h3>
+              <button class="btn-primary sm" [disabled]="loadingRollup()" (click)="loadRollup()">
+                {{ loadingRollup() ? 'Loading…' : '↻ Refresh Rollup' }}
+              </button>
+            </div>
+
+            @if (!rollup()) {
+              <div class="empty-row">Click "Refresh Rollup" to aggregate results from all accepted members.</div>
+            } @else {
+              <!-- Summary stats -->
+              <div class="rollup-stats">
+                <div class="rs-card">
+                  <span class="rs-num">{{ rollup()!.memberCount }}</span>
+                  <span class="rs-lbl">Partners</span>
+                </div>
+                <div class="rs-card">
+                  <span class="rs-num">{{ rollup()!.projects.total }}</span>
+                  <span class="rs-lbl">Projects</span>
+                </div>
+                <div class="rs-card">
+                  <span class="rs-num">{{ rollup()!.activities.totalParticipants | number }}</span>
+                  <span class="rs-lbl">Participants</span>
+                </div>
+                <div class="rs-card">
+                  <span class="rs-num">{{ rollup()!.indicators.length }}</span>
+                  <span class="rs-lbl">Indicators</span>
+                </div>
+              </div>
+
+              <!-- Indicator table -->
+              @if (rollup()!.indicators.length > 0) {
+                <h4 class="rollup-section-title">Indicator Rollup</h4>
+                <div class="rollup-table-wrap">
+                  <table class="rollup-table">
+                    <thead>
+                      <tr>
+                        <th>Indicator</th>
+                        <th>Target</th>
+                        <th>Achieved</th>
+                        <th>Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (ind of rollup()!.indicators; track ind.code) {
+                        <tr>
+                          <td>
+                            <strong>{{ ind.code }}</strong><br>
+                            <span class="ind-title">{{ ind.title }}</span>
+                          </td>
+                          <td>{{ ind.totalTarget | number }}</td>
+                          <td>{{ ind.totalAchieved | number }}</td>
+                          <td>
+                            <div class="progress-bar-wrap">
+                              <div class="progress-bar-fill"
+                                [style.width.%]="ind.progressPct"
+                                [class.over]="ind.progressPct >= 100">
+                              </div>
+                            </div>
+                            <span class="progress-pct">{{ ind.progressPct }}%</span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+
+              <p class="rollup-ts">Generated {{ rollup()!.generatedAt | date:'d MMM y, h:mm a' }}</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
