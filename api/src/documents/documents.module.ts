@@ -9,14 +9,17 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudStorageController } from './cloud-storage/cloud-storage.controller';
 import { CloudStorageService } from './cloud-storage/cloud-storage.service';
 import { CloudStorageConnection, CloudStorageConnectionSchema } from './schemas/cloud-storage-connection.schema';
+import { OrgCloudCredentials, OrgCloudCredentialsSchema } from './schemas/org-cloud-credentials.schema';
+
 @Module({
   imports: [
     NotificationsModule,
     MongooseModule.forFeature([
-      { name: Document.name, schema: DocumentSchema },
-      { name: DocumentVersion.name, schema: DocumentVersionSchema },
+      { name: Document.name,               schema: DocumentSchema },
+      { name: DocumentVersion.name,        schema: DocumentVersionSchema },
       { name: CloudStorageConnection.name, schema: CloudStorageConnectionSchema },
-      { name: Project.name, schema: ProjectSchema },
+      { name: OrgCloudCredentials.name,    schema: OrgCloudCredentialsSchema },   // per-org OAuth creds
+      { name: Project.name,                schema: ProjectSchema },
     ]),
   ],
   controllers: [DocumentsController, CloudStorageController],
