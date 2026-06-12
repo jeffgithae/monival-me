@@ -200,25 +200,51 @@ export class WorkflowService {
     if (query.status) filter.status = query.status;
     if (query.entityType) filter.entityType = query.entityType;
 
-    if (query.assignedToMe === 'true') {
-      // Return instances where user's role matches the current step's approver role
-      // OR where user is explicitly named
-      const userRole = user.role;
-      filter.$or = [
-        { 'steps': { $elemMatch: {
-          $expr: { $eq: ['$order', '$$ROOT.currentStep'] },
-          approverRole: userRole,
-        }}},
-        { 'steps': { $elemMatch: {
-          $expr: { $eq: ['$order', '$$ROOT.currentStep'] },
-          approverUserId: new Types.ObjectId(String(user._id)),
-        }}},
-      ];
-    }
-
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
+
+    if (query.assignedToMe === 'true') {
+      // $$ROOT is not accessible inside .find() — use an aggregation pipeline instead.
+      // Match instances where the step at index (currentStep - 1) is assigned to this user.
+      const userRole = user.role;
+      const userId = new Types.ObjectId(String(user._id));
+
+      const pipeline: any[] = [
+        { $match: filter },
+        {
+          $addFields: {
+            currentStepObj: {
+              $arrayElemAt: [
+                '$steps',
+                { $subtract: ['$currentStep', 1] },
+              ],
+            },
+          },
+        },
+        {
+          $match: {
+            $or: [
+              { 'currentStepObj.approverRole': userRole },
+              { 'currentStepObj.approverUserId': userId },
+            ],
+          },
+        },
+      ];
+
+      const [docs, countResult] = await Promise.all([
+        this.instanceModel.aggregate([
+          ...pipeline,
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+        ]),
+        this.instanceModel.aggregate([...pipeline, { $count: 'n' }]),
+      ]);
+
+      const total = (countResult[0]?.n as number) ?? 0;
+      return { data: docs, total, page, limit };
+    }
 
     const [data, total] = await Promise.all([
       this.instanceModel.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),

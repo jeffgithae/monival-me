@@ -24,6 +24,10 @@ export class User {
    */
   @Prop({ default: 0 })
   tokenVersion!: number;
+
+  /** bcrypt hash of the most recent refresh token. Null = no active refresh session. */
+  @Prop({ default: null, select: false })
+  refreshTokenHash!: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

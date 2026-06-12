@@ -3,11 +3,11 @@ import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { NetworkAcceptedPipe } from '../../shared/network-accepted.pipe';
 import {
   ApiKey, ApiKeyCreatedResponse, SsoConfig, BrandingConfig,
   OrgNetwork, NetworkRollupResult, UpsertSsoConfigDto, UpdateBrandingDto,
 } from '../../core/models';
+import { NetworkAcceptedPipe } from '../../shared/network-accepted.pipe';
 
 type Tab = 'api-keys' | 'sso' | 'branding' | 'networks';
 

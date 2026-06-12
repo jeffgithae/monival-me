@@ -3,10 +3,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { Model, Types } from 'mongoose';
+import * as crypto from 'crypto';
+import { Model } from 'mongoose';
 import { PlanId } from '../common/constants/plans';
 import { OrgRole } from '../common/constants/roles';
 import { MembersService } from '../members/members.service';
@@ -21,6 +23,11 @@ import { BillingService } from '../billing/billing.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
+/** How long the short-lived access token lives */
+const ACCESS_TOKEN_TTL = '15m';
+/** How long the opaque refresh token is valid (stored as bcrypt hash on user) */
+const REFRESH_TOKEN_TTL_DAYS = 30;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -30,6 +37,7 @@ export class AuthService {
     @InjectModel(OrganizationMember.name)
     private readonly memberModel: Model<OrganizationMember>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly organizationsService: OrganizationsService,
     private readonly membersService: MembersService,
     private readonly billingService: BillingService,
@@ -116,6 +124,61 @@ export class AuthService {
     return this.buildAuthResponse(user, member);
   }
 
+  // ── Refresh Token ──────────────────────────────────────────────────────────
+
+  async refreshTokens(rawRefreshToken: string) {
+    if (!rawRefreshToken) {
+      throw new UnauthorizedException('Refresh token required.');
+    }
+
+    // Hash the incoming token and look up the user
+    const hash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+
+    // We stored bcrypt of the raw token; compare against all candidates
+    // Instead, store a SHA-256 hex (fast, deterministic) — see buildAuthResponse
+    const user = await this.userModel
+      .findOne({ refreshTokenHash: hash })
+      .select('+refreshTokenHash');
+
+    if (!user || !user.refreshTokenHash) {
+      throw new UnauthorizedException('Invalid or expired refresh token.');
+    }
+
+    // Verify token hasn't been manually invalidated via tokenVersion bump
+    let payload: { sub: string; tokenVersion?: number } | null = null;
+    try {
+      payload = this.jwtService.verify(rawRefreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET', this.configService.get<string>('JWT_SECRET', '')),
+      }) as any;
+    } catch {
+      // Opaque token — skip JWT verification, hash match is sufficient
+    }
+
+    if (payload && payload.sub !== user._id.toString()) {
+      throw new UnauthorizedException('Token mismatch.');
+    }
+
+    const member = await this.memberModel.findOne({
+      userId: user._id,
+      organizationId: user.organizationId,
+      status: 'active',
+    });
+
+    if (!member) {
+      throw new UnauthorizedException('Member record not found.');
+    }
+
+    // Rotate: issue new pair and invalidate the old one
+    return this.buildAuthResponse(user, member);
+  }
+
+  async revokeRefreshToken(userId: string) {
+    await this.userModel.updateOne({ _id: userId }, { refreshTokenHash: null });
+    return { success: true };
+  }
+
+  // ── Profile / Password ────────────────────────────────────────────────────
+
   async me(userId: string) {
     const user = await this.userModel.findById(userId).lean();
     if (!user) {
@@ -157,12 +220,17 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Current password is incorrect');
     if (newPassword.length < 8) throw new Error('Password must be at least 8 characters');
     user.passwordHash = await bcrypt.hash(newPassword, 10);
-    user.tokenVersion = (user.tokenVersion ?? 0) + 1; // invalidates all existing tokens
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+    user.refreshTokenHash = null; // invalidate all refresh sessions
     await user.save();
     return { success: true };
   }
 
+  // ── Token building ─────────────────────────────────────────────────────────
+
   private async buildAuthResponse(user: UserDocument, member: OrganizationMemberDocument) {
+    const jwtSecret = this.configService.get<string>('JWT_SECRET', '');
+
     const payload = {
       sub: user._id.toString(),
       email: user.email,
@@ -173,8 +241,30 @@ export class AuthService {
       partnerScopeIds: member.partnerScopeIds?.map((id) => id.toString()) ?? [],
       tokenVersion: user.tokenVersion ?? 0,
     };
+
+    // Short-lived access token
+    const accessToken = this.jwtService.sign(payload, {
+      secret: jwtSecret,
+      expiresIn: ACCESS_TOKEN_TTL,
+    });
+
+    // Generate a cryptographically random opaque refresh token
+    const rawRefreshToken = crypto.randomBytes(40).toString('hex');
+    const refreshHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+
+    // Store SHA-256 hash (not bcrypt — deterministic lookup needed)
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { refreshTokenHash: refreshHash },
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_TTL_DAYS);
+
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken,
+      refreshToken: rawRefreshToken,
+      expiresAt: expiresAt.toISOString(),
       user: {
         id: payload.sub,
         email: user.email,

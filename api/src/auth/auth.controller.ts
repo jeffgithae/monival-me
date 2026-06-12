@@ -27,12 +27,44 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  /**
+   * POST /auth/refresh
+   * Exchange a valid refresh token for a new access token + rotated refresh token.
+   * Rate-limited to 30/min — tight enough to prevent brute force, loose enough
+   * for silent re-auth on multiple tabs.
+   */
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @Post('refresh')
+  refresh(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshTokens(body.refreshToken);
+  }
+
+  /**
+   * POST /auth/logout
+   * Revokes the user's refresh token server-side so the session cannot be continued.
+   */
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  logout(@CurrentUser() user: JwtPayload) {
+    return this.authService.revokeRefreshToken(user.sub);
+  }
+
+  /**
+   * GET /auth/me
+   * Throttled to prevent enumeration via repeated token probing.
+   */
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: JwtPayload) {
     return this.authService.me(user.sub);
   }
 
+  /**
+   * GET /auth/menu
+   * Throttled — clients should cache this for at least 5 minutes.
+   */
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Get('menu')
   @UseGuards(JwtAuthGuard)
   menu(@CurrentUser() user: JwtPayload) {
