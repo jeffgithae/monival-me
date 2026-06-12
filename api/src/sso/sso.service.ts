@@ -211,29 +211,29 @@ export class SsoService {
     defaultRole: string,
     profile: { firstName?: string; lastName?: string },
   ): Promise<{ accessToken: string }> {
-    let user = await this.userModel.findOne({ email }).lean();
+    let userDoc = await this.userModel.findOne({ email });
 
-    if (!user) {
+    if (!userDoc) {
       // Just-in-time provisioning — create user with no password
-      const created = await this.userModel.create({
+      userDoc = await this.userModel.create({
         email,
         name: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || email.split('@')[0],
         passwordHash: '', // SSO users have no password
         organizationId: new Types.ObjectId(organizationId),
-        ssoProvisioned: true,
       });
-      user = created.toObject();
     }
+
+    const userId = userDoc._id;
 
     // Ensure member record exists
     let member = await this.memberModel.findOne({
-      userId: user._id,
+      userId,
       organizationId: new Types.ObjectId(organizationId),
     });
 
     if (!member) {
       member = await this.memberModel.create({
-        userId: user._id,
+        userId,
         organizationId: new Types.ObjectId(organizationId),
         role: (defaultRole as OrgRole) ?? OrgRole.VIEWER,
         status: 'active',
@@ -244,8 +244,8 @@ export class SsoService {
     const secret = this.config.get<string>('JWT_SECRET', '');
     const accessToken = this.jwtService.sign(
       {
-        sub: user._id.toString(),
-        email: user.email,
+        sub: userId.toString(),
+        email: userDoc.email,
         organizationId,
         role: member.role,
         memberId: member._id.toString(),
