@@ -33,6 +33,10 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { AIModule } from './AI/ai.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { SsoModule } from './sso/sso.module';
+import { BrandingModule } from './branding/branding.module';
+import { NetworksModule } from './networks/networks.module';
 
 @Module({
   imports: [
@@ -117,6 +121,10 @@ import { WorkflowsModule } from './workflows/workflows.module';
     NotificationsModule,
     AIModule,
     WorkflowsModule,
+    ApiKeysModule,
+    SsoModule,
+    BrandingModule,
+    NetworksModule,
   ],
   providers: [
     SubscriptionGuard,
