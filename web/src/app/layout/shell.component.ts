@@ -7,11 +7,12 @@ import { roleLabel } from '../core/roles';
 import { AppNotification, NavItem } from '../core/models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeService } from '../core/theme.service';
+import { ToastContainerComponent } from '../shared/toast-container.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, ToastContainerComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
