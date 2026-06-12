@@ -38,7 +38,21 @@ async function bootstrap() {
   app.use(compression());
 
   // ── MongoDB injection sanitisation (H5) ───────────────────────────────────
-  app.use(mongoSanitize());
+  app.use((req: any, res: any, next: any) => {
+    ['body', 'params', 'headers'].forEach((k) => {
+      if (req[k]) {
+        req[k] = mongoSanitize.sanitize(req[k]);
+      }
+    });
+    if (req.query) {
+      for (const key in req.query) {
+        if (Object.prototype.hasOwnProperty.call(req.query, key)) {
+          req.query[key] = mongoSanitize.sanitize(req.query[key]);
+        }
+      }
+    }
+    next();
+  });
 
   // ── Validation ────────────────────────────────────────────────────────────
   app.useGlobalPipes(
