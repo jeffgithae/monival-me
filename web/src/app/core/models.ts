@@ -26,6 +26,19 @@ export interface Organization {
   };
 }
 
+// ─── Navigation ───────────────────────────────────────────────────────────────
+
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  route: string;
+  /** If set, renders as a section divider before this item */
+  section?: string;
+  /** Badge text shown next to the label */
+  badge?: string;
+}
+
 // ─── Project sub-types ────────────────────────────────────────────────────────
 
 export interface ProjectRisk {

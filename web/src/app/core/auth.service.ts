@@ -3,7 +3,7 @@ import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment.prod';
-import { AuthUser, Organization } from './models';
+import { AuthUser, NavItem, Organization } from './models';
 
 interface AuthResponse {
   accessToken: string;
@@ -42,6 +42,7 @@ export class AuthService {
   private readonly tokenKey = 'monival_token';
   readonly user = signal<AuthUser | null>(null);
   readonly organization = signal<Organization | null>(null);
+  readonly navMenu = signal<NavItem[]>([]);
 
   constructor(
     private readonly http: HttpClient,
@@ -104,6 +105,11 @@ export class AuthService {
           role: profile.role,
         });
         this.organization.set(profile.organization);
+        // Load the server-computed navigation menu
+        this.http.get<NavItem[]>(`${environment.apiUrl}/auth/menu`).subscribe({
+          next: items => this.navMenu.set(items),
+          error: () => {},
+        });
       }),
     );
   }

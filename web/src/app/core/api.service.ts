@@ -56,6 +56,7 @@ import {
   ProjectRisk,
   ProjectMilestone,
   ProjectStakeholder,
+  NavItem,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -64,6 +65,10 @@ export class ApiService {
   private readonly base = environment.apiUrl;
 
   constructor(private readonly http: HttpClient) {}
+
+  navMenu() {
+    return this.http.get<NavItem[]>(`${this.base}/auth/menu`);
+  }
 
   plans() {
     return this.http.get<

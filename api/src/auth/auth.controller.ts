@@ -6,10 +6,14 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { NavService } from './nav.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly navService: NavService,
+  ) {}
 
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('register')
@@ -27,6 +31,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: JwtPayload) {
     return this.authService.me(user.sub);
+  }
+
+  @Get('menu')
+  @UseGuards(JwtAuthGuard)
+  menu(@CurrentUser() user: JwtPayload) {
+    return this.navService.getMenu(user.sub);
   }
 
   @Patch('me')

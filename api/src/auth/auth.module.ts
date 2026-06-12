@@ -15,6 +15,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { NavService } from './nav.service';
 
 @Module({
   imports: [
@@ -45,7 +46,7 @@ import { JwtStrategy } from './jwt.strategy';
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, JwtStrategy, NavService],
+  exports: [AuthService, JwtModule, NavService],
 })
 export class AuthModule {}
