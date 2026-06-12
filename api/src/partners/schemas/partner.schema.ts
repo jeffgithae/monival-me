@@ -36,5 +36,4 @@ export class Partner {
 export const PartnerSchema = SchemaFactory.createForClass(Partner);
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
-PartnerSchema.index({ organizationId: 1 });
 PartnerSchema.index({ organizationId: 1, createdAt: -1 });

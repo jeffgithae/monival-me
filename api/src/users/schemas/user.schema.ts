@@ -26,7 +26,7 @@ export class User {
   tokenVersion!: number;
 
   /** bcrypt hash of the most recent refresh token. Null = no active refresh session. */
-  @Prop({ default: null, select: false })
+  @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
 }
 

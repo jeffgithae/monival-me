@@ -32,4 +32,3 @@ export const InviteSchema = SchemaFactory.createForClass(Invite);
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
 InviteSchema.index({ organizationId: 1, status: 1 });
-InviteSchema.index({ token: 1 }, { unique: true, sparse: true });
