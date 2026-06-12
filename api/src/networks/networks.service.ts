@@ -149,7 +149,8 @@ export class NetworksService {
     });
     if (!network) throw new NotFoundException('Network not found or you are not the hub organisation.');
 
-    const invitedOrg = await this.orgModel.findOne({ slug: dto.organizationSlug }).lean();
+    const searchSlug = dto.organizationSlug.trim().toLowerCase();
+    const invitedOrg = await this.orgModel.findOne({ slug: searchSlug }).lean();
     if (!invitedOrg) throw new NotFoundException('Invited organisation not found by that slug.');
 
     const alreadyMember = network.members.some(
