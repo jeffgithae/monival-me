@@ -28,6 +28,20 @@ export class User {
   /** bcrypt hash of the most recent refresh token. Null = no active refresh session. */
   @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
+
+  // ── MFA / TOTP ─────────────────────────────────────────────────────────────
+
+  /** Whether TOTP 2FA is active for this user */
+  @Prop({ default: false })
+  mfaEnabled!: boolean;
+
+  /** Base32 TOTP secret — never returned in API responses */
+  @Prop({ select: false })
+  mfaSecret?: string;
+
+  /** Hashed one-time backup codes, consumed on use */
+  @Prop({ type: [String], default: [], select: false })
+  mfaBackupCodes!: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

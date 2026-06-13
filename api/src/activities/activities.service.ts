@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { GrantsService } from '../grants/grants.service';
 import { OrgRole } from '../common/constants/roles';
 import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
@@ -39,6 +40,7 @@ export class ActivitiesService {
     @InjectModel(Beneficiary.name)      private readonly beneficiaryModel: Model<Beneficiary>,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly grantsService: GrantsService,
   ) {}
 
   // ─── Validation ────────────────────────────────────────────────────────────
@@ -362,6 +364,26 @@ export class ActivitiesService {
         { new: true },
       ).lean();
     if (!activity) throw new NotFoundException('Activity not found');
+
+    // ── Grant ↔ Activity linkage: recalculate total approved spend ───────────
+    if (status === 'approved' && activity.grantId) {
+      try {
+        const agg = await this.activityModel.aggregate([
+          {
+            $match: {
+              organizationId: new Types.ObjectId(organizationId),
+              grantId: activity.grantId,
+              status: 'approved',
+            },
+          },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$cost', 0] } } } },
+        ]);
+        const totalSpent: number = agg[0]?.total ?? 0;
+        await this.grantsService.updateGrantSpending(activity.grantId.toString(), organizationId, totalSpent);
+      } catch {
+        // Non-blocking — grant update failure must not break activity approval
+      }
+    }
 
     // Notify the submitter
     if (activity.submittedByUserId) {

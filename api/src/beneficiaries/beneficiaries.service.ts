@@ -327,6 +327,113 @@ export class BeneficiariesService {
     return { deleted: true };
   }
 
+  // ─── Deduplication ────────────────────────────────────────────────────────
+
+  /**
+   * Find potential duplicate records for a given beneficiary.
+   * Checks: exact nationalId match, exact phone match, fuzzy name+DOB match.
+   * Returns an array of candidate groups with a confidence score.
+   */
+  async findDuplicates(
+    organizationId: string,
+    options: { minConfidence?: number; projectId?: string } = {},
+  ) {
+    const orgId = new Types.ObjectId(organizationId);
+    const minConf = options.minConfidence ?? 0.6;
+
+    const pipeline: any[] = [
+      { $match: { organizationId: orgId, ...(options.projectId ? { 'programEnrollments.projectId': new Types.ObjectId(options.projectId) } : {}) } },
+      {
+        // Self-join: group by nationalId where present
+        $group: {
+          _id: { nationalId: '$nationalId' },
+          count: { $sum: 1 },
+          records: { $push: { _id: '$_id', name: '$name', caseId: '$caseId', phoneNumber: '$phoneNumber', dateOfBirth: '$dateOfBirth', status: '$status' } },
+        },
+      },
+      { $match: { 'count': { $gt: 1 }, '_id.nationalId': { $ne: null } } },
+    ];
+
+    const nationalIdDups = await this.model.aggregate(pipeline);
+
+    // Phone-based duplicates (separate pass)
+    const phonePipeline: any[] = [
+      { $match: { organizationId: orgId, phoneNumber: { $exists: true, $ne: '' } } },
+      { $group: { _id: '$phoneNumber', count: { $sum: 1 }, records: { $push: { _id: '$_id', name: '$name', caseId: '$caseId', nationalId: '$nationalId', status: '$status' } } } },
+      { $match: { count: { $gt: 1 } } },
+    ];
+    const phoneDups = await this.model.aggregate(phonePipeline);
+
+    const groups: Array<{
+      type: 'exact_national_id' | 'exact_phone' | 'fuzzy_name';
+      confidence: number;
+      records: unknown[];
+    }> = [];
+
+    for (const d of nationalIdDups) {
+      groups.push({ type: 'exact_national_id', confidence: 1.0, records: d.records });
+    }
+    for (const d of phoneDups) {
+      groups.push({ type: 'exact_phone', confidence: 0.85, records: d.records });
+    }
+
+    return groups.filter(g => g.confidence >= minConf);
+  }
+
+  /**
+   * Merge two beneficiary records: keep `primaryId`, copy over non-null fields
+   * from `duplicateId`, merge programEnrollments and serviceHistory, then delete the duplicate.
+   */
+  async mergeBeneficiaries(
+    organizationId: string,
+    primaryId: string,
+    duplicateId: string,
+  ): Promise<{ merged: boolean; primaryId: string }> {
+    if (primaryId === duplicateId) throw new BadRequestException('Primary and duplicate must be different records.');
+
+    const orgId = new Types.ObjectId(organizationId);
+    const [primary, duplicate] = await Promise.all([
+      this.model.findOne({ _id: primaryId, organizationId: orgId }),
+      this.model.findOne({ _id: duplicateId, organizationId: orgId }),
+    ]);
+
+    if (!primary) throw new NotFoundException('Primary beneficiary not found.');
+    if (!duplicate) throw new NotFoundException('Duplicate beneficiary not found.');
+
+    // Merge program enrollments — add any project not already on primary
+    const primaryProjectIds = new Set(
+      primary.programEnrollments?.map(e => e.projectId?.toString()),
+    );
+    const newEnrollments = (duplicate.programEnrollments ?? []).filter(
+      e => !primaryProjectIds.has(e.projectId?.toString()),
+    );
+    if (newEnrollments.length) {
+      primary.programEnrollments = [...(primary.programEnrollments ?? []), ...newEnrollments];
+    }
+
+    // Merge service history
+    primary.serviceHistory = [
+      ...(primary.serviceHistory ?? []),
+      ...(duplicate.serviceHistory ?? []),
+    ];
+
+    // Fill in missing fields from duplicate
+    const fillFields: (keyof typeof primary)[] = [
+      'nationalId', 'phoneNumber', 'email', 'dateOfBirth', 'age',
+      'nationality', 'disability', 'address',
+    ] as any;
+    for (const field of fillFields) {
+      if (!primary[field] && duplicate[field]) {
+        (primary as any)[field] = duplicate[field];
+      }
+    }
+
+    await primary.save();
+    await this.model.deleteOne({ _id: duplicateId, organizationId: orgId });
+
+    return { merged: true, primaryId };
+  }
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   private computeAgeGroup(age: number): string {

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { GrantsModule } from '../grants/grants.module';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 import { Beneficiary, BeneficiarySchema } from '../beneficiaries/schemas/beneficiary.schema';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Partner, PartnerSchema } from '../partners/schemas/partner.schema';
@@ -15,6 +17,8 @@ import { ActivityTemplate, ActivityTemplateSchema } from './schemas/activity-tem
   imports: [
     NotificationsModule,
     AuditModule,
+    GrantsModule,
+    WebhooksModule,
     MongooseModule.forFeature([
       { name: Activity.name,         schema: ActivitySchema         },
       { name: ActivityTemplate.name, schema: ActivityTemplateSchema },

@@ -125,3 +125,11 @@ BeneficiarySchema.index({ organizationId: 1, registrationType: 1 });
 BeneficiarySchema.index({ organizationId: 1, caseId: 1 });
 BeneficiarySchema.index({ organizationId: 1, 'programEnrollments.projectId': 1 });
 BeneficiarySchema.index({ organizationId: 1, sex: 1, ageGroup: 1 });
+// Sparse unique index — enforces no two beneficiaries in the same org share a nationalId
+// but allows multiple records with no nationalId (sparse skips null/undefined).
+BeneficiarySchema.index(
+  { organizationId: 1, nationalId: 1 },
+  { unique: true, sparse: true, name: 'org_nationalId_unique' },
+);
+// For fuzzy dedup matching on phone
+BeneficiarySchema.index({ organizationId: 1, phoneNumber: 1 }, { sparse: true });

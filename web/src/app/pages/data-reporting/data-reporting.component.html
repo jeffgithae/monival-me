@@ -1,0 +1,334 @@
+<div class="dr-page">
+  <div class="ambient"><div class="orb o1"></div><div class="orb o2"></div></div>
+
+  <!-- Header -->
+  <header class="dr-header">
+    <div>
+      <span class="eyebrow">Data & Reporting</span>
+      <h1>Reports & Data Tools</h1>
+      <p class="dr-sub">Schedule automated donor reports, bulk import historical data, and export for offline use</p>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="err-bar">⚠ {{ error() }} <button (click)="error.set('')">✕</button></div>
+  }
+  @if (success()) {
+    <div class="ok-bar">✓ {{ success() }}</div>
+  }
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button [class.active]="activeTab()==='scheduled'" (click)="activeTab.set('scheduled')">
+      🕐 Scheduled Reports
+      @if (scheduledReports().length) { <span class="tab-n">{{ scheduledReports().length }}</span> }
+    </button>
+    <button [class.active]="activeTab()==='import'" (click)="activeTab.set('import')">
+      ⬆ Bulk Import
+    </button>
+    <button [class.active]="activeTab()==='export'" (click)="activeTab.set('export')">
+      ⬇ Export / Offline
+    </button>
+  </div>
+
+  <!-- ══ SCHEDULED REPORTS ════════════════════════════════════════════════ -->
+  @if (activeTab() === 'scheduled') {
+    <div class="tab-body">
+      <div class="tab-intro">
+        <div>
+          <h2>Scheduled donor reports</h2>
+          <p>Automatically email formatted reports to donors or team members on a set cadence. Attach a CSV export for offline review.</p>
+        </div>
+        @if (canManage()) {
+          <button class="btn-primary" (click)="openCreateSchedule()">+ New schedule</button>
+        }
+      </div>
+
+      <!-- Schedule form -->
+      @if (showScheduleForm()) {
+        <div class="form-panel">
+          <h3>{{ editingId() ? 'Edit schedule' : 'New scheduled report' }}</h3>
+          <div class="fgrid">
+            <label class="ff">
+              Name *
+              <input [(ngModel)]="schedForm.name" placeholder="e.g. Q2 WASH Donor Report" />
+            </label>
+            <label class="ff">
+              Project *
+              <select [(ngModel)]="schedForm.projectId">
+                <option value="">— Select project —</option>
+                @for (p of projects(); track p._id) {
+                  <option [value]="p._id">{{ p.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <label class="ff full">
+            Recipients (comma-separated emails) *
+            <input [(ngModel)]="schedForm.recipients" placeholder="donor@org.org, pm@yourorg.org" />
+          </label>
+
+          <div class="cadence-grid">
+            @for (opt of cadenceOptions; track opt.value) {
+              <button class="cadence-opt" [class.selected]="schedForm.cadence === opt.value"
+                (click)="schedForm.cadence = opt.value">
+                <strong>{{ opt.label }}</strong>
+                <span>{{ opt.desc }}</span>
+              </button>
+            }
+          </div>
+
+          @if (schedForm.cadence === 'monthly' || schedForm.cadence === 'quarterly') {
+            <label class="ff" style="max-width:200px">
+              Day of month
+              <input type="number" [(ngModel)]="schedForm.dayOfMonth" min="1" max="28" />
+            </label>
+          }
+
+          <div class="form-checks">
+            <label class="chk"><input type="checkbox" [(ngModel)]="schedForm.includeCsv" /> Attach CSV to email</label>
+            @if (editingId()) {
+              <label class="chk"><input type="checkbox" [(ngModel)]="schedForm.isActive" /> Active</label>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-ghost" (click)="cancelScheduleForm()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving() || !schedForm.name || !schedForm.projectId || !schedForm.recipients" (click)="saveSchedule()">
+              {{ saving() ? 'Saving…' : (editingId() ? 'Save changes' : 'Create schedule') }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Scheduled list -->
+      @if (loading()) {
+        <div class="loading">Loading schedules…</div>
+      } @else if (scheduledReports().length === 0) {
+        <div class="empty-state">
+          <div class="ei">🕐</div>
+          <h3>No scheduled reports yet</h3>
+          <p>Create a schedule to automatically email donor reports to recipients.</p>
+        </div>
+      } @else {
+        <div class="sched-list">
+          @for (r of scheduledReports(); track r._id) {
+            <div class="sched-row" [class.inactive]="!r.isActive">
+              <div class="sr-info">
+                <div class="sr-name">{{ r.name }}</div>
+                <div class="sr-meta">
+                  <span class="cadence-chip">{{ cadenceLabel(r.cadence) }}</span>
+                  <span>{{ projectName(r.projectId) }}</span>
+                  <span>{{ r.recipients.length }} recipient{{ r.recipients.length !== 1 ? 's' : '' }}</span>
+                  @if (r.includeCsv) { <span>📎 CSV</span> }
+                  @if (!r.isActive) { <span class="paused-chip">Paused</span> }
+                </div>
+                <div class="sr-times">
+                  @if (r.lastSentAt) { <span>Last sent: {{ r.lastSentAt | date:'d MMM y' }}</span> }
+                  @if (r.nextRunAt && r.isActive) { <span>Next: {{ r.nextRunAt | date:'d MMM y, HH:mm' }}</span> }
+                </div>
+                <div class="sr-recipients">
+                  @for (email of r.recipients.slice(0,3); track email) {
+                    <span class="email-chip">{{ email }}</span>
+                  }
+                  @if (r.recipients.length > 3) { <span class="email-chip">+{{ r.recipients.length - 3 }}</span> }
+                </div>
+              </div>
+              @if (canManage()) {
+                <div class="sr-actions">
+                  <button class="act-btn send-btn" [disabled]="triggeringId() === r._id" (click)="triggerNow(r)">
+                    {{ triggeringId() === r._id ? '⟳ Sending…' : '▶ Send now' }}
+                  </button>
+                  <button class="act-btn" (click)="openEditSchedule(r)">Edit</button>
+                  <button class="act-btn" (click)="toggleActive(r)">{{ r.isActive ? 'Pause' : 'Resume' }}</button>
+                  <button class="act-btn danger" (click)="deleteSchedule(r)">Delete</button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══ BULK IMPORT ══════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'import') {
+    <div class="tab-body">
+      <div class="tab-intro">
+        <div>
+          <h2>Bulk data import</h2>
+          <p>Import historical activities or beneficiary records from CSV. Download a template to see the required column format.</p>
+        </div>
+      </div>
+
+      <!-- Kind selector -->
+      <div class="kind-grid">
+        @for (k of importKinds; track k.id) {
+          <button class="kind-card" [class.selected-kind]="importKind === k.id" (click)="importKind = k.id">
+            <span class="kind-icon">{{ k.icon }}</span>
+            <div>
+              <strong>{{ k.label }}</strong>
+              <p>{{ k.desc }}</p>
+            </div>
+          </button>
+        }
+      </div>
+
+      <!-- Template download -->
+      <div class="template-box">
+        <div class="tbox-left">
+          <strong>Step 1 — Download the CSV template</strong>
+          <p>The template includes all supported columns with example data in row 2. Columns marked * are required.</p>
+          <div class="template-fields">
+            @for (f of importKindMeta(importKind)?.fields ?? []; track f) {
+              <code [class.required-field]="f.endsWith('*')">{{ f }}</code>
+            }
+          </div>
+        </div>
+        <button class="btn-ghost" (click)="downloadTemplate(importKind)">⬇ Download template</button>
+      </div>
+
+      <!-- File upload -->
+      <div class="upload-box">
+        <strong>Step 2 — Upload your completed CSV</strong>
+        <div class="form-row-2" style="margin-top:.75rem">
+          <label class="ff">
+            Project (optional — overrides projectCode column)
+            <select [(ngModel)]="importProjectId">
+              <option value="">— Use projectCode column —</option>
+              @for (p of projects(); track p._id) {
+                <option [value]="p._id">{{ p.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="ff">
+            CSV file *
+            <div class="file-drop" [class.has-file]="importFile">
+              <input type="file" accept=".csv,text/csv" (change)="onFileChange($event)" />
+              @if (importFile) {
+                <span>📄 {{ importFile.name }} ({{ (importFile.size / 1024).toFixed(1) }} KB)</span>
+              } @else {
+                <span>Click or drag a CSV file here</span>
+              }
+            </div>
+          </label>
+        </div>
+        <button class="btn-primary" [disabled]="!importFile || importing()" (click)="runImport()">
+          {{ importing() ? '⟳ Importing…' : ('⬆ Import ' + (importKindMeta(importKind)?.label ?? '')) }}
+        </button>
+      </div>
+
+      <!-- Import result -->
+      @if (importResult(); as r) {
+        <div class="result-panel" [class.result-ok]="r.errors.length === 0" [class.result-warn]="r.errors.length > 0">
+          <div class="result-stats">
+            <div class="rstat ok"><span class="rn">{{ r.imported }}</span><span class="rl">Imported</span></div>
+            <div class="rstat skip"><span class="rn">{{ r.skipped }}</span><span class="rl">Skipped</span></div>
+            <div class="rstat err"><span class="rn">{{ r.errors.length }}</span><span class="rl">Errors</span></div>
+            <div class="rstat tot"><span class="rn">{{ r.total }}</span><span class="rl">Total rows</span></div>
+          </div>
+          @if (r.errors.length > 0) {
+            <div class="error-table">
+              <div class="et-header">
+                <span>Row</span><span>Field</span><span>Issue</span>
+              </div>
+              @for (e of r.errors.slice(0, 20); track $index) {
+                <div class="et-row">
+                  <span class="et-row-n">{{ e.row }}</span>
+                  <span class="et-field">{{ e.field ?? '—' }}</span>
+                  <span class="et-msg">{{ e.message }}</span>
+                </div>
+              }
+              @if (r.errors.length > 20) {
+                <div class="et-more">… and {{ r.errors.length - 20 }} more errors</div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══ EXPORT / OFFLINE ══════════════════════════════════════════════════ -->
+  @if (activeTab() === 'export') {
+    <div class="tab-body">
+      <div class="tab-intro">
+        <div>
+          <h2>Export & offline access</h2>
+          <p>Download data for offline review, field use, or sharing with donors. Field officers can use exported CSVs while offline.</p>
+        </div>
+      </div>
+
+      <div class="export-grid">
+
+        <!-- Donor report export -->
+        <div class="export-card">
+          <div class="ec-icon">📄</div>
+          <div class="ec-body">
+            <h3>Donor report CSV</h3>
+            <p>Full indicator results, activities, and narrative for a project reporting period.</p>
+            <div class="fgrid" style="margin-top:1rem">
+              <label class="ff">
+                Project *
+                <select [(ngModel)]="exportProjectId">
+                  <option value="">— Select project —</option>
+                  @for (p of projects(); track p._id) {
+                    <option [value]="p._id">{{ p.name }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <button class="btn-primary" style="margin-top:.75rem" [disabled]="!exportProjectId" (click)="exportDonorReport()">
+              ⬇ Download CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Offline PWA info -->
+        <div class="export-card pwa-card">
+          <div class="ec-icon">📱</div>
+          <div class="ec-body">
+            <h3>Offline / field access</h3>
+            <p>Install Monival as a Progressive Web App (PWA) on your phone or laptop for offline indicator entry and activity logging.</p>
+            <div class="pwa-steps">
+              <div class="pwa-step">
+                <span class="ps-n">1</span>
+                <span>Open Monival in Chrome or Safari on your device</span>
+              </div>
+              <div class="pwa-step">
+                <span class="ps-n">2</span>
+                <span>Tap the browser menu → <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong></span>
+              </div>
+              <div class="pwa-step">
+                <span class="ps-n">3</span>
+                <span>Open the installed app — it works offline and syncs when you reconnect</span>
+              </div>
+            </div>
+            <div class="pwa-badge">
+              <span class="pwa-dot"></span>
+              PWA-ready — works on Android, iOS, Windows &amp; macOS
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity template download -->
+        <div class="export-card">
+          <div class="ec-icon">📋</div>
+          <div class="ec-body">
+            <h3>Offline data entry templates</h3>
+            <p>Download blank CSV templates to fill in offline, then import back when connected.</p>
+            <div class="template-dl-list">
+              @for (k of importKinds; track k.id) {
+                <button class="template-dl-btn" (click)="downloadTemplate(k.id)">
+                  {{ k.icon }} Download {{ k.label }} template
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+</div>

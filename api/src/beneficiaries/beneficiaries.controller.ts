@@ -122,4 +122,30 @@ export class BeneficiariesController {
   remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.svc.remove(user.organizationId, id);
   }
+
+  // ── Deduplication ──────────────────────────────────────────────────────────
+
+  @Get('duplicates/scan')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
+  @ApiOperation({ summary: 'Scan for duplicate beneficiary records (same nationalId or phone)' })
+  findDuplicates(
+    @CurrentUser() user: JwtPayload,
+    @Query('minConfidence') minConfidence?: string,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.svc.findDuplicates(user.organizationId, {
+      minConfidence: minConfidence ? parseFloat(minConfidence) : undefined,
+      projectId,
+    });
+  }
+
+  @Post('duplicates/merge')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN)
+  @ApiOperation({ summary: 'Merge a duplicate record into a primary beneficiary record' })
+  mergeBeneficiaries(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { primaryId: string; duplicateId: string },
+  ) {
+    return this.svc.mergeBeneficiaries(user.organizationId, body.primaryId, body.duplicateId);
+  }
 }

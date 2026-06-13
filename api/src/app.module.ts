@@ -37,6 +37,9 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { SsoModule } from './sso/sso.module';
 import { BrandingModule } from './branding/branding.module';
 import { NetworksModule } from './networks/networks.module';
+import { MfaModule } from './mfa/mfa.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
+import { ImpactStoriesModule } from './impact-stories/impact-stories.module';
 
 @Module({
   imports: [
@@ -125,6 +128,9 @@ import { NetworksModule } from './networks/networks.module';
     SsoModule,
     BrandingModule,
     NetworksModule,
+    MfaModule,
+    WebhooksModule,
+    ImpactStoriesModule,
   ],
   providers: [
     SubscriptionGuard,

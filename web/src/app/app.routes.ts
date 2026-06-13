@@ -62,6 +62,7 @@ export const routes: Routes = [
       { path: 'workplan', component: WorkplanComponent },
       { path: 'workflows', component: WorkflowsComponent },
       { path: 'data-collection', component: DataCollectionComponent },
+      { path: 'data-reporting',  loadComponent: () => import('./pages/data-reporting/data-reporting.component').then(m => m.DataReportingComponent) },
       { path: 'profile', component: ProfileComponent },
       { path: 'enterprise', component: EnterpriseComponent },
       { path: 'beneficiaries', loadComponent: () => import('./pages/beneficiaries/beneficiaries.component').then(m => m.BeneficiariesComponent) },
