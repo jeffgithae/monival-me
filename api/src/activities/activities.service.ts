@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GrantsService } from '../grants/grants.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import { OrgRole } from '../common/constants/roles';
 import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
@@ -41,6 +42,7 @@ export class ActivitiesService {
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly grantsService: GrantsService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   // ─── Validation ────────────────────────────────────────────────────────────
@@ -384,6 +386,17 @@ export class ActivitiesService {
         // Non-blocking — grant update failure must not break activity approval
       }
     }
+
+    // ── Fire webhook events ────────────────────────────────────────────────
+    const webhookEvent = status === 'approved'
+      ? 'activity.approved'
+      : 'activity.rejected';
+    this.webhooksService.dispatch(
+      organizationId,
+      webhookEvent as any,
+      { activityId: id, title: activity.title, status, rejectionReason },
+      activity.projectId?.toString(),
+    ).catch(() => {});
 
     // Notify the submitter
     if (activity.submittedByUserId) {

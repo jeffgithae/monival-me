@@ -38,8 +38,8 @@ import { SsoModule } from './sso/sso.module';
 import { BrandingModule } from './branding/branding.module';
 import { NetworksModule } from './networks/networks.module';
 import { MfaModule } from './mfa/mfa.module';
-import { WebhooksModule } from './webhooks/webhooks.module';
 import { ImpactStoriesModule } from './impact-stories/impact-stories.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [

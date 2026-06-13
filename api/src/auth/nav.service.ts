@@ -66,6 +66,9 @@ export class NavService {
       items.push({ id: 'data-collection', label: 'Data Collection', icon: '🗂', route: '/data-collection' });
     }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
+      items.push({ id: 'data-reporting', label: 'Reports & Data', icon: '📊', route: '/data-reporting' });
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
       items.push({ id: 'strategic', label: 'Strategic Overview', icon: '🎯', route: '/strategic' });
     }
 

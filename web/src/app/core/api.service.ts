@@ -1173,4 +1173,49 @@ export class ApiService {
       `${this.base}/networks/${networkId}/rollup`
     );
   }
+
+  // ── Scheduled reports ─────────────────────────────────────────────────────
+
+  scheduledReports(projectId?: string) {
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.get<any[]>(`${this.base}/reports/scheduled`, { params });
+  }
+
+  createScheduledReport(dto: {
+    projectId: string; name: string; recipients: string[];
+    cadence: 'daily' | 'weekly' | 'monthly' | 'quarterly';
+    dayOfMonth?: number; includeCsv?: boolean; reportingPeriodId?: string;
+  }) {
+    return this.http.post<any>(`${this.base}/reports/scheduled`, dto);
+  }
+
+  updateScheduledReport(id: string, dto: Partial<{
+    name: string; recipients: string[];
+    cadence: string; dayOfMonth: number; includeCsv: boolean; isActive: boolean;
+  }>) {
+    return this.http.put<any>(`${this.base}/reports/scheduled/${id}`, dto);
+  }
+
+  deleteScheduledReport(id: string) {
+    return this.http.delete(`${this.base}/reports/scheduled/${id}`);
+  }
+
+  triggerScheduledReport(id: string) {
+    return this.http.post<any>(`${this.base}/reports/scheduled/${id}/trigger`, {});
+  }
+
+  // ── Bulk CSV import ───────────────────────────────────────────────────────
+
+  bulkImport(kind: 'activities' | 'beneficiaries', file: File, projectId?: string) {
+    const form = new FormData();
+    form.append('file', file);
+    const params: Record<string, string> = {};
+    if (projectId) params['projectId'] = projectId;
+    return this.http.post<any>(`${this.base}/reports/import/${kind}`, form, { params });
+  }
+
+  importTemplate(kind: string) {
+    return this.http.get(`${this.base}/reports/templates/${kind}.csv`, { responseType: 'text' });
+  }
 }

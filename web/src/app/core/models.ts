@@ -1946,3 +1946,34 @@ export interface PlanFeatures {
   hasDedicatedSupport: boolean;
   hasAuditLog: boolean;
 }
+// ─── Scheduled Reports ────────────────────────────────────────────────────────
+
+export type ReportCadence = 'daily' | 'weekly' | 'monthly' | 'quarterly';
+
+export interface ScheduledReport {
+  _id: string;
+  organizationId: string;
+  projectId: string;
+  reportingPeriodId?: string;
+  name: string;
+  recipients: string[];
+  cadence: ReportCadence;
+  dayOfMonth: number;
+  includeCsv: boolean;
+  isActive: boolean;
+  lastSentAt?: string;
+  nextRunAt?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Bulk Import ─────────────────────────────────────────────────────────────
+
+export interface ImportResult {
+  kind: 'activities' | 'beneficiaries';
+  total: number;
+  imported: number;
+  skipped: number;
+  errors: Array<{ row: number; field?: string; message: string }>;
+}
