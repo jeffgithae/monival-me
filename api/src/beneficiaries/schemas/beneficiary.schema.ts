@@ -125,11 +125,28 @@ BeneficiarySchema.index({ organizationId: 1, registrationType: 1 });
 BeneficiarySchema.index({ organizationId: 1, caseId: 1 });
 BeneficiarySchema.index({ organizationId: 1, 'programEnrollments.projectId': 1 });
 BeneficiarySchema.index({ organizationId: 1, sex: 1, ageGroup: 1 });
-// Sparse unique index — enforces no two beneficiaries in the same org share a nationalId
-// but allows multiple records with no nationalId (sparse skips null/undefined).
+// Partial filter index — only indexes documents where nationalId exists AND is a non-empty string.
+// This correctly allows unlimited beneficiaries without a nationalId in the same org,
+// while still enforcing uniqueness when a nationalId IS provided.
+// NOTE: if the old 'org_nationalId_unique' sparse index is present in the DB,
+// drop it manually first: db.beneficiaries.dropIndex('org_nationalId_unique')
 BeneficiarySchema.index(
   { organizationId: 1, nationalId: 1 },
-  { unique: true, sparse: true, name: 'org_nationalId_unique' },
+  {
+    unique: true,
+    name: 'org_nationalId_unique_partial',
+    partialFilterExpression: {
+      nationalId: { $exists: true, $type: 'string', $gt: '' },
+    },
+  },
 );
-// For fuzzy dedup matching on phone
-BeneficiarySchema.index({ organizationId: 1, phoneNumber: 1 }, { sparse: true });
+// Phone index — also partial so null/empty phones don't conflict
+BeneficiarySchema.index(
+  { organizationId: 1, phoneNumber: 1 },
+  {
+    sparse: true,
+    partialFilterExpression: {
+      phoneNumber: { $exists: true, $type: 'string', $gt: '' },
+    },
+  },
+);
