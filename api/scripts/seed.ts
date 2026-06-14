@@ -182,6 +182,13 @@ async function clearDemoData(
   await Activity.deleteMany({ organizationId: orgId });
   await Partner.deleteMany({ organizationId: orgId });
   await Beneficiary.deleteMany({ organizationId: orgId });
+  // Drop the old sparse unique index if it still exists — the new schema uses a
+  // partialFilterExpression index which handles null nationalId values correctly.
+  try {
+    await Beneficiary.collection.dropIndex('org_nationalId_unique');
+  } catch {
+    // Index already dropped or never existed — safe to ignore
+  }
   await ActivityTemplate.deleteMany({ organizationId: orgId });
   await FormResponse.deleteMany({ organizationId: orgId });
   await FormTemplate.deleteMany({ organizationId: orgId });
@@ -392,6 +399,7 @@ async function seed() {
   const beneficiaries = await Beneficiary.insertMany([
     {
       organizationId: org._id,
+      registrationType: 'group',
       name: 'Household Group — Ward A',
       groupType: 'household',
       location: 'Kisumu, Ward A',
@@ -399,6 +407,7 @@ async function seed() {
     },
     {
       organizationId: org._id,
+      registrationType: 'group',
       name: 'Pregnant women cohort — Siaya',
       groupType: 'cohort',
       location: 'Siaya County',
