@@ -12,6 +12,7 @@ import { AuditModule } from '../audit/audit.module';
 import { ReportingModule } from '../reporting/reporting.module';
 import { ActivitiesModule } from '../activities/activities.module';
 import { BeneficiariesModule } from '../beneficiaries/beneficiaries.module';
+import { MailerModule } from '../mailer/mailer.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 import { BulkImportService } from './bulk-import.service';
@@ -24,6 +25,7 @@ import { ScheduledReport, ScheduledReportSchema } from './schemas/scheduled-repo
     ReportingModule,
     ActivitiesModule,
     BeneficiariesModule,
+    MailerModule,
     ScheduleModule.forRoot(),
     MulterModule.register({ limits: { fileSize: 5 * 1024 * 1024 } }), // 5 MB max CSV
     MongooseModule.forFeature([
