@@ -374,7 +374,7 @@ curl -X POST http://localhost:3000/api/budget/allocations \
 ### 3. Check Database
 ```bash
 # In MongoDB shell
-use monival-me
+use evidara -me
 db.budgetallocations.find()
 db.balancedscorecards.find()
 db.okrs.find()

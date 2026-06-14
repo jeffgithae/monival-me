@@ -1,4 +1,4 @@
-# Monival M&E - MVP Roadmap & Implementation Plan
+# Evidara  M&E - MVP Roadmap & Implementation Plan
 
 ## Executive Summary
 Your app has strong M&E fundamentals but needs feature completion and infrastructure work to reach MVP. With **2-3 weeks of focused development**, you can launch.
@@ -57,7 +57,7 @@ npm install @nestjs/swagger swagger-ui-express
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 const config = new DocumentBuilder()
-  .setTitle('Monival M&E API')
+  .setTitle('Evidara  M&E API')
   .setDescription('NGO Monitoring & Evaluation Platform')
   .setVersion('1.0')
   .addBearerAuth()
@@ -251,7 +251,7 @@ touch src/email/email.module.ts
 ```typescript
 // Place before app.listen()
 const config = new DocumentBuilder()
-  .setTitle('Monival M&E')
+  .setTitle('Evidara  M&E')
   .setVersion('1.0')
   .addBearerAuth()
   .build();

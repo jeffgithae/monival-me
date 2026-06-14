@@ -79,7 +79,7 @@ export class CloudStorageController {
     @Query('state') state: string,
   ) {
     return this.cloudService.getAuthUrl(
-      user.organizationId, provider, redirectUri, state ?? 'monival',
+      user.organizationId, provider, redirectUri, state ?? 'evidara',
     );
   }
 

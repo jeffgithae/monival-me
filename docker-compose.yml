@@ -4,7 +4,7 @@ services:
     ports:
       - '27017:27017'
     volumes:
-      - monival_mongo_data:/data/db
+      - evidara _mongo_data:/data/db
 
 volumes:
-  monival_mongo_data:
+  evidara _mongo_data:

@@ -1,8 +1,8 @@
-# Monival MEL product audit
+# Evidara  MEL product audit
 
 ## Executive read
 
-Monival is directionally strong: it already combines M&E, grants, budget tracking, partners, beneficiaries, forms, RBAC, dashboards, and billing. That is a better wedge than a generic form builder. The product still needs deeper workflow infrastructure to compete with premium M&E systems used by large NGOs, INGOs, donor-funded programs, and USAID-style implementing partners.
+Evidara  is directionally strong: it already combines M&E, grants, budget tracking, partners, beneficiaries, forms, RBAC, dashboards, and billing. That is a better wedge than a generic form builder. The product still needs deeper workflow infrastructure to compete with premium M&E systems used by large NGOs, INGOs, donor-funded programs, and USAID-style implementing partners.
 
 The biggest missing layer was reporting periods and controlled indicator results. I added a backend foundation for this:
 
@@ -12,7 +12,7 @@ The biggest missing layer was reporting periods and controlled indicator results
 - `PATCH /reporting/periods/:id/status` to submit, approve, or lock a period.
 - `GET /reports/donor/:projectId?reportingPeriodId=...` to use approved/locked period results in donor reports.
 
-This starts moving Monival from CRUD records toward a real donor reporting lifecycle.
+This starts moving Evidara  from CRUD records toward a real donor reporting lifecycle.
 
 ## Premium M&E competitor patterns
 
@@ -43,9 +43,9 @@ CommCare is strongest at frontline/mobile workflows: form-driven data collection
 
 Source: https://dimagi.com/commcare/use-cases/monitoring-evaluation/
 
-## Monival comparison
+## Evidara  comparison
 
-| Capability | Monival today | Premium expectation | Gap |
+| Capability | Evidara  today | Premium expectation | Gap |
 |---|---|---|---|
 | Projects | Exists | Project/award hierarchy, donors, geography, reporting obligations | Add awards/sub-awards and locations |
 | Indicators/logframes | Exists | Period targets, disaggregation, standard indicator libraries, result locks | Add period targets and indicator library |

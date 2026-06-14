@@ -14,7 +14,7 @@ import { formatHttpError } from '../../core/http-error';
 })
 export class LoginComponent {
   readonly showDemoHint = !environment.production;
-  readonly demoEmail = 'demo@monival.test';
+  readonly demoEmail = 'demo@evidara.test';
   readonly demoPassword = 'Demo1234!';
 
   email = this.demoEmail;

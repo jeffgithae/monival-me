@@ -1,2 +1,2 @@
- cd /home/jeff/Projects/monival-me/api && timeout 10 npm run start:dev 2>&1 | head -100
+ cd /home/jeff/Projects/evidara -me/api && timeout 10 npm run start:dev 2>&1 | head -100
  curl -s http://localhost:3000/api/health 2>&1 || echo "API not responding"

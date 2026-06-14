@@ -1,4 +1,4 @@
-# Canonical Database Schema — Monival M&E SaaS
+# Canonical Database Schema — Evidara  M&E SaaS
 
 Notes:
 - Primary deployment uses a shared MongoDB with `tenantId` on all tenant-scoped documents.

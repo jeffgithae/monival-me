@@ -10,8 +10,8 @@ import { catchError, switchMap, throwError, BehaviorSubject, filter, take } from
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment.prod';
 import { ToastService } from './toast.service';
-const TOKEN_KEY         = 'monival_token';
-const REFRESH_TOKEN_KEY = 'monival_refresh_token';
+const TOKEN_KEY         = 'evidara_token';
+const REFRESH_TOKEN_KEY = 'evidara_refresh_token';
 
 /** In-flight refresh gate — prevents parallel refresh calls */
 let isRefreshing = false;

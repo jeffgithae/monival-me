@@ -191,7 +191,7 @@ Should see in logs:
 ### 3. Verify Database
 ```bash
 # In MongoDB shell
-use monival-me
+use evidara -me
 db.grants.findOne()
 ```
 

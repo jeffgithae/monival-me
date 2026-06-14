@@ -8,7 +8,7 @@ import { readFileSync } from 'fs';
 import mongoose, { Schema, Types } from 'mongoose';
 import { join } from 'path';
 
-const SEED_EMAIL = 'demo@monival.test';
+const SEED_EMAIL = 'demo@evidara.test';
 const SEED_PASSWORD = 'Demo1234!';
 
 function loadEnv() {
@@ -298,7 +298,7 @@ async function seed() {
   });
 
   const adminUser = await User.create({
-    email: 'grace.otieno@monival.test',
+    email: 'grace.otieno@evidara.test',
     passwordHash,
     name: 'Grace Otieno',
     organizationId: org._id,
@@ -312,7 +312,7 @@ async function seed() {
   });
 
   const meOfficerUser = await User.create({
-    email: 'joseph.mwangi@monival.test',
+    email: 'joseph.mwangi@evidara.test',
     passwordHash,
     name: 'Joseph Mwangi',
     organizationId: org._id,
@@ -326,7 +326,7 @@ async function seed() {
   });
 
   const financeUser = await User.create({
-    email: 'rita.kimani@monival.test',
+    email: 'rita.kimani@evidara.test',
     passwordHash,
     name: 'Rita Kimani',
     organizationId: org._id,
@@ -340,7 +340,7 @@ async function seed() {
   });
 
   const viewerUser = await User.create({
-    email: 'daniel.achem@monival.test',
+    email: 'daniel.achem@evidara.test',
     passwordHash,
     name: 'Daniel Achem',
     organizationId: org._id,
@@ -355,7 +355,7 @@ async function seed() {
 
   const inviteToken = randomBytes(24).toString('hex');
   await Invite.create({
-    email: 'new.collaborator@monival.test',
+    email: 'new.collaborator@evidara.test',
     organizationId: org._id,
     invitedByUserId: user._id,
     role: 'field_officer',

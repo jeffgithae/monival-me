@@ -83,8 +83,8 @@ async function bootstrap() {
   // ── Swagger (disable in production for security/perf) ────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Monival ME API')
-      .setDescription('API documentation for the Monival M&E backend')
+      .setTitle('Evidara  ME API')
+      .setDescription('API documentation for the Evidara  M&E backend')
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
       .build();

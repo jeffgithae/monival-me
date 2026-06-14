@@ -23,7 +23,7 @@
     <div class="tab-content">
       <div class="section-intro">
         <h2>API Keys</h2>
-        <p>Use API keys to authenticate machine-to-machine integrations with the Monival REST API.
+        <p>Use API keys to authenticate machine-to-machine integrations with the Evidara  REST API.
            Keys are prefixed <code>mk_live_</code> and shown only once on creation.</p>
       </div>
 
@@ -108,7 +108,7 @@
       <div class="info-box">
         <strong>Using the API:</strong> Send requests with header
         <code>Authorization: Bearer mk_live_your_key_here</code>.
-        Base URL: <code>{{ 'https://api.monival.app' }}</code>.
+        Base URL: <code>{{ 'https://api.evidara.app' }}</code>.
         Full API reference available in the developer docs.
       </div>
     </div>
@@ -328,8 +328,8 @@
 
           <div class="toggle-row">
             <div>
-              <strong>Hide "Powered by Monival"</strong>
-              <p>Remove the Monival badge from the UI and reports.</p>
+              <strong>Hide "Powered by Evidara "</strong>
+              <p>Remove the Evidara  badge from the UI and reports.</p>
             </div>
             <label class="toggle">
               <input type="checkbox" [ngModel]="brandingForm().hidePoweredBy"

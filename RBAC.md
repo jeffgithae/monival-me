@@ -1,4 +1,4 @@
-# RBAC & Permission Model — Monival M&E SaaS
+# RBAC & Permission Model — Evidara  M&E SaaS
 
 Goals:
 - Fine-grained permission model that supports built-in roles and per-tenant custom roles.

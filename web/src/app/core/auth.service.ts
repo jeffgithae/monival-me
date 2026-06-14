@@ -23,9 +23,9 @@ interface RegisterResponse extends AuthResponse {
   checkout?: { url: string; mock?: boolean };
 }
 
-const TOKEN_KEY         = 'monival_token';
-const REFRESH_TOKEN_KEY = 'monival_refresh_token';
-const NAV_CACHE_KEY     = 'monival_nav_cache';
+const TOKEN_KEY         = 'evidara_token';
+const REFRESH_TOKEN_KEY = 'evidara_refresh_token';
+const NAV_CACHE_KEY     = 'evidara_nav_cache';
 const NAV_CACHE_TTL_MS  = 5 * 60 * 1000; // 5 minutes
 
 @Injectable({ providedIn: 'root' })

@@ -1,7 +1,6 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ScheduledReport, ImportResult, Project, ReportCadence } from '../../core/models';
@@ -11,7 +10,7 @@ type Tab = 'scheduled' | 'import' | 'export';
 @Component({
   selector: 'app-data-reporting',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
+  imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './data-reporting.component.html',
   styleUrl: './data-reporting.component.scss',
 })

@@ -44,7 +44,7 @@ export class BrandingConfig {
   @Prop()
   reportFooterText?: string;
 
-  /** "Powered by Monival" badge hidden when true */
+  /** "Powered by Evidara " badge hidden when true */
   @Prop({ default: false })
   hidePoweredBy!: boolean;
 
@@ -52,7 +52,7 @@ export class BrandingConfig {
   @Prop({ default: 'system', enum: ['light', 'dark', 'system'] })
   defaultTheme!: string;
 
-  /** Support email shown in the UI instead of Monival's */
+  /** Support email shown in the UI instead of Evidara 's */
   @Prop()
   supportEmail?: string;
 

@@ -1,4 +1,4 @@
-# Monival M&E SaaS — System Architecture & Multi-Tenant Strategy
+# Evidara  M&E SaaS — System Architecture & Multi-Tenant Strategy
 
 ## Overview
 This document summarizes a production-ready architecture for a premium, multi-tenant Monitoring & Evaluation (M&E) SaaS platform tailored to NGOs, donors, and government projects. It prioritizes tenant isolation, strong RBAC, security, scale, and operational simplicity while supporting features listed in the product vision.

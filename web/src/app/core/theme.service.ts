@@ -4,7 +4,7 @@ export type Theme = 'light' | 'dark';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  private readonly storageKey = 'monival_theme';
+  private readonly storageKey = 'evidara_theme';
 
   readonly theme = signal<Theme>(this.getInitialTheme());
 

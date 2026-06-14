@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Monival M&E API (Core)
+  title: Evidara  M&E API (Core)
   version: 0.1.0
   description: OpenAPI skeleton for core services (Auth, Tenants, Users, Projects, Indicators, Activities, Reporting).
 servers:

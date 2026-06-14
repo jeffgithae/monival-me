@@ -1,4 +1,4 @@
-# Monival M&E — NGO monitoring & evaluation platform
+# Evidara  M&E — NGO monitoring & evaluation platform
 
 Multi-tenant M&E SaaS for nonprofits: logframe indicators, field activities, donor reports, team RBAC, and self-service Stripe billing.
 
@@ -49,7 +49,7 @@ cd web && npm install && npm start
 cd api && npm run seed
 ```
 
-| Email | `demo@monival.test` |
+| Email | `demo@evidara .test` |
 | Password | `Demo1234!` |
 
 ## Stripe setup (production)
@@ -79,7 +79,7 @@ cd api && npm run seed
 ## Project layout
 
 ```
-monival-me/
+evidara -me/
 ├── api/          NestJS + Mongoose + Stripe
 ├── web/          Angular 19
 └── docker-compose.yml

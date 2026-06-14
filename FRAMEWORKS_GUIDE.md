@@ -1,7 +1,7 @@
 # Planning Frameworks Guide - Logframe vs. BSC vs. OKRs
 
 ## Overview
-Monival now supports three complementary strategic planning frameworks. Choose the one that fits your organization, or use them together for comprehensive planning and execution.
+Evidara  now supports three complementary strategic planning frameworks. Choose the one that fits your organization, or use them together for comprehensive planning and execution.
 
 ---
 
@@ -21,7 +21,7 @@ Monival now supports three complementary strategic planning frameworks. Choose t
 
 ## Framework Details
 
-### Logframe (Already in Monival)
+### Logframe (Already in Evidara )
 **What it is:** Logical framework showing assumptions, inputs, activities, outputs, outcomes, and impact
 
 **When to use:**
@@ -190,7 +190,7 @@ OKRs (Q1 2026)
 - ✅ You follow project management methodology
 - ✅ Time horizon: 3-5 years
 
-**Who uses it:** All NGOs (built into Monival already)
+**Who uses it:** All NGOs (built into Evidara  already)
 
 ---
 
@@ -317,7 +317,7 @@ Response: 200 OK
 ## Implementation Timeline
 
 ### Month 1: Start Simple
-- Use Logframe (already in Monival)
+- Use Logframe (already in Evidara )
 - Document all projects
 - Get donor feedback
 
@@ -442,7 +442,7 @@ OKR: "Scale water program to 5 regions"
 1. **Assess Current State** — Where are you with logframe?
 2. **Choose Framework(s)** — Use comparison table above
 3. **Set Organizational Choice** — Use PATCH /organizations/frameworks
-4. **Create First Framework** — Build in Monival
+4. **Create First Framework** — Build in Evidara 
 5. **Train Team** — Explain why & how to use
 6. **Review Regular** — Monthly or quarterly
 7. **Iterate** — Adjust based on learnings

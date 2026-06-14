@@ -170,11 +170,11 @@ export class WebhooksService {
         timeout: 10_000,
         headers: {
           'Content-Type': 'application/json',
-          'X-Monival-Event':     payload.event,
-          'X-Monival-Timestamp': timestamp,
-          'X-Monival-Signature': signature,
-          'X-Monival-Delivery':  payload.id,
-          'User-Agent':          'Monival-Webhooks/1.0',
+          'X-Evidara -Event':     payload.event,
+          'X-Evidara -Timestamp': timestamp,
+          'X-Evidara -Signature': signature,
+          'X-Evidara -Delivery':  payload.id,
+          'User-Agent':          'Evidara-Webhooks/1.0',
         },
         validateStatus: (s) => s >= 200 && s < 300,
       });

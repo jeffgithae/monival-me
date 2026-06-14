@@ -133,7 +133,7 @@ export class SsoService {
   // ── SP Metadata (for SAML) ────────────────────────────────────────────────
 
   getSpMetadata(organizationId: string): string {
-    const baseUrl = this.config.get('API_BASE_URL', 'https://api.monival.app');
+    const baseUrl = this.config.get('API_BASE_URL', 'https://api.evidara.app');
     const acsUrl = `${baseUrl}/sso/${organizationId}/saml/acs`;
     const entityId = `${baseUrl}/sso/${organizationId}/saml/metadata`;
 

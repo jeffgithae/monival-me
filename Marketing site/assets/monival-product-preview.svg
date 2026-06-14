@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" role="img" aria-labelledby="title desc">
-  <title id="title">Monival product dashboard preview</title>
+  <title id="title">Evidara  product dashboard preview</title>
   <desc id="desc">A premium dashboard preview with NGO project indicators, budget variance, and donor report status.</desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
@@ -22,7 +22,7 @@
   <circle cx="116" cy="107" r="9" fill="#c3943a"/>
   <circle cx="146" cy="107" r="9" fill="#a9583f"/>
   <circle cx="176" cy="107" r="9" fill="#4f7a5b"/>
-  <text x="220" y="114" fill="#fbf7ef" font-family="Inter, Arial" font-size="22" font-weight="800">Monival Program Command Center</text>
+  <text x="220" y="114" fill="#fbf7ef" font-family="Inter, Arial" font-size="22" font-weight="800">Evidara  Program Command Center</text>
 
   <rect x="100" y="176" width="228" height="584" rx="20" fill="#f7f2e9" stroke="#dfe7e2"/>
   <text x="130" y="224" fill="#17211c" font-family="Inter, Arial" font-size="22" font-weight="800">Portfolio</text>

@@ -44,7 +44,7 @@ export class ReportsController {
 
   @Get('donor/:projectId/export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
-  @Header('Content-Disposition', 'attachment; filename="monival-donor-report.csv"')
+  @Header('Content-Disposition', 'attachment; filename="evidara-donor-report.csv"')
   @Roles(...PERMISSIONS.VIEW_REPORTS)
   donorReportCsv(
     @CurrentUser() user: JwtPayload,

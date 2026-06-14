@@ -138,7 +138,7 @@ export class ScheduledReportsService {
         ) as string)
       : undefined;
 
-    const appUrl = process.env['APP_URL'] ?? 'https://app.monival.app';
+    const appUrl = process.env['APP_URL'] ?? 'https://app.evidara.app';
     const reportUrl = `${appUrl}/projects/${projectId}?tab=report`;
     const periodName = (reportData as any).reportingPeriod?.name ?? 'Latest period';
 
@@ -161,7 +161,7 @@ export class ScheduledReportsService {
 
       await this.mailer.send({
         to: email,
-        subject: `[Monival] Scheduled Report: ${project.name} — ${periodName}`,
+        subject: `[Evidara ] Scheduled Report: ${project.name} — ${periodName}`,
         ...body,
       });
     }

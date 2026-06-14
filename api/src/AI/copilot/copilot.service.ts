@@ -99,7 +99,7 @@ export class CopilotService {
           : 'portfolio health';
 
     return [
-      `I reviewed your ${focus} using the current Monival workspace data.`,
+      `I reviewed your ${focus} using the current Evidara  workspace data.`,
       `You have ${metrics.projectCount} project(s), ${metrics.indicatorCount} indicator(s), ${metrics.activityCount} recent activity record(s), and ${metrics.openPeriods} open reporting period(s).`,
       metrics.submittedActivities > 0
         ? `${metrics.submittedActivities} activity record(s) are waiting for review, so approvals are the fastest way to improve report readiness.`

@@ -74,7 +74,7 @@ export class BrandingService {
     const current = await this.brandingModel.findOne({ organizationId: new Types.ObjectId(organizationId) });
     if (dto.customDomain && dto.customDomain !== current?.customDomain) {
       (update as any).customDomainVerified = false;
-      (update as any).domainVerificationToken = `monival-verify=${crypto.randomBytes(16).toString('hex')}`;
+      (update as any).domainVerificationToken = `evidara-verify=${crypto.randomBytes(16).toString('hex')}`;
     }
 
     return this.brandingModel.findOneAndUpdate(
@@ -91,7 +91,7 @@ export class BrandingService {
     const branding = await this.brandingModel.findOne({ organizationId: new Types.ObjectId(organizationId) });
     if (!branding?.customDomain) throw new BadRequestException('Set a custom domain first.');
 
-    const token = branding.domainVerificationToken ?? `monival-verify=${crypto.randomBytes(16).toString('hex')}`;
+    const token = branding.domainVerificationToken ?? `evidara-verify=${crypto.randomBytes(16).toString('hex')}`;
     await this.brandingModel.updateOne(
       { organizationId: new Types.ObjectId(organizationId) },
       { domainVerificationToken: token },
@@ -100,7 +100,7 @@ export class BrandingService {
     return {
       token,
       domain: branding.customDomain,
-      txtRecord: `_monival-verify.${branding.customDomain}  TXT  "${token}"`,
+      txtRecord: `_evidara -verify.${branding.customDomain}  TXT  "${token}"`,
     };
   }
 
@@ -112,11 +112,11 @@ export class BrandingService {
     if (!branding?.customDomain) throw new BadRequestException('No custom domain configured.');
     if (!branding.domainVerificationToken) throw new BadRequestException('Start domain verification first.');
 
-    // In production: use dns.resolveTxt(`_monival-verify.${branding.customDomain}`)
+    // In production: use dns.resolveTxt(`_evidara -verify.${branding.customDomain}`)
     // For now, mark as pending — customer would be told to add the TXT record
     return {
       verified: false,
-      message: `Add TXT record: _monival-verify.${branding.customDomain} → "${branding.domainVerificationToken}" — then call this endpoint again.`,
+      message: `Add TXT record: _evidara -verify.${branding.customDomain} → "${branding.domainVerificationToken}" — then call this endpoint again.`,
     };
   }
 

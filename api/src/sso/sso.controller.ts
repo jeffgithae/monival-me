@@ -92,7 +92,7 @@ export class SsoController {
   ) {
     const { accessToken } = await this.ssoService.handleSamlCallback(orgId, body.attributes ?? body);
     // Redirect to web app with token in fragment — SPA picks it up
-    const webBase = process.env.WEB_BASE_URL ?? 'https://app.monival.app';
+    const webBase = process.env.WEB_BASE_URL ?? 'https://app.evidara.app';
     res.redirect(`${webBase}/sso-callback#token=${accessToken}`);
   }
 

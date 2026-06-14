@@ -47,7 +47,7 @@ export class MailerService {
       return false;
     }
     try {
-      const from = this.config.get<string>('SMTP_FROM', '"Monival M&E" <noreply@monival.app>');
+      const from = this.config.get<string>('SMTP_FROM', '"Evidara  M&E" <noreply@evidara.app>');
       await this.transporter.sendMail({ from, ...options });
       this.logger.log(`Email sent to ${Array.isArray(options.to) ? options.to.join(', ') : options.to}: ${options.subject}`);
       return true;
@@ -100,7 +100,7 @@ export class MailerService {
     <a href="${opts.reportUrl}" class="btn">View Report →</a>
   </div>
   <div class="footer">
-    You are receiving this because you have a scheduled report configured in Monival.
+    You are receiving this because you have a scheduled report configured in Evidara .
     <a href="${opts.reportUrl}/settings">Manage notification preferences</a>
   </div>
 </div>

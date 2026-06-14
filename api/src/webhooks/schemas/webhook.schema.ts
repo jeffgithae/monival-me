@@ -37,7 +37,7 @@ export class Webhook {
   @Prop({ required: true })
   url!: string;
 
-  /** HMAC-SHA256 signing secret — used to generate X-Monival-Signature header */
+  /** HMAC-SHA256 signing secret — used to generate X-Evidara -Signature header */
   @Prop({ required: true, select: false })
   secret!: string;
 

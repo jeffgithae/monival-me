@@ -33,7 +33,7 @@ export class MfaService {
 
     const secretObj = speakeasy.generateSecret({ length: 32 });
     const secret    = secretObj.base32;
-    const appName   = this.config.get('APP_NAME', 'Monival');
+    const appName   = this.config.get('APP_NAME', 'Evidara ');
 
     const otpAuthUrl = speakeasy.otpauthURL({
       secret,
