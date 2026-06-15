@@ -9,6 +9,7 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './schemas/document.schema';
 import { DocumentVersion } from './schemas/document-version.schema';
 import { Project } from '../projects/schemas/project.schema';
+import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 
 @Injectable()
 export class DocumentsService {
@@ -19,14 +20,25 @@ export class DocumentsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  findDocuments(organizationId: string, projectId?: string) {
+  async findDocuments(
+    organizationId: string,
+    filters?: { projectId?: string; category?: string; search?: string; page?: number; limit?: number },
+  ) {
     const query: Record<string, unknown> = {
       organizationId: new Types.ObjectId(organizationId),
     };
-    if (projectId) {
-      query.projectId = new Types.ObjectId(projectId);
+    if (filters?.projectId) query['projectId'] = new Types.ObjectId(filters.projectId);
+    if (filters?.category)  query['category']  = filters.category;
+    if (filters?.search) {
+      const re = new RegExp(filters.search, 'i');
+      query['$or'] = [{ title: re }, { description: re }, { tags: re }];
     }
-    return this.documentModel.find(query).sort({ createdAt: -1 }).lean();
+    const { page, limit, skip } = paginate(filters?.page, filters?.limit, 200);
+    const [data, total] = await Promise.all([
+      this.documentModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      this.documentModel.countDocuments(query),
+    ]);
+    return toPaginatedResult(data, total, page, limit);
   }
 
   async findDocument(organizationId: string, id: string) {

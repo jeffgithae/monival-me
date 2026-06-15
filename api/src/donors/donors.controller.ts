@@ -41,8 +41,14 @@ export class DonorsController {
     @Query('type')   type?: string,
     @Query('search') search?: string,
     @Query('tag')    tag?: string,
+    @Query('page')   page?: string,
+    @Query('limit')  limit?: string,
   ) {
-    return this.donorsService.findAll(user.organizationId, { status, type, search, tag });
+    return this.donorsService.findAll(user.organizationId, {
+      status, type, search, tag,
+      page:  page  ? parseInt(page,  10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Get('portfolio-summary')

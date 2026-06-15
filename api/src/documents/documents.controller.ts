@@ -18,8 +18,19 @@ export class DocumentsController {
 
   @Get()
   @Roles(...PERMISSIONS.VIEW_DOCUMENTS)
-  findDocuments(@CurrentUser() user: JwtPayload, @Query('projectId') projectId?: string) {
-    return this.documentsService.findDocuments(user.organizationId, projectId);
+  findDocuments(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+    @Query('category')  category?: string,
+    @Query('search')    search?: string,
+    @Query('page')      page?: string,
+    @Query('limit')     limit?: string,
+  ) {
+    return this.documentsService.findDocuments(user.organizationId, {
+      projectId, category, search,
+      page:  page  ? parseInt(page,  10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Get(':id')

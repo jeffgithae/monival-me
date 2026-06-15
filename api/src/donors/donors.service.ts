@@ -17,6 +17,7 @@ import { Indicator } from '../indicators/schemas/indicator.schema';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
+import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 
 @Injectable()
 export class DonorsService {
@@ -34,23 +35,28 @@ export class DonorsService {
 
   async findAll(
     organizationId: string,
-    filters?: { status?: string; type?: string; search?: string; tag?: string },
+    filters?: { status?: string; type?: string; search?: string; tag?: string; page?: number; limit?: number },
   ) {
     const query: Record<string, any> = {
       organizationId: new Types.ObjectId(organizationId),
     };
-    if (filters?.status) query.status = filters.status;
-    if (filters?.type)   query.type   = filters.type;
-    if (filters?.tag)    query.tags   = filters.tag;
+    if (filters?.status) query['status'] = filters.status;
+    if (filters?.type)   query['type']   = filters.type;
+    if (filters?.tag)    query['tags']   = filters.tag;
     if (filters?.search) {
-      query.$or = [
+      query['$or'] = [
         { name:      { $regex: filters.search, $options: 'i' } },
         { shortName: { $regex: filters.search, $options: 'i' } },
         { 'address.country': { $regex: filters.search, $options: 'i' } },
         { tags:      { $regex: filters.search, $options: 'i' } },
       ];
     }
-    return this.donorModel.find(query).sort({ name: 1 }).lean();
+    const { page, limit, skip } = paginate(filters?.page, filters?.limit, 200);
+    const [data, total] = await Promise.all([
+      this.donorModel.find(query).sort({ name: 1 }).skip(skip).limit(limit).lean(),
+      this.donorModel.countDocuments(query),
+    ]);
+    return toPaginatedResult(data, total, page, limit);
   }
 
   async findOne(organizationId: string, id: string) {
@@ -498,7 +504,8 @@ export class DonorsService {
 
   /** CSV-compatible flat export of all donors with grant totals */
   async exportPortfolio(organizationId: string): Promise<Record<string, any>[]> {
-    const donors = await this.findAll(organizationId);
+    const result = await this.findAll(organizationId, { limit: 10000 });
+    const donors = result.data;
     const grants = await this.grantModel
       .find({ organizationId: new Types.ObjectId(organizationId) })
       .lean();

@@ -33,12 +33,16 @@ export class IndicatorsController {
     @Query('level') level?: string,
     @Query('search') search?: string,
     @Query('isCore') isCore?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.indicatorsService.findAll(user.organizationId, {
       projectId,
       level,
       search,
       isCore: isCore === 'true' ? true : isCore === 'false' ? false : undefined,
+      page:  page  ? parseInt(page,  10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
 

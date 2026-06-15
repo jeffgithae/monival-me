@@ -8,6 +8,7 @@ import { Project } from '../projects/schemas/project.schema';
 import { CreateIndicatorDto } from './dto/create-indicator.dto';
 import { UpdateIndicatorDto } from './dto/update-indicator.dto';
 import { Indicator } from './schemas/indicator.schema';
+import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 
 export interface IndicatorListQuery {
   projectId?: string;
@@ -16,6 +17,8 @@ export interface IndicatorListQuery {
   isActive?: boolean;
   standardFramework?: string;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 @Injectable()
@@ -45,19 +48,22 @@ export class IndicatorsService {
     const filter: Record<string, unknown> = {
       organizationId: new Types.ObjectId(organizationId),
     };
-    if (query.projectId)        filter.projectId        = new Types.ObjectId(query.projectId);
-    if (query.level)            filter.level            = query.level;
-    if (query.isCore !== undefined)   filter.isCore     = query.isCore;
-    if (query.isActive !== undefined) filter.isActive   = query.isActive;
-    if (query.standardFramework)      filter.standardFramework = query.standardFramework;
+    if (query.projectId)              filter['projectId']         = new Types.ObjectId(query.projectId);
+    if (query.level)                  filter['level']             = query.level;
+    if (query.isCore !== undefined)   filter['isCore']            = query.isCore;
+    if (query.isActive !== undefined) filter['isActive']          = query.isActive;
+    if (query.standardFramework)      filter['standardFramework'] = query.standardFramework;
     if (query.search) {
       const re = new RegExp(query.search, 'i');
-      filter.$or = [{ code: re }, { title: re }, { definition: re }];
+      filter['$or'] = [{ code: re }, { title: re }, { definition: re }];
     }
-    return this.indicatorModel
-      .find(filter)
-      .sort({ sortOrder: 1, code: 1 })
-      .lean();
+
+    const { page, limit, skip } = paginate(query.page, query.limit, 500);
+    const [data, total] = await Promise.all([
+      this.indicatorModel.find(filter).sort({ sortOrder: 1, code: 1 }).skip(skip).limit(limit).lean(),
+      this.indicatorModel.countDocuments(filter),
+    ]);
+    return toPaginatedResult(data, total, page, limit);
   }
 
   async findOne(organizationId: string, id: string) {

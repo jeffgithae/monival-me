@@ -8,11 +8,20 @@ import { AppNotification, NavItem } from '../core/models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeService } from '../core/theme.service';
 import { ToastContainerComponent } from '../shared/toast-container.component';
-
+import { BreadcrumbComponent } from '../shared/breadcrumb.component';
+import { CommandPaletteComponent } from '../shared/command-palette.component';
+import { CommandPaletteService } from '../shared/command-palette.service';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, ToastContainerComponent],
+  imports: [
+    RouterOutlet, RouterLink, RouterLinkActive, DatePipe,
+    ToastContainerComponent,
+    CommandPaletteComponent,
+    BreadcrumbComponent,
+    ConfirmDialogComponent,
+  ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -25,6 +34,7 @@ export class ShellComponent implements OnInit {
   readonly unreadCount = signal(0);
 
   private readonly destroyRef = inject(DestroyRef);
+  readonly palette = inject(CommandPaletteService);
 
   constructor(
     readonly auth: AuthService,
