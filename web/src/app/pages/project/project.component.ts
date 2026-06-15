@@ -1,12 +1,9 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, signal, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { AutosaveService } from '../../shared/autosave.service';
-import { ConfirmService } from '../../shared/confirm.service';
-import { BreadcrumbService } from '../../shared/breadcrumb.service';
 import {
   Activity,
   ActivityTemplate,
@@ -46,17 +43,7 @@ interface IndicatorNode extends Indicator {
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
 })
-export class ProjectComponent implements OnInit, OnDestroy {
-  private api      = inject(ApiService);
-  private auth     = inject(AuthService);
-  private route    = inject(ActivatedRoute);
-  private autosave = inject(AutosaveService);
-  private confirm  = inject(ConfirmService);
-  private breadcrumb = inject(BreadcrumbService);
-
-  readonly hasDraft = signal(false);
-  readonly draftAge = signal<string | null>(null);
-
+export class ProjectComponent implements OnInit {
   project = signal<Project | null>(null);
   indicators = signal<Indicator[]>([]);
   activities = signal<Activity[]>([]);
@@ -370,6 +357,12 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   indicatorOptions = computed(() => this.indicators());
 
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly api: ApiService,
+    private readonly auth: AuthService,
+  ) {}
+
   get canManageIndicators() {
     return canManageIndicators(this.auth.user()?.role ?? 'viewer');
   }
@@ -382,38 +375,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.projectId = this.route.snapshot.paramMap.get('id') ?? '';
-    // Restore autosaved activity draft if one exists
-    const draftKey = `activity-form-${this.projectId}`;
-    if (this.autosave.hasDraft(draftKey)) {
-      const draft = this.autosave.restore<typeof this.activityForm>(draftKey);
-      if (draft) {
-        this.activityForm = { ...this.activityForm, ...draft.data };
-        this.hasDraft.set(true);
-        this.draftAge.set(this.autosave.draftAge(draftKey));
-      }
-    }
     this.reload();
-  }
-
-  ngOnDestroy() {
-    // Persist any pending activity form changes immediately on leaving
-    const draftKey = `activity-form-${this.projectId}`;
-    if (this.activityForm.title.trim()) {
-      this.autosave.save(draftKey, this.activityForm);
-    }
-  }
-
-  clearDraft() {
-    this.autosave.clear(`activity-form-${this.projectId}`);
-    this.hasDraft.set(false);
-    this.draftAge.set(null);
-  }
-
-  /** Called by the activity form on any field change to schedule autosave */
-  onActivityFormChange() {
-    if (this.activityForm.title.trim()) {
-      this.autosave.schedule(`activity-form-${this.projectId}`, this.activityForm);
-    }
   }
 
   setTab(t: Tab) {
@@ -484,7 +446,6 @@ export class ProjectComponent implements OnInit, OnDestroy {
   }
 
   addActivity() {
-    const draftKey = `activity-form-${this.projectId}`;
     this.api
       .createActivity({
         projectId: this.projectId,
@@ -504,8 +465,6 @@ export class ProjectComponent implements OnInit, OnDestroy {
         status: this.activityForm.status,
       })
       .subscribe(() => {
-        // Clear autosave draft on successful submit
-        this.clearDraft();
         this.activityForm = {
           title: '',
           activityDate: new Date().toISOString().slice(0, 10),
