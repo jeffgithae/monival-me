@@ -19,7 +19,8 @@ type Modal =
   | 'sync-result'
   | 'csv-upload'
   | 'view-response'
-  | 'field-map';
+  | 'field-map'
+  | 'collect-form';
 
 @Component({
   selector: 'app-data-collection',
@@ -59,6 +60,8 @@ export class DataCollectionComponent implements OnInit {
   csvFile: File | null = null;
   csvDelimiter = ',';
   csvIntegrationId = '';
+
+  formResponseDraft: Record<string, any> = {};
 
   // ── Form builder state ────────────────────────────────────────────────────
   formDraft: {
@@ -211,6 +214,54 @@ export class DataCollectionComponent implements OnInit {
   openViewForm(f: FormTemplate) {
     this.selectedForm.set(f);
     this.modalMode.set('view-form');
+  }
+
+  openCollectForm(f: FormTemplate) {
+    this.selectedForm.set(f);
+    this.formResponseDraft = {};
+    for (const sec of f.sections || []) {
+      for (const q of sec.questions || []) {
+        if (q.type === 'checkbox') this.formResponseDraft[q.key] = [];
+        else if (q.type === 'boolean') this.formResponseDraft[q.key] = null;
+        else this.formResponseDraft[q.key] = '';
+      }
+    }
+    this.modalMode.set('collect-form');
+  }
+
+  toggleCheckbox(key: string, option: string, checked: boolean) {
+    const arr = this.formResponseDraft[key] || [];
+    if (checked) {
+      if (!arr.includes(option)) arr.push(option);
+    } else {
+      const idx = arr.indexOf(option);
+      if (idx > -1) arr.splice(idx, 1);
+    }
+    this.formResponseDraft[key] = arr;
+  }
+
+  submitResponse() {
+    const f = this.selectedForm();
+    if (!f) return;
+    this.saving.set(true);
+    const payload = {
+      projectId: f.projectId,
+      templateId: f._id,
+      indicatorId: (f as any).indicatorId,
+      answers: this.formResponseDraft,
+      status: 'submitted'
+    };
+    this.api.submitFormResponseNew(payload).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+        this.loadAll();
+      },
+      error: (e: any) => {
+        this.saving.set(false);
+        this.error.set(e?.error?.message ?? 'Failed to submit response');
+      }
+    });
   }
 
   addSection() {

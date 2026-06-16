@@ -118,6 +118,7 @@
               <span>{{ f.updatedAt | date:'mediumDate' }}</span>
             </div>
             <div class="card-actions">
+              <button class="act-btn btn-primary" (click)="openCollectForm(f)">Collect Data</button>
               <button class="act-btn" (click)="openViewForm(f)">Preview</button>
               <button class="act-btn" (click)="openEditForm(f)">Edit</button>
               <button class="act-btn" (click)="toggleFormStatus(f)">
@@ -463,6 +464,77 @@
             }
           </div>
         }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: COLLECT DATA
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (modalMode() === 'collect-form' && selectedForm(); as f) {
+  <div class="overlay" (click)="closeModal()">
+    <div class="modal lg" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>Submit: {{ f.name }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (error()) { <div class="field-error">{{ error() }}</div> }
+        @if (f.description) { <p class="preview-desc">{{ f.description }}</p> }
+        @for (sec of f.sections; track $index) {
+          <div class="preview-section">
+            <div class="preview-section-title">{{ sec.title }}</div>
+            @if (sec.description) { <p class="preview-section-desc">{{ sec.description }}</p> }
+            @for (q of sec.questions; track q.key) {
+              <div class="preview-question">
+                <label class="pq-label">
+                  {{ q.label }}
+                  @if (q.required) { <span class="req">*</span> }
+                </label>
+                @if (q.description) { <p class="pq-desc">{{ q.description }}</p> }
+                @switch (q.type) {
+                  @case ('text') { <input class="preview-input" [(ngModel)]="formResponseDraft[q.key]" placeholder="Type answer..." /> }
+                  @case ('textarea') { <textarea class="preview-input" [(ngModel)]="formResponseDraft[q.key]" rows="3" placeholder="Long text..."></textarea> }
+                  @case ('number') { <input class="preview-input" type="number" [(ngModel)]="formResponseDraft[q.key]" placeholder="0" /> }
+                  @case ('date') { <input class="preview-input" type="date" [(ngModel)]="formResponseDraft[q.key]" /> }
+                  @case ('boolean') {
+                    <div class="preview-radio-group">
+                      <label><input type="radio" name="{{q.key}}" [value]="true" [(ngModel)]="formResponseDraft[q.key]" /> Yes</label>
+                      <label><input type="radio" name="{{q.key}}" [value]="false" [(ngModel)]="formResponseDraft[q.key]" /> No</label>
+                    </div>
+                  }
+                  @case ('select') {
+                    <select class="preview-input" [(ngModel)]="formResponseDraft[q.key]">
+                      <option value="">Select an option</option>
+                      @for (o of q.options; track o) { <option [value]="o">{{ o }}</option> }
+                    </select>
+                  }
+                  @case ('radio') {
+                    <div class="preview-radio-group">
+                      @for (o of q.options; track o) {
+                        <label><input type="radio" name="{{q.key}}" [value]="o" [(ngModel)]="formResponseDraft[q.key]" /> {{ o }}</label>
+                      }
+                    </div>
+                  }
+                  @case ('checkbox') {
+                    <div class="preview-radio-group">
+                      @for (o of q.options; track o) {
+                        <label><input type="checkbox" [checked]="formResponseDraft[q.key]?.includes(o)" (change)="toggleCheckbox(q.key, o, $any($event.target).checked)" /> {{ o }}</label>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="submitResponse()">
+            {{ saving() ? 'Submitting...' : 'Submit Response' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
