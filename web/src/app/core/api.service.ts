@@ -130,10 +130,6 @@ export class ApiService {
     return this.http.delete(`${this.base}/members/${memberId}`);
   }
 
-  calculateReportingResults(periodId: string) {
-    return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${periodId}/calculate`, {});
-  }
-
   updateReportingPeriodStatus(periodId: string, status: 'submitted' | 'approved' | 'locked') {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${periodId}/status`, {
       status,
@@ -392,18 +388,6 @@ export class ApiService {
     return this.http.get<FormTemplate>(`${this.base}/forms/templates/${id}`);
   }
 
-  createFormTemplate(body: Record<string, unknown>) {
-    return this.http.post<FormTemplate>(`${this.base}/forms/templates`, body);
-  }
-
-  updateFormTemplate(id: string, body: Record<string, unknown>) {
-    return this.http.patch<FormTemplate>(`${this.base}/forms/templates/${id}`, body);
-  }
-
-  deleteFormTemplate(id: string) {
-    return this.http.delete(`${this.base}/forms/templates/${id}`);
-  }
-
   // Form responses
   formResponses(projectId?: string) {
     let params = new HttpParams();
@@ -413,10 +397,6 @@ export class ApiService {
 
   formResponse(id: string) {
     return this.http.get<FormResponse>(`${this.base}/forms/responses/${id}`);
-  }
-
-  createFormResponse(body: Record<string, unknown>) {
-    return this.http.post<FormResponse>(`${this.base}/forms/responses`, body);
   }
 
   deleteActivityTemplate(id: string) {
@@ -797,7 +777,7 @@ export class ApiService {
     });
   }
   calculatePeriodResults(id: string) {
-    return this.http.post<ReportingPeriod>(`${this.base}/reporting/periods/${id}/calculate`, {});
+    return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${id}/calculate`, {});
   }
   updatePeriodNarrative(id: string, body: { narrative?: string; challenges?: string; lessonsLearned?: string; nextPeriodPlans?: string }) {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}/narrative`, body);

@@ -109,10 +109,13 @@ export class ReportingPeriodsComponent implements OnInit {
     if (!p) return;
     this.calculating.set(true);
     this.api.calculatePeriodResults(p._id).subscribe({
-      next: updated => {
-        this.selected.set(updated);
-        this.periods.update(arr => arr.map(x => x._id === updated._id ? updated : x));
+      next: () => {
         this.calculating.set(false);
+        // Refresh the period itself (status/timestamps may have changed server-side)
+        this.api.reportingPeriod(p._id).subscribe(updated => {
+          this.selected.set(updated);
+          this.periods.update(arr => arr.map(x => x._id === updated._id ? updated : x));
+        });
       },
       error: err => { this.error.set(err.error?.message || 'Calculation failed'); this.calculating.set(false); }
     });

@@ -654,7 +654,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   calculateReportingResults() {
     if (!this.selectedReportingPeriodId) return;
     this.api
-      .calculateReportingResults(this.selectedReportingPeriodId)
+      .calculatePeriodResults(this.selectedReportingPeriodId)
       .subscribe((results) => this.indicatorResults.set(results));
   }
 
