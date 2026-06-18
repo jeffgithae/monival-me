@@ -3,9 +3,9 @@
 <!-- ═══ HEADER ═══════════════════════════════════════════════════════════════ -->
 <div class="page-header">
   <div>
-    <p class="eyebrow">Case Management</p>
+    <p class="eyebrow">Case Register</p>
     <h1>Beneficiaries</h1>
-    <p>Register individuals, households, and groups. Track vulnerability, program enrollment, and service delivery.</p>
+    <p class="sub">Every name here is a person, not a record. Track identity, vulnerability, and the support they've received.</p>
   </div>
   <div class="header-actions">
     @if (canManage()) {
@@ -19,36 +19,41 @@
   </div>
 </div>
 
-<!-- ═══ STATS STRIP ══════════════════════════════════════════════════════════ -->
+<!-- ═══ LEDGER BAND ══════════════════════════════════════════════════════════ -->
 @if (stats(); as s) {
-  <div class="stats-strip">
-    <div class="stat-card">
-      <div class="stat-val">{{ s.total | number }}</div>
-      <div class="stat-lbl">Total registered</div>
+  <div class="ledger">
+    <div class="ledger-entry">
+      <span class="le-val">{{ s.total | number }}</span>
+      <span class="le-lbl">Registered</span>
     </div>
-    <div class="stat-card green">
-      <div class="stat-val">{{ activeBenef() | number }}</div>
-      <div class="stat-lbl">Active</div>
+    <div class="ledger-rule"></div>
+    <div class="ledger-entry accent-forest">
+      <span class="le-val">{{ activeBenef() | number }}</span>
+      <span class="le-lbl">Active cases</span>
     </div>
-    <div class="stat-card">
-      <div class="stat-val">{{ s.vulnerable.totalHouseholdSize | number }}</div>
-      <div class="stat-lbl">Total household members</div>
+    <div class="ledger-rule"></div>
+    <div class="ledger-entry">
+      <span class="le-val">{{ s.vulnerable.totalHouseholdSize | number }}</span>
+      <span class="le-lbl">Household members</span>
     </div>
-    <div class="stat-card blue">
-      <div class="stat-val">{{ consentPct() }}%</div>
-      <div class="stat-lbl">Consent obtained</div>
-      <div class="stat-sub">{{ s.vulnerable.consentGiven | number }} of {{ s.total | number }}</div>
+    <div class="ledger-rule"></div>
+    <div class="ledger-entry accent-clay">
+      <span class="le-val">{{ consentPct() }}%</span>
+      <span class="le-lbl">Consent on file</span>
+      <span class="le-sub">{{ s.vulnerable.consentGiven | number }} of {{ s.total | number }}</span>
     </div>
     @if (s.bySex['female']) {
-      <div class="stat-card">
-        <div class="stat-val">{{ s.bySex['female'] | number }}</div>
-        <div class="stat-lbl">Female</div>
+      <div class="ledger-rule"></div>
+      <div class="ledger-entry">
+        <span class="le-val">{{ s.bySex['female'] | number }}</span>
+        <span class="le-lbl">Female</span>
       </div>
     }
     @if (s.bySex['male']) {
-      <div class="stat-card">
-        <div class="stat-val">{{ s.bySex['male'] | number }}</div>
-        <div class="stat-lbl">Male</div>
+      <div class="ledger-rule"></div>
+      <div class="ledger-entry">
+        <span class="le-val">{{ s.bySex['male'] | number }}</span>
+        <span class="le-lbl">Male</span>
       </div>
     }
   </div>
@@ -56,17 +61,21 @@
   <!-- Vulnerability strip -->
   @if (vulnFlags().length > 0) {
     <div class="vuln-strip">
-      @for (f of vulnFlags(); track f.key) {
-        <button class="vuln-chip {{ f.key === 'isIdp' || f.key === 'isRefugee' ? 'idp' : f.key === 'hasDisability' ? 'disabled' : f.key === 'isFemaleHeadedHousehold' ? 'female' : '' }}"
-          (click)="vulnFilter.set(vulnFilter() === f.key ? '' : f.key); applyFilters()">
-          {{ f.label }}: {{ f.count | number }}
-        </button>
-      }
+      <span class="vs-label">Vulnerability flags on file</span>
+      <div class="vs-chips">
+        @for (f of vulnFlags(); track f.key) {
+          <button class="vuln-chip {{ f.key === 'isIdp' || f.key === 'isRefugee' ? 'idp' : f.key === 'hasDisability' ? 'disabled' : f.key === 'isFemaleHeadedHousehold' ? 'female' : '' }}"
+            [class.is-active]="vulnFilter() === f.key"
+            (click)="vulnFilter.set(vulnFilter() === f.key ? '' : f.key); applyFilters()">
+            {{ f.label }} <strong>{{ f.count | number }}</strong>
+          </button>
+        }
+      </div>
     </div>
   }
 }
 
-@if (error()) { <div class="alert-error">{{ error() }}</div> }
+@if (error()) { <div class="alert-error">⚠ {{ error() }}</div> }
 
 <!-- ═══ CREATE / EDIT FORM ═══════════════════════════════════════════════════ -->
 @if (showForm() || showEditForm()) {
@@ -77,9 +86,9 @@
         <p>{{ showEditForm() ? 'Update profile information.' : 'Enter demographic and vulnerability data for this case.' }}</p>
       </div>
       <div class="fh-steps">
-        <span class="step" [class.active]="formStep() === 1">1 Identity</span>
-        <span class="step" [class.active]="formStep() === 2">2 Vulnerability</span>
-        <span class="step" [class.active]="formStep() === 3">3 Location & Status</span>
+        <span class="step" [class.active]="formStep() === 1">01 Identity</span>
+        <span class="step" [class.active]="formStep() === 2">02 Vulnerability</span>
+        <span class="step" [class.active]="formStep() === 3">03 Location &amp; status</span>
       </div>
     </div>
 
@@ -200,7 +209,7 @@
             <input type="number" formControlName="vulnerabilityScore" min="0" max="100"
               placeholder="Higher = more vulnerable" />
           </label>
-          <label style="align-self:flex-end;font-size:.78rem;color:var(--muted)">
+          <label class="hint-label">
             Composite score used for targeting and prioritisation (0 = not vulnerable, 100 = most vulnerable).
           </label>
         </div>
@@ -245,7 +254,7 @@
 
         <div class="section-label">Consent (GDPR / data protection)</div>
         <div class="form-grid">
-          <label class="check-item" style="flex-direction:row;align-items:center;grid-column:1/-1">
+          <label class="check-item check-full">
             <input type="checkbox" formControlName="consentGiven" />
             Beneficiary has given informed consent for data collection and use
           </label>
@@ -345,7 +354,7 @@
         <div class="empty-icon">👥</div>
         @if (stats()?.total === 0) {
           <h3>No beneficiaries registered</h3>
-          <p>Register your first beneficiary to start tracking program participation and service delivery.</p>
+          <p>Register your first beneficiary to start tracking programme participation and service delivery.</p>
           @if (canManage()) {
             <button class="btn-primary" (click)="showForm.set(true)">+ Register beneficiary</button>
           }
@@ -374,11 +383,11 @@
                 @if (b.district) { <span>📍 {{ b.district }}</span> }
                 @if (b.village) { <span>{{ b.village }}</span> }
                 @if (activeEnrollments(b).length > 0) {
-                  <span class="text-green">✓ {{ activeEnrollments(b).length }} program{{ activeEnrollments(b).length > 1 ? 's' : '' }}</span>
+                  <span class="text-forest">✓ {{ activeEnrollments(b).length }} programme{{ activeEnrollments(b).length > 1 ? 's' : '' }}</span>
                 }
               </div>
               @if (vulnFlagsFor(b).length > 0) {
-                <div class="ben-meta" style="margin-top:.25rem">
+                <div class="ben-meta flag-row">
                   @for (f of vulnFlagsFor(b).slice(0, 4); track f.label) {
                     <span class="flag-chip {{ f.cls }}">{{ f.label }}</span>
                   }
@@ -390,7 +399,7 @@
             </div>
             <div class="ben-right">
               <span class="status-pill {{ b.status }}">{{ b.status }}</span>
-              @if (!b.consentGiven) { <span class="consent-chip no" title="No consent recorded">⚠️ No consent</span> }
+              @if (!b.consentGiven) { <span class="consent-chip no" title="No consent recorded">⚠ No consent</span> }
             </div>
           </button>
         }
@@ -420,11 +429,11 @@
                 @for (f of vulnFlagsFor(b).slice(0, 3); track f.label) {
                   <span class="flag-chip {{ f.cls }}">{{ f.label }}</span>
                 }
-                @if (!b.consentGiven) { <span class="consent-chip no">⚠️ No consent</span> }
+                @if (!b.consentGiven) { <span class="consent-chip no">⚠ No consent</span> }
               </div>
               @if (activeEnrollments(b).length > 0) {
-                <div style="font-size:.75rem;color:#059669;margin-top:.3rem">
-                  ✓ {{ activeEnrollments(b).length }} active program{{ activeEnrollments(b).length > 1 ? 's' : '' }}
+                <div class="card-programs">
+                  ✓ {{ activeEnrollments(b).length }} active programme{{ activeEnrollments(b).length > 1 ? 's' : '' }}
                 </div>
               }
             </div>
@@ -443,17 +452,17 @@
     }
   </div>
 
-  <!-- ── Detail panel ───────────────────────────────────────────────── -->
+  <!-- ── Detail panel — styled as an ID / case card ─────────────────────── -->
   @if (selected(); as b) {
     <div class="detail-panel">
 
-      <!-- Header -->
+      <!-- ID-card header -->
       <div class="detail-head">
         <div class="dh-top">
           <div class="dh-avatar {{ avatarClass(b) }}">{{ avatarLetter(b) }}</div>
-          <div style="flex:1">
+          <div class="dh-identity">
             <div class="dh-name">{{ b.name }}</div>
-            @if (b.caseId) { <div class="dh-case">{{ b.caseId }}</div> }
+            @if (b.caseId) { <div class="dh-case">Case {{ b.caseId }}</div> }
           </div>
           <span class="status-pill {{ b.status }}">{{ b.status }}</span>
         </div>
@@ -472,7 +481,7 @@
         }
         @if (canManage()) {
           <div class="dh-actions">
-            <button class="btn-ghost btn-sm" (click)="openEdit()">✏️ Edit</button>
+            <button class="btn-ghost btn-sm" (click)="openEdit()">✏ Edit</button>
             <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleting()">
               {{ deleting() ? '…' : '🗑' }}
             </button>
@@ -481,17 +490,20 @@
         }
       </div>
 
+      <!-- Perforated seam — the card's signature detail -->
+      <div class="card-seam" aria-hidden="true"></div>
+
       <!-- Tabs -->
       <div class="detail-tabs">
         <button class="dtab" [class.active]="detailTab() === 'profile'"    (click)="detailTab.set('profile')">Profile</button>
         <button class="dtab" [class.active]="detailTab() === 'household'"  (click)="detailTab.set('household')">Household</button>
         <button class="dtab" [class.active]="detailTab() === 'enrollment'" (click)="detailTab.set('enrollment')">
-          Programs
-          @if (activeEnrollments(b).length) { <span style="font-size:.68rem;background:rgba(79,70,229,.1);color:#4f46e5;padding:1px 5px;border-radius:8px">{{ activeEnrollments(b).length }}</span> }
+          Programmes
+          @if (activeEnrollments(b).length) { <span class="dtab-badge">{{ activeEnrollments(b).length }}</span> }
         </button>
         <button class="dtab" [class.active]="detailTab() === 'services'"   (click)="detailTab.set('services')">
           Services
-          @if (b.serviceHistory?.length) { <span style="font-size:.68rem;background:rgba(79,70,229,.1);color:#4f46e5;padding:1px 5px;border-radius:8px">{{ b.serviceHistory!.length }}</span> }
+          @if (b.serviceHistory?.length) { <span class="dtab-badge">{{ b.serviceHistory!.length }}</span> }
         </button>
       </div>
 
@@ -500,7 +512,6 @@
         <!-- ── PROFILE TAB ──────────────────────────────────────────── -->
         @if (detailTab() === 'profile') {
 
-          <!-- Vulnerability score -->
           @if (b.vulnerabilityScore !== undefined && b.vulnerabilityScore !== null) {
             <div class="vuln-score-wrap">
               <div class="vs-label">
@@ -544,7 +555,7 @@
             <dt>Consent</dt>
             <dd>
               <span class="consent-chip {{ b.consentGiven ? 'yes' : 'no' }}">
-                {{ b.consentGiven ? '✓ Given' : '⚠️ Not given' }}
+                {{ b.consentGiven ? '✓ Given' : '⚠ Not given' }}
               </span>
               @if (b.consentGiven && b.consentMethod) { ({{ b.consentMethod }}) }
               @if (b.consentDate) { · {{ b.consentDate | date:'d MMM y' }} }
@@ -553,12 +564,12 @@
 
           @if (b.notes) {
             <div class="section-title">Notes</div>
-            <p style="font-size:.84rem;color:var(--text);line-height:1.6;margin:0">{{ b.notes }}</p>
+            <p class="notes-text">{{ b.notes }}</p>
           }
           @if (b.tags?.length) {
-            <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.875rem">
+            <div class="tag-row">
               @for (tag of b.tags!; track tag) {
-                <span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:rgba(79,70,229,.08);color:#4f46e5">{{ tag }}</span>
+                <span class="tag-chip">{{ tag }}</span>
               }
             </div>
           }
@@ -588,16 +599,15 @@
               </tbody>
             </table>
           } @else {
-            <p style="color:var(--muted);font-size:.875rem">No household member details recorded.</p>
+            <p class="empty-hint">No household member details recorded.</p>
           }
         }
 
         <!-- ── ENROLLMENT TAB ───────────────────────────────────────── -->
         @if (detailTab() === 'enrollment') {
           @if (canManage()) {
-            <button class="btn-primary btn-sm" style="margin-bottom:.875rem"
-              (click)="showEnrollForm.set(!showEnrollForm())">
-              {{ showEnrollForm() ? '✕ Cancel' : '+ Enroll in program' }}
+            <button class="btn-primary btn-sm tab-cta" (click)="showEnrollForm.set(!showEnrollForm())">
+              {{ showEnrollForm() ? '✕ Cancel' : '+ Enrol in programme' }}
             </button>
           }
 
@@ -611,12 +621,12 @@
                       @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
                     </select>
                   </label>
-                  <label>Enrollment date<input type="date" formControlName="enrolledAt" /></label>
+                  <label>Enrolment date<input type="date" formControlName="enrolledAt" /></label>
                   <label class="full">Notes<input formControlName="notes" /></label>
                 </div>
-                <div style="display:flex;gap:.5rem;margin-top:.75rem">
+                <div class="inline-form-actions">
                   <button type="submit" class="btn-primary btn-sm" [disabled]="enrollForm.invalid || saving()">
-                    {{ saving() ? 'Enrolling…' : 'Enroll' }}
+                    {{ saving() ? 'Enrolling…' : 'Enrol' }}
                   </button>
                 </div>
               </form>
@@ -624,7 +634,7 @@
           }
 
           @if ((b.programEnrollments?.length ?? 0) === 0) {
-            <p style="color:var(--muted);font-size:.875rem">Not enrolled in any programs yet.</p>
+            <p class="empty-hint">Not enrolled in any programmes yet.</p>
           } @else {
             <div class="enroll-list">
               @for (e of (b.programEnrollments ?? []); track e.projectId) {
@@ -637,7 +647,7 @@
                       @if (e.notes) { · {{ e.notes }} }
                     </div>
                   </div>
-                  <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+                  <div class="ei-right">
                     <span class="status-pill {{ e.status }}">{{ e.status | titlecase }}</span>
                     @if (canManage() && e.status === 'active') {
                       <button class="btn-ghost btn-sm" (click)="exitProgram(e)">Exit</button>
@@ -652,8 +662,7 @@
         <!-- ── SERVICES TAB ─────────────────────────────────────────── -->
         @if (detailTab() === 'services') {
           @if (canManage()) {
-            <button class="btn-primary btn-sm" style="margin-bottom:.875rem"
-              (click)="showServiceForm.set(!showServiceForm())">
+            <button class="btn-primary btn-sm tab-cta" (click)="showServiceForm.set(!showServiceForm())">
               {{ showServiceForm() ? '✕ Cancel' : '+ Record service' }}
             </button>
           }
@@ -679,7 +688,7 @@
                   <label>Unit<input formControlName="unit" placeholder="e.g. kg, USD, sessions" /></label>
                   <label class="full">Description<textarea formControlName="description" rows="2"></textarea></label>
                 </div>
-                <div style="display:flex;gap:.5rem;margin-top:.75rem">
+                <div class="inline-form-actions">
                   <button type="submit" class="btn-primary btn-sm" [disabled]="serviceForm.invalid || saving()">
                     {{ saving() ? 'Saving…' : 'Record service' }}
                   </button>
@@ -689,7 +698,7 @@
           }
 
           @if ((b.serviceHistory?.length ?? 0) === 0) {
-            <p style="color:var(--muted);font-size:.875rem">No service records yet.</p>
+            <p class="empty-hint">No service records yet.</p>
           } @else {
             <div class="service-list">
               @for (s of (b.serviceHistory ?? []); track s._id) {
@@ -713,4 +722,4 @@
   }
 
 </div><!-- /main-layout -->
-</div><!-- /beneficiaries-page -->
+</div>
