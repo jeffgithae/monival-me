@@ -290,6 +290,10 @@ export class ApiService {
     return this.http.post<Indicator>(`${this.base}/indicators`, body);
   }
 
+  updateIndicator(id: string, body: Record<string, unknown>) {
+    return this.http.patch<Indicator>(`${this.base}/indicators/${id}`, body);
+  }
+
   deleteIndicator(id: string) {
     return this.http.delete(`${this.base}/indicators/${id}`);
   }
@@ -417,6 +421,10 @@ export class ApiService {
 
   deleteActivityTemplate(id: string) {
     return this.http.delete(`${this.base}/activities/templates/${id}`);
+  }
+
+  deleteActivity(id: string) {
+    return this.http.delete(`${this.base}/activities/${id}`);
   }
 
   reviewActivity(id: string, status: 'approved' | 'rejected', rejectionReason?: string) {
