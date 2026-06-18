@@ -1035,3 +1035,117 @@ h1 {
   .btn-primary, .btn-secondary, .btn-ghost { display: none !important; }
   main { padding: 0 !important; }
 }
+// ─── Section header (Budgets / Documents tabs) ────────────────────────────────
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: $indigo-deep;
+  }
+}
+
+// ─── Table wrapper (horizontal scroll on small screens) ───────────────────────
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid $border;
+  background: $surface;
+}
+
+// Status badge variants for budget allocation status values
+.status-badge {
+  &.status-draft        { background: rgba($muted, 0.12);  color: $muted; }
+  &.status-submitted    { background: rgba($amber, 0.12);  color: color.adjust($amber, $lightness: -10%); }
+  &.status-approved     { background: rgba($green, 0.12);  color: color.adjust($green, $lightness: -12%); }
+  &.status-active       { background: rgba($green, 0.12);  color: color.adjust($green, $lightness: -12%); }
+  &.status-under_review { background: rgba($amber, 0.12);  color: color.adjust($amber, $lightness: -10%); }
+  &.status-closed        { background: rgba($indigo, 0.1); color: $indigo-deep; }
+  &.status-archived      { background: rgba($muted, 0.1);  color: $muted; }
+}
+
+// ─── Documents list (Documents tab) ────────────────────────────────────────────
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.doc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 14px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: rgba($indigo, 0.2);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.doc-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border-radius: 10px;
+  background: rgba($indigo, 0.08);
+}
+
+.doc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: $indigo-deep;
+  margin-bottom: 0.3rem;
+}
+
+.doc-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: $muted;
+
+  .badge {
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: rgba($indigo, 0.1);
+    color: $indigo-deep;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+}
+
+.doc-tag {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba($indigo, 0.08);
+  color: $indigo-deep;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.doc-desc {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: $muted;
+  line-height: 1.4;
+}

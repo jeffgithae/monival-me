@@ -141,6 +141,18 @@
   <button type="button" class="tab-btn" [class.active]="tab() === 'report'" (click)="setTab('report')">
     📄 Donor report
   </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'budgets'" (click)="setTab('budgets')">
+    💰 Budgets
+    @if (budgetAllocations().length > 0) {
+      <span class="tab-badge">{{ budgetAllocations().length }}</span>
+    }
+  </button>
+  <button type="button" class="tab-btn" [class.active]="tab() === 'documents'" (click)="setTab('documents')">
+    📂 Documents
+    @if (documents().length > 0) {
+      <span class="tab-badge">{{ documents().length }}</span>
+    }
+  </button>
 </div>
 
 <!-- ═══════════════ FRAMEWORK TAB ════════════════════════════════════════ -->
@@ -632,6 +644,100 @@
       <div class="empty-panel">
         <span>📄</span>
         <p>Set a date range above and click Generate report.</p>
+      </div>
+    }
+  </div>
+}
+
+<!-- ═══════════════ BUDGETS TAB ══════════════════════════════════════════ -->
+@if (tab() === 'budgets') {
+  <div class="tab-content">
+    <div class="section-header">
+      <h2>Budget Allocations</h2>
+    </div>
+
+    @if (budgetAllocations().length === 0) {
+      <div class="empty-panel">
+        <span>💰</span>
+        <p>No budget allocations for this project yet.</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Fiscal Year</th>
+              <th>Allocated</th>
+              <th>Spent</th>
+              <th>Remaining</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of budgetAllocations(); track b._id) {
+              <tr>
+                <td>{{ b.name }}</td>
+                <td>{{ b.category }}</td>
+                <td>{{ b.fiscalYear }}</td>
+                <td>{{ b.allocatedAmount | number: '1.2-2' }} {{ b.currency }}</td>
+                <td>{{ b.spentAmount | number: '1.2-2' }} {{ b.currency }}</td>
+                <td>{{ b.uncommittedAmount | number: '1.2-2' }} {{ b.currency }}</td>
+                <td><span class="status-badge status-{{ b.status }}">{{ b.status }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}
+
+<!-- ═══════════════ DOCUMENTS TAB ════════════════════════════════════════ -->
+@if (tab() === 'documents') {
+  <div class="tab-content">
+    <div class="section-header">
+      <h2>Project Documents</h2>
+      <a routerLink="/documents" class="btn-secondary btn-sm">Open Document Library →</a>
+    </div>
+
+    @if (documents().length === 0) {
+      <div class="empty-panel">
+        <span>📂</span>
+        <p>No documents linked to this project yet.</p>
+        <a routerLink="/documents" class="btn-secondary btn-sm" style="margin-top:.75rem">Go to Documents</a>
+      </div>
+    } @else {
+      <div class="doc-list">
+        @for (doc of documents(); track doc._id) {
+          <div class="doc-row">
+            <div class="doc-icon">
+              @if (doc.category === 'Report') { 📄 }
+              @else if (doc.category === 'Financial') { 💰 }
+              @else if (doc.category === 'Agreement') { 📝 }
+              @else if (doc.category === 'Training') { 📚 }
+              @else if (doc.category === 'Evidence') { 🔍 }
+              @else { 📁 }
+            </div>
+            <div class="doc-info">
+              <div class="doc-title">{{ doc.title }}</div>
+              <div class="doc-meta">
+                @if (doc.category) { <span class="badge">{{ doc.category }}</span> }
+                <span>{{ doc.createdAt | date: 'mediumDate' }}</span>
+                @for (tag of (doc.tags ?? []).slice(0, 3); track tag) {
+                  <span class="doc-tag">{{ tag }}</span>
+                }
+              </div>
+              @if (doc.description) {
+                <p class="doc-desc">{{ doc.description }}</p>
+              }
+            </div>
+            @if (doc.fileUrl) {
+              <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-secondary btn-sm">↗ Open</a>
+            }
+          </div>
+        }
       </div>
     }
   </div>

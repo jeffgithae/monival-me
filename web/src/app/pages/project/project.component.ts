@@ -16,6 +16,7 @@ import {
   Indicator,
   IndicatorResult,
   IndicatorTarget,
+  OrgDocument,
   Project,
   ReportingPeriod,
   BudgetAllocation,
@@ -70,11 +71,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
   budgetAllocations = signal<BudgetAllocation[]>([]);
-  documents = signal<Array<{ id: string; name: string; type: string; size: string; date: string; url: string }>>([
-    { id: '1', name: 'Project Proposal.pdf', type: 'PDF', size: '2.4 MB', date: '2026-01-15', url: '#' },
-    { id: '2', name: 'Grant Agreement.docx', type: 'DOCX', size: '1.1 MB', date: '2026-02-01', url: '#' },
-    { id: '3', name: 'Initial Baseline Survey.xlsx', type: 'XLSX', size: '4.5 MB', date: '2026-03-10', url: '#' }
-  ]);
+  documents = signal<OrgDocument[]>([]);
   tab = signal<Tab>('framework');
   projectId = '';
 
@@ -418,16 +415,20 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   setTab(t: Tab) {
     this.tab.set(t);
-    if (t === 'report') {
-      this.loadReport();
-    }
-    if (t === 'budgets') {
-      this.loadBudgets();
-    }
+    if (t === 'report')     this.loadReport();
+    if (t === 'budgets')    this.loadBudgets();
+    if (t === 'documents')  this.loadDocuments();
   }
 
   loadBudgets() {
     this.api.budgetAllocations({ projectId: this.projectId }).subscribe(data => this.budgetAllocations.set(data));
+  }
+
+  loadDocuments() {
+    this.api.documents({ projectId: this.projectId }).subscribe({
+      next: (res: any) => this.documents.set(Array.isArray(res) ? res : (res.data ?? [])),
+      error: () => {},
+    });
   }
 
   reload() {
