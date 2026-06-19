@@ -4,6 +4,7 @@ import { Activity, ActivitySchema } from '../activities/schemas/activity.schema'
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { ReportingPeriod, ReportingPeriodSchema } from '../reporting/schemas/reporting-period.schema';
+import { Beneficiary, BeneficiarySchema } from '../beneficiaries/schemas/beneficiary.schema';
 import { CopilotController } from './copilot/copilot.controller';
 import { CopilotService } from './copilot/copilot.service';
 
@@ -14,6 +15,7 @@ import { CopilotService } from './copilot/copilot.service';
       { name: Indicator.name, schema: IndicatorSchema },
       { name: Activity.name, schema: ActivitySchema },
       { name: ReportingPeriod.name, schema: ReportingPeriodSchema },
+      { name: Beneficiary.name, schema: BeneficiarySchema },
     ]),
   ],
   controllers: [CopilotController],

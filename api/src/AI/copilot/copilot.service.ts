@@ -5,6 +5,7 @@ import { Activity } from '../../activities/schemas/activity.schema';
 import { Indicator } from '../../indicators/schemas/indicator.schema';
 import { Project } from '../../projects/schemas/project.schema';
 import { ReportingPeriod } from '../../reporting/schemas/reporting-period.schema';
+import { Beneficiary } from '../../beneficiaries/schemas/beneficiary.schema';
 import { CopilotMessageDto } from './dto/copilot-message.dto';
 
 @Injectable()
@@ -13,8 +14,8 @@ export class CopilotService {
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
-    @InjectModel(ReportingPeriod.name)
-    private readonly reportingPeriodModel: Model<ReportingPeriod>,
+    @InjectModel(ReportingPeriod.name) private readonly reportingPeriodModel: Model<ReportingPeriod>,
+    @InjectModel(Beneficiary.name) private readonly beneficiaryModel: Model<Beneficiary>,
   ) {}
 
   async message(organizationId: string, dto: CopilotMessageDto) {
@@ -23,11 +24,24 @@ export class CopilotService {
       ? { organizationId: orgId, _id: new Types.ObjectId(dto.projectId) }
       : { organizationId: orgId };
 
-    const [projects, indicators, activities, periods] = await Promise.all([
+    const [projects, indicators, activities, periods, benStats] = await Promise.all([
       this.projectModel.find(projectFilter).sort({ createdAt: -1 }).limit(8).lean(),
       this.indicatorModel.find(projectFilter).sort({ code: 1 }).limit(20).lean(),
       this.activityModel.find(projectFilter).sort({ activityDate: -1 }).limit(20).lean(),
       this.reportingPeriodModel.find(projectFilter).sort({ endDate: -1 }).limit(8).lean(),
+      this.beneficiaryModel.aggregate([
+        { $match: { organizationId: orgId } },
+        { $group: {
+          _id: null,
+          total:     { $sum: 1 },
+          active:    { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          noConsent: { $sum: { $cond: ['$consentGiven', 0, 1] } },
+          vulnerable:{ $sum: { $cond: [{ $or: [
+            '$isIdp', '$isRefugee', '$hasDisability',
+            '$isFemaleHeadedHousehold', '$isOrphan', '$isChronicallyIll', '$isElderly',
+          ]}, 1, 0] } },
+        }},
+      ]),
     ]);
 
     const submittedActivities = activities.filter((activity) => activity.status === 'submitted').length;
@@ -71,6 +85,12 @@ export class CopilotService {
           donor: project.donor,
           endDate: project.endDate,
         })),
+        beneficiaries: {
+          total:      benStats[0]?.total     ?? 0,
+          active:     benStats[0]?.active    ?? 0,
+          noConsent:  benStats[0]?.noConsent ?? 0,
+          vulnerable: benStats[0]?.vulnerable ?? 0,
+        },
         recentActivities: activities.slice(0, 5).map((activity) => ({
           id: activity._id.toString(),
           title: activity.title,

@@ -19,6 +19,7 @@ import { ActivityTemplate } from './schemas/activity-template.schema';
 export interface ActivityListQuery {
   projectId?: string;
   indicatorId?: string;
+  beneficiaryId?: string;
   status?: string;
   activityType?: string;
   partnerId?: string;
@@ -71,12 +72,13 @@ export class ActivitiesService {
       organizationId: new Types.ObjectId(organizationId),
     };
 
-    if (query.projectId)   filter.projectId   = new Types.ObjectId(query.projectId);
-    if (query.indicatorId) filter.indicatorId = new Types.ObjectId(query.indicatorId);
-    if (query.status)      filter.status      = query.status;
+    if (query.projectId)    filter.projectId    = new Types.ObjectId(query.projectId);
+    if (query.indicatorId)  filter.indicatorId  = new Types.ObjectId(query.indicatorId);
+    if (query.beneficiaryId) filter.beneficiaryIds = new Types.ObjectId(query.beneficiaryId);
+    if (query.status)       filter.status       = query.status;
     if (query.activityType) filter.activityType = query.activityType;
-    if (query.partnerId)   filter.partnerId   = new Types.ObjectId(query.partnerId);
-    if (query.grantId)     filter.grantId     = new Types.ObjectId(query.grantId);
+    if (query.partnerId)    filter.partnerId    = new Types.ObjectId(query.partnerId);
+    if (query.grantId)      filter.grantId      = new Types.ObjectId(query.grantId);
 
     if (query.fromDate || query.toDate) {
       const dateFilter: Record<string, Date> = {};

@@ -44,20 +44,21 @@ export class ActivitiesController {
   @ApiOperation({ summary: 'List activities with filtering and pagination' })
   findAll(
     @CurrentUser() user: JwtPayload,
-    @Query('projectId')    projectId?: string,
-    @Query('indicatorId')  indicatorId?: string,
-    @Query('status')       status?: string,
-    @Query('activityType') activityType?: string,
-    @Query('partnerId')    partnerId?: string,
-    @Query('grantId')      grantId?: string,
-    @Query('fromDate')     fromDate?: string,
-    @Query('toDate')       toDate?: string,
-    @Query('search')       search?: string,
-    @Query('page')         page?: string,
-    @Query('limit')        limit?: string,
+    @Query('projectId')     projectId?: string,
+    @Query('indicatorId')   indicatorId?: string,
+    @Query('beneficiaryId') beneficiaryId?: string,
+    @Query('status')        status?: string,
+    @Query('activityType')  activityType?: string,
+    @Query('partnerId')     partnerId?: string,
+    @Query('grantId')       grantId?: string,
+    @Query('fromDate')      fromDate?: string,
+    @Query('toDate')        toDate?: string,
+    @Query('search')        search?: string,
+    @Query('page')          page?: string,
+    @Query('limit')         limit?: string,
   ) {
     return this.svc.findAll(user.organizationId, {
-      projectId, indicatorId, status, activityType, partnerId, grantId, fromDate, toDate, search,
+      projectId, indicatorId, beneficiaryId, status, activityType, partnerId, grantId, fromDate, toDate, search,
       page:  page  ? parseInt(page,  10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
     });

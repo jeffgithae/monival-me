@@ -365,6 +365,21 @@ export class ApiService {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries/${id}/service-records`, body);
   }
 
+  beneficiaryDuplicates(minConfidence?: number, projectId?: string) {
+    let params = new HttpParams();
+    if (minConfidence !== undefined) params = params.set('minConfidence', minConfidence.toString());
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<Array<{ type: string; confidence: number; records: Array<{ _id: string; name: string; caseId?: string; nationalId?: string; phoneNumber?: string; status: string }> }>>(`${this.base}/beneficiaries/duplicates/scan`, { params });
+  }
+
+  mergeBeneficiaries(primaryId: string, duplicateId: string) {
+    return this.http.post<{ merged: boolean; primaryId: string }>(`${this.base}/beneficiaries/duplicates/merge`, { primaryId, duplicateId });
+  }
+
+  beneficiaryActivities(beneficiaryId: string) {
+    return this.http.get<{ data: Activity[] }>(`${this.base}/activities`, { params: { beneficiaryId, limit: '50' } as any });
+  }
+
   activityTemplates(projectId?: string) {
     let params = new HttpParams();
     if (projectId) {

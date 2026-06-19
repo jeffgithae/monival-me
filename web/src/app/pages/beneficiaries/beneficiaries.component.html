@@ -1,725 +1,1039 @@
-<div class="beneficiaries-page">
+<div class="ben-page">
 
-<!-- ═══ HEADER ═══════════════════════════════════════════════════════════════ -->
+<!-- ═══ HEADER BAR ═══════════════════════════════════════════════════════════ -->
 <div class="page-header">
-  <div>
-    <p class="eyebrow">Case Register</p>
+  <div class="header-left">
+    <span class="eyebrow">Case Register</span>
     <h1>Beneficiaries</h1>
-    <p class="sub">Every name here is a person, not a record. Track identity, vulnerability, and the support they've received.</p>
+    <p class="sub">Every name here is a person. Track identity, vulnerability, programmes, and services in one place.</p>
   </div>
-  <div class="header-actions">
-    @if (canManage()) {
-      <button class="btn-ghost btn-sm" (click)="viewMode.set(viewMode() === 'list' ? 'card' : 'list')">
-        {{ viewMode() === 'list' ? '⊞ Cards' : '☰ List' }}
+  <div class="header-right">
+    <!-- Nav tabs -->
+    <div class="view-tabs">
+      <button class="view-tab" [class.active]="mainView() === 'registry'" (click)="mainView.set('registry')">
+        <span class="tab-icon">☰</span> Registry
       </button>
-      <button class="btn-primary" (click)="showForm.set(!showForm()); showEditForm.set(false)">
-        {{ showForm() ? '✕ Cancel' : '+ Register beneficiary' }}
+      <button class="view-tab" [class.active]="mainView() === 'analytics'" (click)="mainView.set('analytics')">
+        <span class="tab-icon">◉</span> Analytics
+      </button>
+      <button class="view-tab" [class.active]="mainView() === 'dedup'" (click)="mainView.set('dedup'); scanDuplicates()">
+        <span class="tab-icon">⊛</span> Deduplication
+      </button>
+    </div>
+    @if (canManage() && mainView() === 'registry') {
+      <button class="btn-register" (click)="showForm.set(!showForm()); showEditForm.set(false)">
+        @if (showForm()) { <span>✕</span> Cancel } @else { <span>+</span> Register }
       </button>
     }
   </div>
 </div>
 
-<!-- ═══ LEDGER BAND ══════════════════════════════════════════════════════════ -->
-@if (stats(); as s) {
-  <div class="ledger">
-    <div class="ledger-entry">
-      <span class="le-val">{{ s.total | number }}</span>
-      <span class="le-lbl">Registered</span>
-    </div>
-    <div class="ledger-rule"></div>
-    <div class="ledger-entry accent-forest">
-      <span class="le-val">{{ activeBenef() | number }}</span>
-      <span class="le-lbl">Active cases</span>
-    </div>
-    <div class="ledger-rule"></div>
-    <div class="ledger-entry">
-      <span class="le-val">{{ s.vulnerable.totalHouseholdSize | number }}</span>
-      <span class="le-lbl">Household members</span>
-    </div>
-    <div class="ledger-rule"></div>
-    <div class="ledger-entry accent-clay">
-      <span class="le-val">{{ consentPct() }}%</span>
-      <span class="le-lbl">Consent on file</span>
-      <span class="le-sub">{{ s.vulnerable.consentGiven | number }} of {{ s.total | number }}</span>
-    </div>
-    @if (s.bySex['female']) {
-      <div class="ledger-rule"></div>
-      <div class="ledger-entry">
-        <span class="le-val">{{ s.bySex['female'] | number }}</span>
-        <span class="le-lbl">Female</span>
+@if (error()) { <div class="alert-error">⚠ {{ error() }}</div> }
+
+<!-- ═══ ANALYTICS VIEW ════════════════════════════════════════════════════════ -->
+@if (mainView() === 'analytics') {
+  <div class="analytics-view">
+    @if (stats(); as s) {
+      <!-- Summary row -->
+      <div class="an-kpi-row">
+        <div class="an-kpi">
+          <div class="an-kpi-val">{{ s.total | number }}</div>
+          <div class="an-kpi-lbl">Total registered</div>
+        </div>
+        <div class="an-kpi accent-green">
+          <div class="an-kpi-val">{{ s.byStatus['active'] ?? 0 | number }}</div>
+          <div class="an-kpi-lbl">Active cases</div>
+        </div>
+        <div class="an-kpi">
+          <div class="an-kpi-val">{{ femalePercent() }}%</div>
+          <div class="an-kpi-lbl">Female</div>
+        </div>
+        <div class="an-kpi accent-amber">
+          <div class="an-kpi-val">{{ consentPct() }}%</div>
+          <div class="an-kpi-lbl">Consent on file</div>
+        </div>
+        <div class="an-kpi">
+          <div class="an-kpi-val">{{ s.vulnerable.totalHouseholdSize | number }}</div>
+          <div class="an-kpi-lbl">Total HH members</div>
+        </div>
       </div>
+
+      <!-- Charts row -->
+      <div class="an-charts-row">
+        <!-- Sex breakdown -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Sex breakdown</div>
+          @for (entry of [['female','Female'],['male','Male'],['other','Other'],['prefer_not_to_say','Unspecified']]; track entry[0]) {
+            @if (s.bySex[entry[0]]) {
+              <div class="bar-row">
+                <span class="bar-lbl">{{ entry[1] }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="s.total ? (s.bySex[entry[0]] / s.total) * 100 : 0"
+                       [class.fill-female]="entry[0] === 'female'" [class.fill-male]="entry[0] === 'male'"></div>
+                </div>
+                <span class="bar-count">{{ s.bySex[entry[0]] | number }}</span>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Age group -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Age groups</div>
+          @for (ag of ageGroupOptions; track ag[0]) {
+            @if (s.byAgeGroup[ag[0]]) {
+              <div class="bar-row">
+                <span class="bar-lbl">{{ ag[1] }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill fill-age" [style.width.%]="s.total ? (s.byAgeGroup[ag[0]] / s.total) * 100 : 0"></div>
+                </div>
+                <span class="bar-count">{{ s.byAgeGroup[ag[0]] | number }}</span>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Vulnerability heat -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Vulnerability flags</div>
+          <div class="vuln-heat">
+            @for (f of vulnFlags(); track f.key) {
+              <div class="heat-item" [class.heat-high]="f.count / s.total > 0.3" [class.heat-med]="f.count / s.total > 0.1 && f.count / s.total <= 0.3">
+                <div class="heat-count">{{ f.count | number }}</div>
+                <div class="heat-lbl">{{ f.label }}</div>
+                <div class="heat-bar" [style.width.%]="s.total ? (f.count / s.total) * 100 : 0"></div>
+              </div>
+            }
+            @if (vulnFlags().length === 0) {
+              <p class="empty-hint">No vulnerability flags recorded.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Registration type -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Registration type</div>
+          @for (t of typeOptions.slice(1); track t) {
+            @if (s.byType[t]) {
+              <div class="bar-row">
+                <span class="bar-lbl">{{ t | titlecase }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill fill-type" [style.width.%]="s.total ? (s.byType[t] / s.total) * 100 : 0"></div>
+                </div>
+                <span class="bar-count">{{ s.byType[t] | number }}</span>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Status breakdown -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Case status</div>
+          @for (st of statusOptions.slice(1); track st) {
+            @if (s.byStatus[st]) {
+              <div class="bar-row">
+                <span class="bar-lbl">{{ st | titlecase }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [class.fill-active]="st === 'active'" [class.fill-closed]="st === 'closed' || st === 'deceased'"
+                       [style.width.%]="s.total ? (s.byStatus[st] / s.total) * 100 : 0"></div>
+                </div>
+                <span class="bar-count">{{ s.byStatus[st] | number }}</span>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Consent -->
+        <div class="an-chart-card">
+          <div class="an-chart-title">Consent status</div>
+          <div class="consent-ring-wrap">
+            <div class="consent-ring">
+              <div class="ring-val">{{ consentPct() }}%</div>
+              <div class="ring-sub">consent</div>
+            </div>
+            <div class="consent-detail">
+              <div><strong>{{ s.vulnerable.consentGiven | number }}</strong> consent on file</div>
+              <div class="muted-text">{{ (s.total - s.vulnerable.consentGiven) | number }} without consent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="empty-analytics">Loading analytics…</div>
     }
-    @if (s.bySex['male']) {
-      <div class="ledger-rule"></div>
-      <div class="ledger-entry">
-        <span class="le-val">{{ s.bySex['male'] | number }}</span>
-        <span class="le-lbl">Male</span>
+  </div>
+}
+
+<!-- ═══ DEDUPLICATION VIEW ════════════════════════════════════════════════════ -->
+@if (mainView() === 'dedup') {
+  <div class="dedup-view">
+    <div class="dedup-header">
+      <div>
+        <h2>Duplicate detection</h2>
+        <p class="sub">Finds beneficiaries sharing the same national ID or phone number. Review each group and merge as needed.</p>
+      </div>
+      <button class="btn-scan" (click)="scanDuplicates()" [disabled]="dupLoading()">
+        @if (dupLoading()) { Scanning… } @else { ↺ Rescan }
+      </button>
+    </div>
+
+    @if (dupLoading()) {
+      <div class="dedup-loading">
+        <div class="spinner"></div>
+        <span>Scanning {{ total() | number }} records…</span>
+      </div>
+    } @else if (dupGroups().length === 0) {
+      <div class="dedup-empty">
+        <div class="dedup-empty-icon">✓</div>
+        <p>No duplicates detected.</p>
+        <p class="sub">All national IDs and phone numbers are unique across this organisation.</p>
+      </div>
+    } @else {
+      <div class="dedup-summary">
+        Found <strong>{{ dupGroups().length }}</strong> potential duplicate group{{ dupGroups().length !== 1 ? 's' : '' }}.
+      </div>
+      <div class="dup-groups">
+        @for (group of dupGroups(); track $index; let i = $index) {
+          <div class="dup-group">
+            <div class="dup-group-head" (click)="toggleDupGroup(i)">
+              <div class="dup-group-left">
+                <span class="dup-badge" [class.badge-exact]="group.confidence >= 1" [class.badge-high]="group.confidence >= 0.8 && group.confidence < 1">
+                  {{ dupTypeLabel(group.type) }}
+                </span>
+                <span class="dup-conf">{{ (group.confidence * 100).toFixed(0) }}% match</span>
+                <span class="dup-count">{{ group.records.length }} records</span>
+              </div>
+              <span class="dup-toggle">{{ group.expanded ? '▲' : '▼' }}</span>
+            </div>
+
+            @if (group.expanded) {
+              <div class="dup-records">
+                @for (rec of group.records; track rec._id; let ri = $index) {
+                  <div class="dup-record">
+                    <div class="dup-rec-info">
+                      <div class="dup-rec-name">{{ rec.name }}</div>
+                      <div class="dup-rec-meta">
+                        @if (rec.caseId) { ID: {{ rec.caseId }} · }
+                        @if (rec.nationalId) { NID: {{ rec.nationalId }} · }
+                        @if (rec.phoneNumber) { {{ rec.phoneNumber }} · }
+                        <span class="status-pill {{ rec.status }}">{{ rec.status | titlecase }}</span>
+                      </div>
+                    </div>
+                    <div class="dup-rec-actions">
+                      @if (ri > 0 && canAdmin()) {
+                        <button class="btn-merge" (click)="mergeDuplicate(group.records[0]._id, rec._id)"
+                                [disabled]="merging() === rec._id">
+                          @if (merging() === rec._id) { Merging… } @else { ⊕ Merge into #1 }
+                        </button>
+                      }
+                      @if (ri === 0) {
+                        <span class="primary-badge">Primary</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </div>
     }
   </div>
-
-  <!-- Vulnerability strip -->
-  @if (vulnFlags().length > 0) {
-    <div class="vuln-strip">
-      <span class="vs-label">Vulnerability flags on file</span>
-      <div class="vs-chips">
-        @for (f of vulnFlags(); track f.key) {
-          <button class="vuln-chip {{ f.key === 'isIdp' || f.key === 'isRefugee' ? 'idp' : f.key === 'hasDisability' ? 'disabled' : f.key === 'isFemaleHeadedHousehold' ? 'female' : '' }}"
-            [class.is-active]="vulnFilter() === f.key"
-            (click)="vulnFilter.set(vulnFilter() === f.key ? '' : f.key); applyFilters()">
-            {{ f.label }} <strong>{{ f.count | number }}</strong>
-          </button>
-        }
-      </div>
-    </div>
-  }
 }
 
-@if (error()) { <div class="alert-error">⚠ {{ error() }}</div> }
+<!-- ═══ REGISTRY VIEW ═════════════════════════════════════════════════════════ -->
+@if (mainView() === 'registry') {
 
-<!-- ═══ CREATE / EDIT FORM ═══════════════════════════════════════════════════ -->
-@if (showForm() || showEditForm()) {
-  <div class="form-panel">
-    <div class="form-head">
-      <div>
-        <h2>{{ showEditForm() ? 'Edit beneficiary' : 'Register beneficiary' }}</h2>
-        <p>{{ showEditForm() ? 'Update profile information.' : 'Enter demographic and vulnerability data for this case.' }}</p>
-      </div>
-      <div class="fh-steps">
-        <span class="step" [class.active]="formStep() === 1">01 Identity</span>
-        <span class="step" [class.active]="formStep() === 2">02 Vulnerability</span>
-        <span class="step" [class.active]="formStep() === 3">03 Location &amp; status</span>
-      </div>
+  <!-- Stats ledger -->
+  @if (stats(); as s) {
+    <div class="stats-ledger">
+      <button class="ledger-cell" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all'); applyFilters()">
+        <span class="lc-val">{{ s.total | number }}</span>
+        <span class="lc-lbl">Total</span>
+      </button>
+      <button class="ledger-cell accent-green" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active'); applyFilters()">
+        <span class="lc-val">{{ s.byStatus['active'] ?? 0 | number }}</span>
+        <span class="lc-lbl">Active</span>
+      </button>
+      <button class="ledger-cell" (click)="sexFilter.set(sexFilter() === 'female' ? '' : 'female'); applyFilters()">
+        <span class="lc-val">{{ s.bySex['female'] ?? 0 | number }}</span>
+        <span class="lc-lbl">Female</span>
+      </button>
+      <button class="ledger-cell accent-amber">
+        <span class="lc-val">{{ consentPct() }}%</span>
+        <span class="lc-lbl">Consent</span>
+      </button>
+      <button class="ledger-cell">
+        <span class="lc-val">{{ s.vulnerable.totalHouseholdSize | number }}</span>
+        <span class="lc-lbl">HH members</span>
+      </button>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="showEditForm() ? submitEdit() : submitCreate()">
-
-      <!-- ── STEP 1: Identity & Demographics ──────────────────────────── -->
-      @if (formStep() === 1) {
-        <div class="section-label">Registration type</div>
-        <div class="form-grid">
-          <label>Type
-            <select formControlName="registrationType">
-              <option value="individual">Individual</option>
-              <option value="household">Household</option>
-              <option value="group">Group</option>
-              <option value="community">Community</option>
-            </select>
-          </label>
-          <label>Full name *
-            <input formControlName="name" placeholder="Full name or household head" />
-          </label>
-          <label>Case ID
-            <input formControlName="caseId" placeholder="Auto-generated if blank" />
-          </label>
-          <label>National ID / Refugee card
-            <input formControlName="nationalId" />
-          </label>
-          <label>Phone number
-            <input formControlName="phoneNumber" placeholder="+254 7..." />
-          </label>
+    <!-- Vulnerability chips -->
+    @if (vulnFlags().length > 0) {
+      <div class="vuln-strip">
+        <span class="vs-label">Vulnerability flags</span>
+        <div class="vs-chips">
+          @for (f of vulnFlags(); track f.key) {
+            <button class="vuln-chip"
+              [class.is-active]="vulnFilter() === f.key"
+              [class.chip-idp]="f.key === 'isIdp' || f.key === 'isRefugee'"
+              [class.chip-disabled]="f.key === 'hasDisability'"
+              [class.chip-female]="f.key === 'isFemaleHeadedHousehold'"
+              (click)="vulnFilter.set(vulnFilter() === f.key ? '' : f.key); applyFilters()">
+              {{ f.label }} <strong>{{ f.count }}</strong>
+            </button>
+          }
         </div>
+      </div>
+    }
+  }
 
-        <div class="section-label">Demographics</div>
-        <div class="form-grid">
-          <label>Sex
-            <select formControlName="sex">
-              <option value="">— Not specified —</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
-            </select>
-          </label>
-          <label>Date of birth
-            <input type="date" formControlName="dateOfBirth" />
-          </label>
-          <label>Age (if DOB unknown)
-            <input type="number" formControlName="age" min="0" max="120" placeholder="Years" />
-          </label>
-          <label>Age group
-            <select formControlName="ageGroup">
-              <option value="">— Auto from DOB/age —</option>
-              @for (ag of ageGroupOptions; track ag[0]) {
-                <option [value]="ag[0]">{{ ag[1] }}</option>
+  <!-- ── REGISTER FORM ─────────────────────────────────────────────────── -->
+  @if (showForm() || showEditForm()) {
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <div>
+          <h2>{{ showEditForm() ? 'Edit beneficiary' : 'Register beneficiary' }}</h2>
+          <p>{{ showEditForm() ? 'Update profile information.' : 'Step through demographic, vulnerability, and location data.' }}</p>
+        </div>
+        <div class="form-step-pills">
+          <span class="step-pill" [class.active]="formStep() >= 1" [class.done]="formStep() > 1">1 Identity</span>
+          <span class="step-sep">→</span>
+          <span class="step-pill" [class.active]="formStep() >= 2" [class.done]="formStep() > 2">2 Vulnerability</span>
+          <span class="step-sep">→</span>
+          <span class="step-pill" [class.active]="formStep() >= 3">3 Location</span>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="showEditForm() ? submitEdit() : submitCreate()">
+
+        <!-- STEP 1 -->
+        @if (formStep() === 1) {
+          <div class="form-section">
+            <div class="section-head">Registration type</div>
+            <div class="form-grid-4">
+              @for (t of typeOptions.slice(1); track t) {
+                <label class="type-radio" [class.selected]="form.get('registrationType')?.value === t">
+                  <input type="radio" formControlName="registrationType" [value]="t" />
+                  <span class="type-icon">{{ t === 'individual' ? '👤' : t === 'household' ? '🏠' : t === 'group' ? '👥' : '🌍' }}</span>
+                  <span>{{ t | titlecase }}</span>
+                </label>
               }
-            </select>
-          </label>
-          <label>Nationality
-            <input formControlName="nationality" placeholder="e.g. Kenyan, South Sudanese" />
-          </label>
-          <label>Primary language
-            <input formControlName="primaryLanguage" placeholder="e.g. Swahili, Somali" />
-          </label>
-          <label>Education level
-            <select formControlName="education">
-              <option value="">— Not specified —</option>
-              @for (e of educationLevels; track e) { <option [value]="e">{{ e | titlecase }}</option> }
-            </select>
-          </label>
-        </div>
+            </div>
+          </div>
 
-        <div class="section-label">Household composition</div>
-        <div class="form-grid">
-          <label>Household size
-            <input type="number" formControlName="householdSize" min="1" />
-          </label>
-          <label>Children under 5
-            <input type="number" formControlName="childrenUnder5" min="0" />
-          </label>
-          <label>Children under 18
-            <input type="number" formControlName="childrenUnder18" min="0" />
-          </label>
-        </div>
+          <div class="form-section">
+            <div class="section-head">Identity</div>
+            <div class="form-grid">
+              <label class="full">Full name *
+                <input formControlName="name" placeholder="Full name or household head name" />
+              </label>
+              <label>Case ID <span class="hint">Auto-generated if blank</span>
+                <input formControlName="caseId" placeholder="BEN-XXXXX" />
+              </label>
+              <label>National ID / Refugee card
+                <input formControlName="nationalId" />
+              </label>
+              <label>Phone
+                <input formControlName="phoneNumber" placeholder="+254 7…" />
+              </label>
+              <label>Email
+                <input formControlName="email" type="email" />
+              </label>
+            </div>
+          </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn-ghost" (click)="showForm.set(false); showEditForm.set(false)">Cancel</button>
-          <div class="step-actions">
+          <div class="form-section">
+            <div class="section-head">Demographics</div>
+            <div class="form-grid">
+              <label>Sex
+                <select formControlName="sex">
+                  <option value="">— Not specified —</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </label>
+              <label>Date of birth
+                <input type="date" formControlName="dateOfBirth" />
+              </label>
+              <label>Age <span class="hint">if DOB unknown</span>
+                <input type="number" formControlName="age" min="0" max="120" placeholder="Years" />
+              </label>
+              <label>Age group <span class="hint">auto-computed</span>
+                <select formControlName="ageGroup">
+                  <option value="">— Auto from DOB/age —</option>
+                  @for (ag of ageGroupOptions; track ag[0]) {
+                    <option [value]="ag[0]">{{ ag[1] }}</option>
+                  }
+                </select>
+              </label>
+              <label>Nationality
+                <input formControlName="nationality" placeholder="e.g. Kenyan, South Sudanese" />
+              </label>
+              <label>Ethnicity
+                <input formControlName="ethnicity" />
+              </label>
+              <label>Primary language
+                <input formControlName="primaryLanguage" placeholder="e.g. Swahili, Somali" />
+              </label>
+              <label>Education
+                <select formControlName="education">
+                  <option value="">— Not specified —</option>
+                  @for (e of educationLevels; track e) { <option [value]="e">{{ e | titlecase }}</option> }
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="section-head">Household composition</div>
+            <div class="form-grid">
+              <label>Household size
+                <input type="number" formControlName="householdSize" min="1" />
+              </label>
+              <label>Children under 5
+                <input type="number" formControlName="childrenUnder5" min="0" />
+              </label>
+              <label>Children under 18
+                <input type="number" formControlName="childrenUnder18" min="0" />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" (click)="showForm.set(false); showEditForm.set(false)">Cancel</button>
             <button type="button" class="btn-primary" (click)="nextStep()" [disabled]="form.get('name')?.invalid">
               Next: Vulnerability →
             </button>
           </div>
-        </div>
-      }
+        }
 
-      <!-- ── STEP 2: Vulnerability ─────────────────────────────────────── -->
-      @if (formStep() === 2) {
-        <div class="section-label">Vulnerability flags</div>
-        <div class="check-grid">
-          <label class="check-item"><input type="checkbox" formControlName="hasDisability" /> Has disability</label>
-          <label class="check-item"><input type="checkbox" formControlName="isIdp" /> Internally displaced (IDP)</label>
-          <label class="check-item"><input type="checkbox" formControlName="isRefugee" /> Refugee / asylum seeker</label>
-          <label class="check-item"><input type="checkbox" formControlName="isFemaleHeadedHousehold" /> Female-headed household</label>
-          <label class="check-item"><input type="checkbox" formControlName="isOrphan" /> Orphan / child-headed</label>
-          <label class="check-item"><input type="checkbox" formControlName="isChronicallyIll" /> Chronically ill / PLHIV</label>
-          <label class="check-item"><input type="checkbox" formControlName="isElderly" /> Elderly (60+)</label>
-        </div>
+        <!-- STEP 2 -->
+        @if (formStep() === 2) {
+          <div class="form-section">
+            <div class="section-head">Vulnerability flags</div>
+            <div class="check-grid">
+              <label class="check-card" [class.checked]="form.get('hasDisability')?.value">
+                <input type="checkbox" formControlName="hasDisability" /> Has disability
+              </label>
+              <label class="check-card" [class.checked]="form.get('isIdp')?.value">
+                <input type="checkbox" formControlName="isIdp" /> Internally displaced (IDP)
+              </label>
+              <label class="check-card" [class.checked]="form.get('isRefugee')?.value">
+                <input type="checkbox" formControlName="isRefugee" /> Refugee / asylum seeker
+              </label>
+              <label class="check-card" [class.checked]="form.get('isFemaleHeadedHousehold')?.value">
+                <input type="checkbox" formControlName="isFemaleHeadedHousehold" /> Female-headed household
+              </label>
+              <label class="check-card" [class.checked]="form.get('isOrphan')?.value">
+                <input type="checkbox" formControlName="isOrphan" /> Orphan / child-headed
+              </label>
+              <label class="check-card" [class.checked]="form.get('isChronicallyIll')?.value">
+                <input type="checkbox" formControlName="isChronicallyIll" /> Chronically ill / PLHIV
+              </label>
+              <label class="check-card" [class.checked]="form.get('isElderly')?.value">
+                <input type="checkbox" formControlName="isElderly" /> Elderly (60+)
+              </label>
+            </div>
 
-        @if (form.get('hasDisability')?.value) {
-          <div class="form-grid" style="margin-top:.5rem">
-            <label>Disability type / description
-              <input formControlName="disabilityType" placeholder="e.g. Visual, Physical, Cognitive" />
-            </label>
+            @if (form.get('hasDisability')?.value) {
+              <div class="form-grid" style="margin-top:.75rem">
+                <label class="full">Disability type / description
+                  <input formControlName="disabilityType" placeholder="Physical, sensory, cognitive…" />
+                </label>
+              </div>
+            }
+
+            <div class="form-grid" style="margin-top:.75rem">
+              <label>Vulnerability score <span class="hint">0–100</span>
+                <input type="number" formControlName="vulnerabilityScore" min="0" max="100" placeholder="0–100" />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="section-head">Consent</div>
+            <div class="form-grid">
+              <label class="check-card" [class.checked]="form.get('consentGiven')?.value" style="align-self:end">
+                <input type="checkbox" formControlName="consentGiven" />
+                Consent to data collection given
+              </label>
+              <label>Consent method
+                <select formControlName="consentMethod">
+                  @for (m of consentMethods; track m) { <option [value]="m">{{ m | titlecase }}</option> }
+                </select>
+              </label>
+              <label>Consent date
+                <input type="date" formControlName="consentDate" />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" (click)="prevStep()">← Back</button>
+            <button type="button" class="btn-primary" (click)="nextStep()">Next: Location →</button>
           </div>
         }
 
-        <div class="section-label">Vulnerability score</div>
-        <div class="form-grid">
-          <label>Score (0–100)
-            <input type="number" formControlName="vulnerabilityScore" min="0" max="100"
-              placeholder="Higher = more vulnerable" />
-          </label>
-          <label class="hint-label">
-            Composite score used for targeting and prioritisation (0 = not vulnerable, 100 = most vulnerable).
-          </label>
-        </div>
+        <!-- STEP 3 -->
+        @if (formStep() === 3) {
+          <div class="form-section">
+            <div class="section-head">Location</div>
+            <div class="form-grid">
+              <label>Country
+                <input formControlName="country" placeholder="e.g. Kenya" />
+              </label>
+              <label>Region / County
+                <input formControlName="region" />
+              </label>
+              <label>District / Sub-county
+                <input formControlName="district" />
+              </label>
+              <label>Village / Town
+                <input formControlName="village" />
+              </label>
+              <label>Address / Camp name
+                <input formControlName="location" placeholder="Address or camp name" />
+              </label>
+              <label>Settlement type
+                <select formControlName="settlementType">
+                  <option value="">— Not specified —</option>
+                  @for (s of settleTypes; track s) { <option [value]="s">{{ s | titlecase }}</option> }
+                </select>
+              </label>
+            </div>
+          </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn-ghost" (click)="prevStep()">← Back</button>
-          <button type="button" class="btn-primary" (click)="nextStep()">Next: Location →</button>
-        </div>
-      }
+          <div class="form-section">
+            <div class="section-head">Case management</div>
+            <div class="form-grid">
+              <label>Status
+                <select formControlName="status">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="closed">Closed</option>
+                  <option value="transferred">Transferred</option>
+                  <option value="deceased">Deceased</option>
+                </select>
+              </label>
+              <label>Case worker
+                <input formControlName="caseWorker" placeholder="Name of assigned worker" />
+              </label>
+              <label>Registration date
+                <input type="date" formControlName="registrationDate" />
+              </label>
+            </div>
+          </div>
 
-      <!-- ── STEP 3: Location, Status & Consent ────────────────────────── -->
-      @if (formStep() === 3) {
-        <div class="section-label">Location</div>
-        <div class="form-grid">
-          <label>Country<input formControlName="country" placeholder="Kenya" /></label>
-          <label>Region / State<input formControlName="region" /></label>
-          <label>District / County<input formControlName="district" /></label>
-          <label>Village / Neighbourhood<input formControlName="village" /></label>
-          <label>Camp / Site / Address<input formControlName="location" placeholder="Free-text address or camp name" /></label>
-          <label>Settlement type
-            <select formControlName="settlementType">
-              <option value="">— Not specified —</option>
-              @for (s of settleTypes; track s) { <option [value]="s">{{ s | titlecase }}</option> }
-            </select>
-          </label>
-        </div>
+          <div class="form-section">
+            <div class="section-head">Notes & tags</div>
+            <div class="form-grid">
+              <label class="full">Notes
+                <textarea formControlName="notes" rows="3" placeholder="Any additional context or observations…"></textarea>
+              </label>
+              <label class="full">Tags <span class="hint">Comma-separated</span>
+                <input formControlName="tags" placeholder="e.g. emergency, priority, food-insecure" />
+              </label>
+            </div>
+          </div>
 
-        <div class="section-label">Case management</div>
-        <div class="form-grid">
-          <label>Status
-            <select formControlName="status">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="closed">Closed</option>
-              <option value="transferred">Transferred</option>
-              <option value="deceased">Deceased</option>
-            </select>
-          </label>
-          <label>Case worker<input formControlName="caseWorker" placeholder="Staff member name" /></label>
-          <label>Registration date<input type="date" formControlName="registrationDate" /></label>
-        </div>
-
-        <div class="section-label">Consent (GDPR / data protection)</div>
-        <div class="form-grid">
-          <label class="check-item check-full">
-            <input type="checkbox" formControlName="consentGiven" />
-            Beneficiary has given informed consent for data collection and use
-          </label>
-          <label>Consent method
-            <select formControlName="consentMethod">
-              @for (c of consentMethods; track c) { <option [value]="c">{{ c | titlecase }}</option> }
-            </select>
-          </label>
-          <label>Consent date<input type="date" formControlName="consentDate" /></label>
-        </div>
-
-        <div class="form-grid">
-          <label class="full">Notes
-            <textarea formControlName="notes" rows="2" placeholder="Any additional context or case notes…"></textarea>
-          </label>
-          <label class="full">Tags (comma-separated)
-            <input formControlName="tags" placeholder="e.g. priority, phase-2" />
-          </label>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn-ghost" (click)="prevStep()">← Back</button>
-          <div class="step-actions">
-            <button type="button" class="btn-ghost" (click)="showForm.set(false); showEditForm.set(false)">Cancel</button>
-            <button type="submit" class="btn-primary" [disabled]="saving() || form.get('name')?.invalid">
-              {{ saving() ? (showEditForm() ? 'Saving…' : 'Registering…') : (showEditForm() ? 'Save changes' : 'Register beneficiary') }}
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" (click)="prevStep()">← Back</button>
+            <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+              @if (saving()) { Saving… } @else { {{ showEditForm() ? 'Save changes' : 'Register beneficiary' }} }
             </button>
           </div>
+        }
+      </form>
+    </div>
+  }
+
+  <!-- ── MAIN LAYOUT ─────────────────────────────────────────────────────── -->
+  <div class="main-layout" [class.panel-open]="selected()">
+
+    <!-- LEFT: Filters + List -->
+    <div class="list-col">
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input class="search-input" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Search name, ID, location…" />
+          @if (search()) { <button class="search-clear" (click)="search.set(''); applyFilters()">✕</button> }
+        </div>
+        <select class="filter-select" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event); applyFilters()">
+          <option value="all">All types</option>
+          @for (t of typeOptions.slice(1); track t) { <option [value]="t">{{ t | titlecase }}</option> }
+        </select>
+        <select class="filter-select" [ngModel]="sexFilter()" (ngModelChange)="sexFilter.set($event); applyFilters()">
+          <option value="">All sexes</option>
+          @for (s of sexOptions; track s) { <option [value]="s">{{ s | titlecase }}</option> }
+        </select>
+        <select class="filter-select" [ngModel]="ageGroupFilter()" (ngModelChange)="ageGroupFilter.set($event); applyFilters()">
+          <option value="">All ages</option>
+          @for (ag of ageGroupOptions; track ag[0]) { <option [value]="ag[0]">{{ ag[1] }}</option> }
+        </select>
+        <select class="filter-select" [ngModel]="projectFilter()" (ngModelChange)="projectFilter.set($event); applyFilters()">
+          <option value="">All projects</option>
+          @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
+        </select>
+        @if (hasFilters()) {
+          <button class="btn-clear-filters" (click)="clearFilters()">Clear</button>
+        }
+      </div>
+
+      <!-- Result meta -->
+      <div class="result-meta">
+        <span>{{ total() | number }} beneficiar{{ total() !== 1 ? 'ies' : 'y' }}</span>
+        @if (hasFilters()) { <span class="filter-active-dot">● Filtered</span> }
+        <button class="toggle-view" (click)="viewMode.set(viewMode() === 'list' ? 'card' : 'list')">
+          {{ viewMode() === 'list' ? '⊞ Cards' : '☰ List' }}
+        </button>
+      </div>
+
+      <!-- LIST VIEW -->
+      @if (viewMode() === 'list') {
+        <div class="ben-list">
+          @if (loading()) {
+            @for (s of skeletons(); track $index) {
+              <div class="ben-row skeleton">
+                <div class="skel-av"></div>
+                <div class="skel-lines"><div class="skel-line w70"></div><div class="skel-line w40"></div></div>
+              </div>
+            }
+          } @else if (beneficiaries().length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon">👤</div>
+              <p>No beneficiaries found.</p>
+              @if (hasFilters()) { <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button> }
+              @else if (canManage()) { <button class="btn-primary btn-sm" (click)="showForm.set(true)">Register first beneficiary</button> }
+            </div>
+          } @else {
+            @for (b of beneficiaries(); track b._id) {
+              <div class="ben-row" [class.selected]="selected()?._id === b._id" (click)="select(b)">
+                <div class="ben-av {{ avatarColorClass(b) }}">{{ avatarInitials(b) }}</div>
+                <div class="ben-info">
+                  <div class="ben-name">{{ b.name }}
+                    @if (b.caseId) { <span class="case-id">{{ b.caseId }}</span> }
+                  </div>
+                  <div class="ben-meta">
+                    @if (ageLabel(b)) { <span>{{ ageLabel(b) }}</span> }
+                    @if (b.sex) { <span>{{ b.sex }}</span> }
+                    @if (locationString(b)) { <span class="loc">📍 {{ locationString(b) }}</span> }
+                  </div>
+                  @if (vulnFlagsFor(b).length > 0) {
+                    <div class="ben-flags">
+                      @for (f of vulnFlagsFor(b).slice(0, 3); track f.label) {
+                        <span class="flag-tag {{ f.cls }}">{{ f.label }}</span>
+                      }
+                      @if (vulnFlagsFor(b).length > 3) { <span class="flag-more">+{{ vulnFlagsFor(b).length - 3 }}</span> }
+                    </div>
+                  }
+                </div>
+                <div class="ben-right">
+                  <span class="status-dot {{ b.status }}"></span>
+                  @if ((b.programEnrollments?.length ?? 0) > 0) {
+                    <span class="enroll-count">{{ activeEnrollments(b).length }}/{{ b.programEnrollments?.length }} proj</span>
+                  }
+                </div>
+              </div>
+            }
+          }
         </div>
       }
-    </form>
+
+      <!-- CARD VIEW -->
+      @if (viewMode() === 'card') {
+        <div class="ben-cards">
+          @if (loading()) {
+            @for (s of skeletons(); track $index) {
+              <div class="ben-card skeleton"><div class="skel-av big"></div><div class="skel-lines"><div class="skel-line w60"></div><div class="skel-line w40"></div></div></div>
+            }
+          } @else {
+            @for (b of beneficiaries(); track b._id) {
+              <div class="ben-card" [class.selected]="selected()?._id === b._id" (click)="select(b)">
+                <div class="bc-top">
+                  <div class="ben-av big {{ avatarColorClass(b) }}">{{ avatarInitials(b) }}</div>
+                  <span class="status-dot {{ b.status }}"></span>
+                </div>
+                <div class="bc-name">{{ b.name }}</div>
+                @if (b.caseId) { <div class="bc-caseid">{{ b.caseId }}</div> }
+                <div class="bc-meta">
+                  @if (ageLabel(b)) { <span>{{ ageLabel(b) }}</span> }
+                  @if (b.sex) { <span>{{ b.sex }}</span> }
+                </div>
+                @if (locationString(b)) { <div class="bc-loc">📍 {{ locationString(b) }}</div> }
+                @if (vulnFlagsFor(b).length > 0) {
+                  <div class="ben-flags">
+                    @for (f of vulnFlagsFor(b).slice(0, 2); track f.label) {
+                      <span class="flag-tag {{ f.cls }}">{{ f.label }}</span>
+                    }
+                    @if (vulnFlagsFor(b).length > 2) { <span class="flag-more">+{{ vulnFlagsFor(b).length - 2 }}</span> }
+                  </div>
+                }
+                @if (activeEnrollments(b).length > 0) {
+                  <div class="bc-programs">{{ activeEnrollments(b).length }} active programme{{ activeEnrollments(b).length !== 1 ? 's' : '' }}</div>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- Pagination -->
+      @if (pages() > 1) {
+        <div class="pagination">
+          <button class="pg-btn" (click)="prevPage()" [disabled]="currentPage() === 1">‹ Prev</button>
+          <span class="pg-info">Page {{ currentPage() }} of {{ pages() }}</span>
+          <button class="pg-btn" (click)="nextPage()" [disabled]="currentPage() === pages()">Next ›</button>
+        </div>
+      }
+    </div><!-- /list-col -->
+
+    <!-- RIGHT: Detail panel -->
+    @if (selected(); as b) {
+      <div class="detail-panel">
+        <!-- Panel header -->
+        <div class="dp-head">
+          <div class="dp-av-wrap">
+            <div class="ben-av large {{ avatarColorClass(b) }}">{{ avatarInitials(b) }}</div>
+            @if (b.vulnerabilityScore) {
+              <div class="vuln-ring {{ vulnScoreClass(b.vulnerabilityScore) }}" title="Vulnerability score">
+                {{ b.vulnerabilityScore }}
+              </div>
+            }
+          </div>
+          <div class="dp-title-block">
+            <h2>{{ b.name }}</h2>
+            <div class="dp-sub">
+              @if (b.caseId) { <span class="dp-caseid">{{ b.caseId }}</span> }
+              <span class="status-pill {{ b.status }}">{{ b.status | titlecase }}</span>
+              <span class="reg-type-badge">{{ b.registrationType | titlecase }}</span>
+            </div>
+            @if (vulnFlagsFor(b).length > 0) {
+              <div class="dp-flags">
+                @for (f of vulnFlagsFor(b); track f.label) {
+                  <span class="flag-tag {{ f.cls }}">{{ f.label }}</span>
+                }
+              </div>
+            }
+          </div>
+          <div class="dp-head-actions">
+            @if (canManage()) {
+              <button class="btn-icon" title="Edit" (click)="openEdit()">✎</button>
+            }
+            @if (canAdmin()) {
+              <button class="btn-icon danger" title="Delete" (click)="confirmDelete()" [disabled]="deleting()">🗑</button>
+            }
+            <button class="btn-icon" title="Close" (click)="deselect()">✕</button>
+          </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="dp-tabs">
+          <button class="dp-tab" [class.active]="detailTab() === 'profile'" (click)="switchTab('profile')">Profile</button>
+          <button class="dp-tab" [class.active]="detailTab() === 'household'" (click)="switchTab('household')">
+            Household @if (b.householdSize > 1) { <span class="tab-badge">{{ b.householdSize }}</span> }
+          </button>
+          <button class="dp-tab" [class.active]="detailTab() === 'enrollment'" (click)="switchTab('enrollment')">
+            Programmes @if ((b.programEnrollments?.length ?? 0) > 0) { <span class="tab-badge">{{ b.programEnrollments?.length }}</span> }
+          </button>
+          <button class="dp-tab" [class.active]="detailTab() === 'services'" (click)="switchTab('services')">
+            Services @if ((b.serviceHistory?.length ?? 0) > 0) { <span class="tab-badge">{{ b.serviceHistory?.length }}</span> }
+          </button>
+          <button class="dp-tab" [class.active]="detailTab() === 'activities'" (click)="switchTab('activities')">Activities</button>
+        </div>
+
+        <div class="dp-body">
+
+          <!-- ── PROFILE TAB ───────────────────────────────────────────── -->
+          @if (detailTab() === 'profile') {
+            <div class="info-section">
+              <div class="info-section-title">Identity</div>
+              <dl class="info-grid">
+                @if (b.nationalId)  { <dt>National ID</dt><dd>{{ b.nationalId }}</dd> }
+                @if (b.phoneNumber) { <dt>Phone</dt><dd><a [href]="'tel:' + b.phoneNumber">{{ b.phoneNumber }}</a></dd> }
+                @if (b.email)       { <dt>Email</dt><dd><a [href]="'mailto:' + b.email">{{ b.email }}</a></dd> }
+              </dl>
+            </div>
+
+            <div class="info-section">
+              <div class="info-section-title">Demographics</div>
+              <dl class="info-grid">
+                @if (b.sex)         { <dt>Sex</dt><dd>{{ b.sex | titlecase }}</dd> }
+                @if (b.dateOfBirth) { <dt>Date of birth</dt><dd>{{ b.dateOfBirth | date:'d MMM y' }} ({{ ageLabel(b) }})</dd> }
+                @else if (b.age)    { <dt>Age</dt><dd>{{ b.age }} years</dd> }
+                @if (b.ageGroup)    { <dt>Age group</dt><dd>{{ AGE_LABELS[b.ageGroup!] || b.ageGroup }}</dd> }
+                @if (b.nationality) { <dt>Nationality</dt><dd>{{ b.nationality }}</dd> }
+                @if (b.ethnicity)   { <dt>Ethnicity</dt><dd>{{ b.ethnicity }}</dd> }
+                @if (b.primaryLanguage) { <dt>Language</dt><dd>{{ b.primaryLanguage }}</dd> }
+                @if (b.education)   { <dt>Education</dt><dd>{{ b.education | titlecase }}</dd> }
+              </dl>
+            </div>
+
+            <div class="info-section">
+              <div class="info-section-title">Location</div>
+              <dl class="info-grid">
+                @if (b.country)        { <dt>Country</dt><dd>{{ b.country }}</dd> }
+                @if (b.region)         { <dt>Region</dt><dd>{{ b.region }}</dd> }
+                @if (b.district)       { <dt>District</dt><dd>{{ b.district }}</dd> }
+                @if (b.village)        { <dt>Village</dt><dd>{{ b.village }}</dd> }
+                @if (b.location)       { <dt>Address / Camp</dt><dd>{{ b.location }}</dd> }
+                @if (b.settlementType) { <dt>Settlement</dt><dd>{{ b.settlementType | titlecase }}</dd> }
+              </dl>
+            </div>
+
+            <div class="info-section">
+              <div class="info-section-title">Case management</div>
+              <dl class="info-grid">
+                @if (b.caseWorker)       { <dt>Case worker</dt><dd>{{ b.caseWorker }}</dd> }
+                @if (b.registrationDate) { <dt>Registered</dt><dd>{{ b.registrationDate | date:'d MMM y' }}</dd> }
+                @if (b.lastContactDate)  { <dt>Last contact</dt><dd>{{ b.lastContactDate | date:'d MMM y' }}</dd> }
+                <dt>Consent</dt>
+                <dd class="consent-dd">
+                  <span class="consent-chip" [class.yes]="b.consentGiven" [class.no]="!b.consentGiven">
+                    {{ b.consentGiven ? '✓ Given' : '⚠ Not given' }}
+                  </span>
+                  @if (b.consentGiven && b.consentMethod) { <span class="muted-text">{{ b.consentMethod }}</span> }
+                  @if (b.consentDate) { <span class="muted-text">{{ b.consentDate | date:'d MMM y' }}</span> }
+                </dd>
+              </dl>
+            </div>
+
+            @if (b.notes) {
+              <div class="info-section">
+                <div class="info-section-title">Notes</div>
+                <p class="notes-text">{{ b.notes }}</p>
+              </div>
+            }
+
+            @if (b.tags?.length) {
+              <div class="tag-row">
+                @for (tag of b.tags!; track tag) {
+                  <span class="tag-chip">{{ tag }}</span>
+                }
+              </div>
+            }
+          }
+
+          <!-- ── HOUSEHOLD TAB ─────────────────────────────────────────── -->
+          @if (detailTab() === 'household') {
+            <div class="hh-kpis">
+              <div class="hh-kpi"><span class="hk-val">{{ b.householdSize }}</span><span class="hk-lbl">Total members</span></div>
+              @if (b.childrenUnder5 !== undefined) {
+                <div class="hh-kpi"><span class="hk-val">{{ b.childrenUnder5 }}</span><span class="hk-lbl">Under 5</span></div>
+              }
+              @if (b.childrenUnder18 !== undefined) {
+                <div class="hh-kpi"><span class="hk-val">{{ b.childrenUnder18 }}</span><span class="hk-lbl">Under 18</span></div>
+              }
+            </div>
+
+            @if (b.householdMembers?.length) {
+              <table class="hh-table">
+                <thead><tr><th>Name</th><th>Relationship</th><th>Sex</th><th>Age</th><th>Disability</th></tr></thead>
+                <tbody>
+                  @for (m of b.householdMembers!; track m.name) {
+                    <tr>
+                      <td>{{ m.name }}</td>
+                      <td class="muted-cell">{{ m.relationship ?? '—' }}</td>
+                      <td class="muted-cell">{{ m.sex ?? '—' }}</td>
+                      <td class="muted-cell">{{ m.age ?? '—' }}</td>
+                      <td>{{ m.hasDisability ? (m.disabilityType || '✓ Yes') : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="empty-hint">No household members recorded individually. Household size: {{ b.householdSize }}.</p>
+            }
+          }
+
+          <!-- ── ENROLLMENT TAB ────────────────────────────────────────── -->
+          @if (detailTab() === 'enrollment') {
+            @if (canManage()) {
+              <button class="tab-action-btn" (click)="showEnrollForm.set(!showEnrollForm())">
+                {{ showEnrollForm() ? '✕ Cancel' : '+ Enrol in programme' }}
+              </button>
+            }
+
+            @if (showEnrollForm()) {
+              <div class="inline-form">
+                <form [formGroup]="enrollForm" (ngSubmit)="submitEnroll()">
+                  <div class="form-grid">
+                    <label>Project *
+                      <select formControlName="projectId">
+                        <option value="">— Select project —</option>
+                        @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
+                      </select>
+                    </label>
+                    <label>Enrolment date
+                      <input type="date" formControlName="enrolledAt" />
+                    </label>
+                    <label class="full">Notes
+                      <input formControlName="notes" placeholder="Any notes about this enrolment" />
+                    </label>
+                  </div>
+                  <div class="inline-form-actions">
+                    <button type="submit" class="btn-primary btn-sm" [disabled]="enrollForm.invalid || saving()">
+                      {{ saving() ? 'Enrolling…' : 'Enrol' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+
+            @if ((b.programEnrollments?.length ?? 0) === 0) {
+              <p class="empty-hint">Not enrolled in any programmes. Use the button above to enrol.</p>
+            } @else {
+              <div class="enroll-list">
+                @for (e of (b.programEnrollments ?? []); track e.projectId) {
+                  <div class="enroll-item">
+                    <div class="ei-left">
+                      <div class="ei-proj">{{ projectLabel(e.projectId) }}</div>
+                      <div class="ei-meta">
+                        Enrolled {{ e.enrolledAt | date:'d MMM y' }}
+                        @if (e.exitedAt) { · Exited {{ e.exitedAt | date:'d MMM y' }} }
+                        @if (e.exitReason) { · <em>{{ e.exitReason }}</em> }
+                        @if (e.notes) { · {{ e.notes }} }
+                      </div>
+                    </div>
+                    <div class="ei-right">
+                      <span class="status-pill {{ e.status }}">{{ e.status | titlecase }}</span>
+                      @if (canManage() && e.status === 'active') {
+                        <button class="btn-ghost btn-xs" (click)="openExitModal(e)">Exit</button>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <!-- ── SERVICES TAB ──────────────────────────────────────────── -->
+          @if (detailTab() === 'services') {
+            @if (canManage()) {
+              <button class="tab-action-btn" (click)="showServiceForm.set(!showServiceForm())">
+                {{ showServiceForm() ? '✕ Cancel' : '+ Record service delivery' }}
+              </button>
+            }
+
+            @if (showServiceForm()) {
+              <div class="inline-form">
+                <form [formGroup]="serviceForm" (ngSubmit)="submitService()">
+                  <div class="form-grid">
+                    <label>Service type *
+                      <select formControlName="serviceType">
+                        <option value="">— Select —</option>
+                        @for (st of serviceTypes; track st) {
+                          <option [value]="st">{{ serviceTypeIcon(st) }} {{ st.replace('_',' ') | titlecase }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>Date *
+                      <input type="date" formControlName="serviceDate" />
+                    </label>
+                    <label>Link to project
+                      <select formControlName="projectId">
+                        <option value="">— None —</option>
+                        @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
+                      </select>
+                    </label>
+                    <label>Quantity
+                      <input type="number" formControlName="quantity" min="0" />
+                    </label>
+                    <label>Unit
+                      <input formControlName="unit" placeholder="kg, USD, sessions…" />
+                    </label>
+                    <label class="full">Description
+                      <textarea formControlName="description" rows="2" placeholder="What was provided?"></textarea>
+                    </label>
+                  </div>
+                  <div class="inline-form-actions">
+                    <button type="submit" class="btn-primary btn-sm" [disabled]="serviceForm.invalid || saving()">
+                      {{ saving() ? 'Saving…' : 'Record service' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+
+            @if ((b.serviceHistory?.length ?? 0) === 0) {
+              <p class="empty-hint">No service records yet.</p>
+            } @else {
+              <div class="service-list">
+                @for (s of (b.serviceHistory ?? []); track s._id) {
+                  <div class="service-item">
+                    <div class="si-icon">{{ serviceTypeIcon(s.serviceType) }}</div>
+                    <div class="si-content">
+                      <div class="si-head">
+                        <span class="si-type">{{ s.serviceType.replace('_',' ') | titlecase }}</span>
+                        <span class="si-date">{{ s.serviceDate | date:'d MMM y' }}</span>
+                      </div>
+                      @if (s.quantity !== undefined) {
+                        <div class="si-amount">{{ s.quantity }} {{ s.unit ?? '' }}</div>
+                      }
+                      @if (s.description) { <div class="si-desc">{{ s.description }}</div> }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <!-- ── ACTIVITIES TAB ────────────────────────────────────────── -->
+          @if (detailTab() === 'activities') {
+            @if (activitiesLoading()) {
+              <div class="tab-loading"><div class="spinner sm"></div> Loading activities…</div>
+            } @else if (linkedActivities().length === 0) {
+              <p class="empty-hint">No activities are linked to this beneficiary. When activities reference this beneficiary, they appear here.</p>
+            } @else {
+              <div class="activity-list">
+                @for (a of linkedActivities(); track a._id) {
+                  <div class="activity-item">
+                    <div class="act-date">{{ a.activityDate | date:'d MMM y' }}</div>
+                    <div class="act-info">
+                      <div class="act-title">{{ a.title }}</div>
+                      <div class="act-meta">
+                        @if (a.activityType) { <span>{{ a.activityType | titlecase }}</span> }
+                        @if (a.location) { <span>📍 {{ a.location }}</span> }
+                        @if (a.participants) { <span>{{ a.participants | number }} participants</span> }
+                      </div>
+                    </div>
+                    <span class="status-pill {{ a.status }}">{{ a.status | titlecase }}</span>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+        </div><!-- /dp-body -->
+      </div><!-- /detail-panel -->
+    }
+
+  </div><!-- /main-layout -->
+}<!-- /registry view -->
+
+<!-- ═══ EXIT MODAL ════════════════════════════════════════════════════════════ -->
+@if (showExitModal(); as enrollment) {
+  <div class="modal-backdrop" (click)="showExitModal.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Exit from programme</h3>
+      <p>Exiting <strong>{{ projectLabel(enrollment.projectId) }}</strong> for <strong>{{ selected()?.name }}</strong>.</p>
+      <label>Exit reason
+        <select [ngModel]="exitReason()" (ngModelChange)="exitReason.set($event)">
+          <option value="">— Select reason —</option>
+          @for (r of enrollExitReasons; track r) { <option [value]="r">{{ r }}</option> }
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button class="btn-ghost" (click)="showExitModal.set(null)">Cancel</button>
+        <button class="btn-danger" (click)="confirmExit()">Confirm exit</button>
+      </div>
+    </div>
   </div>
 }
 
-<!-- ═══ STATUS TABS ═══════════════════════════════════════════════════════════ -->
-<div class="status-tabs">
-  @for (s of statusOptions; track s) {
-    <button class="stab" [class.active]="statusFilter() === s"
-      (click)="statusFilter.set(s); applyFilters()">
-      {{ s === 'all' ? 'All' : (s | titlecase) }}
-      @if (s === 'all' && stats()) {
-        <span class="tab-n">{{ stats()!.total }}</span>
-      }
-      @if (s !== 'all' && stats()) {
-        <span class="tab-n">{{ (stats()!.byStatus[s] || 0) }}</span>
-      }
-    </button>
-  }
-</div>
-
-<!-- ═══ FILTER TOOLBAR ════════════════════════════════════════════════════════ -->
-<div class="toolbar">
-  <div class="search-wrap">
-    <span class="si">🔍</span>
-    <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)"
-      placeholder="Search by name, case ID, location…"
-      (keydown.enter)="applyFilters()" />
-  </div>
-  <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event); applyFilters()">
-    @for (t of typeOptions; track t) {
-      <option [value]="t">{{ t === 'all' ? 'All types' : (t | titlecase) }}</option>
-    }
-  </select>
-  <select [ngModel]="sexFilter()" (ngModelChange)="sexFilter.set($event); applyFilters()">
-    <option value="">All sexes</option>
-    @for (s of sexOptions; track s) { <option [value]="s">{{ s | titlecase }}</option> }
-  </select>
-  <select [ngModel]="ageGroupFilter()" (ngModelChange)="ageGroupFilter.set($event); applyFilters()">
-    <option value="">All age groups</option>
-    @for (ag of ageGroupOptions; track ag[0]) { <option [value]="ag[0]">{{ ag[1] }}</option> }
-  </select>
-  <select [ngModel]="projectFilter()" (ngModelChange)="projectFilter.set($event); applyFilters()">
-    <option value="">All projects</option>
-    @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
-  </select>
-  @if (hasFilters()) {
-    <button class="btn-ghost btn-sm" (click)="clearFilters()">✕ Clear</button>
-  }
-  <div class="view-toggle">
-    <button class="vbtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')">☰</button>
-    <button class="vbtn" [class.active]="viewMode() === 'card'" (click)="viewMode.set('card')">⊞</button>
-  </div>
-</div>
-
-<!-- ═══ MAIN LAYOUT ══════════════════════════════════════════════════════════ -->
-<div class="main-layout" [class.split]="selected()">
-
-  <!-- ── Beneficiary list / grid ──────────────────────────────────────── -->
-  <div>
-    @if (loading()) {
-      <div class="skeleton-list">
-        @for (s of skeletons(); track $index) { <div class="skeleton-row"></div> }
-      </div>
-
-    } @else if (beneficiaries().length === 0) {
-      <div class="empty-state">
-        <div class="empty-icon">👥</div>
-        @if (stats()?.total === 0) {
-          <h3>No beneficiaries registered</h3>
-          <p>Register your first beneficiary to start tracking programme participation and service delivery.</p>
-          @if (canManage()) {
-            <button class="btn-primary" (click)="showForm.set(true)">+ Register beneficiary</button>
-          }
-        } @else {
-          <h3>No results match your filters</h3>
-          <p>Try adjusting the filters or search query above.</p>
-          <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
-        }
-      </div>
-
-    } @else if (viewMode() === 'list') {
-      <!-- List view -->
-      <div class="ben-list">
-        @for (b of beneficiaries(); track b._id) {
-          <button class="ben-row" [class.selected]="selected()?._id === b._id" (click)="select(b)">
-            <div class="ben-avatar {{ avatarClass(b) }}">{{ avatarLetter(b) }}</div>
-            <div class="ben-info">
-              <div class="ben-name">
-                {{ b.name }}
-                @if (b.caseId) { <span class="ben-case">{{ b.caseId }}</span> }
-              </div>
-              <div class="ben-meta">
-                <span class="type-chip {{ b.registrationType }}">{{ b.registrationType | titlecase }}</span>
-                @if (ageLabel(b)) { <span>{{ ageLabel(b) }}</span> }
-                @if (b.sex) { <span>{{ b.sex | titlecase }}</span> }
-                @if (b.district) { <span>📍 {{ b.district }}</span> }
-                @if (b.village) { <span>{{ b.village }}</span> }
-                @if (activeEnrollments(b).length > 0) {
-                  <span class="text-forest">✓ {{ activeEnrollments(b).length }} programme{{ activeEnrollments(b).length > 1 ? 's' : '' }}</span>
-                }
-              </div>
-              @if (vulnFlagsFor(b).length > 0) {
-                <div class="ben-meta flag-row">
-                  @for (f of vulnFlagsFor(b).slice(0, 4); track f.label) {
-                    <span class="flag-chip {{ f.cls }}">{{ f.label }}</span>
-                  }
-                  @if (vulnFlagsFor(b).length > 4) {
-                    <span class="flag-chip">+{{ vulnFlagsFor(b).length - 4 }}</span>
-                  }
-                </div>
-              }
-            </div>
-            <div class="ben-right">
-              <span class="status-pill {{ b.status }}">{{ b.status }}</span>
-              @if (!b.consentGiven) { <span class="consent-chip no" title="No consent recorded">⚠ No consent</span> }
-            </div>
-          </button>
-        }
-      </div>
-
-    } @else {
-      <!-- Card view -->
-      <div class="ben-grid">
-        @for (b of beneficiaries(); track b._id) {
-          <div class="ben-card" [class.selected]="selected()?._id === b._id" (click)="select(b)">
-            <div class="card-head">
-              <div class="card-avatar {{ avatarClass(b) }}">{{ avatarLetter(b) }}</div>
-              <div>
-                <div class="card-name">{{ b.name }}</div>
-                @if (b.caseId) { <div class="card-case">{{ b.caseId }}</div> }
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="type-chip {{ b.registrationType }}">{{ b.registrationType | titlecase }}</span>
-                <span class="status-pill {{ b.status }}">{{ b.status }}</span>
-                @if (ageLabel(b)) { <span>{{ ageLabel(b) }}</span> }
-                @if (b.sex)       { <span>{{ b.sex | titlecase }}</span> }
-                @if (b.district)  { <span>📍 {{ b.district }}</span> }
-              </div>
-              <div class="vuln-flags">
-                @for (f of vulnFlagsFor(b).slice(0, 3); track f.label) {
-                  <span class="flag-chip {{ f.cls }}">{{ f.label }}</span>
-                }
-                @if (!b.consentGiven) { <span class="consent-chip no">⚠ No consent</span> }
-              </div>
-              @if (activeEnrollments(b).length > 0) {
-                <div class="card-programs">
-                  ✓ {{ activeEnrollments(b).length }} active programme{{ activeEnrollments(b).length > 1 ? 's' : '' }}
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    }
-
-    <!-- Pagination -->
-    @if (pages() > 1) {
-      <div class="pagination">
-        <button class="btn-ghost btn-sm" (click)="prevPage()" [disabled]="currentPage() === 1">← Prev</button>
-        <span class="page-info">Page {{ currentPage() }} of {{ pages() }} · {{ total() | number }} total</span>
-        <button class="btn-ghost btn-sm" (click)="nextPage()" [disabled]="currentPage() === pages()">Next →</button>
-      </div>
-    }
-  </div>
-
-  <!-- ── Detail panel — styled as an ID / case card ─────────────────────── -->
-  @if (selected(); as b) {
-    <div class="detail-panel">
-
-      <!-- ID-card header -->
-      <div class="detail-head">
-        <div class="dh-top">
-          <div class="dh-avatar {{ avatarClass(b) }}">{{ avatarLetter(b) }}</div>
-          <div class="dh-identity">
-            <div class="dh-name">{{ b.name }}</div>
-            @if (b.caseId) { <div class="dh-case">Case {{ b.caseId }}</div> }
-          </div>
-          <span class="status-pill {{ b.status }}">{{ b.status }}</span>
-        </div>
-        <div class="dh-meta">
-          <span class="type-chip {{ b.registrationType }}">{{ b.registrationType | titlecase }}</span>
-          @if (ageLabel(b)) { <span>{{ ageLabel(b) }}</span> }
-          @if (b.sex)       { <span>{{ b.sex | titlecase }}</span> }
-          @if (b.district)  { <span>📍 {{ b.district }}</span> }
-        </div>
-        @if (vulnFlagsFor(b).length > 0) {
-          <div class="dh-flags">
-            @for (f of vulnFlagsFor(b); track f.label) {
-              <span class="flag-chip {{ f.cls }}">{{ f.label }}</span>
-            }
-          </div>
-        }
-        @if (canManage()) {
-          <div class="dh-actions">
-            <button class="btn-ghost btn-sm" (click)="openEdit()">✏ Edit</button>
-            <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleting()">
-              {{ deleting() ? '…' : '🗑' }}
-            </button>
-            <button class="btn-ghost btn-sm" (click)="deselect()">✕</button>
-          </div>
-        }
-      </div>
-
-      <!-- Perforated seam — the card's signature detail -->
-      <div class="card-seam" aria-hidden="true"></div>
-
-      <!-- Tabs -->
-      <div class="detail-tabs">
-        <button class="dtab" [class.active]="detailTab() === 'profile'"    (click)="detailTab.set('profile')">Profile</button>
-        <button class="dtab" [class.active]="detailTab() === 'household'"  (click)="detailTab.set('household')">Household</button>
-        <button class="dtab" [class.active]="detailTab() === 'enrollment'" (click)="detailTab.set('enrollment')">
-          Programmes
-          @if (activeEnrollments(b).length) { <span class="dtab-badge">{{ activeEnrollments(b).length }}</span> }
-        </button>
-        <button class="dtab" [class.active]="detailTab() === 'services'"   (click)="detailTab.set('services')">
-          Services
-          @if (b.serviceHistory?.length) { <span class="dtab-badge">{{ b.serviceHistory!.length }}</span> }
-        </button>
-      </div>
-
-      <div class="detail-body">
-
-        <!-- ── PROFILE TAB ──────────────────────────────────────────── -->
-        @if (detailTab() === 'profile') {
-
-          @if (b.vulnerabilityScore !== undefined && b.vulnerabilityScore !== null) {
-            <div class="vuln-score-wrap">
-              <div class="vs-label">
-                <span>Vulnerability score</span>
-                <strong>{{ b.vulnerabilityScore }}/100</strong>
-              </div>
-              <div class="vs-track">
-                <div class="vs-fill {{ vulnScoreClass(b.vulnerabilityScore) }}"
-                  [style.width.%]="b.vulnerabilityScore"></div>
-              </div>
-            </div>
-          }
-
-          <div class="section-title">Demographics</div>
-          <dl class="info-grid">
-            @if (b.dateOfBirth) { <dt>Date of birth</dt><dd>{{ b.dateOfBirth | date:'d MMM y' }} ({{ ageLabel(b) }})</dd> }
-            @else if (b.age)    { <dt>Age</dt><dd>{{ b.age }} years</dd> }
-            @if (b.ageGroup)    { <dt>Age group</dt><dd>{{ AGE_LABELS[b.ageGroup!] || b.ageGroup }}</dd> }
-            @if (b.nationality) { <dt>Nationality</dt><dd>{{ b.nationality }}</dd> }
-            @if (b.primaryLanguage) { <dt>Language</dt><dd>{{ b.primaryLanguage }}</dd> }
-            @if (b.education)   { <dt>Education</dt><dd>{{ b.education | titlecase }}</dd> }
-            @if (b.nationalId)  { <dt>National ID</dt><dd>{{ b.nationalId }}</dd> }
-            @if (b.phoneNumber) { <dt>Phone</dt><dd><a [href]="'tel:' + b.phoneNumber">{{ b.phoneNumber }}</a></dd> }
-          </dl>
-
-          <div class="section-title">Location</div>
-          <dl class="info-grid">
-            @if (b.country)       { <dt>Country</dt><dd>{{ b.country }}</dd> }
-            @if (b.region)        { <dt>Region</dt><dd>{{ b.region }}</dd> }
-            @if (b.district)      { <dt>District</dt><dd>{{ b.district }}</dd> }
-            @if (b.village)       { <dt>Village</dt><dd>{{ b.village }}</dd> }
-            @if (b.location)      { <dt>Address / Camp</dt><dd>{{ b.location }}</dd> }
-            @if (b.settlementType){ <dt>Settlement</dt><dd>{{ b.settlementType | titlecase }}</dd> }
-          </dl>
-
-          <div class="section-title">Case management</div>
-          <dl class="info-grid">
-            @if (b.caseWorker)        { <dt>Case worker</dt><dd>{{ b.caseWorker }}</dd> }
-            @if (b.registrationDate)  { <dt>Registered</dt><dd>{{ b.registrationDate | date:'d MMM y' }}</dd> }
-            @if (b.lastContactDate)   { <dt>Last contact</dt><dd>{{ b.lastContactDate | date:'d MMM y' }}</dd> }
-            <dt>Consent</dt>
-            <dd>
-              <span class="consent-chip {{ b.consentGiven ? 'yes' : 'no' }}">
-                {{ b.consentGiven ? '✓ Given' : '⚠ Not given' }}
-              </span>
-              @if (b.consentGiven && b.consentMethod) { ({{ b.consentMethod }}) }
-              @if (b.consentDate) { · {{ b.consentDate | date:'d MMM y' }} }
-            </dd>
-          </dl>
-
-          @if (b.notes) {
-            <div class="section-title">Notes</div>
-            <p class="notes-text">{{ b.notes }}</p>
-          }
-          @if (b.tags?.length) {
-            <div class="tag-row">
-              @for (tag of b.tags!; track tag) {
-                <span class="tag-chip">{{ tag }}</span>
-              }
-            </div>
-          }
-        }
-
-        <!-- ── HOUSEHOLD TAB ────────────────────────────────────────── -->
-        @if (detailTab() === 'household') {
-          <div class="kpi-row">
-            <div class="kpi-box"><div class="kv">{{ b.householdSize }}</div><div class="kl">HH size</div></div>
-            @if (b.childrenUnder5 !== undefined) { <div class="kpi-box"><div class="kv">{{ b.childrenUnder5 }}</div><div class="kl">Under 5</div></div> }
-            @if (b.childrenUnder18 !== undefined) { <div class="kpi-box"><div class="kv">{{ b.childrenUnder18 }}</div><div class="kl">Under 18</div></div> }
-          </div>
-
-          @if (b.householdMembers?.length) {
-            <table class="hh-table">
-              <thead><tr><th>Name</th><th>Relationship</th><th>Sex</th><th>Age</th><th>Disability</th></tr></thead>
-              <tbody>
-                @for (m of b.householdMembers!; track m.name) {
-                  <tr>
-                    <td>{{ m.name }}</td>
-                    <td class="muted">{{ m.relationship ?? '—' }}</td>
-                    <td class="muted">{{ m.sex ?? '—' }}</td>
-                    <td class="muted">{{ m.age ?? '—' }}</td>
-                    <td>{{ m.hasDisability ? (m.disabilityType || '✓') : '—' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          } @else {
-            <p class="empty-hint">No household member details recorded.</p>
-          }
-        }
-
-        <!-- ── ENROLLMENT TAB ───────────────────────────────────────── -->
-        @if (detailTab() === 'enrollment') {
-          @if (canManage()) {
-            <button class="btn-primary btn-sm tab-cta" (click)="showEnrollForm.set(!showEnrollForm())">
-              {{ showEnrollForm() ? '✕ Cancel' : '+ Enrol in programme' }}
-            </button>
-          }
-
-          @if (showEnrollForm()) {
-            <div class="inline-form">
-              <form [formGroup]="enrollForm" (ngSubmit)="submitEnroll()">
-                <div class="form-grid">
-                  <label>Project *
-                    <select formControlName="projectId">
-                      <option value="">— Select project —</option>
-                      @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
-                    </select>
-                  </label>
-                  <label>Enrolment date<input type="date" formControlName="enrolledAt" /></label>
-                  <label class="full">Notes<input formControlName="notes" /></label>
-                </div>
-                <div class="inline-form-actions">
-                  <button type="submit" class="btn-primary btn-sm" [disabled]="enrollForm.invalid || saving()">
-                    {{ saving() ? 'Enrolling…' : 'Enrol' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-          }
-
-          @if ((b.programEnrollments?.length ?? 0) === 0) {
-            <p class="empty-hint">Not enrolled in any programmes yet.</p>
-          } @else {
-            <div class="enroll-list">
-              @for (e of (b.programEnrollments ?? []); track e.projectId) {
-                <div class="enroll-item">
-                  <div>
-                    <div class="ei-name">{{ projectLabel(e.projectId) }}</div>
-                    <div class="ei-meta">
-                      Enrolled {{ e.enrolledAt | date:'d MMM y' }}
-                      @if (e.exitedAt) { · Exited {{ e.exitedAt | date:'d MMM y' }} }
-                      @if (e.notes) { · {{ e.notes }} }
-                    </div>
-                  </div>
-                  <div class="ei-right">
-                    <span class="status-pill {{ e.status }}">{{ e.status | titlecase }}</span>
-                    @if (canManage() && e.status === 'active') {
-                      <button class="btn-ghost btn-sm" (click)="exitProgram(e)">Exit</button>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        }
-
-        <!-- ── SERVICES TAB ─────────────────────────────────────────── -->
-        @if (detailTab() === 'services') {
-          @if (canManage()) {
-            <button class="btn-primary btn-sm tab-cta" (click)="showServiceForm.set(!showServiceForm())">
-              {{ showServiceForm() ? '✕ Cancel' : '+ Record service' }}
-            </button>
-          }
-
-          @if (showServiceForm()) {
-            <div class="inline-form">
-              <form [formGroup]="serviceForm" (ngSubmit)="submitService()">
-                <div class="form-grid">
-                  <label>Service type *
-                    <select formControlName="serviceType">
-                      <option value="">— Select —</option>
-                      @for (s of serviceTypes; track s) { <option [value]="s">{{ s.replace('_',' ') | titlecase }}</option> }
-                    </select>
-                  </label>
-                  <label>Date *<input type="date" formControlName="serviceDate" /></label>
-                  <label>Project
-                    <select formControlName="projectId">
-                      <option value="">— None —</option>
-                      @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
-                    </select>
-                  </label>
-                  <label>Quantity<input type="number" formControlName="quantity" min="0" /></label>
-                  <label>Unit<input formControlName="unit" placeholder="e.g. kg, USD, sessions" /></label>
-                  <label class="full">Description<textarea formControlName="description" rows="2"></textarea></label>
-                </div>
-                <div class="inline-form-actions">
-                  <button type="submit" class="btn-primary btn-sm" [disabled]="serviceForm.invalid || saving()">
-                    {{ saving() ? 'Saving…' : 'Record service' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-          }
-
-          @if ((b.serviceHistory?.length ?? 0) === 0) {
-            <p class="empty-hint">No service records yet.</p>
-          } @else {
-            <div class="service-list">
-              @for (s of (b.serviceHistory ?? []); track s._id) {
-                <div class="service-item">
-                  <div class="si-head">
-                    <span class="si-type">{{ s.serviceType.replace('_',' ') | titlecase }}</span>
-                    <span class="si-date">{{ s.serviceDate | date:'d MMM y' }}</span>
-                  </div>
-                  @if (s.quantity !== undefined) {
-                    <div class="si-desc">{{ s.quantity }} {{ s.unit ?? '' }}</div>
-                  }
-                  @if (s.description) { <div class="si-desc">{{ s.description }}</div> }
-                </div>
-              }
-            </div>
-          }
-        }
-
-      </div><!-- /detail-body -->
-    </div><!-- /detail-panel -->
-  }
-
-</div><!-- /main-layout -->
-</div>
+</div><!-- /ben-page -->

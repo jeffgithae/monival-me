@@ -10,21 +10,22 @@ import { AuthService } from '../../core/auth.service';
 import {
   Beneficiary, BeneficiaryStatistics, BeneficiaryStatus,
   BeneficiaryRegistrationType, Project, CreateBeneficiaryDto,
-  ProgramEnrollment, ServiceRecord,
+  ProgramEnrollment, ServiceRecord, Activity,
 } from '../../core/models';
 
-type DetailTab = 'profile' | 'household' | 'enrollment' | 'services';
+type DetailTab = 'profile' | 'household' | 'enrollment' | 'services' | 'activities' | 'dedup';
 type ViewMode  = 'list' | 'card';
 type FormStep  = 1 | 2 | 3;
+type MainView  = 'registry' | 'dedup' | 'analytics';
 
 const VULNERABILITY_LABELS: Record<string, string> = {
-  isIdp:                  'IDP',
-  isRefugee:              'Refugee',
-  hasDisability:          'Disability',
-  isFemaleHeadedHousehold:'Female HH',
-  isOrphan:               'Orphan',
-  isChronicallyIll:       'Chronically ill',
-  isElderly:              'Elderly',
+  isIdp:                   'IDP',
+  isRefugee:               'Refugee',
+  hasDisability:           'Disability',
+  isFemaleHeadedHousehold: 'Female-headed HH',
+  isOrphan:                'Orphan / Child-headed',
+  isChronicallyIll:        'Chronically ill',
+  isElderly:               'Elderly 60+',
 };
 
 const AGE_GROUP_LABELS: Record<string, string> = {
@@ -34,6 +35,13 @@ const AGE_GROUP_LABELS: Record<string, string> = {
   adult_25_59:    '25–59',
   elderly_60plus: '60+',
 };
+
+interface DupGroup {
+  type: 'exact_national_id' | 'exact_phone' | 'fuzzy_name';
+  confidence: number;
+  records: Array<{ _id: string; name: string; caseId?: string; nationalId?: string; phoneNumber?: string; status: string }>;
+  expanded?: boolean;
+}
 
 @Component({
   selector: 'app-beneficiaries',
@@ -56,19 +64,27 @@ export class BeneficiariesComponent implements OnInit {
   total         = signal(0);
   pages         = signal(1);
   currentPage   = signal(1);
+  dupGroups     = signal<DupGroup[]>([]);
+  linkedActivities = signal<Activity[]>([]);
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  loading         = signal(true);
-  saving          = signal(false);
-  deleting        = signal(false);
-  error           = signal('');
-  showForm        = signal(false);
-  showEditForm    = signal(false);
-  showEnrollForm  = signal(false);
-  showServiceForm = signal(false);
-  detailTab       = signal<DetailTab>('profile');
-  viewMode        = signal<ViewMode>('list');
-  formStep        = signal<FormStep>(1);
+  loading          = signal(true);
+  saving           = signal(false);
+  deleting         = signal(false);
+  dupLoading       = signal(false);
+  activitiesLoading= signal(false);
+  error            = signal('');
+  showForm         = signal(false);
+  showEditForm     = signal(false);
+  showEnrollForm   = signal(false);
+  showServiceForm  = signal(false);
+  detailTab        = signal<DetailTab>('profile');
+  viewMode         = signal<ViewMode>('list');
+  formStep         = signal<FormStep>(1);
+  mainView         = signal<MainView>('registry');
+  merging          = signal<string | null>(null); // duplicateId being merged
+  exitReason       = signal('');
+  showExitModal    = signal<ProgramEnrollment | null>(null);
 
   // ── Filters ───────────────────────────────────────────────────────────────
   search         = signal('');
@@ -81,8 +97,9 @@ export class BeneficiariesComponent implements OnInit {
 
   // ── Permissions ───────────────────────────────────────────────────────────
   canManage = computed(() =>
-    this.auth.isOwner() || this.auth.isAdmin() || this.auth.isFinance()
+    this.auth.isOwner() || this.auth.isAdmin() || this.auth.isMEOfficer()
   );
+  canAdmin = computed(() => this.auth.isOwner() || this.auth.isAdmin());
 
   // ── Computed stats ────────────────────────────────────────────────────────
   activeBenef = computed(() => this.stats()?.byStatus?.['active'] ?? 0);
@@ -101,11 +118,25 @@ export class BeneficiariesComponent implements OnInit {
         label,
         count: (s.vulnerable as Record<string, number>)[key] ?? 0,
       }))
-      .filter(v => v.count > 0);
+      .filter(v => v.count > 0)
+      .sort((a, b) => b.count - a.count);
+  });
+
+  topAgeGroup = computed(() => {
+    const s = this.stats();
+    if (!s) return null;
+    const entries = (Object.entries(s.byAgeGroup ?? {}) as [string, number][]).sort((a, b) => b[1] - a[1]);
+    return entries[0] ? { group: entries[0][0], count: entries[0][1] } : null;
+  });
+
+  femalePercent = computed(() => {
+    const s = this.stats();
+    if (!s || !s.total) return 0;
+    return Math.round(((s.bySex['female'] ?? 0) / s.total) * 100);
   });
 
   // ── Static lookups ────────────────────────────────────────────────────────
-  readonly statusOptions:  Array<BeneficiaryStatus | 'all'> =
+  readonly statusOptions: Array<BeneficiaryStatus | 'all'> =
     ['all', 'active', 'inactive', 'closed', 'transferred', 'deceased'];
   readonly typeOptions: Array<BeneficiaryRegistrationType | 'all'> =
     ['all', 'individual', 'household', 'group', 'community'];
@@ -116,11 +147,16 @@ export class BeneficiariesComponent implements OnInit {
     'protection', 'education', 'wash', 'psychosocial', 'nfi_distribution',
     'livelihood', 'legal_assistance', 'other',
   ];
-  readonly settleTypes   = ['urban', 'peri-urban', 'rural', 'camp', 'collective_center', 'host_community'];
+  readonly settleTypes    = ['urban', 'peri-urban', 'rural', 'camp', 'collective_center', 'host_community'];
   readonly consentMethods = ['written', 'verbal', 'digital'];
   readonly educationLevels = ['none', 'primary', 'secondary', 'tertiary', 'vocational'];
   readonly VULN_LABELS = VULNERABILITY_LABELS;
   readonly AGE_LABELS  = AGE_GROUP_LABELS;
+  readonly enrollExitReasons = [
+    'Completed programme', 'Transferred to another programme',
+    'No longer eligible', 'Relocated / moved away',
+    'Deceased', 'Withdrew voluntarily', 'Other',
+  ];
 
   // ── Forms ─────────────────────────────────────────────────────────────────
   form = this.fb.group({
@@ -129,11 +165,13 @@ export class BeneficiariesComponent implements OnInit {
     caseId:                   [''],
     nationalId:               [''],
     phoneNumber:              [''],
+    email:                    [''],
     sex:                      [''],
     dateOfBirth:              [''],
     age:                      [null as number | null],
     ageGroup:                 [''],
     nationality:              [''],
+    ethnicity:                [''],
     primaryLanguage:          [''],
     education:                [''],
     householdSize:            [1, [Validators.min(1)]],
@@ -174,6 +212,7 @@ export class BeneficiariesComponent implements OnInit {
     serviceType:  ['', Validators.required],
     serviceDate:  [new Date().toISOString().slice(0, 10), Validators.required],
     projectId:    [''],
+    activityId:   [''],
     description:  [''],
     quantity:     [null as number | null],
     unit:         [''],
@@ -183,7 +222,7 @@ export class BeneficiariesComponent implements OnInit {
   ngOnInit(): void {
     this.load();
     this.api.projects().subscribe({
-      next: (r: { data: Project[]; total: number } | Project[]) => {
+      next: (r: Project[] | { data: Project[] }) => {
         this.projects.set(Array.isArray(r) ? r : (r as { data: Project[] })?.data ?? []);
       },
       error: () => {},
@@ -196,13 +235,13 @@ export class BeneficiariesComponent implements OnInit {
       page: this.currentPage(),
       limit: 50,
     };
-    if (this.search())              q['search']           = this.search();
-    if (this.statusFilter() !== 'all') q['status']        = this.statusFilter();
+    if (this.search())                 q['search']           = this.search();
+    if (this.statusFilter() !== 'all') q['status']           = this.statusFilter();
     if (this.typeFilter()   !== 'all') q['registrationType'] = this.typeFilter();
-    if (this.sexFilter())           q['sex']              = this.sexFilter();
-    if (this.ageGroupFilter())      q['ageGroup']         = this.ageGroupFilter();
-    if (this.projectFilter())       q['projectId']        = this.projectFilter();
-    if (this.vulnFilter())          q[this.vulnFilter()]  = 'true';
+    if (this.sexFilter())              q['sex']              = this.sexFilter();
+    if (this.ageGroupFilter())         q['ageGroup']         = this.ageGroupFilter();
+    if (this.projectFilter())          q['projectId']        = this.projectFilter();
+    if (this.vulnFilter())             q[this.vulnFilter()]  = 'true';
 
     this.api.beneficiaries(q as Parameters<ApiService['beneficiaries']>[0]).subscribe({
       next: (res: { data: Beneficiary[]; total: number; page: number; limit: number; pages: number }) => {
@@ -266,11 +305,32 @@ export class BeneficiariesComponent implements OnInit {
     this.showEnrollForm.set(false);
     this.showServiceForm.set(false);
     this.error.set('');
+    this.linkedActivities.set([]);
   }
 
   deselect(): void {
     this.selected.set(null);
     this.showEditForm.set(false);
+  }
+
+  switchTab(tab: DetailTab): void {
+    this.detailTab.set(tab);
+    if (tab === 'activities' && this.selected() && this.linkedActivities().length === 0) {
+      this.loadLinkedActivities();
+    }
+  }
+
+  loadLinkedActivities(): void {
+    const b = this.selected();
+    if (!b) return;
+    this.activitiesLoading.set(true);
+    this.api.beneficiaryActivities(b._id).subscribe({
+      next: (res: { data: Activity[] }) => {
+        this.linkedActivities.set(res.data ?? []);
+        this.activitiesLoading.set(false);
+      },
+      error: () => this.activitiesLoading.set(false),
+    });
   }
 
   // ─── Create ────────────────────────────────────────────────────────────────
@@ -294,11 +354,13 @@ export class BeneficiariesComponent implements OnInit {
       caseId:                  v.caseId || undefined,
       nationalId:              v.nationalId || undefined,
       phoneNumber:             v.phoneNumber || undefined,
+      email:                   v.email || undefined,
       sex:                     v.sex || undefined,
       dateOfBirth:             v.dateOfBirth || undefined,
       age:                     v.age ?? undefined,
       ageGroup:                v.ageGroup || undefined,
       nationality:             v.nationality || undefined,
+      ethnicity:               v.ethnicity || undefined,
       primaryLanguage:         v.primaryLanguage || undefined,
       education:               v.education || undefined,
       householdSize:           Number(v.householdSize) || 1,
@@ -360,11 +422,13 @@ export class BeneficiariesComponent implements OnInit {
       caseId:                  b.caseId ?? '',
       nationalId:              b.nationalId ?? '',
       phoneNumber:             b.phoneNumber ?? '',
+      email:                   b.email ?? '',
       sex:                     b.sex ?? '',
       dateOfBirth:             b.dateOfBirth?.slice(0, 10) ?? '',
       age:                     b.age ?? null,
       ageGroup:                b.ageGroup ?? '',
       nationality:             b.nationality ?? '',
+      ethnicity:               b.ethnicity ?? '',
       primaryLanguage:         b.primaryLanguage ?? '',
       education:               b.education ?? '',
       householdSize:           b.householdSize,
@@ -408,17 +472,22 @@ export class BeneficiariesComponent implements OnInit {
       name:                    v.name ?? undefined,
       caseId:                  v.caseId || undefined,
       phoneNumber:             v.phoneNumber || undefined,
+      email:                   v.email || undefined,
       sex:                     v.sex || undefined,
       dateOfBirth:             v.dateOfBirth || undefined,
       age:                     v.age ?? undefined,
       ageGroup:                v.ageGroup || undefined,
       nationality:             v.nationality || undefined,
+      ethnicity:               v.ethnicity || undefined,
       householdSize:           Number(v.householdSize) || 1,
       hasDisability:           v.hasDisability ?? false,
       disabilityType:          v.disabilityType || undefined,
       isIdp:                   v.isIdp ?? false,
       isRefugee:               v.isRefugee ?? false,
       isFemaleHeadedHousehold: v.isFemaleHeadedHousehold ?? false,
+      isOrphan:                v.isOrphan ?? false,
+      isChronicallyIll:        v.isChronicallyIll ?? false,
+      isElderly:               v.isElderly ?? false,
       vulnerabilityScore:      v.vulnerabilityScore ?? undefined,
       country:                 v.country || undefined,
       region:                  v.region || undefined,
@@ -453,7 +522,7 @@ export class BeneficiariesComponent implements OnInit {
   // ─── Delete ────────────────────────────────────────────────────────────────
   confirmDelete(): void {
     const b = this.selected();
-    if (!b || !confirm(`Permanently delete "${b.name}"? This removes all their records.`)) return;
+    if (!b || !confirm(`Permanently delete "${b.name}" and all their records? This cannot be undone.`)) return;
     this.deleting.set(true);
     this.api.deleteBeneficiary(b._id).subscribe({
       next: () => {
@@ -487,21 +556,29 @@ export class BeneficiariesComponent implements OnInit {
       },
       error: (err: { error?: { message?: string } }) => {
         this.saving.set(false);
-        this.error.set(err?.error?.message ?? 'Enroll failed');
+        this.error.set(err?.error?.message ?? 'Enrol failed');
       },
     });
   }
 
-  exitProgram(enrollment: ProgramEnrollment): void {
+  openExitModal(enrollment: ProgramEnrollment): void {
+    this.exitReason.set('');
+    this.showExitModal.set(enrollment);
+  }
+
+  confirmExit(): void {
+    const enrollment = this.showExitModal();
     const id = this.selected()?._id;
+    if (!enrollment || !id) return;
+
     const projectId = typeof enrollment.projectId === 'object'
       ? (enrollment.projectId as { _id: string; name: string })._id
       : enrollment.projectId as string;
-    if (!id || !projectId) return;
-    const reason = (prompt('Exit reason (optional):') ?? undefined) as string | undefined;
-    this.api.exitBeneficiaryProgram(id, projectId, reason).subscribe({
+
+    this.api.exitBeneficiaryProgram(id, projectId, this.exitReason() || undefined).subscribe({
       next: (updated: Beneficiary) => {
         this.selected.set(updated);
+        this.showExitModal.set(null);
         this.beneficiaries.update((list: Beneficiary[]) =>
           list.map((b: Beneficiary) => b._id === updated._id ? updated : b)
         );
@@ -520,6 +597,7 @@ export class BeneficiariesComponent implements OnInit {
       serviceType: v.serviceType ?? '',
       serviceDate: v.serviceDate ?? '',
       projectId:   v.projectId || undefined,
+      activityId:  v.activityId || undefined,
       description: v.description || undefined,
       quantity:    v.quantity ?? undefined,
       unit:        v.unit || undefined,
@@ -532,21 +610,69 @@ export class BeneficiariesComponent implements OnInit {
       },
       error: (err: { error?: { message?: string } }) => {
         this.saving.set(false);
-        this.error.set(err?.error?.message ?? 'Failed');
+        this.error.set(err?.error?.message ?? 'Failed to record service');
       },
     });
   }
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
-  avatarClass(b: Beneficiary): string {
-    if (b.registrationType === 'household') return 'household';
-    if (b.registrationType === 'group' || b.registrationType === 'community') return 'group';
-    if (b.sex === 'female') return 'female';
-    return '';
+  // ─── Deduplication ────────────────────────────────────────────────────────
+  scanDuplicates(): void {
+    this.dupLoading.set(true);
+    this.dupGroups.set([]);
+    this.api.beneficiaryDuplicates(0.6, this.projectFilter() || undefined).subscribe({
+      next: (groups) => {
+        this.dupGroups.set(groups.map(g => ({ ...g, expanded: false })) as DupGroup[]);
+        this.dupLoading.set(false);
+      },
+      error: () => this.dupLoading.set(false),
+    });
   }
 
-  avatarLetter(b: Beneficiary): string {
+  toggleDupGroup(idx: number): void {
+    this.dupGroups.update((groups: DupGroup[]) =>
+      groups.map((g: DupGroup, i: number) => i === idx ? { ...g, expanded: !g.expanded } : g)
+    );
+  }
+
+  mergeDuplicate(primaryId: string, duplicateId: string): void {
+    if (!confirm('Merge the duplicate into the primary record? This permanently removes the duplicate.')) return;
+    this.merging.set(duplicateId);
+    this.api.mergeBeneficiaries(primaryId, duplicateId).subscribe({
+      next: () => {
+        this.merging.set(null);
+        this.dupGroups.update((groups: DupGroup[]) =>
+          groups.map((g: DupGroup) => ({
+            ...g,
+            records: g.records.filter(r => r._id !== duplicateId),
+          })).filter((g: DupGroup) => g.records.length > 1)
+        );
+        this.load();
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.merging.set(null);
+        this.error.set(err?.error?.message ?? 'Merge failed');
+      },
+    });
+  }
+
+  dupTypeLabel(type: string): string {
+    if (type === 'exact_national_id') return 'Same national ID';
+    if (type === 'exact_phone')       return 'Same phone number';
+    return 'Similar name / DOB';
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+  avatarInitials(b: Beneficiary): string {
+    const parts = b.name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return b.name.charAt(0).toUpperCase();
+  }
+
+  avatarColorClass(b: Beneficiary): string {
+    if (b.registrationType === 'household') return 'av-household';
+    if (b.registrationType === 'group' || b.registrationType === 'community') return 'av-group';
+    if (b.sex === 'female') return 'av-female';
+    return 'av-male';
   }
 
   ageLabel(b: Beneficiary): string {
@@ -561,13 +687,13 @@ export class BeneficiariesComponent implements OnInit {
 
   vulnFlagsFor(b: Beneficiary): Array<{ label: string; cls: string }> {
     const flags: Array<{ label: string; cls: string }> = [];
-    if (b.isIdp)                   flags.push({ label: 'IDP',        cls: 'idp' });
-    if (b.isRefugee)               flags.push({ label: 'Refugee',    cls: 'refugee' });
-    if (b.hasDisability)           flags.push({ label: 'Disability', cls: 'disabled' });
-    if (b.isFemaleHeadedHousehold) flags.push({ label: 'Female HH',  cls: 'female-hh' });
-    if (b.isOrphan)                flags.push({ label: 'Orphan',     cls: '' });
-    if (b.isChronicallyIll)        flags.push({ label: 'Ill',        cls: '' });
-    if (b.isElderly)               flags.push({ label: 'Elderly',    cls: '' });
+    if (b.isIdp)                   flags.push({ label: 'IDP',         cls: 'idp' });
+    if (b.isRefugee)               flags.push({ label: 'Refugee',     cls: 'refugee' });
+    if (b.hasDisability)           flags.push({ label: 'Disability',  cls: 'disabled' });
+    if (b.isFemaleHeadedHousehold) flags.push({ label: 'Female HH',   cls: 'female-hh' });
+    if (b.isOrphan)                flags.push({ label: 'Orphan',      cls: 'orphan' });
+    if (b.isChronicallyIll)        flags.push({ label: 'Ill',         cls: 'ill' });
+    if (b.isElderly)               flags.push({ label: 'Elderly',     cls: 'elderly' });
     return flags;
   }
 
@@ -591,6 +717,26 @@ export class BeneficiariesComponent implements OnInit {
     return this.stats()?.byStatus?.[type] ?? 0;
   }
 
+  totalVulnerable(): number {
+    const s = this.stats();
+    if (!s) return 0;
+    const v = s.vulnerable;
+    return Math.max(v.disabled, v.idp, v.refugee, v.femaleHeaded, v.orphan, v.chronicallyIll, v.elderly);
+  }
+
+  locationString(b: Beneficiary): string {
+    return [b.village, b.district, b.region, b.country].filter(Boolean).join(', ');
+  }
+
+  serviceTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      cash_transfer: '💵', food_assistance: '🌾', health_service: '🏥',
+      shelter: '🏠', protection: '🛡', education: '📚', wash: '💧',
+      psychosocial: '🧠', nfi_distribution: '📦', livelihood: '🌱',
+      legal_assistance: '⚖', other: '📋',
+    };
+    return icons[type] ?? '📋';
+  }
+
   skeletons(): number[] { return Array(8).fill(0); }
-  
 }
