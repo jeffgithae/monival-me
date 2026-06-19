@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
+import { LogoComponent } from '../../shared/logo.component';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LogoComponent],
   templateUrl: './forgot-password.component.html',
   styleUrl: '../login/login.component.scss',
 })

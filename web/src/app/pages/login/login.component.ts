@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment.prod';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
+import { LogoComponent } from '../../shared/logo.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LogoComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })

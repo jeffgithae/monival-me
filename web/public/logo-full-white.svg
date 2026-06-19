@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 128" fill="none">
+  <g transform="translate(16, 0)">
+    <path d="M24 24h28v14H24zM24 48h40v14H24zM24 72h24v14H24zM24 96h48v14H24z" fill="#ffffff"/>
+    <path d="M52 24l32 36-18 18 24 22" stroke="#ffffff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="96" cy="104" r="12" stroke="#ffffff" stroke-width="10"/>
+    <path d="M104 112l8 8" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text x="160" y="80" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="56" fill="#ffffff" letter-spacing="1">EVIDARA</text>
+  <text x="164" y="106" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="16" fill="#ffffff" letter-spacing="4" opacity="0.9">MONITORING &amp; EVALUATION</text>
+</svg>

@@ -8,11 +8,14 @@ import { AppNotification, NavItem } from '../core/models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeService } from '../core/theme.service';
 import { CommandPaletteService } from '../shared/command-palette.service';
+import { LogoComponent } from '../shared/logo.component';
+
 @Component({
   selector: 'app-shell',
   standalone: true,
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive, DatePipe,
+    LogoComponent
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',

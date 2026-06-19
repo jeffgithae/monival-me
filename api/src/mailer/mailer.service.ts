@@ -88,6 +88,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>📊 Scheduled Report Ready</h1>
     <p>${opts.orgName}</p>
   </div>
@@ -141,6 +142,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${opts.appUrl}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Welcome to Evidara! 🎉</h1>
   </div>
   <div class="body">
@@ -184,6 +186,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>You've been invited!</h1>
   </div>
   <div class="body">
@@ -226,6 +229,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Payment Reminder</h1>
   </div>
   <div class="body">
@@ -268,6 +272,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Your Invoice is Available</h1>
   </div>
   <div class="body">
@@ -308,6 +313,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Password Reset Request</h1>
   </div>
   <div class="body">
@@ -346,6 +352,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Password Changed Successfully</h1>
   </div>
   <div class="body">
@@ -387,6 +394,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${opts.appUrl}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Role Updated</h1>
   </div>
   <div class="body">
@@ -425,6 +433,7 @@ export class MailerService {
 <body>
 <div class="wrap">
   <div class="header">
+    <img src="${this.config.get('FRONTEND_URL')}/logo-full-white.svg" alt="Evidara" style="height: 32px; margin-bottom: 20px; display: block;" />
     <h1>Access Revoked</h1>
   </div>
   <div class="body">

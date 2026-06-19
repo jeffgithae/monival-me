@@ -4,13 +4,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
+import { LogoComponent } from '../../shared/logo.component';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LogoComponent],
   templateUrl: './register.component.html',
-  styleUrl: './register.component.scss',
+  styleUrl: '../login/login.component.scss',
 })
 export class RegisterComponent implements OnInit {
   email = '';
