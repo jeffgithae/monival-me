@@ -313,11 +313,47 @@ export interface DashboardOverview {
     activities: number;
     members: number;
     pendingApprovals: number;
+    beneficiaries: number;
+    grants: number;
+    impactStories: number;
   };
   activeProjects: Array<{ _id: string; name: string; donor?: string; status: string; startDate?: string; endDate?: string }>;
+  projectStatusCounts: Record<string, number>;
   recentActivities: Array<{ id: string; title: string; activityDate: string; status: string; projectId: string }>;
   health: DashboardHealthSummary;
   qualityAlerts: QualityAlert[];
+  indicatorAchievement: {
+    onTarget: number;
+    atRisk: number;
+    critical: number;
+    noData: number;
+  };
+  beneficiaries: {
+    total: number;
+    active: number;
+    female: number;
+    femalePct: number;
+    vulnerable: number;
+    noConsent: number;
+    totalHHMembers: number;
+  };
+  grants: {
+    totalAmount: number;
+    totalSpent: number;
+    burnRate: number;
+    count: number;
+    endingSoon: number;
+  };
+  reporting: {
+    overdue: number;
+    open: number;
+    submitted: number;
+    overdueList: Array<{ id: string; name: string; endDate: string }>;
+  };
+  impactStories: {
+    total: number;
+    thisMonth: number;
+  };
 }
 
 // ─── Disaggregation ───────────────────────────────────────────────────────────

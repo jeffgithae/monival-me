@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe, NgClass, PercentPipe } from '@angular/common';
 import { Component, OnInit, computed, signal, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,7 +10,7 @@ import { canManageProjects } from '../../core/roles';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, DecimalPipe, CurrencyPipe, PercentPipe, NgClass],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -24,7 +24,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   animated        = signal(false);
 
   readonly greeting = computed(() => {
-    const h = new Date().getHours();
+    const h    = new Date().getHours();
     const name = this.auth.user()?.name?.split(' ')[0] ?? '';
     if (h < 12) return `Good morning${name ? ', ' + name : ''}`;
     if (h < 17) return `Good afternoon${name ? ', ' + name : ''}`;
@@ -33,15 +33,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   readonly today = new Date();
 
-  readonly projectStatusCounts = computed(() => ({
-    active:    this.projects().filter(p => p.status === 'active').length,
-    completed: this.projects().filter(p => p.status === 'completed').length,
-    paused:    this.projects().filter(p => p.status === 'paused').length,
-    total:     this.projects().length,
-  }));
+  // Project status breakdown from all projects
+  readonly projectStatusCounts = computed(() => {
+    const counts = this.overview()?.projectStatusCounts ?? {};
+    return {
+      active:    counts['active']    ?? 0,
+      completed: counts['completed'] ?? 0,
+      paused:    counts['paused']    ?? 0,
+      draft:     counts['draft']     ?? 0,
+      total:     this.overview()?.counts.projects ?? 0,
+    };
+  });
 
   readonly projectsDueSoon = computed(() =>
     this.projects()
+      .filter(p => p.status === 'active')
       .map(p => ({ ...p, daysRemaining: this.getProjectDaysRemaining(p) }))
       .filter(p => p.daysRemaining !== null && p.daysRemaining <= 30)
       .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0))
@@ -49,10 +55,31 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   );
 
   readonly qualityAlerts = computed(() =>
-    (this.overview()?.qualityAlerts ?? []).slice(0, 4)
+    (this.overview()?.qualityAlerts ?? []).slice(0, 6)
   );
 
   readonly pendingTaskCount = computed(() => this.myTasks().length);
+
+  // Indicator achievement ring data
+  readonly indicatorTotal = computed(() => {
+    const ia = this.overview()?.indicatorAchievement;
+    if (!ia) return 0;
+    return ia.onTarget + ia.atRisk + ia.critical + ia.noData;
+  });
+
+  readonly indicatorOnTargetPct = computed(() => {
+    const total = this.indicatorTotal();
+    if (!total) return 0;
+    return Math.round(((this.overview()?.indicatorAchievement?.onTarget ?? 0) / total) * 100);
+  });
+
+  // Grant burn rate ring
+  readonly burnRateClass = computed(() => {
+    const r = this.overview()?.grants?.burnRate ?? 0;
+    if (r >= 90) return 'burn-critical';
+    if (r >= 75) return 'burn-warning';
+    return 'burn-ok';
+  });
 
   form = { name: '', donor: '', description: '', startDate: '', endDate: '' };
 
@@ -65,8 +92,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     return canManageProjects(this.auth.user()?.role ?? 'viewer');
   }
 
-  getRingDash(value: number, total: number): string {
-    const circumference = 2 * Math.PI * 28;
+  getRingDash(value: number, total: number, r = 28): string {
+    const circumference = 2 * Math.PI * r;
     const filled = total > 0 ? (value / total) * circumference : 0;
     return `${filled.toFixed(2)} ${(circumference - filled).toFixed(2)}`;
   }
@@ -78,9 +105,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   ngOnInit() { this.reload(); }
 
   ngAfterViewInit() {
-    requestAnimationFrame(() => {
-      setTimeout(() => this.animated.set(true), 60);
-    });
+    requestAnimationFrame(() => setTimeout(() => this.animated.set(true), 60));
   }
 
   reload() {
@@ -88,15 +113,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       this.projects.set(Array.isArray(res) ? res : (res.data ?? []))
     );
     this.api.dashboardOverview().subscribe({
-      next: o => this.overview.set(o),
+      next:  o => this.overview.set(o),
       error: () => this.overview.set(null),
     });
     this.api.workflowSummary().subscribe({
-      next: s => this.workflowSummary.set(s),
+      next:  s => this.workflowSummary.set(s),
       error: () => {},
     });
     this.api.myWorkflowTasks().subscribe({
-      next: t => this.myTasks.set(t),
+      next:  t => this.myTasks.set(t),
       error: () => {},
     });
   }
@@ -107,16 +132,22 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     return diff >= 0 ? diff : 0;
   }
 
+  formatCurrency(amount: number, currency = 'USD'): string {
+    if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000)     return `$${(amount / 1_000).toFixed(0)}K`;
+    return `$${amount.toLocaleString()}`;
+  }
+
   toggleForm() { this.showForm.update(v => !v); }
 
   createProject() {
     this.saving.set(true);
     this.api.createProject({
-      name: this.form.name,
-      donor: this.form.donor || undefined,
+      name:        this.form.name,
+      donor:       this.form.donor       || undefined,
       description: this.form.description || undefined,
-      startDate: this.form.startDate || undefined,
-      endDate: this.form.endDate || undefined,
+      startDate:   this.form.startDate   || undefined,
+      endDate:     this.form.endDate     || undefined,
     }).subscribe({
       next: () => {
         this.saving.set(false);

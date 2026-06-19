@@ -1,18 +1,18 @@
 <div class="dash" [class.animated]="animated()">
 
-  <!-- ── Ambient background ───────────────────────────────────────────── -->
+  <!-- Ambient background -->
   <div class="ambient" aria-hidden="true">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
   </div>
 
-  <!-- ── Header ───────────────────────────────────────────────────────── -->
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <header class="dash-header">
     <div class="header-left">
       <p class="greeting">{{ greeting() }}</p>
       <h1>Command Centre</h1>
-      <p class="dash-date">{{ today | date: 'EEEE, d MMMM yyyy' }}</p>
+      <p class="dash-date">{{ today | date:'EEEE, d MMMM yyyy' }}</p>
     </div>
     <div class="header-right">
       @if (pendingTaskCount() > 0) {
@@ -20,6 +20,11 @@
           <span class="tasks-pulse"></span>
           <span>{{ pendingTaskCount() }} pending task{{ pendingTaskCount() === 1 ? '' : 's' }}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      }
+      @if (overview()?.reporting?.overdue) {
+        <a routerLink="/reporting" class="alert-pill">
+          <span>⚠ {{ overview()!.reporting.overdue }} report{{ overview()!.reporting.overdue !== 1 ? 's' : '' }} overdue</span>
         </a>
       }
       @if (canCreateProjects) {
@@ -30,59 +35,83 @@
     </div>
   </header>
 
-  <!-- ── KPI strip ────────────────────────────────────────────────────── -->
   @if (overview(); as o) {
+
+    <!-- ── KPI strip ──────────────────────────────────────────────────────── -->
     <div class="kpi-strip">
-      <div class="kpi-card stagger-1">
-        <div class="kpi-label">Projects</div>
-        <div class="kpi-value">{{ o.counts.projects }}</div>
-        <div class="kpi-bar" style="--pct: 100%"></div>
-        <div class="kpi-sub">{{ projectStatusCounts().active }} active</div>
-      </div>
-      <div class="kpi-card stagger-2">
-        <div class="kpi-label">Indicators</div>
-        <div class="kpi-value">{{ o.counts.indicators }}</div>
-        <div class="kpi-bar" style="--pct: 80%"></div>
-        <div class="kpi-sub">tracked</div>
-      </div>
-      <div class="kpi-card stagger-3">
-        <div class="kpi-label">Activities</div>
-        <div class="kpi-value">{{ o.counts.activities }}</div>
-        <div class="kpi-bar" style="--pct: 65%"></div>
-        <div class="kpi-sub">logged</div>
-      </div>
-      <div class="kpi-card stagger-4">
-        <div class="kpi-label">Team</div>
-        <div class="kpi-value">{{ o.counts.members }}</div>
-        <div class="kpi-bar" style="--pct: 50%"></div>
-        <div class="kpi-sub">members</div>
-      </div>
-      @if (workflowSummary(); as ws) {
-        <div class="kpi-card kpi-accent stagger-5">
-          <div class="kpi-label">Approvals</div>
-          <div class="kpi-value">{{ ws.pending + ws.inReview }}</div>
-          <div class="kpi-bar" style="--pct: 100%"></div>
-          <div class="kpi-sub">{{ ws.overdue }} overdue</div>
+
+      <a routerLink="/projects" class="kpi-card stagger-1">
+        <div class="kpi-icon">◫</div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ o.counts.projects }}</div>
+          <div class="kpi-label">Projects</div>
+          <div class="kpi-sub">{{ projectStatusCounts().active }} active</div>
         </div>
+      </a>
+
+      <a routerLink="/beneficiaries" class="kpi-card stagger-2" [class.kpi-highlight]="o.beneficiaries.total > 0">
+        <div class="kpi-icon">◉</div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ o.beneficiaries.total | number }}</div>
+          <div class="kpi-label">Beneficiaries</div>
+          <div class="kpi-sub">{{ o.beneficiaries.femalePct }}% female</div>
+        </div>
+      </a>
+
+      <a routerLink="/indicators" class="kpi-card stagger-3">
+        <div class="kpi-icon">◎</div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ o.counts.indicators }}</div>
+          <div class="kpi-label">Indicators</div>
+          <div class="kpi-sub">{{ indicatorOnTargetPct() }}% on target</div>
+        </div>
+      </a>
+
+      <a routerLink="/activities" class="kpi-card stagger-4">
+        <div class="kpi-icon">◈</div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ o.counts.activities | number }}</div>
+          <div class="kpi-label">Activities</div>
+          <div class="kpi-sub">logged</div>
+        </div>
+      </a>
+
+      <a routerLink="/grant" class="kpi-card stagger-5" [class.kpi-warn]="o.grants.burnRate >= 90">
+        <div class="kpi-icon">$</div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ formatCurrency(o.grants.totalAmount) }}</div>
+          <div class="kpi-label">Grant portfolio</div>
+          <div class="kpi-sub">{{ o.grants.burnRate }}% utilised</div>
+        </div>
+      </a>
+
+      @if (workflowSummary(); as ws) {
+        <a routerLink="/workflows" class="kpi-card stagger-5" [class.kpi-warn]="ws.overdue > 0">
+          <div class="kpi-icon">⊞</div>
+          <div class="kpi-body">
+            <div class="kpi-value">{{ ws.pending + ws.inReview }}</div>
+            <div class="kpi-label">Approvals</div>
+            <div class="kpi-sub" [class.sub-warn]="ws.overdue > 0">{{ ws.overdue }} overdue</div>
+          </div>
+        </a>
       }
+
     </div>
 
-    <!-- ── Main grid ─────────────────────────────────────────────────── -->
+    <!-- ── Main grid ───────────────────────────────────────────────────────── -->
     <div class="main-grid">
 
-      <!-- Left column -->
+      <!-- ═══ LEFT COLUMN ════════════════════════════════════════════════════ -->
       <div class="col-main">
 
-        <!-- Portfolio health -->
+        <!-- Programme health -->
         <div class="panel health-panel stagger-6">
           <div class="panel-header">
             <div class="panel-title-group">
               <span class="panel-eyebrow">Portfolio</span>
               <h2>Programme health</h2>
             </div>
-            <span class="live-chip">
-              <span class="live-dot"></span>Live
-            </span>
+            <span class="live-chip"><span class="live-dot"></span>Live</span>
           </div>
 
           <div class="health-grid">
@@ -90,19 +119,17 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.onTrack, o.counts.projects)"
+                  [style.stroke-dasharray]="getRingDash(o.health.onTrack, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
-              <div class="ring-center">
-                <strong>{{ o.health.onTrack }}</strong>
-              </div>
+              <div class="ring-center"><strong>{{ o.health.onTrack }}</strong></div>
               <span class="ring-lbl">On track</span>
             </div>
             <div class="health-ring at-risk">
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.atRisk, o.counts.projects)"
+                  [style.stroke-dasharray]="getRingDash(o.health.atRisk, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.atRisk }}</strong></div>
@@ -112,7 +139,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.behind, o.counts.projects)"
+                  [style.stroke-dasharray]="getRingDash(o.health.behind, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.behind }}</strong></div>
@@ -122,7 +149,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.noBaseline, o.counts.projects)"
+                  [style.stroke-dasharray]="getRingDash(o.health.noBaseline, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.noBaseline }}</strong></div>
@@ -132,45 +159,103 @@
 
           <div class="divider"></div>
 
+          <!-- Project status breakdown — now uses all-project counts -->
           <div class="status-rows">
-            <div class="status-row">
-              <span class="status-dot active-dot"></span>
-              <span class="status-name">Active</span>
-              <div class="status-track">
-                <div class="status-fill active-fill"
-                  [style.width.%]="getStatusPct(projectStatusCounts().active, projectStatusCounts().total)"></div>
-              </div>
-              <span class="status-num">{{ projectStatusCounts().active }}</span>
+            @for (row of [
+              {key:'active',    label:'Active',    cls:'active-fill'},
+              {key:'completed', label:'Completed', cls:'completed-fill'},
+              {key:'paused',    label:'Paused',    cls:'paused-fill'},
+              {key:'draft',     label:'Draft',     cls:'draft-fill'}
+            ]; track row.key) {
+              @if (projectStatusCounts()[row.key]) {
+                <div class="status-row">
+                  <span class="status-dot {{ row.key }}-dot"></span>
+                  <span class="status-name">{{ row.label }}</span>
+                  <div class="status-track">
+                    <div class="status-fill {{ row.cls }}"
+                      [style.width.%]="getStatusPct(projectStatusCounts()[row.key], projectStatusCounts().total)"></div>
+                  </div>
+                  <span class="status-num">{{ projectStatusCounts()[row.key] }}</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Indicator achievement -->
+        <div class="panel indicator-panel stagger-7">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-eyebrow">Results</span>
+              <h2>Indicator achievement</h2>
             </div>
-            <div class="status-row">
-              <span class="status-dot completed-dot"></span>
-              <span class="status-name">Completed</span>
-              <div class="status-track">
-                <div class="status-fill completed-fill"
-                  [style.width.%]="getStatusPct(projectStatusCounts().completed, projectStatusCounts().total)"></div>
+            <a routerLink="/indicators" class="panel-link">View all →</a>
+          </div>
+
+          <div class="ind-achievement-grid">
+            <div class="ind-ring-wrap">
+              <svg viewBox="0 0 80 80" class="ind-ring-svg">
+                <circle class="ind-ring-bg" cx="40" cy="40" r="32"/>
+                <circle class="ind-ring-on" cx="40" cy="40" r="32"
+                  [style.stroke-dasharray]="getRingDash(o.indicatorAchievement.onTarget, indicatorTotal(), 32)"
+                  stroke-dashoffset="0"/>
+              </svg>
+              <div class="ind-ring-center">
+                <strong>{{ indicatorOnTargetPct() }}%</strong>
+                <span>on target</span>
               </div>
-              <span class="status-num">{{ projectStatusCounts().completed }}</span>
             </div>
-            <div class="status-row">
-              <span class="status-dot paused-dot"></span>
-              <span class="status-name">Paused</span>
-              <div class="status-track">
-                <div class="status-fill paused-fill"
-                  [style.width.%]="getStatusPct(projectStatusCounts().paused, projectStatusCounts().total)"></div>
+
+            <div class="ind-breakdown">
+              <div class="ind-row ind-on-target">
+                <span class="ind-dot"></span>
+                <span class="ind-lbl">On target (≥80%)</span>
+                <div class="ind-bar-track">
+                  <div class="ind-bar-fill on-target-fill"
+                    [style.width.%]="getStatusPct(o.indicatorAchievement.onTarget, indicatorTotal())"></div>
+                </div>
+                <span class="ind-num">{{ o.indicatorAchievement.onTarget }}</span>
               </div>
-              <span class="status-num">{{ projectStatusCounts().paused }}</span>
+              <div class="ind-row ind-at-risk">
+                <span class="ind-dot"></span>
+                <span class="ind-lbl">At risk (50–79%)</span>
+                <div class="ind-bar-track">
+                  <div class="ind-bar-fill at-risk-fill"
+                    [style.width.%]="getStatusPct(o.indicatorAchievement.atRisk, indicatorTotal())"></div>
+                </div>
+                <span class="ind-num">{{ o.indicatorAchievement.atRisk }}</span>
+              </div>
+              <div class="ind-row ind-critical">
+                <span class="ind-dot"></span>
+                <span class="ind-lbl">Critical (&lt;50%)</span>
+                <div class="ind-bar-track">
+                  <div class="ind-bar-fill critical-fill"
+                    [style.width.%]="getStatusPct(o.indicatorAchievement.critical, indicatorTotal())"></div>
+                </div>
+                <span class="ind-num">{{ o.indicatorAchievement.critical }}</span>
+              </div>
+              <div class="ind-row ind-no-data">
+                <span class="ind-dot"></span>
+                <span class="ind-lbl">No data</span>
+                <div class="ind-bar-track">
+                  <div class="ind-bar-fill no-data-fill"
+                    [style.width.%]="getStatusPct(o.indicatorAchievement.noData, indicatorTotal())"></div>
+                </div>
+                <span class="ind-num">{{ o.indicatorAchievement.noData }}</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Recent activities -->
         @if (o.recentActivities.length) {
-          <div class="panel activities-panel stagger-7">
+          <div class="panel activities-panel stagger-8">
             <div class="panel-header">
               <div class="panel-title-group">
                 <span class="panel-eyebrow">Field</span>
                 <h2>Recent activities</h2>
               </div>
+              <a routerLink="/activities" class="panel-link">View all →</a>
             </div>
             <div class="activity-list">
               @for (a of o.recentActivities.slice(0,5); track a.id) {
@@ -178,7 +263,7 @@
                   <div class="act-line"></div>
                   <div class="act-body">
                     <span class="act-title">{{ a.title }}</span>
-                    <span class="act-date">{{ a.activityDate | date: 'mediumDate' }}</span>
+                    <span class="act-date">{{ a.activityDate | date:'mediumDate' }}</span>
                   </div>
                   <span class="act-badge" [class]="'act-' + a.status">{{ a.status }}</span>
                 </div>
@@ -187,14 +272,138 @@
           </div>
         }
 
-      </div>
+      </div><!-- /col-main -->
 
-      <!-- Right column -->
+      <!-- ═══ RIGHT COLUMN ═══════════════════════════════════════════════════ -->
       <div class="col-side">
+
+        <!-- Beneficiary pulse -->
+        @if (o.beneficiaries.total > 0) {
+          <div class="panel bene-panel stagger-6">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <span class="panel-eyebrow">Reach</span>
+                <h2>Beneficiaries</h2>
+              </div>
+              <a routerLink="/beneficiaries" class="panel-link">Details →</a>
+            </div>
+            <div class="bene-kpis">
+              <div class="bene-kpi">
+                <div class="bk-val">{{ o.beneficiaries.total | number }}</div>
+                <div class="bk-lbl">Total registered</div>
+              </div>
+              <div class="bene-kpi">
+                <div class="bk-val">{{ o.beneficiaries.active | number }}</div>
+                <div class="bk-lbl">Active cases</div>
+              </div>
+              <div class="bene-kpi">
+                <div class="bk-val">{{ o.beneficiaries.femalePct }}%</div>
+                <div class="bk-lbl">Female</div>
+              </div>
+              <div class="bene-kpi" [class.bk-warn]="o.beneficiaries.noConsent > 0">
+                <div class="bk-val">{{ o.beneficiaries.noConsent | number }}</div>
+                <div class="bk-lbl">No consent</div>
+              </div>
+            </div>
+            @if (o.beneficiaries.vulnerable > 0) {
+              <div class="bene-vuln-bar">
+                <span class="vuln-label">Vulnerable</span>
+                <div class="vuln-track">
+                  <div class="vuln-fill"
+                    [style.width.%]="getStatusPct(o.beneficiaries.vulnerable, o.beneficiaries.total)">
+                  </div>
+                </div>
+                <span class="vuln-count">{{ o.beneficiaries.vulnerable | number }}</span>
+              </div>
+            }
+            @if (o.beneficiaries.noConsent > 0) {
+              <div class="consent-warning">
+                ⚠ {{ o.beneficiaries.noConsent | number }} beneficiar{{ o.beneficiaries.noConsent === 1 ? 'y has' : 'ies have' }} no consent on file
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Grant financial pulse -->
+        @if (o.grants.count > 0) {
+          <div class="panel grants-panel stagger-6">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <span class="panel-eyebrow">Finance</span>
+                <h2>Grant portfolio</h2>
+              </div>
+              <a routerLink="/grant" class="panel-link">Details →</a>
+            </div>
+
+            <div class="burn-bar-wrap">
+              <div class="burn-labels">
+                <span>Utilisation</span>
+                <span class="burn-pct" [ngClass]="burnRateClass()">{{ o.grants.burnRate }}%</span>
+              </div>
+              <div class="burn-track">
+                <div class="burn-fill" [ngClass]="burnRateClass()"
+                  [style.width.%]="o.grants.burnRate"></div>
+              </div>
+              <div class="burn-amounts">
+                <span>{{ formatCurrency(o.grants.totalSpent) }} spent</span>
+                <span class="muted">of {{ formatCurrency(o.grants.totalAmount) }}</span>
+              </div>
+            </div>
+
+            <div class="grant-stats">
+              <div class="g-stat">
+                <div class="g-num">{{ o.grants.count }}</div>
+                <div class="g-lbl">Active grants</div>
+              </div>
+              <div class="g-stat" [class.g-warn]="o.grants.endingSoon > 0">
+                <div class="g-num">{{ o.grants.endingSoon }}</div>
+                <div class="g-lbl">Ending &lt;60d</div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Reporting periods -->
+        <div class="panel reporting-panel stagger-7">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-eyebrow">Compliance</span>
+              <h2>Reporting</h2>
+            </div>
+            <a routerLink="/reporting" class="panel-link">View all →</a>
+          </div>
+          <div class="rep-stats">
+            <div class="rep-stat rep-overdue" [class.has-value]="o.reporting.overdue > 0">
+              <div class="rs-num">{{ o.reporting.overdue }}</div>
+              <div class="rs-lbl">Overdue</div>
+            </div>
+            <div class="rep-stat">
+              <div class="rs-num">{{ o.reporting.open }}</div>
+              <div class="rs-lbl">Open</div>
+            </div>
+            <div class="rep-stat">
+              <div class="rs-num">{{ o.reporting.submitted }}</div>
+              <div class="rs-lbl">Awaiting approval</div>
+            </div>
+          </div>
+          @if (o.reporting.overdueList.length > 0) {
+            <div class="rep-overdue-list">
+              @for (r of o.reporting.overdueList; track r.id) {
+                <div class="rep-overdue-row">
+                  <span class="rep-overdue-icon">⚠</span>
+                  <div class="rep-overdue-info">
+                    <span class="rep-name">{{ r.name }}</span>
+                    <span class="rep-due">Due {{ r.endDate | date:'d MMM' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
 
         <!-- Workflow tasks -->
         @if (workflowSummary(); as ws) {
-          <div class="panel workflow-panel stagger-6">
+          <div class="panel workflow-panel stagger-7">
             <div class="panel-header">
               <div class="panel-title-group">
                 <span class="panel-eyebrow">Approvals</span>
@@ -231,7 +440,7 @@
                   </a>
                 }
                 @if (myTasks().length > 3) {
-                  <a routerLink="/workflows" class="tasks-more">+{{ myTasks().length - 3 }} more tasks →</a>
+                  <a routerLink="/workflows" class="tasks-more">+{{ myTasks().length - 3 }} more →</a>
                 }
               </div>
             }
@@ -240,7 +449,7 @@
 
         <!-- Quality alerts -->
         @if (qualityAlerts().length > 0) {
-          <div class="panel alerts-panel stagger-7">
+          <div class="panel alerts-panel stagger-8">
             <div class="panel-header">
               <div class="panel-title-group">
                 <span class="panel-eyebrow">Data quality</span>
@@ -250,7 +459,9 @@
             </div>
             <div class="alerts-list">
               @for (alert of qualityAlerts(); track alert.title) {
-                <div class="alert-row" [class.critical]="alert.severity === 'critical'" [class.warning]="alert.severity === 'warning'">
+                <div class="alert-row"
+                  [class.critical]="alert.severity === 'critical'"
+                  [class.warning]="alert.severity === 'warning'">
                   <div class="alert-stripe"></div>
                   <div class="alert-body">
                     <strong>{{ alert.title }}</strong>
@@ -262,14 +473,31 @@
           </div>
         }
 
-        <!-- Due soon -->
-        @if (projectsDueSoon().length > 0) {
-          <div class="panel due-panel stagger-8">
-            <div class="panel-header">
-              <div class="panel-title-group">
-                <span class="panel-eyebrow">Timeline</span>
-                <h2>Due soon</h2>
+        <!-- Impact stories + due soon -->
+        <div class="panel impact-due-panel stagger-8">
+
+          @if (o.impactStories.total > 0) {
+            <div class="impact-row">
+              <div class="panel-title-group" style="margin-bottom:0">
+                <span class="panel-eyebrow">Advocacy</span>
+                <h2 style="margin:0;font-size:.95rem">Impact stories</h2>
               </div>
+              <div class="impact-nums">
+                <span class="imp-total">{{ o.impactStories.total }}</span>
+                <span class="imp-sub">total</span>
+                @if (o.impactStories.thisMonth > 0) {
+                  <span class="imp-month">+{{ o.impactStories.thisMonth }} this month</span>
+                }
+              </div>
+              <a routerLink="/impact-stories" class="panel-link" style="margin-left:auto;white-space:nowrap">View →</a>
+            </div>
+            <div class="divider" style="margin:0.75rem 0"></div>
+          }
+
+          @if (projectsDueSoon().length > 0) {
+            <div class="panel-title-group" style="margin-bottom:.5rem">
+              <span class="panel-eyebrow">Timeline</span>
+              <h2 style="margin:0;font-size:.95rem">Projects due soon</h2>
             </div>
             <div class="due-list">
               @for (p of projectsDueSoon(); track p._id) {
@@ -284,14 +512,17 @@
                 </a>
               }
             </div>
-          </div>
-        }
+          }
 
-      </div>
-    </div>
+        </div>
+
+      </div><!-- /col-side -->
+
+    </div><!-- /main-grid -->
+
   }
 
-  <!-- ── New project form ──────────────────────────────────────────────── -->
+  <!-- ── New project form ──────────────────────────────────────────────────── -->
   @if (showForm()) {
     <div class="form-drawer">
       <div class="form-drawer-header">
@@ -318,7 +549,7 @@
     </div>
   }
 
-  <!-- ── Projects grid ─────────────────────────────────────────────────── -->
+  <!-- ── Projects grid ─────────────────────────────────────────────────────── -->
   <div class="projects-section">
     <div class="section-head">
       <h2>All projects</h2>
@@ -329,17 +560,11 @@
         <a class="project-card" [routerLink]="['/projects', p._id]">
           <div class="card-top">
             <span class="status-pill status-{{ p.status }}">{{ p.status }}</span>
-            @if (p.endDate) {
-              <span class="card-date">{{ p.endDate | date: 'MMM yyyy' }}</span>
-            }
+            @if (p.endDate) { <span class="card-date">{{ p.endDate | date:'MMM yyyy' }}</span> }
           </div>
           <h3>{{ p.name }}</h3>
-          @if (p.donor) {
-            <p class="card-donor">{{ p.donor }}</p>
-          }
-          @if (p.description) {
-            <p class="card-desc">{{ p.description }}</p>
-          }
+          @if (p.donor) { <p class="card-donor">{{ p.donor }}</p> }
+          @if (p.description) { <p class="card-desc">{{ p.description }}</p> }
           <div class="card-footer">
             <span class="card-cta">Open workspace</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

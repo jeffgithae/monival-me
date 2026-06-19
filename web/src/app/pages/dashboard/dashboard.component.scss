@@ -455,6 +455,7 @@ h1 {
   &.active-dot    { background: var(--green); }
   &.completed-dot { background: var(--primary-lt); }
   &.paused-dot    { background: var(--muted); }
+  &.draft-dot     { background: #94a3b8; }
 }
 
 .status-name {
@@ -479,6 +480,7 @@ h1 {
   &.active-fill    { background: linear-gradient(90deg, #10b981, #34d399); }
   &.completed-fill { background: linear-gradient(90deg, #6366f1, #818cf8); }
   &.paused-fill    { background: linear-gradient(90deg, #475569, #64748b); }
+  &.draft-fill     { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
 }
 
 .status-num {
@@ -1051,6 +1053,327 @@ h1 {
     color: var(--muted);
     font-size: 0.92rem;
     max-width: 30rem;
+  }
+}
+
+// ─── Alert pill (header) ──────────────────────────────────────────────────────
+
+.alert-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  text-decoration: none;
+  transition: background 0.15s;
+  &:hover { background: rgba(239, 68, 68, 0.2); }
+}
+
+// ─── KPI card enhancements ────────────────────────────────────────────────────
+
+.kpi-card {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  &:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+
+  &.kpi-highlight { border-color: rgba(99,102,241,0.3); }
+  &.kpi-warn {
+    border-color: rgba(239,68,68,0.3);
+    .kpi-value { color: #ef4444; }
+    .kpi-sub   { color: #ef4444; }
+  }
+}
+
+.kpi-icon {
+  font-size: 1.4rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.sub-warn { color: #ef4444 !important; font-weight: 700; }
+
+// ─── Indicator achievement panel ──────────────────────────────────────────────
+
+.ind-achievement-grid {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.ind-ring-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+}
+
+.ind-ring-svg {
+  width: 90px;
+  height: 90px;
+  transform: rotate(-90deg);
+
+  .ind-ring-bg {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 6;
+  }
+
+  .ind-ring-on {
+    fill: none;
+    stroke: #22c55e;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dasharray 1s ease;
+  }
+}
+
+.ind-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  strong { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+  span   { font-size: 0.65rem; color: var(--muted); }
+}
+
+.ind-breakdown { flex: 1; display: flex; flex-direction: column; gap: 0.55rem; }
+
+.ind-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+
+  .ind-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .ind-lbl   { flex: 0 0 110px; color: var(--muted); }
+  .ind-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ind-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .ind-num { flex: 0 0 28px; text-align: right; font-weight: 700; font-size: 0.82rem; color: var(--text); }
+
+  &.ind-on-target .ind-dot { background: #22c55e; }
+  &.ind-at-risk   .ind-dot { background: #f59e0b; }
+  &.ind-critical  .ind-dot { background: #ef4444; }
+  &.ind-no-data   .ind-dot { background: var(--muted); }
+}
+
+.on-target-fill { background: #22c55e; }
+.at-risk-fill   { background: #f59e0b; }
+.critical-fill  { background: #ef4444; }
+.no-data-fill   { background: var(--muted); }
+
+// ─── Beneficiary panel ────────────────────────────────────────────────────────
+
+.bene-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.bene-kpi {
+  text-align: center;
+  padding: 0.65rem 0.25rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  .bk-val { font-size: 1.25rem; font-weight: 800; color: var(--text); line-height: 1; }
+  .bk-lbl { font-size: 0.68rem; color: var(--muted); margin-top: 0.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  &.bk-warn {
+    border-color: rgba(239,68,68,0.3);
+    .bk-val { color: #ef4444; }
+  }
+}
+
+.bene-vuln-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+
+  .vuln-label { font-size: 0.78rem; color: var(--muted); flex: 0 0 70px; }
+  .vuln-track { flex: 1; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .vuln-fill  { height: 100%; background: #f59e0b; border-radius: 4px; transition: width 0.8s ease; }
+  .vuln-count { font-size: 0.78rem; font-weight: 700; color: var(--text); }
+}
+
+.consent-warning {
+  font-size: 0.76rem;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+// ─── Grant / financial panel ──────────────────────────────────────────────────
+
+.burn-bar-wrap { margin-bottom: 0.85rem; }
+
+.burn-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+
+  .burn-pct { font-weight: 800; font-size: 0.88rem; }
+}
+
+.burn-track {
+  height: 8px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.burn-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.8s ease;
+
+  &.burn-ok       { background: #22c55e; }
+  &.burn-warning  { background: #f59e0b; }
+  &.burn-critical { background: #ef4444; }
+}
+
+.burn-pct {
+  &.burn-ok       { color: #22c55e; }
+  &.burn-warning  { color: #f59e0b; }
+  &.burn-critical { color: #ef4444; }
+}
+
+.burn-amounts {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--text);
+  .muted { color: var(--muted); }
+}
+
+.grant-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.g-stat {
+  text-align: center;
+  padding: 0.65rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  .g-num { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+  .g-lbl { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  &.g-warn { border-color: rgba(239,68,68,0.3); .g-num { color: #ef4444; } }
+}
+
+// ─── Reporting panel ──────────────────────────────────────────────────────────
+
+.rep-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.rep-stat {
+  text-align: center;
+  padding: 0.65rem 0.25rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  .rs-num { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+  .rs-lbl { font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.15rem; }
+
+  &.rep-overdue.has-value {
+    border-color: rgba(239,68,68,0.35);
+    background: rgba(239,68,68,0.05);
+    .rs-num { color: #ef4444; }
+  }
+}
+
+.rep-overdue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rep-overdue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+
+  .rep-overdue-icon { font-size: 0.85rem; flex-shrink: 0; }
+  .rep-overdue-info { display: flex; flex-direction: column; gap: 0.1rem; }
+  .rep-name  { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+  .rep-due   { font-size: 0.72rem; color: #ef4444; font-weight: 600; }
+}
+
+// ─── Impact + due-soon combined panel ────────────────────────────────────────
+
+.impact-due-panel {
+  .impact-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  .impact-nums {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+
+    .imp-total  { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+    .imp-sub    { font-size: 0.72rem; color: var(--muted); }
+    .imp-month  {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #6366f1;
+      background: rgba(99,102,241,0.1);
+      padding: 0.1rem 0.4rem;
+      border-radius: 10px;
+      margin-left: 0.35rem;
+    }
   }
 }
 
