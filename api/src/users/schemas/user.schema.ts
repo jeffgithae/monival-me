@@ -14,7 +14,7 @@ export class User {
   @Prop({ required: true, trim: true })
   name!: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Organization', required: false })
   organizationId!: Types.ObjectId;
 
   /**

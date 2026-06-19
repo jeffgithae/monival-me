@@ -364,20 +364,19 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = await this.userModel.create({
-      email: inviteInfo.email,
+    const userDoc: UserDocument = await (this.userModel.create({
+      email:       inviteInfo.email,
       passwordHash,
-      name: dto.name,
-      organizationId: null, // will be set by acceptInvite
-    });
+      name:        dto.name,
+    }) as unknown as Promise<UserDocument>);
 
     // Accept the invite — this sets user.organizationId and creates member record
-    const accepted = await this.membersService.acceptInvite(dto.token, user._id.toString());
+    const accepted = await this.membersService.acceptInvite(dto.token, userDoc._id.toString());
 
     // Reload user with org set
-    const updatedUser = await this.userModel.findById(user._id).lean();
+    const updatedUser = await this.userModel.findById(userDoc._id).lean();
     const member = await this.memberModel.findOne({
-      userId: user._id,
+      userId:         userDoc._id,
       organizationId: accepted.organizationId,
     });
 
@@ -388,9 +387,9 @@ export class AuthService {
     const auth = await this.buildAuthResponse(updatedUser as any, member);
 
     const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
-    const body = this.mailer.onboardingEmail({ name: user.name, appUrl });
+    const body = this.mailer.onboardingEmail({ name: dto.name, appUrl });
     await this.mailer.send({
-      to: user.email,
+      to:      inviteInfo.email,
       subject: `Welcome to ${inviteInfo.organizationName} on Evidara!`,
       ...body,
     });
