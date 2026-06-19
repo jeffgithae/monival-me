@@ -41,7 +41,7 @@
           <div class="an-kpi-lbl">Total registered</div>
         </div>
         <div class="an-kpi accent-green">
-          <div class="an-kpi-val">{{ s.byStatus['active'] ?? 0 | number }}</div>
+          <div class="an-kpi-val">{{ s.byStatus['active'] || 0 | number }}</div>
           <div class="an-kpi-lbl">Active cases</div>
         </div>
         <div class="an-kpi">
@@ -252,11 +252,11 @@
         <span class="lc-lbl">Total</span>
       </button>
       <button class="ledger-cell accent-green" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active'); applyFilters()">
-        <span class="lc-val">{{ s.byStatus['active'] ?? 0 | number }}</span>
+        <span class="lc-val">{{ s.byStatus['active'] || 0 | number }}</span>
         <span class="lc-lbl">Active</span>
       </button>
       <button class="ledger-cell" (click)="sexFilter.set(sexFilter() === 'female' ? '' : 'female'); applyFilters()">
-        <span class="lc-val">{{ s.bySex['female'] ?? 0 | number }}</span>
+        <span class="lc-val">{{ s.bySex['female'] || 0 | number }}</span>
         <span class="lc-lbl">Female</span>
       </button>
       <button class="ledger-cell accent-amber">
