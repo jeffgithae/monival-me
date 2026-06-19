@@ -1,0 +1,143 @@
+@use '../auth-shared';
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Org info banner
+.org-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.org-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  strong {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+  }
+}
+
+.org-meta {
+  font-size: 0.78rem;
+  color: #6b7280;
+
+  em {
+    font-style: normal;
+    font-weight: 600;
+    color: #4f46e5;
+  }
+}
+
+.locked-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  background: white;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 20px;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// Read-only email field
+.readonly-field {
+  background: #f1f5f9 !important;
+  color: #374151 !important;
+  cursor: not-allowed;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  font-weight: 500;
+
+  &:focus {
+    box-shadow: none !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+  }
+}
+
+// Field notes (sub-labels)
+.field-note {
+  display: inline;
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #9ca3af;
+  margin-left: 0.4rem;
+}
+
+// Secondary button
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: white;
+  color: #4f46e5;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  margin-top: 1rem;
+
+  &:hover { background: #eef2ff; border-color: rgba(99, 102, 241, 0.5); }
+}
+
+// Inline link button
+.link-btn {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}

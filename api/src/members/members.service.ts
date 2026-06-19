@@ -27,6 +27,27 @@ export class MembersService {
     private readonly mailer: MailerService,
   ) {}
 
+  async lookupInvite(token: string) {
+    const invite = await this.inviteModel
+      .findOne({ token, expiresAt: { $gt: new Date() }, acceptedAt: { $exists: false } })
+      .lean();
+    if (!invite) {
+      throw new NotFoundException('Invite not found or expired');
+    }
+    const org = await this.orgModel.findById(invite.organizationId).lean();
+    if (!org) {
+      throw new NotFoundException('Organisation not found');
+    }
+    return {
+      email:            invite.email,
+      role:             invite.role,
+      organizationName: org.name,
+      country:          org.country,
+      sector:           org.sector,
+      token,
+    };
+  }
+
   async ensureMemberRecord(
     userId: Types.ObjectId,
     organizationId: Types.ObjectId,

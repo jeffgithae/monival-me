@@ -350,6 +350,54 @@ export class AuthService {
     };
   }
 
+  /**
+   * Register a new user account via an invitation token.
+   * Does NOT create a new organisation — the user joins the inviting org.
+   */
+  async registerInvited(dto: { name: string; password: string; token: string }) {
+    // Validate invite and get email + org from it
+    const inviteInfo = await this.membersService.lookupInvite(dto.token);
+
+    const existing = await this.userModel.findOne({ email: inviteInfo.email });
+    if (existing) {
+      throw new ConflictException('An account with this email already exists. Please log in instead.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = await this.userModel.create({
+      email: inviteInfo.email,
+      passwordHash,
+      name: dto.name,
+      organizationId: null, // will be set by acceptInvite
+    });
+
+    // Accept the invite — this sets user.organizationId and creates member record
+    const accepted = await this.membersService.acceptInvite(dto.token, user._id.toString());
+
+    // Reload user with org set
+    const updatedUser = await this.userModel.findById(user._id).lean();
+    const member = await this.memberModel.findOne({
+      userId: user._id,
+      organizationId: accepted.organizationId,
+    });
+
+    if (!updatedUser || !member) {
+      throw new ConflictException('Registration failed');
+    }
+
+    const auth = await this.buildAuthResponse(updatedUser as any, member);
+
+    const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
+    const body = this.mailer.onboardingEmail({ name: user.name, appUrl });
+    await this.mailer.send({
+      to: user.email,
+      subject: `Welcome to ${inviteInfo.organizationName} on Evidara!`,
+      ...body,
+    });
+
+    return auth;
+  }
+
   private async buildUniqueSlug(name: string) {
     const baseSlug = name
       .trim()

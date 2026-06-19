@@ -1,0 +1,144 @@
+<div class="auth-page">
+  <div class="auth-card wide">
+
+    <!-- Loading -->
+    @if (view() === 'loading') {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Verifying your invitation…</p>
+      </div>
+    }
+
+    <!-- Invalid / expired -->
+    @if (view() === 'invalid') {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <h1>Invitation invalid or expired</h1>
+        <p>This invite link is no longer valid. It may have expired (invites last 7 days) or already been used.</p>
+        <p>Ask your team admin to send a new invitation.</p>
+      </div>
+      <a routerLink="/login" class="btn-secondary">Back to login</a>
+    }
+
+    <!-- Register — new user -->
+    @if (view() === 'register' && invite(); as inv) {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <p class="eyebrow">You've been invited</p>
+        <h1>Join {{ inv.organizationName }}</h1>
+        <p>Create your account to accept this invitation. Your email and organisation details are already set — just add your name and a password.</p>
+      </div>
+
+      <!-- Org info banner -->
+      <div class="org-banner">
+        <div class="org-avatar">{{ inv.organizationName.charAt(0).toUpperCase() }}</div>
+        <div class="org-details">
+          <strong>{{ inv.organizationName }}</strong>
+          <span class="org-meta">
+            @if (inv.country) { {{ inv.country }} · }
+            @if (inv.sector) { {{ inv.sector }} · }
+            Role: <em>{{ inv.role | titlecase }}</em>
+          </span>
+        </div>
+        <span class="locked-badge">🔒 Fixed</span>
+      </div>
+
+      <form (ngSubmit)="submitRegister()">
+        <div class="grid-2">
+          <!-- Email — pre-filled, read-only -->
+          <div class="full">
+            <label>
+              Email address
+              <span class="field-note">This is the address that received the invite</span>
+            </label>
+            <input type="email" [value]="inv.email" readonly class="readonly-field" />
+          </div>
+
+          <!-- Name -->
+          <div>
+            <label>Your full name</label>
+            <input [(ngModel)]="name" name="name" required placeholder="First and last name" autofocus />
+          </div>
+
+          <!-- Empty col spacer on desktop -->
+          <div></div>
+
+          <!-- Password -->
+          <div>
+            <label>Password <span class="field-note">Min. 8 characters</span></label>
+            <input type="password" [(ngModel)]="password" name="password" required minlength="8" placeholder="Choose a strong password" />
+          </div>
+          <div>
+            <label>Confirm password</label>
+            <input type="password" [(ngModel)]="confirm" name="confirm" required placeholder="Repeat password" />
+          </div>
+        </div>
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <button type="submit" [disabled]="loading()">
+          {{ loading() ? 'Creating account…' : 'Accept invitation & create account' }}
+        </button>
+      </form>
+
+      <p class="foot">
+        Already have an account?
+        <button class="link-btn" (click)="view.set('login'); error.set('')">Sign in instead</button>
+      </p>
+    }
+
+    <!-- Login — existing user -->
+    @if (view() === 'login' && invite(); as inv) {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <p class="eyebrow">You've been invited</p>
+        <h1>Join {{ inv.organizationName }}</h1>
+        <p>An account already exists for <strong>{{ inv.email }}</strong>. Sign in to accept the invitation.</p>
+      </div>
+
+      <!-- Org info banner -->
+      <div class="org-banner">
+        <div class="org-avatar">{{ inv.organizationName.charAt(0).toUpperCase() }}</div>
+        <div class="org-details">
+          <strong>{{ inv.organizationName }}</strong>
+          <span class="org-meta">
+            @if (inv.country) { {{ inv.country }} · }
+            @if (inv.sector) { {{ inv.sector }} · }
+            Role: <em>{{ inv.role | titlecase }}</em>
+          </span>
+        </div>
+        <span class="locked-badge">🔒 Fixed</span>
+      </div>
+
+      <form (ngSubmit)="submitLogin()">
+        <div>
+          <label>
+            Email address
+            <span class="field-note">This is the address that received the invite</span>
+          </label>
+          <input type="email" [value]="inv.email" readonly class="readonly-field" />
+        </div>
+        <div style="margin-top: 1rem;">
+          <label>Password</label>
+          <input type="password" [(ngModel)]="loginPassword" name="loginPassword" required placeholder="Your password" autofocus />
+        </div>
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <button type="submit" [disabled]="loading()" style="margin-top: 1.25rem;">
+          {{ loading() ? 'Signing in…' : 'Sign in & accept invitation' }}
+        </button>
+      </form>
+
+      <p class="foot">
+        <a routerLink="/forgot-password">Forgot your password?</a> ·
+        <button class="link-btn" (click)="view.set('register'); error.set('')">Create new account</button>
+      </p>
+    }
+
+  </div>
+</div>

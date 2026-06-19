@@ -122,6 +122,25 @@ export class ApiService {
     });
   }
 
+  lookupInvite(token: string) {
+    return this.http.get<{
+      email: string;
+      role: string;
+      organizationName: string;
+      country?: string;
+      sector?: string;
+      token: string;
+    }>(`${this.base}/members/invite-lookup`, { params: { token } });
+  }
+
+  registerInvited(dto: { name: string; password: string; token: string }) {
+    return this.http.post<any>(`${this.base}/auth/register-invited`, dto);
+  }
+
+  acceptInvite(token: string) {
+    return this.http.post<{ organizationId: string; role: string }>(`${this.base}/members/accept-invite`, { token });
+  }
+
   updateMemberRole(memberId: string, role: OrgRole) {
     return this.http.patch(`${this.base}/members/${memberId}/role`, { role });
   }

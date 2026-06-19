@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { IsEmail, IsEnum, IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -93,5 +94,11 @@ export class MembersController {
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.membersService.removeMember(user.organizationId, id);
+  }
+
+  /** Public — no auth required. Used by the accept-invite page to pre-fill form. */
+  @Get('invite-lookup')
+  lookupInvite(@Query('token') token: string) {
+    return this.membersService.lookupInvite(token);
   }
 }

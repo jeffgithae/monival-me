@@ -21,6 +21,12 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @Post('register-invited')
+  registerInvited(@Body() dto: { name: string; password: string; token: string }) {
+    return this.authService.registerInvited(dto);
+  }
+
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('login')
   login(@Body() dto: LoginDto) {
