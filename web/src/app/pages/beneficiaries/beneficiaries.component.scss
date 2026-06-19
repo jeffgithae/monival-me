@@ -134,7 +134,7 @@ $red-light:   #fdecea;
 .alert-error {
   padding: 0.75rem 1rem;
   background: $red-light;
-  border: 1px solid lighten($red, 30%);
+  border: 1px solid #eca4a0;
   border-radius: 8px;
   color: $red;
   font-size: 0.88rem;
@@ -274,7 +274,7 @@ $red-light:   #fdecea;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  &:hover { background: darken($red, 8%); }
+  &:hover { background: #a33225; }
 }
 
 .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.82rem; }
@@ -575,10 +575,10 @@ label {
   font-weight: 600;
   color: $clay;
   background: $clay-light;
-  border: 1px solid lighten($clay, 30%);
+  border: 1px solid #e2a488;
   border-radius: 10px;
   cursor: pointer;
-  &:hover { background: darken($clay-light, 3%); }
+  &:hover { background: #fae4d5; }
 }
 
 .result-meta {
@@ -721,11 +721,11 @@ label {
   color: $muted;
   border: 1px solid $border;
 
-  &.idp, &.refugee  { background: #fdecea; color: #b84c2d; border-color: lighten(#b84c2d, 35%); }
-  &.disabled        { background: $amber-light; color: darken($amber, 10%); border-color: lighten($amber, 25%); }
+  &.idp, &.refugee  { background: #fdecea; color: #b84c2d; border-color: #e8b09a; }
+  &.disabled        { background: $amber-light; color: #a36e15; border-color: #e7bb5f; }
   &.female-hh       { background: #f3e8fb; color: #7b4f9e; border-color: #d4aeee; }
   &.orphan, &.ill   { background: #e8edf5; color: $slate; }
-  &.elderly         { background: #e8f3ee; color: $forest; border-color: lighten($forest, 40%); }
+  &.elderly         { background: #e8f3ee; color: $forest; border-color: #8ac4a8; }
 }
 
 .flag-more {
@@ -756,12 +756,12 @@ label {
   text-transform: capitalize;
 
   &.active      { background: $forest-light; color: $forest; }
-  &.inactive    { background: $amber-light; color: darken($amber, 15%); }
+  &.inactive    { background: $amber-light; color: #8f5f0f; }
   &.closed, &.deceased { background: #f0f0f0; color: $muted; }
   &.transferred { background: #e8edf5; color: $slate; }
   &.completed   { background: $forest-light; color: $forest; }
   &.dropped_out { background: $red-light; color: $red; }
-  &.draft       { background: $amber-light; color: darken($amber, 15%); }
+  &.draft       { background: $amber-light; color: #8f5f0f; }
   &.submitted   { background: #e8edf5; color: $slate; }
   &.approved    { background: $forest-light; color: $forest; }
 }
@@ -791,7 +791,7 @@ label {
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
 
-  &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); border-color: darken($border, 8%); transform: translateY(-1px); }
+  &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); border-color: #c8d1dc; transform: translateY(-1px); }
   &.selected { border-color: $forest; box-shadow: 0 0 0 2px rgba($forest, 0.2); }
 
   .bc-top {
@@ -847,7 +847,7 @@ label {
 .skel-line {
   height: 10px;
   border-radius: 6px;
-  background: linear-gradient(90deg, $border 25%, lighten($border, 5%) 50%, $border 75%);
+  background: linear-gradient(90deg, $border 25%, #edf1f6 50%, $border 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 
@@ -1059,7 +1059,7 @@ label {
   border-radius: 12px;
 
   &.yes { background: $forest-light; color: $forest; }
-  &.no  { background: $amber-light;  color: darken($amber, 20%); }
+  &.no  { background: $amber-light;  color: #7b520d; }
 }
 
 .muted-text { font-size: 0.78rem; color: $muted; }
@@ -1342,8 +1342,8 @@ label {
     transition: width 0.5s ease;
   }
 
-  &.heat-high { background: $red-light; border-color: lighten($red, 30%); .heat-bar { background: $red; } }
-  &.heat-med  { background: $amber-light; border-color: lighten($amber, 30%); .heat-bar { background: $amber; } }
+  &.heat-high { background: $red-light; border-color: #eca4a0; .heat-bar { background: $red; } }
+  &.heat-med  { background: $amber-light; border-color: #e0b455; .heat-bar { background: $amber; } }
 }
 
 .consent-ring-wrap {
@@ -1401,7 +1401,7 @@ label {
   cursor: pointer;
   white-space: nowrap;
 
-  &:hover:not(:disabled) { background: darken($slate, 8%); }
+  &:hover:not(:disabled) { background: #293546; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -1455,7 +1455,7 @@ label {
   background: $surface;
   border-bottom: 1px solid $border;
   transition: background 0.12s;
-  &:hover { background: darken($surface, 2%); }
+  &:hover { background: #eff3f7; }
 
   .dup-group-left { display: flex; align-items: center; gap: 0.65rem; }
   .dup-toggle { font-size: 0.75rem; color: $muted; }
@@ -1467,7 +1467,7 @@ label {
   padding: 0.2rem 0.6rem;
   border-radius: 20px;
   background: $amber-light;
-  color: darken($amber, 15%);
+  color: #8f5f0f;
 
   &.badge-exact { background: $red-light; color: $red; }
   &.badge-high  { background: $clay-light; color: $clay; }
@@ -1500,7 +1500,7 @@ label {
   font-weight: 700;
   background: $clay-light;
   color: $clay;
-  border: 1px solid lighten($clay, 25%);
+  border: 1px solid #d98b6c;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.12s;
