@@ -84,6 +84,14 @@ export class AuthService {
       .pipe(tap(res => this.setSession(res)));
   }
 
+  forgotPassword(email: string) {
+    return this.http.post<{success: boolean}>(`${environment.apiUrl}/auth/forgot-password`, { email: email.trim().toLowerCase() });
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post<{success: boolean}>(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
+  }
+
   logout() {
     // Tell server to revoke the refresh token (fire-and-forget)
     if (this.token) {

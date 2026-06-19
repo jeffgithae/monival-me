@@ -27,6 +27,18 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @Post('forgot-password')
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @Post('reset-password')
+  resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
   /**
    * POST /auth/refresh
    * Exchange a valid refresh token for a new access token + rotated refresh token.

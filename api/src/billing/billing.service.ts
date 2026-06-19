@@ -7,6 +7,7 @@ import { PlanId, PLANS } from '../common/constants/plans';
 import { Organization } from '../organizations/schemas/organization.schema';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { User } from '../users/schemas/user.schema';
+import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
 export class BillingService {
@@ -20,6 +21,7 @@ export class BillingService {
     @InjectModel(Organization.name) private readonly orgModel: Model<Organization>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly organizationsService: OrganizationsService,
+    private readonly mailer: MailerService,
   ) {
     const key = this.config.get<string>('STRIPE_SECRET_KEY');
     const forceMock = this.config.get('BILLING_MOCK') === 'true';
@@ -207,6 +209,25 @@ export class BillingService {
               currentPeriodEnd: new Date(invoice.current_period_end * 1000),
             });
           }
+
+          const org = await this.orgModel.findById(orgId);
+          const owner = await this.userModel.findOne({ organizationId: new Types.ObjectId(orgId) }).sort({ createdAt: 1 });
+          if (org && owner) {
+            const invoiceUrl = (invoice as any).hosted_invoice_url || '';
+            const amount = `$${((invoice as any).amount_paid / 100).toFixed(2)}`;
+            const invoiceNumber = (invoice as any).number || 'N/A';
+            const body = this.mailer.invoiceEmail({
+              name: owner.name,
+              amount,
+              invoiceNumber,
+              downloadUrl: invoiceUrl,
+            });
+            await this.mailer.send({
+              to: owner.email,
+              subject: `Invoice Available - ${invoiceNumber}`,
+              ...body,
+            });
+          }
         }
         break;
       }
@@ -221,6 +242,24 @@ export class BillingService {
         const orgId = invoice.metadata?.organizationId;
         if (orgId) {
           await this.organizationsService.updateSubscriptionStatus(orgId, 'past_due', invoice.metadata?.planId as PlanId);
+          const org = await this.orgModel.findById(orgId);
+          const owner = await this.userModel.findOne({ organizationId: new Types.ObjectId(orgId) }).sort({ createdAt: 1 });
+          if (org && owner) {
+            const paymentUrl = (invoice as any).hosted_invoice_url || '';
+            const amount = `$${((invoice as any).amount_due / 100).toFixed(2)}`;
+            const dueDate = new Date().toLocaleDateString();
+            const body = this.mailer.paymentReminderEmail({
+              name: owner.name,
+              amount,
+              dueDate,
+              paymentUrl,
+            });
+            await this.mailer.send({
+              to: owner.email,
+              subject: `Payment Reminder - Action Required`,
+              ...body,
+            });
+          }
         }
         break;
       }

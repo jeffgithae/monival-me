@@ -14,6 +14,7 @@ import {
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { MailerModule } from '../mailer/mailer.module';
 import { JwtStrategy } from './jwt.strategy';
 import { NavService } from './nav.service';
 
@@ -22,6 +23,7 @@ import { NavService } from './nav.service';
     OrganizationsModule,
     BillingModule,
     MembersModule,
+    MailerModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

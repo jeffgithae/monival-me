@@ -20,6 +20,7 @@ import { OrganizationsService } from '../organizations/organizations.service';
 import { Organization } from '../organizations/schemas/organization.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { BillingService } from '../billing/billing.service';
+import { MailerService } from '../mailer/mailer.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -41,6 +42,7 @@ export class AuthService {
     private readonly organizationsService: OrganizationsService,
     private readonly membersService: MembersService,
     private readonly billingService: BillingService,
+    private readonly mailer: MailerService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -79,6 +81,15 @@ export class AuthService {
     );
 
     const auth = await this.buildAuthResponse(user, member);
+
+    const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
+    const body = this.mailer.onboardingEmail({ name: user.name, appUrl });
+    await this.mailer.send({
+      to: user.email,
+      subject: 'Welcome to Evidara!',
+      ...body,
+    });
+
     const checkout =
       planId !== 'trial'
         ? await this.billingService.createCheckoutSession(
@@ -122,6 +133,70 @@ export class AuthService {
     }
 
     return this.buildAuthResponse(user, member);
+  }
+
+  // ── Password Reset ─────────────────────────────────────────────────────────
+
+  async forgotPassword(email: string) {
+    const user = await this.userModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Return success even if user not found to prevent email enumeration
+      return { success: true };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { resetPasswordToken, resetPasswordExpires }
+    );
+
+    const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
+    const resetUrl = `${appUrl}/auth/reset-password?token=${resetToken}`;
+    
+    const body = this.mailer.passwordResetEmail({ name: user.name, resetUrl });
+    await this.mailer.send({
+      to: user.email,
+      subject: 'Password Reset Request - Evidara',
+      ...body,
+    });
+
+    return { success: true };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+    
+    const user = await this.userModel.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: new Date() },
+    }).select('+resetPasswordToken +resetPasswordExpires');
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired password reset token');
+    }
+
+    if (newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters');
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+    user.refreshTokenHash = null; // invalidate all refresh sessions
+    await user.save();
+
+    const body = this.mailer.passwordResetSuccessEmail({ name: user.name });
+    await this.mailer.send({
+      to: user.email,
+      subject: 'Your Password Has Been Reset',
+      ...body,
+    });
+
+    return { success: true };
   }
 
   // ── Refresh Token ──────────────────────────────────────────────────────────

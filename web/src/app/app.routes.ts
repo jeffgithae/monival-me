@@ -7,6 +7,8 @@ import { PricingComponent } from './pages/pricing/pricing.component';
 import { ProjectComponent } from './pages/project/project.component';
 import { ProjectsListComponent } from './pages/projects/projects-list.component';
 import { RegisterComponent } from './pages/register/register.component';
+import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { BillingComponent } from './pages/settings/billing/billing.component';
 import { TeamComponent } from './pages/settings/team/team.component';
 import { BudgetListComponent } from './pages/budget/budget-list.component';
@@ -35,6 +37,8 @@ export const routes: Routes = [
   { path: 'pricing', component: PricingComponent },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
+  { path: 'forgot-password', component: ForgotPasswordComponent, canActivate: [guestGuard] },
+  { path: 'reset-password', component: ResetPasswordComponent, canActivate: [guestGuard] },
   {
     path: '',
     component: ShellComponent,

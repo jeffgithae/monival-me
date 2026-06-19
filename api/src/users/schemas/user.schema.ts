@@ -29,6 +29,14 @@ export class User {
   @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
 
+  // ── Password Reset ─────────────────────────────────────────────────────────
+
+  @Prop({ type: String, default: null, select: false })
+  resetPasswordToken?: string | null;
+
+  @Prop({ type: Date, default: null, select: false })
+  resetPasswordExpires?: Date | null;
+
   // ── MFA / TOTP ─────────────────────────────────────────────────────────────
 
   /** Whether TOTP 2FA is active for this user */

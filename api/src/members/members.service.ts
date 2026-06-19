@@ -12,6 +12,8 @@ import { EntitlementsService } from '../organizations/entitlements.service';
 import { User } from '../users/schemas/user.schema';
 import { Invite } from './schemas/invite.schema';
 import { OrganizationMember } from './schemas/organization-member.schema';
+import { MailerService } from '../mailer/mailer.service';
+import { Organization } from '../organizations/schemas/organization.schema';
 
 @Injectable()
 export class MembersService {
@@ -20,7 +22,9 @@ export class MembersService {
     private readonly memberModel: Model<OrganizationMember>,
     @InjectModel(Invite.name) private readonly inviteModel: Model<Invite>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Organization.name) private readonly orgModel: Model<Organization>,
     private readonly entitlements: EntitlementsService,
+    private readonly mailer: MailerService,
   ) {}
 
   async ensureMemberRecord(
@@ -113,6 +117,24 @@ export class MembersService {
       expiresAt,
     });
 
+    const inviter = await this.userModel.findById(invitedByUserId);
+    const org = await this.orgModel.findById(organizationId);
+    if (inviter && org) {
+      const appUrl = process.env['FRONTEND_URL'] || 'http://localhost:4200';
+      const inviteUrl = `${appUrl}/accept-invite?token=${invite.token}`;
+      const body = this.mailer.inviteEmail({
+        inviteeName: normalized,
+        inviterName: inviter.name,
+        orgName: org.name,
+        inviteUrl,
+      });
+      await this.mailer.send({
+        to: normalized,
+        subject: `You have been invited to join ${org.name} on Evidara`,
+        ...body,
+      });
+    }
+
     return {
       id: invite._id.toString(),
       email: invite.email,
@@ -170,6 +192,24 @@ export class MembersService {
     if (!member) {
       throw new NotFoundException('Member not found');
     }
+
+    const user = await this.userModel.findById(member.userId);
+    const org = await this.orgModel.findById(organizationId);
+    if (user && org) {
+      const appUrl = process.env['FRONTEND_URL'] || 'http://localhost:4200';
+      const body = this.mailer.roleUpdatedEmail({
+        name: user.name,
+        orgName: org.name,
+        newRole: role,
+        appUrl,
+      });
+      await this.mailer.send({
+        to: user.email,
+        subject: `Your role in ${org.name} has been updated`,
+        ...body,
+      });
+    }
+
     return member;
   }
 
@@ -190,6 +230,23 @@ export class MembersService {
     if (result.deletedCount === 0) {
       throw new NotFoundException('Member not found');
     }
+
+    if (target) {
+      const user = await this.userModel.findById(target.userId);
+      const org = await this.orgModel.findById(organizationId);
+      if (user && org) {
+        const body = this.mailer.memberRemovedEmail({
+          name: user.name,
+          orgName: org.name,
+        });
+        await this.mailer.send({
+          to: user.email,
+          subject: `Your access to ${org.name} has been revoked`,
+          ...body,
+        });
+      }
+    }
+
     return { deleted: true };
   }
 }
