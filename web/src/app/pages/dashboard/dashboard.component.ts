@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, DecimalPipe, NgClass, PercentPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, signal, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,7 +10,7 @@ import { canManageProjects } from '../../core/roles';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe, DecimalPipe, CurrencyPipe, PercentPipe, NgClass],
+  imports: [RouterLink, FormsModule, DatePipe, DecimalPipe, NgClass],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -34,7 +34,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   readonly today = new Date();
 
   // Project status breakdown from all projects
-  readonly projectStatusCounts = computed(() => {
+  readonly projectStatusCounts = computed((): Record<string, number> => {
     const counts = this.overview()?.projectStatusCounts ?? {};
     return {
       active:    counts['active']    ?? 0,
