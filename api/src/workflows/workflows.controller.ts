@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Request, UseGuards,
+  Body, Param, Query, UseGuards,
   HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
@@ -13,7 +13,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OrgRole } from '../common/constants/roles';
+import type { JwtPayload } from '../common/types/jwt-payload';
 import { WorkflowEntityType } from './schemas/workflow.schema';
 
 @ApiTags('Workflow & Approvals')
@@ -30,26 +32,26 @@ export class WorkflowsController {
   @Post('definitions')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   @ApiOperation({ summary: 'Create a configurable workflow definition (template)' })
-  createDefinition(@Body() dto: CreateWorkflowDefinitionDto, @Request() req: any) {
-    return this.svc.createDefinition(dto, req.user);
+  createDefinition(@Body() dto: CreateWorkflowDefinitionDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.createDefinition(dto, user);
   }
 
   @Get('definitions')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER, OrgRole.VIEWER)
   @ApiOperation({ summary: 'List all workflow definitions for the org' })
   listDefinitions(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('entityType') entityType?: WorkflowEntityType,
   ) {
-    return this.svc.listDefinitions(String(req.user.organizationId), entityType);
+    return this.svc.listDefinitions(user.organizationId, entityType);
   }
 
   @Get('definitions/:id')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Get a single workflow definition' })
   @ApiParam({ name: 'id' })
-  getDefinition(@Param('id') id: string, @Request() req: any) {
-    return this.svc.getDefinition(id, String(req.user.organizationId));
+  getDefinition(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.getDefinition(id, user.organizationId);
   }
 
   @Patch('definitions/:id')
@@ -59,9 +61,9 @@ export class WorkflowsController {
   updateDefinition(
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowDefinitionDto,
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.svc.updateDefinition(id, dto, req.user);
+    return this.svc.updateDefinition(id, dto, user);
   }
 
   @Delete('definitions/:id')
@@ -69,8 +71,8 @@ export class WorkflowsController {
   @ApiOperation({ summary: 'Delete a workflow definition (only if no active instances)' })
   @ApiParam({ name: 'id' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteDefinition(@Param('id') id: string, @Request() req: any) {
-    return this.svc.deleteDefinition(id, String(req.user.organizationId));
+  deleteDefinition(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.deleteDefinition(id, user.organizationId);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -83,37 +85,37 @@ export class WorkflowsController {
     summary: 'Submit an entity for approval (starts a workflow instance)',
     description: 'Triggers the first step and sends notifications to the initial approvers.',
   })
-  startWorkflow(@Body() dto: StartWorkflowDto, @Request() req: any) {
-    return this.svc.startWorkflow(dto, req.user);
+  startWorkflow(@Body() dto: StartWorkflowDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.startWorkflow(dto, user);
   }
 
   @Get('instances')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
   @ApiOperation({ summary: 'List workflow instances (filterable by status, entityType, or assigned to me)' })
-  listInstances(@Request() req: any, @Query() query: WorkflowQueryDto) {
-    return this.svc.listInstances(String(req.user.organizationId), req.user, query);
+  listInstances(@CurrentUser() user: JwtPayload, @Query() query: WorkflowQueryDto) {
+    return this.svc.listInstances(user.organizationId, user, query);
   }
 
   @Get('instances/my-tasks')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Get all pending tasks assigned to the current user' })
-  getMyTasks(@Request() req: any) {
-    return this.svc.getMyPendingTasks(String(req.user.organizationId), req.user);
+  getMyTasks(@CurrentUser() user: JwtPayload) {
+    return this.svc.getMyPendingTasks(user.organizationId, user);
   }
 
   @Get('summary')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Org-level workflow health summary (pending, overdue, escalated counts)' })
-  getSummary(@Request() req: any) {
-    return this.svc.getSummary(String(req.user.organizationId));
+  getSummary(@CurrentUser() user: JwtPayload) {
+    return this.svc.getSummary(user.organizationId);
   }
 
   @Get('instances/:id')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Get a workflow instance with full approval history' })
   @ApiParam({ name: 'id' })
-  getInstance(@Param('id') id: string, @Request() req: any) {
-    return this.svc.getInstance(id, String(req.user.organizationId));
+  getInstance(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.getInstance(id, user.organizationId);
   }
 
   @Post('instances/:id/action')
@@ -130,8 +132,8 @@ export class WorkflowsController {
   actOnInstance(
     @Param('id') id: string,
     @Body() dto: ActOnWorkflowDto,
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.svc.actOnInstance(id, dto, req.user);
+    return this.svc.actOnInstance(id, dto, user);
   }
 }

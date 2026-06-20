@@ -18,16 +18,15 @@ import {
 } from './dto/workflow.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrgRole } from '../common/constants/roles';
+import type { JwtPayload } from '../common/types/jwt-payload';
+import { User } from '../users/schemas/user.schema';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
+// Re-exported alias for readability — JwtPayload already carries `_id` (added
+// by JwtStrategy.validate()), so this service uses the exact same shape as
+// every other module instead of a parallel, divergent definition.
 
-interface RequestUser {
-  _id: string | Types.ObjectId;
-  email: string;
-  name?: string;
-  organizationId: string | Types.ObjectId;
-  role: string;
-}
+type RequestUser = JwtPayload;
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -42,8 +41,21 @@ export class WorkflowService {
     @InjectModel(WorkflowInstance.name)
     private readonly instanceModel: Model<WorkflowInstanceDocument>,
 
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+
     private readonly notifications: NotificationsService,
   ) {}
+
+  /**
+   * Resolve a display name for a user. The JWT payload only carries `email`,
+   * never a `name` claim, so any audit/notification text that wants a human
+   * name must look it up here instead of trusting `user.name`.
+   */
+  private async _resolveDisplayName(user: RequestUser): Promise<string> {
+    const record = await this.userModel.findById(user.sub).select('name').lean();
+    return record?.name ?? user.email;
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // WORKFLOW DEFINITIONS (templates)
@@ -106,7 +118,7 @@ export class WorkflowService {
     dto: UpdateWorkflowDefinitionDto,
     user: RequestUser,
   ): Promise<WorkflowDefinitionDocument> {
-    const def = await this.getDefinition(id, String(user.organizationId));
+    const def = await this.getDefinition(id, user.organizationId);
 
     if (dto.steps) this._validateSteps(dto.steps);
 
@@ -147,7 +159,7 @@ export class WorkflowService {
     dto: StartWorkflowDto,
     user: RequestUser,
   ): Promise<WorkflowInstanceDocument> {
-    const definition = await this.getDefinition(dto.definitionId, String(user.organizationId));
+    const definition = await this.getDefinition(dto.definitionId, user.organizationId);
 
     if (!definition.isActive) {
       throw new BadRequestException('Workflow definition is inactive');
@@ -160,6 +172,7 @@ export class WorkflowService {
 
     const firstStep = sortedSteps[0];
     const stepDeadline = this._calcDeadline(firstStep.escalateAfterHours ?? 72);
+    const displayName = await this._resolveDisplayName(user);
 
     const instance = await this.instanceModel.create({
       organizationId: user.organizationId,
@@ -168,7 +181,7 @@ export class WorkflowService {
       entityId: new Types.ObjectId(dto.entityId),
       entityTitle: dto.entityTitle,
       initiatedBy: user._id,
-      initiatedByName: user.name ?? user.email,
+      initiatedByName: displayName,
       status: WorkflowStatus.PENDING,
       currentStep: 1,
       totalSteps: sortedSteps.length,
@@ -272,7 +285,7 @@ export class WorkflowService {
     dto: ActOnWorkflowDto,
     user: RequestUser,
   ): Promise<WorkflowInstanceDocument> {
-    const instance = await this.getInstance(id, String(user.organizationId));
+    const instance = await this.getInstance(id, user.organizationId);
 
     // Validate state allows action
     const terminalStatuses = [WorkflowStatus.APPROVED, WorkflowStatus.REJECTED, WorkflowStatus.CANCELLED];
@@ -302,12 +315,14 @@ export class WorkflowService {
       throw new BadRequestException('A comment is required for this action');
     }
 
+    const displayName = await this._resolveDisplayName(user);
+
     const event: ApprovalEvent = {
       stepOrder: instance.currentStep,
       stepName: currentStepDef.name,
       action: dto.action as ApprovalAction,
       actorUserId: new Types.ObjectId(String(user._id)),
-      actorName: user.name ?? user.email,
+      actorName: displayName,
       actorRole: user.role,
       comment: dto.comment,
       createdAt: new Date(),
@@ -337,8 +352,8 @@ export class WorkflowService {
         await this._notifyRoleForStep(
           instance, currentStepDef,
           `Workflow recalled: ${instance.entityTitle}`,
-          `${user.name ?? user.email} has recalled the submission.`,
-          String(user.organizationId),
+          `${displayName} has recalled the submission.`,
+          user.organizationId,
         );
         break;
       }
@@ -466,7 +481,7 @@ export class WorkflowService {
       instance.escalatedTo = undefined;
       instance.escalatedAt = undefined;
 
-      await this._notifyStep(instance, nextStep, String(user.organizationId));
+      await this._notifyStep(instance, nextStep, user.organizationId);
     } else {
       // All steps approved → DONE
       instance.status = WorkflowStatus.APPROVED;
@@ -491,12 +506,14 @@ export class WorkflowService {
 
     event.delegatedFrom = new Types.ObjectId(String(user._id));
 
+    const displayName = await this._resolveDisplayName(user);
+
     await this.notifications.create({
       organizationId: String(instance.organizationId),
       userId: targetUserId,
       type: 'workflow.escalated',
       title: `Escalated to you: ${instance.entityTitle}`,
-      message: dto.comment ?? `${user.name ?? user.email} has escalated this for your review.`,
+      message: dto.comment ?? `${displayName} has escalated this for your review.`,
       entityType: 'workflow',
       entityId: String(instance._id),
       link: `/workflows/${instance._id}`,

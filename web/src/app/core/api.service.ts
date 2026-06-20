@@ -122,25 +122,6 @@ export class ApiService {
     });
   }
 
-  lookupInvite(token: string) {
-    return this.http.get<{
-      email: string;
-      role: string;
-      organizationName: string;
-      country?: string;
-      sector?: string;
-      token: string;
-    }>(`${this.base}/members/invite-lookup`, { params: { token } });
-  }
-
-  registerInvited(dto: { name: string; password: string; token: string }) {
-    return this.http.post<any>(`${this.base}/auth/register-invited`, dto);
-  }
-
-  acceptInvite(token: string) {
-    return this.http.post<{ organizationId: string; role: string }>(`${this.base}/members/accept-invite`, { token });
-  }
-
   updateMemberRole(memberId: string, role: OrgRole) {
     return this.http.patch(`${this.base}/members/${memberId}/role`, { role });
   }
@@ -954,21 +935,23 @@ export class ApiService {
   // ─── Workflows ────────────────────────────────────────────────────────────
 
   workflowDefinitions(entityType?: string) {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (entityType) params['entityType'] = entityType;
-    return this.http.get<any[]>(`${this.base}/workflows/definitions`, { params });
+    return this.http.get<import('./models').WorkflowDefinition[]>(
+      `${this.base}/workflows/definitions`, { params }
+    );
   }
 
   workflowDefinition(id: string) {
-    return this.http.get<any>(`${this.base}/workflows/definitions/${id}`);
+    return this.http.get<import('./models').WorkflowDefinition>(`${this.base}/workflows/definitions/${id}`);
   }
 
-  createWorkflowDefinition(dto: any) {
-    return this.http.post<any>(`${this.base}/workflows/definitions`, dto);
+  createWorkflowDefinition(dto: Partial<import('./models').WorkflowDefinition>) {
+    return this.http.post<import('./models').WorkflowDefinition>(`${this.base}/workflows/definitions`, dto);
   }
 
-  updateWorkflowDefinition(id: string, dto: any) {
-    return this.http.patch<any>(`${this.base}/workflows/definitions/${id}`, dto);
+  updateWorkflowDefinition(id: string, dto: Partial<import('./models').WorkflowDefinition>) {
+    return this.http.patch<import('./models').WorkflowDefinition>(`${this.base}/workflows/definitions/${id}`, dto);
   }
 
   deleteWorkflowDefinition(id: string) {
@@ -976,29 +959,29 @@ export class ApiService {
   }
 
   workflowInstances(params?: { status?: string; entityType?: string; assignedToMe?: string; page?: number; limit?: number }) {
-    return this.http.get<{ data: any[]; total: number; page: number; limit: number }>(
-      `${this.base}/workflows/instances`, { params: params as any }
+    return this.http.get<{ data: import('./models').WorkflowInstance[]; total: number; page: number; limit: number }>(
+      `${this.base}/workflows/instances`, { params: params as Record<string, string> }
     );
   }
 
   workflowInstance(id: string) {
-    return this.http.get<any>(`${this.base}/workflows/instances/${id}`);
+    return this.http.get<import('./models').WorkflowInstance>(`${this.base}/workflows/instances/${id}`);
   }
 
   startWorkflow(dto: { definitionId: string; entityType: string; entityId: string; entityTitle: string }) {
-    return this.http.post<any>(`${this.base}/workflows/instances`, dto);
+    return this.http.post<import('./models').WorkflowInstance>(`${this.base}/workflows/instances`, dto);
   }
 
   actOnWorkflow(id: string, dto: { action: string; comment?: string; escalateToUserId?: string }) {
-    return this.http.post<any>(`${this.base}/workflows/instances/${id}/action`, dto);
+    return this.http.post<import('./models').WorkflowInstance>(`${this.base}/workflows/instances/${id}/action`, dto);
   }
 
   myWorkflowTasks() {
-    return this.http.get<any[]>(`${this.base}/workflows/instances/my-tasks`);
+    return this.http.get<import('./models').WorkflowInstance[]>(`${this.base}/workflows/instances/my-tasks`);
   }
 
   workflowSummary() {
-    return this.http.get<{ pending: number; inReview: number; escalated: number; approved: number; rejected: number; overdue: number }>(
+    return this.http.get<import('./models').WorkflowSummary>(
       `${this.base}/workflows/summary`
     );
   }

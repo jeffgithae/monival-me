@@ -7,9 +7,6 @@ import { PricingComponent } from './pages/pricing/pricing.component';
 import { ProjectComponent } from './pages/project/project.component';
 import { ProjectsListComponent } from './pages/projects/projects-list.component';
 import { RegisterComponent } from './pages/register/register.component';
-import { AcceptInviteComponent } from './pages/accept-invite/accept-invite.component';
-import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
-import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { BillingComponent } from './pages/settings/billing/billing.component';
 import { TeamComponent } from './pages/settings/team/team.component';
 import { BudgetListComponent } from './pages/budget/budget-list.component';
@@ -29,7 +26,6 @@ import { ProfileComponent } from './pages/profile/profile.component';
 import { DonorReportComponent } from './pages/donors/donor-report.component';
 import { DocumentsComponent } from './pages/documents/documents.component';
 import { WorkplanComponent } from './pages/workplan/workplan.component';
-import { WorkflowsComponent } from './pages/workflows/workflows.component';
 import { DataCollectionComponent } from './pages/data-collection/data-collection.component';
 import { EnterpriseComponent } from './pages/enterprise/enterprise.component';
 
@@ -38,9 +34,6 @@ export const routes: Routes = [
   { path: 'pricing', component: PricingComponent },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
-  { path: 'accept-invite', component: AcceptInviteComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent, canActivate: [guestGuard] },
-  { path: 'reset-password', component: ResetPasswordComponent, canActivate: [guestGuard] },
   {
     path: '',
     component: ShellComponent,
@@ -66,7 +59,7 @@ export const routes: Routes = [
       { path: 'reports/donor', component: DonorReportComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'workplan', component: WorkplanComponent },
-      { path: 'workflows', component: WorkflowsComponent },
+      { path: 'workflows', loadComponent: () => import('./pages/workflows/workflows.component').then(m => m.WorkflowsComponent) },
       { path: 'data-collection', component: DataCollectionComponent },
       { path: 'data-reporting',  loadComponent: () => import('./pages/data-reporting/data-reporting.component').then(m => m.DataReportingComponent) },
       { path: 'profile', component: ProfileComponent },
