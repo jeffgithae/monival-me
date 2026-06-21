@@ -98,13 +98,16 @@ export class SsoController {
 
   /**
    * POST /sso/:orgId/oidc/callback
-   * OIDC authorization code callback — exchange code for claims server-side.
+   * OIDC authorization code callback. The frontend forwards the `code`
+   * it received from the identity provider's redirect; the service
+   * performs the actual token exchange and signature verification
+   * server-side — the client never supplies claims directly.
    */
   @Post(':orgId/oidc/callback')
   handleOidcCallback(
     @Param('orgId') orgId: string,
-    @Body() body: { claims: Record<string, unknown> },
+    @Body() body: { code: string; redirectUri: string },
   ) {
-    return this.ssoService.handleOidcCallback(orgId, body.claims ?? body);
+    return this.ssoService.handleOidcCallback(orgId, body.code, body.redirectUri);
   }
 }

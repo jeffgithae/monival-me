@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { isEncrypted, encryptField } from '../../common/utils/field-encryption';
 
 export type SsoConfigDocument = HydratedDocument<SsoConfig>;
 
@@ -35,8 +36,12 @@ export class SsoConfig {
   @Prop()
   samlIssuer?: string;
 
-  /** PEM-encoded IdP signing certificate */
-  @Prop()
+  /**
+   * PEM-encoded IdP signing certificate. Not secret in the cryptographic
+   * sense (it's a public verification cert), but excluded from default
+   * queries to keep config payloads small and avoid leaking infra details.
+   */
+  @Prop({ select: false })
   samlCert?: string;
 
   // ── OIDC fields ──────────────────────────────────────────────────────────────
@@ -46,7 +51,13 @@ export class SsoConfig {
   @Prop()
   oidcClientId?: string;
 
-  @Prop()
+  /**
+   * OIDC client secret — encrypted at rest (AES-256-GCM, see pre-save hook
+   * below) and excluded from default queries. Use `.select('+oidcClientSecret')`
+   * and `decryptField()` when the raw value is actually needed (e.g. token
+   * exchange with the identity provider).
+   */
+  @Prop({ select: false })
   oidcClientSecret?: string;
 
   @Prop()
@@ -85,3 +96,23 @@ export class SsoConfig {
 
 export const SsoConfigSchema = SchemaFactory.createForClass(SsoConfig);
 SsoConfigSchema.index({ organizationId: 1 }, { unique: true });
+
+// Encrypt oidcClientSecret at rest, same pattern as org cloud storage credentials.
+SsoConfigSchema.pre('save', async function (this: SsoConfigDocument) {
+  if (this.isModified('oidcClientSecret') && this.oidcClientSecret && !isEncrypted(this.oidcClientSecret)) {
+    this.oidcClientSecret = encryptField(this.oidcClientSecret);
+  }
+});
+
+function encryptOidcSecretOnUpdate(this: any, next: () => void) {
+  const update = this.getUpdate() as Record<string, any>;
+  const secret = update?.oidcClientSecret ?? update?.$set?.oidcClientSecret;
+  if (secret && !isEncrypted(secret)) {
+    const encrypted = encryptField(secret);
+    if (update.$set) update.$set.oidcClientSecret = encrypted;
+    else update.oidcClientSecret = encrypted;
+  }
+  next();
+}
+SsoConfigSchema.pre('findOneAndUpdate', encryptOidcSecretOnUpdate);
+SsoConfigSchema.pre('updateOne', encryptOidcSecretOnUpdate);

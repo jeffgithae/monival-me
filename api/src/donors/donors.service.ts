@@ -18,6 +18,7 @@ import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
 import { paginate, toPaginatedResult } from '../common/types/paginated-results';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 @Injectable()
 export class DonorsService {
@@ -44,11 +45,12 @@ export class DonorsService {
     if (filters?.type)   query['type']   = filters.type;
     if (filters?.tag)    query['tags']   = filters.tag;
     if (filters?.search) {
+      const safeSearch = escapeRegex(filters.search);
       query['$or'] = [
-        { name:      { $regex: filters.search, $options: 'i' } },
-        { shortName: { $regex: filters.search, $options: 'i' } },
-        { 'address.country': { $regex: filters.search, $options: 'i' } },
-        { tags:      { $regex: filters.search, $options: 'i' } },
+        { name:      { $regex: safeSearch, $options: 'i' } },
+        { shortName: { $regex: safeSearch, $options: 'i' } },
+        { 'address.country': { $regex: safeSearch, $options: 'i' } },
+        { tags:      { $regex: safeSearch, $options: 'i' } },
       ];
     }
     const { page, limit, skip } = paginate(filters?.page, filters?.limit, 200);

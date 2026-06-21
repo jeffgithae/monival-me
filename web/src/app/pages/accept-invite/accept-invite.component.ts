@@ -7,7 +7,7 @@ import { formatHttpError } from '../../core/http-error';
 import { LogoComponent } from '../../shared/logo.component';
 import { CommonModule } from '@angular/common';
 
-type ViewState = 'loading' | 'register' | 'login' | 'invalid' | 'done';
+type ViewState = 'loading' | 'register' | 'login' | 'invalid' | 'done' | 'wrong-account';
 
 interface InviteInfo {
   email: string;
@@ -57,8 +57,32 @@ export class AcceptInviteComponent implements OnInit {
     this.api.lookupInvite(this.token).subscribe({
       next: (info) => {
         this.invite.set(info);
-        // Check if user already has an account with this email
-        // We show login tab if so — backend will tell us on register attempt
+
+        // If the visitor is already logged in, decide what to show based
+        // on whether their current account matches the invited email —
+        // rather than letting guestGuard silently bounce them away with
+        // the invite discarded (see auth.guard.ts).
+        if (this.auth.isLoggedIn) {
+          const currentEmail = this.auth.user()?.email?.toLowerCase();
+          if (currentEmail === info.email.toLowerCase()) {
+            // Same account — just accept the invite directly, no form needed.
+            this.api.acceptInvite(this.token).subscribe({
+              next: () => {
+                this.view.set('done');
+                this.router.navigateByUrl('/dashboard');
+              },
+              error: (err) => {
+                this.error.set(formatHttpError(err, 'Could not accept invitation'));
+                this.view.set('invalid');
+              },
+            });
+          } else {
+            // Logged in as a different account — don't silently switch them.
+            this.view.set('wrong-account');
+          }
+          return;
+        }
+
         this.view.set('register');
       },
       error: () => {
@@ -69,6 +93,13 @@ export class AcceptInviteComponent implements OnInit {
 
   get inv(): InviteInfo {
     return this.invite()!;
+  }
+
+  /** Used from the wrong-account view: sign out of the current session, then re-check the invite as a guest. */
+  logoutAndRetry() {
+    this.auth.clearSessionOnly();
+    this.view.set('loading');
+    this.ngOnInit();
   }
 
   submitRegister() {
@@ -88,7 +119,7 @@ export class AcceptInviteComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    this.api.registerInvited({
+    this.auth.registerInvited({
       name: this.name.trim(),
       password: this.password,
       token: this.token,

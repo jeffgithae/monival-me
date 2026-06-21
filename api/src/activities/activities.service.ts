@@ -15,6 +15,7 @@ import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { Activity } from './schemas/activity.schema';
 import { ActivityTemplate } from './schemas/activity-template.schema';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 export interface ActivityListQuery {
   projectId?: string;
@@ -88,7 +89,7 @@ export class ActivitiesService {
     }
 
     if (query.search) {
-      const re = new RegExp(query.search, 'i');
+      const re = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [{ title: re }, { location: re }, { notes: re }];
     }
 

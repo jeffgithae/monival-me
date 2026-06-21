@@ -4,7 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Beneficiary } from './schemas/beneficiary.schema';
 import { CreateBeneficiaryDto, ProgramEnrollmentDto, ServiceRecordDto } from './dto/create-beneficiary.dto';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
-
+import { escapeRegex } from '../common/utils/escape-regex';
 export interface BeneficiaryListQuery {
   projectId?: string;
   status?: string;
@@ -45,7 +45,7 @@ export class BeneficiariesService {
     }
 
     if (query.search) {
-      const re = new RegExp(query.search, 'i');
+      const re = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [
         { name: re }, { caseId: re }, { location: re },
         { village: re }, { district: re }, { phoneNumber: re },

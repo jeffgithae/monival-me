@@ -35,6 +35,11 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
   {
+    path: 'accept-invite',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./pages/accept-invite/accept-invite.component').then(m => m.AcceptInviteComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],

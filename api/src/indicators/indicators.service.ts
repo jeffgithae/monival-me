@@ -9,6 +9,7 @@ import { CreateIndicatorDto } from './dto/create-indicator.dto';
 import { UpdateIndicatorDto } from './dto/update-indicator.dto';
 import { Indicator } from './schemas/indicator.schema';
 import { paginate, toPaginatedResult } from '../common/types/paginated-results';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 export interface IndicatorListQuery {
   projectId?: string;
@@ -54,7 +55,7 @@ export class IndicatorsService {
     if (query.isActive !== undefined) filter['isActive']          = query.isActive;
     if (query.standardFramework)      filter['standardFramework'] = query.standardFramework;
     if (query.search) {
-      const re = new RegExp(query.search, 'i');
+      const re = new RegExp(escapeRegex(query.search), 'i');
       filter['$or'] = [{ code: re }, { title: re }, { definition: re }];
     }
 

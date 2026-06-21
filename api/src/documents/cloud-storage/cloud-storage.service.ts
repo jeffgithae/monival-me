@@ -19,6 +19,8 @@ import { ConnectCloudStorageDto } from '../dto/connect-cloud-storage.dto';
 import { ImportCloudFileDto } from '../dto/import-cloud-file.dto';
 import { SaveOrgCloudCredentialsDto } from '../dto/save-org-cloud-credentials.dto';
 import { OrgCloudCredentials, OrgCloudCredentialsDocument } from '../schemas/org-cloud-credentials.schema';
+import { decryptField } from '../../common/utils/field-encryption';
+
 
 export interface CloudFile {
   id: string;
@@ -555,7 +557,9 @@ export class CloudStorageService {
     if (orgCred) {
       return {
         clientId:     orgCred.clientId,
-        clientSecret: orgCred.clientSecret,
+        // .lean() bypasses Mongoose hooks/getters, so decrypt explicitly here
+        // rather than relying on document-level transforms.
+        clientSecret: decryptField(orgCred.clientSecret),
         tenantId:     orgCred.tenantId,
         isOrgLevel:   true,
       };

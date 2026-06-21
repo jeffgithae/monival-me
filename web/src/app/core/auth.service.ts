@@ -69,6 +69,15 @@ export class AuthService {
     return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register`, payload);
   }
 
+  /**
+   * Create an account for an invited user. Org details and the account's
+   * email come entirely from the invite (resolved server-side from the
+   * token) — never collected again on this form.
+   */
+  registerInvited(payload: { name: string; password: string; token: string }) {
+    return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register-invited`, payload);
+  }
+
   completeRegistration(res: RegisterResponse, navigate = true) {
     this.setSession(res, navigate);
   }
@@ -99,6 +108,19 @@ export class AuthService {
     }
     this.clearSession();
     void this.router.navigate(['/login']);
+  }
+
+  /**
+   * Same effect as logout() but without the redirect to /login — for flows
+   * that need to drop the current session and immediately continue on the
+   * current page (e.g. accept-invite re-checking as a guest after the user
+   * chooses to switch accounts).
+   */
+  clearSessionOnly() {
+    if (this.token) {
+      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+    }
+    this.clearSession();
   }
 
   loadProfile() {

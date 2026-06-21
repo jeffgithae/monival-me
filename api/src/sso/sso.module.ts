@@ -18,7 +18,7 @@ import { SsoService } from './sso.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '7d') },
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '8h') },
       }),
     }),
     MongooseModule.forFeature([

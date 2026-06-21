@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import type { CloudProvider } from './cloud-storage-connection.schema';
+import { isEncrypted, encryptField } from '../../common/utils/field-encryption';
 
 export type OrgCloudCredentialsDocument = HydratedDocument<OrgCloudCredentials>;
 
@@ -11,8 +12,10 @@ export type OrgCloudCredentialsDocument = HydratedDocument<OrgCloudCredentials>;
  * collection first; env-var fallback is only used if no row exists (for
  * self-hosted / single-tenant deployments).
  *
- * Secrets are stored as plain strings — in production, encrypt at rest
- * using MongoDB field-level encryption or a KMS (e.g. AWS KMS, HashiCorp Vault).
+ * `clientSecret` is encrypted at rest with AES-256-GCM (see pre-save hook
+ * below and `common/utils/field-encryption.ts`) — a database compromise
+ * alone does not expose plaintext OAuth secrets. Decrypt with
+ * `decryptField()` when reading the value back out for use.
  */
 @Schema({ timestamps: true, collection: 'org_cloud_credentials' })
 export class OrgCloudCredentials {
@@ -31,8 +34,9 @@ export class OrgCloudCredentials {
   clientId!: string;
 
   /**
-   * OAuth Client Secret — treat as sensitive.
-   * Never return this in API responses (select: false).
+   * OAuth Client Secret — encrypted at rest (AES-256-GCM).
+   * Never returned in API responses (select: false). Always pass through
+   * `decryptField()` after reading with `.select('+clientSecret')`.
    */
   @Prop({ required: true, select: false })
   clientSecret!: string;
@@ -62,3 +66,25 @@ export const OrgCloudCredentialsSchema = SchemaFactory.createForClass(OrgCloudCr
 
 // One active credential set per org per provider
 OrgCloudCredentialsSchema.index({ organizationId: 1, provider: 1 }, { unique: false });
+
+// Encrypt clientSecret at rest. Runs on every save where clientSecret was
+// modified (initial create or rotation) — never stores plaintext.
+OrgCloudCredentialsSchema.pre('save', async function (this: OrgCloudCredentialsDocument) {
+  if (this.isModified('clientSecret') && this.clientSecret && !isEncrypted(this.clientSecret)) {
+    this.clientSecret = encryptField(this.clientSecret);
+  }
+});
+
+// Also cover findOneAndUpdate / updateOne paths (used by some upsert flows)
+function encryptClientSecretOnUpdate(this: any, next: () => void) {
+  const update = this.getUpdate() as Record<string, any>;
+  const secret = update?.clientSecret ?? update?.$set?.clientSecret;
+  if (secret && !isEncrypted(secret)) {
+    const encrypted = encryptField(secret);
+    if (update.$set) update.$set.clientSecret = encrypted;
+    else update.clientSecret = encrypted;
+  }
+  next();
+}
+OrgCloudCredentialsSchema.pre('findOneAndUpdate', encryptClientSecretOnUpdate);
+OrgCloudCredentialsSchema.pre('updateOne', encryptClientSecretOnUpdate);

@@ -21,6 +21,7 @@ import {
   WorkplanItem,
   ProjectStakeholder,
 } from './schemas/project.schema';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 export interface ProjectListQuery {
   status?: string;
@@ -67,7 +68,7 @@ export class ProjectsService {
     if (query.isTemplate !== undefined) filter.isTemplate = query.isTemplate;
 
     if (query.search) {
-      const re = new RegExp(query.search, 'i');
+      const re = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [
         { name: re },
         { projectCode: re },

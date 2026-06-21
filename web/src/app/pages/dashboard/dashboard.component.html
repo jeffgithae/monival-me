@@ -45,7 +45,7 @@
         <div class="kpi-body">
           <div class="kpi-value">{{ o.counts.projects }}</div>
           <div class="kpi-label">Projects</div>
-          <div class="kpi-sub">{{ projectStatusCounts().active }} active</div>
+          <div class="kpi-sub">{{ projectStatusCounts()['active'] }} active</div>
         </div>
       </a>
 
@@ -119,7 +119,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.onTrack, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
+                  [style.stroke-dasharray]="getRingDash(o.health.onTrack, projectStatusCounts()['active'] + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.onTrack }}</strong></div>
@@ -129,7 +129,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.atRisk, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
+                  [style.stroke-dasharray]="getRingDash(o.health.atRisk, projectStatusCounts()['active'] + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.atRisk }}</strong></div>
@@ -139,7 +139,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.behind, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
+                  [style.stroke-dasharray]="getRingDash(o.health.behind, projectStatusCounts()['active'] + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.behind }}</strong></div>
@@ -149,7 +149,7 @@
               <svg viewBox="0 0 68 68" class="ring-svg">
                 <circle class="ring-bg" cx="34" cy="34" r="28"/>
                 <circle class="ring-fill" cx="34" cy="34" r="28"
-                  [style.stroke-dasharray]="getRingDash(o.health.noBaseline, projectStatusCounts().active + o.health.behind + o.health.atRisk + o.health.noBaseline)"
+                  [style.stroke-dasharray]="getRingDash(o.health.noBaseline, projectStatusCounts()['active'] + o.health.behind + o.health.atRisk + o.health.noBaseline)"
                   stroke-dashoffset="0"/>
               </svg>
               <div class="ring-center"><strong>{{ o.health.noBaseline }}</strong></div>
@@ -173,7 +173,7 @@
                   <span class="status-name">{{ row.label }}</span>
                   <div class="status-track">
                     <div class="status-fill {{ row.cls }}"
-                      [style.width.%]="getStatusPct(projectStatusCounts()[row.key], projectStatusCounts().total)"></div>
+                      [style.width.%]="getStatusPct(projectStatusCounts()[row.key], projectStatusCounts()['total'])"></div>
                   </div>
                   <span class="status-num">{{ projectStatusCounts()[row.key] }}</span>
                 </div>

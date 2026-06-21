@@ -20,6 +20,23 @@
       <a routerLink="/login" class="btn-secondary">Back to login</a>
     }
 
+    <!-- Logged in as a different account than the invite -->
+    @if (view() === 'wrong-account' && invite(); as inv) {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <p class="eyebrow">You've been invited</p>
+        <h1>This invite is for a different account</h1>
+        <p>
+          You're currently signed in, but this invitation to join <strong>{{ inv.organizationName }}</strong>
+          was sent to <strong>{{ inv.email }}</strong>. Sign out to accept it with that account.
+        </p>
+      </div>
+      <button type="button" (click)="logoutAndRetry()">Sign out &amp; continue</button>
+      <p class="foot">
+        <a routerLink="/dashboard">Stay signed in &amp; go to my dashboard</a>
+      </p>
+    }
+
     <!-- Register — new user -->
     @if (view() === 'register' && invite(); as inv) {
       <div class="brand">

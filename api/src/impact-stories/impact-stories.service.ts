@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ImpactStory, ImpactStoryDocument, StoryStatus } from './schemas/impact-story.schema';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 export interface CreateImpactStoryDto {
   title: string;
@@ -96,10 +97,11 @@ export class ImpactStoriesService {
     if (query.tag)              filter.tags           = query.tag;
     if (query.isPubliclyVisible !== undefined) filter.isPubliclyVisible = query.isPubliclyVisible;
     if (query.search) {
+      const safeSearch = escapeRegex(query.search);
       filter.$or = [
-        { title:     { $regex: query.search, $options: 'i' } },
-        { narrative: { $regex: query.search, $options: 'i' } },
-        { tags:      { $regex: query.search, $options: 'i' } },
+        { title:     { $regex: safeSearch, $options: 'i' } },
+        { narrative: { $regex: safeSearch, $options: 'i' } },
+        { tags:      { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

@@ -130,6 +130,33 @@ export class ApiService {
     return this.http.delete(`${this.base}/members/${memberId}`);
   }
 
+  /**
+   * Public — no auth required. Used by the accept-invite page to pre-fill
+   * the invited org's name, sector, country, role, and the invitee's email
+   * (all read-only — the form never lets the user edit org details).
+   */
+  lookupInvite(token: string) {
+    return this.http.get<{
+      email: string;
+      role: string;
+      organizationName: string;
+      country?: string;
+      sector?: string;
+      token: string;
+    }>(`${this.base}/members/invite-lookup`, { params: { token } });
+  }
+
+  /**
+   * Accept an invite for the currently authenticated user (used when the
+   * invited email already has an account — they log in, then this call
+   * attaches their existing account to the inviting org).
+   */
+  acceptInvite(token: string) {
+    return this.http.post<{ organizationId: string; role: string }>(
+      `${this.base}/members/accept-invite`, { token },
+    );
+  }
+
   updateReportingPeriodStatus(periodId: string, status: 'submitted' | 'approved' | 'locked') {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${periodId}/status`, {
       status,
