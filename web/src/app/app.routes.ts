@@ -40,6 +40,18 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/accept-invite/accept-invite.component').then(m => m.AcceptInviteComponent),
   },
   {
+    path: 'terms',
+    loadComponent: () => import('./pages/legal/terms.component').then(m => m.TermsComponent),
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./pages/legal/privacy.component').then(m => m.PrivacyComponent),
+  },
+  {
+    path: 'refund',
+    loadComponent: () => import('./pages/legal/refund.component').then(m => m.RefundComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],

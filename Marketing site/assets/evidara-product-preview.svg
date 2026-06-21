@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" role="img" aria-labelledby="title desc">
+  <title id="title">Evidara product dashboard preview</title>
+  <desc id="desc">Evidara dashboard showing project, beneficiary, and indicator KPIs, project health rings, and pending workflow approvals.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef5ef"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" x2="1">
+      <stop offset="0" stop-color="#0f3d2e"/>
+      <stop offset="1" stop-color="#0d726f"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop offset="0" stop-color="#c3943a"/>
+      <stop offset="1" stop-color="#a9583f"/>
+    </linearGradient>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="0" dy="32" stdDeviation="34" flood-color="#1f2d26" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="860" rx="46" fill="#0f3d2e"/>
+  <g filter="url(#shadow)">
+    <rect x="70" y="70" width="1060" height="720" rx="28" fill="url(#bg)"/>
+  </g>
+
+  <!-- Top bar -->
+  <text x="118" y="146" font-family="DM Sans, sans-serif" font-size="26" font-weight="800" fill="#17211c">Dashboard</text>
+  <text x="118" y="172" font-family="DM Sans, sans-serif" font-size="14" fill="#5f6d66">Lakeside Community Development Trust</text>
+  <rect x="930" y="120" width="150" height="40" rx="20" fill="#0f3d2e"/>
+  <text x="1005" y="145" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#fbf7ef" text-anchor="middle">3 tasks pending</text>
+
+  <!-- KPI strip -->
+  <g font-family="DM Sans, sans-serif">
+    <rect x="118" y="200" width="230" height="118" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="142" y="240" font-size="30" font-weight="800" fill="#17211c">12</text>
+    <text x="142" y="262" font-size="13" fill="#5f6d66">Projects</text>
+    <text x="142" y="282" font-size="12" font-weight="700" fill="#0d726f">9 active</text>
+
+    <rect x="364" y="200" width="230" height="118" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="388" y="240" font-size="30" font-weight="800" fill="#17211c">8,420</text>
+    <text x="388" y="262" font-size="13" fill="#5f6d66">Beneficiaries</text>
+    <text x="388" y="282" font-size="12" font-weight="700" fill="#a9583f">54% female</text>
+
+    <rect x="610" y="200" width="230" height="118" rx="18" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="634" y="240" font-size="30" font-weight="800" fill="#17211c">64</text>
+    <text x="634" y="262" font-size="13" fill="#5f6d66">Indicators</text>
+    <text x="634" y="282" font-size="12" font-weight="700" fill="#0d726f">78% on target</text>
+
+    <rect x="856" y="200" width="232" height="118" rx="18" fill="url(#green)"/>
+    <text x="880" y="240" font-size="30" font-weight="800" fill="#fbf7ef">312</text>
+    <text x="880" y="262" font-size="13" fill="rgba(251,247,239,0.8)">Activities logged</text>
+    <text x="880" y="282" font-size="12" font-weight="700" fill="#d8b86f">this quarter</text>
+  </g>
+
+  <!-- Project health rings -->
+  <g font-family="DM Sans, sans-serif">
+    <rect x="118" y="340" width="486" height="380" rx="22" fill="#ffffff" stroke="#dfe7e2"/>
+    <text x="146" y="382" font-size="17" font-weight="800" fill="#17211c">Project health</text>
+
+    <circle cx="270" cy="500" r="78" fill="none" stroke="#eef0ee" stroke-width="20"/>
+    <circle cx="270" cy="500" r="78" fill="none" stroke="url(#green)" stroke-width="20"
+      stroke-dasharray="368 490" stroke-linecap="round" transform="rotate(-90 270 500)"/>
+    <text x="270" y="492" font-size="34" font-weight="800" fill="#17211c" text-anchor="middle">75%</text>
+    <text x="270" y="516" font-size="12" fill="#5f6d66" text-anchor="middle">on track</text>
+
+    <g font-size="13" fill="#17211c">
+      <circle cx="420" cy="450" r="6" fill="#0d726f"/>
+      <text x="436" y="455">9 on track</text>
+      <circle cx="420" cy="480" r="6" fill="#c3943a"/>
+      <text x="436" y="485">2 at risk</text>
+      <circle cx="420" cy="510" r="6" fill="#a9583f"/>
+      <text x="436" y="515">1 behind</text>
+      <circle cx="420" cy="540" r="6" fill="#dfe7e2"/>
+      <text x="436" y="545">0 no baseline</text>
+    </g>
+
+    <rect x="146" y="624" width="412" height="64" rx="14" fill="#f3eee3"/>
+    <text x="166" y="650" font-size="13" font-weight="700" fill="#17211c">WASH &amp; Sanitation Programme</text>
+    <text x="166" y="670" font-size="12" fill="#5f6d66">Reporting period due in 6 days</text>
+  </g>
+
+  <!-- Workflow tasks panel -->
+  <g font-family="DM Sans, sans-serif">
+    <rect x="628" y="340" width="460" height="380" rx="22" fill="#0f3d2e"/>
+    <text x="656" y="382" font-size="17" font-weight="800" fill="#fbf7ef">My approval tasks</text>
+
+    <rect x="656" y="404" width="404" height="84" rx="14" fill="rgba(255,255,255,0.06)"/>
+    <text x="676" y="430" font-size="13" font-weight="700" fill="#fbf7ef">Q3 Budget Revision — Finance Review</text>
+    <text x="676" y="450" font-size="12" fill="rgba(251,247,239,0.65)">Step 1/2 · Escalated</text>
+    <rect x="676" y="458" width="74" height="22" rx="11" fill="#c3943a"/>
+    <text x="713" y="473" font-size="10" font-weight="800" fill="#17211c" text-anchor="middle">ESCALATED</text>
+
+    <rect x="656" y="500" width="404" height="84" rx="14" fill="rgba(255,255,255,0.06)"/>
+    <text x="676" y="526" font-size="13" font-weight="700" fill="#fbf7ef">Maternal Health Outreach — Activity Approval</text>
+    <text x="676" y="546" font-size="12" fill="rgba(251,247,239,0.65)">Step 1/1 · Pending</text>
+    <rect x="676" y="554" width="58" height="22" rx="11" fill="#0d726f"/>
+    <text x="705" y="569" font-size="10" font-weight="800" fill="#fbf7ef" text-anchor="middle">PENDING</text>
+
+    <rect x="656" y="596" width="404" height="84" rx="14" fill="rgba(255,255,255,0.06)"/>
+    <text x="676" y="622" font-size="13" font-weight="700" fill="#fbf7ef">FY26 Donor Report — Finance Sign-off</text>
+    <text x="676" y="642" font-size="12" fill="rgba(251,247,239,0.65)">Step 2/2 · In review</text>
+    <rect x="676" y="650" width="78" height="22" rx="11" fill="#4f7a5b"/>
+    <text x="715" y="665" font-size="10" font-weight="800" fill="#fbf7ef" text-anchor="middle">IN REVIEW</text>
+  </g>
+</svg>

@@ -171,10 +171,15 @@ h3 {
 
 .hero-lede,
 .section-heading p,
+.section-lede,
 .seo-copy > p {
   color: var(--muted);
   font-size: 1.12rem;
   line-height: 1.75;
+}
+
+.section-lede {
+  max-width: 46ch;
 }
 
 .hero-lede {
@@ -317,9 +322,12 @@ details p {
   text-align: center;
 }
 
-.outcome-grid,
-.pricing-grid {
+.outcome-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .outcome-grid article {
@@ -333,19 +341,19 @@ details p {
 }
 
 .price-card {
-  padding: 30px;
+  padding: 26px 22px;
 }
 
 .price-card.featured {
   border-color: rgba(13, 114, 111, 0.5);
   box-shadow: var(--shadow);
-  transform: translateY(-12px);
+  transform: translateY(-10px);
 }
 
 .price-card strong {
   display: block;
-  font-size: 3rem;
-  margin: 24px 0;
+  font-size: 2.4rem;
+  margin: 20px 0;
 }
 
 .price-card strong span {
@@ -374,6 +382,24 @@ details p {
   display: block;
   padding: 14px 18px;
   text-align: center;
+}
+
+.enterprise-note {
+  color: var(--muted);
+  font-size: 0.98rem;
+  margin: 36px auto 0;
+  max-width: 720px;
+  text-align: center;
+}
+
+.enterprise-note strong {
+  color: var(--ink);
+}
+
+.enterprise-note a {
+  color: var(--teal);
+  font-weight: 800;
+  margin-left: 4px;
 }
 
 .seo-copy {
@@ -414,6 +440,16 @@ details p {
   margin: 6px 0 0;
 }
 
+@media (max-width: 1180px) {
+  .pricing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .price-card.featured {
+    transform: none;
+  }
+}
+
 @media (max-width: 980px) {
   .site-header nav {
     display: none;
@@ -430,13 +466,12 @@ details p {
   }
 
   .feature-grid,
-  .outcome-grid,
-  .pricing-grid {
+  .outcome-grid {
     grid-template-columns: 1fr;
   }
 
-  .price-card.featured {
-    transform: none;
+  .pricing-grid {
+    grid-template-columns: 1fr;
   }
 }
 

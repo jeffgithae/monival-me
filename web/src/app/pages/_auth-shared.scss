@@ -162,6 +162,23 @@ button[type='submit']:disabled {
   font-weight: 700;
 }
 
+.legal-foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.76rem;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.6;
+
+  a {
+    color: #6b7280;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 500;
+    transition: color 0.12s;
+    &:hover { color: #4f46e5; }
+  }
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
