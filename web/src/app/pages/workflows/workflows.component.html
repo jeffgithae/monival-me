@@ -544,22 +544,32 @@
           </div>
           <div class="form-field">
             <label>Entity <span class="req">*</span></label>
-            @if (availableEntities().length > 0) {
+            @if (entitiesLoading()) {
+              <div class="entity-loading">
+                <span class="entity-spinner"></span>
+                <span>Loading {{ entityLabel(startForm.entityType) | lowercase }}s…</span>
+              </div>
+            } @else if (availableEntities().length > 0) {
               <select [(ngModel)]="startForm.entityId" (change)="onEntityChange()">
-                <option value="">Select an entity…</option>
+                <option value="">Select a {{ entityLabel(startForm.entityType) | lowercase }}…</option>
                 @for (e of availableEntities(); track e.id) {
                   <option [value]="e.id">{{ e.name }}</option>
                 }
               </select>
             } @else {
-              <input type="text" [(ngModel)]="startForm.entityId" placeholder="Enter ID manually (not found in list)" />
+              <div class="entity-empty">
+                No {{ entityLabel(startForm.entityType) | lowercase }}s found in this organisation.
+              </div>
             }
           </div>
         </div>
 
         <div class="form-field">
-          <label>Entity Title <span class="req">*</span></label>
-          <input type="text" [(ngModel)]="startForm.entityTitle" placeholder="Human-readable title for notifications" />
+          <label>Entity Title</label>
+          <input type="text" [(ngModel)]="startForm.entityTitle"
+            placeholder="Auto-filled from selection above"
+            [readonly]="!!startForm.entityId && !!startForm.entityTitle" />
+          <span class="field-hint">Used in notification emails and the workflow log.</span>
         </div>
 
         <div class="modal-footer">

@@ -913,6 +913,48 @@
   &:hover { background: #fee2e2; color: #b91c1c; }
 }
 
+// ─── Entity select states ─────────────────────────────────────────────────────
+
+.entity-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.entity-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.entity-empty {
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  display: block;
+}
+
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (max-width: 640px) {

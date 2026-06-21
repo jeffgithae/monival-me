@@ -32,6 +32,7 @@ export class WorkflowsComponent implements OnInit {
   definitions = signal<WorkflowDefinition[]>([]);
   members     = signal<Array<{ id: string; userId: string; email: string; name: string; role: string }>>([]);
   availableEntities = signal<Array<{ id: string; name: string }>>([]);
+  entitiesLoading   = signal(false);
 
   // Instance filters
   filterStatus     = '';
@@ -291,32 +292,55 @@ export class WorkflowsComponent implements OnInit {
   }
 
   onEntityTypeChange() {
-    this.startForm.entityId = '';
+    this.startForm.entityId    = '';
     this.startForm.entityTitle = '';
-    const et = this.startForm.entityType;
+    this.availableEntities.set([]);
+    this.entitiesLoading.set(true);
+
+    const et  = this.startForm.entityType;
+    const set = (items: Array<{ id: string; name: string }>) => {
+      this.availableEntities.set(items);
+      this.entitiesLoading.set(false);
+    };
+    const fail = () => this.entitiesLoading.set(false);
+
     if (et === 'activity') {
-      this.api.activities().subscribe(res => this.availableEntities.set(res.map(a => ({ id: a._id, name: a.title }))));
+      this.api.activities({ limit: 200 } as any).subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((a: any) => ({ id: a._id, name: a.title }))); },
+        error: fail,
+      });
     } else if (et === 'grant') {
-      this.api.grants().subscribe((res: any) => {
-        const data = res.data || res;
-        this.availableEntities.set(data.map((g: any) => ({ id: g._id, name: g.title })));
+      this.api.grants().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((g: any) => ({ id: g._id, name: g.title ?? g.name }))); },
+        error: fail,
       });
     } else if (et === 'report') {
-      this.api.reportingPeriods().subscribe((res: any) => {
-        const data = res.data || res;
-        this.availableEntities.set(data.map((r: any) => ({ id: r._id, name: r.name })));
+      this.api.reportingPeriods().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((r: any) => ({ id: r._id, name: r.name }))); },
+        error: fail,
       });
     } else if (et === 'budget') {
-      this.api.budgetAllocations().subscribe((res: any) => {
-        this.availableEntities.set(res.map((b: any) => ({ id: b._id, name: b.name })));
+      this.api.budgetAllocations().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((b: any) => ({ id: b._id, name: b.name ?? b.title }))); },
+        error: fail,
       });
     } else if (et === 'beneficiary') {
-      this.api.beneficiaries().subscribe((res: any) => {
-        const data = res.data || res;
-        this.availableEntities.set(data.map((b: any) => ({ id: b._id, name: b.name || b.caseId })));
+      this.api.beneficiaries({ limit: 200 } as any).subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((b: any) => ({ id: b._id, name: b.name ?? b.caseId }))); },
+        error: fail,
+      });
+    } else if (et === 'indicator_result') {
+      this.api.indicatorResults().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((r: any) => ({ id: r._id, name: r.indicatorName ?? r.periodName ?? r._id }))); },
+        error: fail,
+      });
+    } else if (et === 'document') {
+      this.api.documents({ limit: 200 } as any).subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((doc: any) => ({ id: doc._id, name: doc.title ?? doc.name ?? doc.fileName }))); },
+        error: fail,
       });
     } else {
-      this.availableEntities.set([]);
+      this.entitiesLoading.set(false);
     }
   }
 

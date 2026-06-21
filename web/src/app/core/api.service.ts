@@ -163,10 +163,10 @@ export class ApiService {
     });
   }
 
-  indicatorResults(reportingPeriodId: string) {
-    return this.http.get<IndicatorResult[]>(`${this.base}/reporting/results`, {
-      params: new HttpParams().set('reportingPeriodId', reportingPeriodId),
-    });
+  indicatorResults(reportingPeriodId?: string) {
+    let params = new HttpParams();
+    if (reportingPeriodId) params = params.set('reportingPeriodId', reportingPeriodId);
+    return this.http.get<IndicatorResult[]>(`${this.base}/reporting/results`, { params });
   }
 
   upsertIndicatorResult(payload: {
