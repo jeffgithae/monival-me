@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { canManageDataCollection } from '../../core/roles';
 import {
   ExternalIntegration, IntegrationPlatform, FormTemplate,
   FormResponse, SyncResult, IntegrationStats, Project,
@@ -30,6 +31,14 @@ type Modal =
   styleUrl: './data-collection.component.scss',
 })
 export class DataCollectionComponent implements OnInit {
+
+  // ── Permissions ──────────────────────────────────────────────────────────
+  // Mirrors PERMISSIONS.MANAGE_DATA_COLLECTION on the backend — viewers and
+  // finance-only users can see synced data but cannot create/edit/delete
+  // form templates or integrations, or trigger a sync.
+  canManage = computed(() =>
+    canManageDataCollection(this.auth.user()?.role ?? 'viewer')
+  );
 
   // ── State ────────────────────────────────────────────────────────────────
   activeTab    = signal<Tab>('forms');

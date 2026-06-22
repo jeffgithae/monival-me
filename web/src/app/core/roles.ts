@@ -57,3 +57,7 @@ export function canManageGrants(role: OrgRole): boolean {
 export function canManageDonors(role: OrgRole): boolean {
   return ['owner', 'admin', 'finance', 'me_officer'].includes(role);
 }
+
+export function canManageDataCollection(role: OrgRole): boolean {
+  return ['owner', 'admin', 'me_officer', 'field_officer'].includes(role);
+}

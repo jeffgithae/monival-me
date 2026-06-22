@@ -40,6 +40,6 @@ import { ScheduledReport, ScheduledReportSchema } from './schemas/scheduled-repo
   ],
   controllers: [ReportsController],
   providers: [ReportsService, ScheduledReportsService, BulkImportService],
-  exports: [ReportsService, BulkImportService],
+  exports: [ReportsService, BulkImportService, ScheduledReportsService],
 })
 export class ReportsModule {}

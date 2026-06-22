@@ -5,6 +5,8 @@ import { AuditService } from '../audit/audit.service';
 import { EntitlementsService } from '../organizations/entitlements.service';
 import { Activity } from '../activities/schemas/activity.schema';
 import { Project } from '../projects/schemas/project.schema';
+import { IndicatorResult } from '../reporting/schemas/indicator-result.schema';
+import { IndicatorTarget } from '../reporting/schemas/indicator-target.schema';
 import { CreateIndicatorDto } from './dto/create-indicator.dto';
 import { UpdateIndicatorDto } from './dto/update-indicator.dto';
 import { Indicator } from './schemas/indicator.schema';
@@ -28,6 +30,8 @@ export class IndicatorsService {
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Project.name)   private readonly projectModel: Model<Project>,
     @InjectModel(Activity.name)  private readonly activityModel: Model<Activity>,
+    @InjectModel(IndicatorResult.name) private readonly resultModel: Model<IndicatorResult>,
+    @InjectModel(IndicatorTarget.name) private readonly targetModel: Model<IndicatorTarget>,
     private readonly entitlements: EntitlementsService,
     private readonly audit: AuditService,
   ) {}
@@ -286,13 +290,28 @@ export class IndicatorsService {
   // ─── Delete ────────────────────────────────────────────────────────────────
 
   async remove(organizationId: string, id: string, actorUserId?: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const indicatorId = new Types.ObjectId(id);
+
     const result = await this.indicatorModel.deleteOne({
-      _id: id, organizationId: new Types.ObjectId(organizationId),
+      _id: id, organizationId: orgId,
     });
     if (result.deletedCount === 0) throw new NotFoundException('Indicator not found');
+
+    // Cascade: indicator results and targets are independently-keyed
+    // collections (by indicatorId, not nested under Indicator), so they
+    // are not removed automatically by Mongo and must be cleaned up here —
+    // otherwise reporting periods retain results pointing at a deleted
+    // indicator indefinitely.
+    const [resultCount, targetCount] = await Promise.all([
+      this.resultModel.deleteMany({ indicatorId, organizationId: orgId }),
+      this.targetModel.deleteMany({ indicatorId, organizationId: orgId }),
+    ]);
+
     await this.audit.record({
       organizationId, actorUserId,
       action: 'indicator.deleted', entityType: 'Indicator', entityId: id,
+      metadata: { cascadeDeleted: { resultCount: resultCount.deletedCount, targetCount: targetCount.deletedCount } },
     });
     return { deleted: true };
   }
@@ -300,9 +319,19 @@ export class IndicatorsService {
   // ─── Bulk delete (for project cleanup) ────────────────────────────────────
 
   async removeByProject(organizationId: string, projectId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const projId = new Types.ObjectId(projectId);
+
+    // Cascade results/targets for every indicator under this project before
+    // the indicators themselves are removed.
+    await Promise.all([
+      this.resultModel.deleteMany({ projectId: projId, organizationId: orgId }),
+      this.targetModel.deleteMany({ projectId: projId, organizationId: orgId }),
+    ]);
+
     return this.indicatorModel.deleteMany({
-      projectId:      new Types.ObjectId(projectId),
-      organizationId: new Types.ObjectId(organizationId),
+      projectId: projId,
+      organizationId: orgId,
     });
   }
 }

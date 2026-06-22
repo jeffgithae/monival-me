@@ -480,4 +480,23 @@ export class IntegrationsService {
 
     return { total, active, totalSynced, errors };
   }
+
+  /**
+   * Project cascade cleanup. Disables (does not delete) integrations
+   * scoped to the deleted project — this stops any scheduled KoboToolbox/
+   * ODK/CommCare/Ona sync from continuing to pull data against a project
+   * that no longer exists, while preserving the integration's connection
+   * config and field mappings in case it's ever repointed at a new project.
+   */
+  async disableForProject(organizationId: string, projectId: string) {
+    const result = await this.integrationModel.updateMany(
+      {
+        organizationId: new Types.ObjectId(organizationId),
+        projectId: new Types.ObjectId(projectId),
+        isActive: true,
+      },
+      { isActive: false, syncStatus: 'disabled' },
+    );
+    return { disabled: result.modifiedCount };
+  }
 }

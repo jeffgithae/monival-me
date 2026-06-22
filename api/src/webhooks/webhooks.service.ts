@@ -215,4 +215,19 @@ export class WebhooksService {
       .digest('hex');
     return `t=${timestamp},v1=${signed}`;
   }
+
+  /**
+   * Project cascade cleanup. Webhook.projectId is just an optional scope
+   * filter on an otherwise org-level subscription — clearing it makes the
+   * webhook org-wide instead of leaving it pointed at a project that no
+   * longer exists. The subscription itself (and its signing secret) stays
+   * intact.
+   */
+  async unscopeFromProject(organizationId: string, projectId: string) {
+    const result = await this.model.updateMany(
+      { organizationId: new Types.ObjectId(organizationId), projectId: new Types.ObjectId(projectId) },
+      { $unset: { projectId: 1 } },
+    );
+    return { modified: result.modifiedCount };
+  }
 }

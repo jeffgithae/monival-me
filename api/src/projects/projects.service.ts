@@ -8,10 +8,20 @@ import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EntitlementsService } from '../organizations/entitlements.service';
+import { BeneficiariesService } from '../beneficiaries/beneficiaries.service';
+import { BudgetService } from '../budget/budget.service';
+import { DocumentsService } from '../documents/documents.service';
+import { FormsService } from '../forms/forms.service';
+import { IntegrationsService } from '../forms/integrations.service';
+import { ImpactStoriesService } from '../impact-stories/impact-stories.service';
+import { ScheduledReportsService } from '../reports/scheduled-reports.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import { OrgRole } from '../common/constants/roles';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Activity } from '../activities/schemas/activity.schema';
 import { ReportingPeriod } from '../reporting/schemas/reporting-period.schema';
+import { IndicatorResult } from '../reporting/schemas/indicator-result.schema';
+import { IndicatorTarget } from '../reporting/schemas/indicator-target.schema';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import {
@@ -42,9 +52,19 @@ export class ProjectsService {
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
     @InjectModel(ReportingPeriod.name) private readonly periodModel: Model<ReportingPeriod>,
+    @InjectModel(IndicatorResult.name) private readonly resultModel: Model<IndicatorResult>,
+    @InjectModel(IndicatorTarget.name) private readonly targetModel: Model<IndicatorTarget>,
     private readonly entitlements: EntitlementsService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly beneficiariesService: BeneficiariesService,
+    private readonly budgetService: BudgetService,
+    private readonly documentsService: DocumentsService,
+    private readonly formsService: FormsService,
+    private readonly integrationsService: IntegrationsService,
+    private readonly impactStoriesService: ImpactStoriesService,
+    private readonly scheduledReportsService: ScheduledReportsService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   // ─── List ──────────────────────────────────────────────────────────────────
@@ -434,27 +454,54 @@ export class ProjectsService {
     if (!project) throw new NotFoundException('Project not found');
 
     // Count dependent records so caller can warn/confirm before deletion
-    const [indicatorCount, activityCount, periodCount] = await Promise.all([
+    const [indicatorCount, activityCount, periodCount, resultCount, targetCount] = await Promise.all([
       this.indicatorModel.countDocuments({ projectId, organizationId: orgId }),
       this.activityModel.countDocuments({ projectId, organizationId: orgId }),
       this.periodModel.countDocuments({ projectId, organizationId: orgId }),
+      this.resultModel.countDocuments({ projectId, organizationId: orgId }),
+      this.targetModel.countDocuments({ projectId, organizationId: orgId }),
     ]);
 
-    // Cascade delete all related records
+    // Cascade delete all related records.
+    // Direct deletes (this module owns the model or the field is required):
     await Promise.all([
       this.indicatorModel.deleteMany({ projectId, organizationId: orgId }),
       this.activityModel.deleteMany({ projectId, organizationId: orgId }),
       this.periodModel.deleteMany({ projectId, organizationId: orgId }),
+      this.resultModel.deleteMany({ projectId, organizationId: orgId }),
+      this.targetModel.deleteMany({ projectId, organizationId: orgId }),
       this.projectModel.deleteOne({ _id: id, organizationId: orgId }),
     ]);
+
+    // Cross-module cleanup — each service decides delete vs. unscope vs.
+    // disable based on whether projectId is a required field on its schema
+    // and whether the record has standalone value once the project is gone.
+    // Failures here are logged but never block the project deletion itself.
+    const crossModuleResults = await Promise.allSettled([
+      this.beneficiariesService.pullStaleProjectReferences(organizationId, id),
+      this.budgetService.unscopeFromProject(organizationId, id),
+      this.documentsService.unscopeFromProject(organizationId, id),
+      this.formsService.cleanupForProject(organizationId, id),
+      this.integrationsService.disableForProject(organizationId, id),
+      this.impactStoriesService.unscopeFromProject(organizationId, id),
+      this.scheduledReportsService.removeForProject(organizationId, id),
+      this.webhooksService.unscopeFromProject(organizationId, id),
+    ]);
+    const crossModuleFailures = crossModuleResults
+      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+      .map(r => String(r.reason));
 
     await this.audit.record({
       organizationId, actorUserId,
       action: 'project.deleted', entityType: 'Project', entityId: id,
-      metadata: { name: project.name, cascadeDeleted: { indicatorCount, activityCount, periodCount } },
+      metadata: {
+        name: project.name,
+        cascadeDeleted: { indicatorCount, activityCount, periodCount, resultCount, targetCount },
+        crossModuleFailures: crossModuleFailures.length ? crossModuleFailures : undefined,
+      },
     });
 
-    return { deleted: true, cascadeDeleted: { indicatorCount, activityCount, periodCount } };
+    return { deleted: true, cascadeDeleted: { indicatorCount, activityCount, periodCount, resultCount, targetCount } };
   }
 
   // ─── Archive / close ───────────────────────────────────────────────────────

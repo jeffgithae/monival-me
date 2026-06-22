@@ -2013,3 +2013,15 @@ export interface ImportResult {
   skipped: number;
   errors: Array<{ row: number; field?: string; message: string }>;
 }
+// ─── Pagination ──────────────────────────────────────────────────────────────
+// Matches api/src/common/types/paginated-results.ts exactly — list endpoints
+// that return this envelope (not a bare array) must type their api.service.ts
+// method against this, not T[], or callers get a false sense of array safety.
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+  hasMore: boolean;
+}

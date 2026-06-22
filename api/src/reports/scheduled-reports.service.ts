@@ -208,4 +208,19 @@ export class ScheduledReportsService {
 
     return next;
   }
+
+  /**
+   * Project cascade cleanup. ScheduledReport.projectId is required — a
+   * scheduled report can't meaningfully exist without the project it
+   * reports on, so these are deleted outright rather than unscoped
+   * (an "unscoped" recurring donor report with no project would just
+   * generate empty/broken output forever).
+   */
+  async removeForProject(organizationId: string, projectId: string) {
+    const result = await this.scheduledModel.deleteMany({
+      organizationId: new Types.ObjectId(organizationId),
+      projectId: new Types.ObjectId(projectId),
+    });
+    return { deleted: result.deletedCount };
+  }
 }

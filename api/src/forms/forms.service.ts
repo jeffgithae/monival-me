@@ -230,4 +230,29 @@ export class FormsService {
       throw new BadRequestException({ message: 'Form response failed validation', errors });
     }
   }
+
+  /**
+   * Project cascade cleanup. FormResponse.projectId is a required field —
+   * a response without a project violates its own schema, so responses
+   * are deleted outright. FormTemplate.projectId is optional (a template
+   * can be reused across projects), so templates are unscoped instead of
+   * deleted — the template itself is still useful org-wide.
+   */
+  async cleanupForProject(organizationId: string, projectId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const projId = new Types.ObjectId(projectId);
+
+    const [responses, templates] = await Promise.all([
+      this.responseModel.deleteMany({ organizationId: orgId, projectId: projId }),
+      this.templateModel.updateMany(
+        { organizationId: orgId, projectId: projId },
+        { $unset: { projectId: 1 } },
+      ),
+    ]);
+
+    return {
+      responsesDeleted: responses.deletedCount,
+      templatesUnscoped: templates.modifiedCount,
+    };
+  }
 }

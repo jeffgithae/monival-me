@@ -214,4 +214,17 @@ export class ImpactStoriesService {
     result.total = (result.draft ?? 0) + (result.review ?? 0) + (result.published ?? 0) + (result.archived ?? 0);
     return result;
   }
+
+  /**
+   * Project cascade cleanup. Impact stories retain narrative/marketing
+   * value even after the project they describe has ended or been removed
+   * — unscope rather than delete.
+   */
+  async unscopeFromProject(organizationId: string, projectId: string) {
+    const result = await this.model.updateMany(
+      { organizationId: new Types.ObjectId(organizationId), projectId: new Types.ObjectId(projectId) },
+      { $unset: { projectId: 1 } },
+    );
+    return { modified: result.modifiedCount };
+  }
 }

@@ -24,5 +24,6 @@ import { OrgCloudCredentials, OrgCloudCredentialsSchema } from './schemas/org-cl
   ],
   controllers: [DocumentsController, CloudStorageController],
   providers: [DocumentsService, CloudStorageService],
+  exports: [DocumentsService, CloudStorageService],
 })
 export class DocumentsModule {}

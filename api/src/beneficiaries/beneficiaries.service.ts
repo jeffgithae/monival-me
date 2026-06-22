@@ -434,6 +434,37 @@ export class BeneficiariesService {
     return { merged: true, primaryId };
   }
 
+  // ─── Project cascade cleanup ────────────────────────────────────────────────
+
+  /**
+   * Beneficiaries are org-scoped, not project-scoped — deleting a project
+   * does not delete beneficiary records. But programEnrollments and
+   * serviceHistory entries embed a projectId, and those go stale once the
+   * project is gone. Pull those specific array entries rather than leaving
+   * dangling references the UI would otherwise try (and fail) to resolve
+   * to a project name.
+   */
+  async pullStaleProjectReferences(organizationId: string, projectId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const projId = new Types.ObjectId(projectId);
+    const result = await this.model.updateMany(
+      {
+        organizationId: orgId,
+        $or: [
+          { 'programEnrollments.projectId': projId },
+          { 'serviceHistory.projectId': projId },
+        ],
+      },
+      {
+        $pull: {
+          programEnrollments: { projectId: projId },
+          serviceHistory: { projectId: projId },
+        },
+      },
+    );
+    return { matched: result.matchedCount, modified: result.modifiedCount };
+  }
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   private computeAgeGroup(age: number): string {

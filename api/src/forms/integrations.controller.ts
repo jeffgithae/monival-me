@@ -5,6 +5,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { IntegrationsService } from './integrations.service';
@@ -20,16 +23,18 @@ interface UploadedMulterFile {
 }
 
 @Controller('forms/integrations')
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
 export class IntegrationsController {
   constructor(private readonly service: IntegrationsService) {}
 
   @Get('stats')
+  @Roles(...PERMISSIONS.VIEW_DATA_COLLECTION)
   getStats(@CurrentUser() user: JwtPayload) {
     return this.service.getStats(user.organizationId);
   }
 
   @Get()
+  @Roles(...PERMISSIONS.VIEW_DATA_COLLECTION)
   findAll(
     @CurrentUser() user: JwtPayload,
     @Query('projectId') projectId?: string,
@@ -38,11 +43,13 @@ export class IntegrationsController {
   }
 
   @Get(':id')
+  @Roles(...PERMISSIONS.VIEW_DATA_COLLECTION)
   findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.service.findOne(user.organizationId, id);
   }
 
   @Post()
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   create(
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateIntegrationDto,
@@ -51,6 +58,7 @@ export class IntegrationsController {
   }
 
   @Patch(':id')
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   update(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
@@ -60,12 +68,14 @@ export class IntegrationsController {
   }
 
   @Delete(':id')
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.service.remove(user.organizationId, id);
   }
 
   /** Manually trigger a pull-sync for KoboToolbox / ODK / Ona / CommCare */
   @Post(':id/sync')
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   triggerSync(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
@@ -73,7 +83,7 @@ export class IntegrationsController {
     return this.service.triggerSync(user.organizationId, id, user.sub);
   }
 
-  /** Receive incoming webhook push (no subscription guard — external caller) */
+  /** Receive incoming webhook push (no subscription/role guard — external caller) */
   @Post(':id/webhook')
   @UseGuards(JwtAuthGuard)
   ingestWebhook(
@@ -86,6 +96,7 @@ export class IntegrationsController {
 
   /** Upload a CSV file and import rows as form responses */
   @Post(':id/upload')
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   @UseInterceptors(FileInterceptor('file'))
   async uploadCsv(
     @CurrentUser() user: JwtPayload,

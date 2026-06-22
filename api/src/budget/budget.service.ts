@@ -640,4 +640,19 @@ export class BudgetService {
       (end.getMonth() - start.getMonth()) + 1
     );
   }
+
+  /**
+   * When a project is deleted, budget allocations linked to it are
+   * unscoped rather than deleted — financial records need to survive for
+   * audit purposes even after the project they were originally allocated
+   * to no longer exists. The allocation becomes org-level/unassigned
+   * instead of disappearing.
+   */
+  async unscopeFromProject(organizationId: string, projectId: string) {
+    const result = await this.allocationModel.updateMany(
+      { organizationId: new Types.ObjectId(organizationId), projectId: new Types.ObjectId(projectId) },
+      { $unset: { projectId: 1 } },
+    );
+    return { modified: result.modifiedCount };
+  }
 }

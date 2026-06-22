@@ -26,6 +26,6 @@ import { ExternalIntegration, ExternalIntegrationSchema } from './schemas/extern
   ],
   controllers: [FormsController, IntegrationsController],
   providers: [FormsService, IntegrationsService],
-  exports: [IntegrationsService],
+  exports: [IntegrationsService, FormsService],
 })
 export class FormsModule {}

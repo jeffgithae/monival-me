@@ -733,8 +733,8 @@ export class ApiService {
 
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
-  donors(params?: { status?: string; type?: string; search?: string; tag?: string }) {
-    return this.http.get<Donor[]>(`${this.base}/donors`, { params: params as any });
+  donors(params?: { status?: string; type?: string; search?: string; tag?: string; page?: number; limit?: number }) {
+    return this.http.get<import('./models').PaginatedResult<Donor>>(`${this.base}/donors`, { params: params as any });
   }
   donor(id: string) {
     return this.http.get<Donor>(`${this.base}/donors/${id}`);

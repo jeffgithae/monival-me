@@ -193,4 +193,18 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
   }
+
+  /**
+   * When a project is deleted, documents tagged to it remain valid org
+   * artifacts (reports, agreements, evidence files) — unscope them rather
+   * than deleting, so nothing the org actually owns gets silently destroyed
+   * as a side effect of deleting one project.
+   */
+  async unscopeFromProject(organizationId: string, projectId: string) {
+    const result = await this.documentModel.updateMany(
+      { organizationId: new Types.ObjectId(organizationId), projectId: new Types.ObjectId(projectId) },
+      { $unset: { projectId: 1 } },
+    );
+    return { modified: result.modifiedCount };
+  }
 }
