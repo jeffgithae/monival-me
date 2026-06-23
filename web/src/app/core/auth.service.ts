@@ -63,10 +63,15 @@ export class AuthService {
   get isLoggedIn(): boolean { return !!this.token; }
 
   register(payload: {
-    email: string; password: string; name: string;
-    organizationName: string; country?: string; sector?: string; planId?: string;
+    email: string; password?: string; name: string;
   }) {
     return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register`, payload);
+  }
+
+  bootstrapWorkspace(payload: {
+    name: string; country?: string; sector?: string; planId?: string;
+  }) {
+    return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/bootstrap`, payload);
   }
 
   /**
