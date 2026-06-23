@@ -15,13 +15,19 @@ import { GoogleAuthComponent } from '../../shared/google-auth.component';
   styleUrl: '../login/login.component.scss',
 })
 export class RegisterComponent implements OnInit {
+  step: 'account' | 'workspace' = 'account';
+
+  // Step 1: Account
   email = '';
   password = '';
   name = '';
+
+  // Step 2: Workspace
   organizationName = '';
   country = '';
   sector = '';
   planId = 'trial';
+
   error = signal('');
   loading = signal(false);
 
@@ -33,6 +39,8 @@ export class RegisterComponent implements OnInit {
 
   ngOnInit() {
     const plan = this.route.snapshot.queryParamMap.get('plan');
+    const setup = this.route.snapshot.queryParamMap.get('setup');
+
     if (
       plan === 'starter' ||
       plan === 'professional' ||
@@ -41,9 +49,13 @@ export class RegisterComponent implements OnInit {
     ) {
       this.planId = plan;
     }
+
+    if (setup === 'true' || (this.auth.isLoggedIn && !this.auth.user()?.organizationId)) {
+      this.step = 'workspace';
+    }
   }
 
-  submit() {
+  submitAccount() {
     this.loading.set(true);
     this.error.set('');
     this.auth
@@ -51,7 +63,26 @@ export class RegisterComponent implements OnInit {
         email: this.email,
         password: this.password,
         name: this.name,
-        organizationName: this.organizationName,
+      })
+      .subscribe({
+        next: (res) => {
+          this.auth.completeRegistration(res, false); // Save token but don't redirect yet
+          this.loading.set(false);
+          this.step = 'workspace';
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(formatHttpError(err, 'Account creation failed'));
+        },
+      });
+  }
+
+  submitWorkspace() {
+    this.loading.set(true);
+    this.error.set('');
+    this.auth
+      .bootstrapWorkspace({
+        name: this.organizationName,
         country: this.country || undefined,
         sector: this.sector || undefined,
         planId: this.planId,
@@ -72,7 +103,7 @@ export class RegisterComponent implements OnInit {
                 },
                 error: (err) => {
                   this.loading.set(false);
-                  this.error.set(formatHttpError(err, 'Account created but checkout failed'));
+                  this.error.set(formatHttpError(err, 'Workspace created but checkout failed'));
                 },
               });
             }
@@ -83,7 +114,7 @@ export class RegisterComponent implements OnInit {
         },
         error: (err) => {
           this.loading.set(false);
-          this.error.set(formatHttpError(err, 'Registration failed'));
+          this.error.set(formatHttpError(err, 'Workspace creation failed'));
         },
       });
   }
@@ -94,7 +125,14 @@ export class RegisterComponent implements OnInit {
     this.auth.googleLogin(credential).subscribe({
       next: (res: any) => {
         this.loading.set(false);
-        // Navigate or handle post-login as needed
+        this.auth.completeRegistration(res, false); // Save tokens
+        
+        // If user already has an org, redirect them. If not, go to workspace step.
+        if (res.user?.organizationId) {
+          this.auth.completeRegistration(res, true); // this will redirect
+        } else {
+          this.step = 'workspace';
+        }
       },
       error: (err: any) => {
         this.loading.set(false);

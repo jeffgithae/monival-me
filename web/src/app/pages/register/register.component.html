@@ -3,65 +3,80 @@
     <div class="brand">
       <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
       <p class="eyebrow">Launch faster</p>
-      <h1>Create your NGO monitoring account</h1>
-      <p>Register your organisation, add your first administrator, and choose a plan built for grant-funded programs.
-      </p>
+      <h1>{{ step === 'account' ? 'Create your account' : 'Set up your workspace' }}</h1>
+      <p>{{ step === 'account' ? 'Register as an administrator to get started.' : 'Tell us about your organisation and choose a plan.' }}</p>
     </div>
 
-    <app-google-auth (onSuccess)="onGoogleSuccess($event)"></app-google-auth>
+    @if (step === 'account') {
+      <app-google-auth (onSuccess)="onGoogleSuccess($event)"></app-google-auth>
+      
+      <div class="divider"><span>or register with email</span></div>
 
-    <div class="divider"><span>or register with email</span></div>
+      <form (ngSubmit)="submitAccount()">
+        <div class="grid-2">
+          <div class="full">
+            <label>Your name</label>
+            <input [(ngModel)]="name" name="name" required />
+          </div>
+          <div class="full">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="email" name="email" required />
+          </div>
+          <div class="full">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="password" name="password" required minlength="8" />
+          </div>
+        </div>
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+        <button type="submit" [disabled]="loading()">
+          {{ loading() ? 'Continuing…' : 'Continue' }}
+        </button>
+      </form>
+    } @else {
+      <form (ngSubmit)="submitWorkspace()">
+        <div class="grid-2">
+          <div class="full">
+            <label>Organisation name</label>
+            <input [(ngModel)]="organizationName" name="organizationName" required />
+          </div>
+          <div>
+            <label>Country</label>
+            <input [(ngModel)]="country" name="country" />
+          </div>
+          <div>
+            <label>Sector</label>
+            <input [(ngModel)]="sector" name="sector" placeholder="e.g. Health, Education" />
+          </div>
+          <div class="full">
+            <label>Plan</label>
+            <select [(ngModel)]="planId" name="planId">
+              <option value="trial">Free 14-day trial (no card)</option>
+              <option value="starter">Starter — $99/mo</option>
+              <option value="professional">Growth — $299/mo</option>
+              <option value="organization">Organization — $699/mo</option>
+            </select>
+            <a routerLink="/pricing" class="plan-link">Compare plans</a>
+          </div>
+        </div>
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+        <button type="submit" [disabled]="loading()">
+          {{ loading() ? 'Creating workspace…' : 'Create workspace' }}
+        </button>
+      </form>
+    }
 
-    <form (ngSubmit)="submit()">
-      <div class="grid-2">
-        <div>
-          <label>Your name</label>
-          <input [(ngModel)]="name" name="name" required />
-        </div>
-        <div>
-          <label>Email</label>
-          <input type="email" [(ngModel)]="email" name="email" required />
-        </div>
-        <div>
-          <label>Password</label>
-          <input type="password" [(ngModel)]="password" name="password" required minlength="8" />
-        </div>
-        <div>
-          <label>Organisation name</label>
-          <input [(ngModel)]="organizationName" name="organizationName" required />
-        </div>
-        <div>
-          <label>Country</label>
-          <input [(ngModel)]="country" name="country" />
-        </div>
-        <div>
-          <label>Sector</label>
-          <input [(ngModel)]="sector" name="sector" placeholder="e.g. Health, Education" />
-        </div>
-        <div class="full">
-          <label>Plan</label>
-          <select [(ngModel)]="planId" name="planId">
-            <option value="trial">Free 14-day trial (no card)</option>
-            <option value="starter">Starter — $99/mo</option>
-            <option value="professional">Growth — $299/mo</option>
-            <option value="organization">Organization — $699/mo</option>
-          </select>
-          <a routerLink="/pricing" class="plan-link">Compare plans</a>
-        </div>
-      </div>
-      @if (error()) {
-      <p class="error">{{ error() }}</p>
-      }
-      <button type="submit" [disabled]="loading()">
-        {{ loading() ? 'Creating…' : 'Create workspace' }}
-      </button>
-    </form>
-    <p class="foot">Already registered? <a routerLink="/login">Sign in</a></p>
-    <p class="legal-foot">
-      By creating an account you agree to our
-      <a routerLink="/terms">Terms of Service</a>,
-      <a routerLink="/privacy">Privacy Policy</a>, and
-      <a routerLink="/refund">Refund Policy</a>.
-    </p>
+    @if (step === 'account') {
+      <p class="foot">Already registered? <a routerLink="/login">Sign in</a></p>
+      <p class="legal-foot">
+        By creating an account you agree to our
+        <a routerLink="/terms">Terms of Service</a>,
+        <a routerLink="/privacy">Privacy Policy</a>, and
+        <a routerLink="/refund">Refund Policy</a>.
+      </p>
+    }
   </div>
 </div>
