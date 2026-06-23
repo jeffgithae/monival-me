@@ -23,11 +23,18 @@ export class GoogleAuthComponent implements OnInit {
   @Output() onSuccess = new EventEmitter<string>();
 
   ngOnInit() {
-    if (typeof google === 'undefined' || !google?.accounts) {
-      console.warn('Google Identity Services script not loaded');
-      return;
-    }
+    this.checkAndRender();
+  }
 
+  private checkAndRender() {
+    if (typeof google !== 'undefined' && google?.accounts) {
+      this.renderButton();
+    } else {
+      setTimeout(() => this.checkAndRender(), 100);
+    }
+  }
+
+  private renderButton() {
     google.accounts.id.initialize({
       client_id: environment.googleClientId,
       callback: (res: any) => this.handleCredentialResponse(res),
