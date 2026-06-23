@@ -8,8 +8,16 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   passwordHash!: string;
+
+  /** Google OAuth subject ID — set when user signs in/up via Google */
+  @Prop({ type: String, sparse: true, unique: true })
+  googleId?: string;
+
+  /** URL to the user's Google profile picture */
+  @Prop({ type: String })
+  avatarUrl?: string;
 
   @Prop({ required: true, trim: true })
   name!: string;

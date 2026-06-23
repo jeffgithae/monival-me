@@ -50,6 +50,12 @@ export class AuthController {
     return this.authService.resetPassword(body.token, body.newPassword);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Post('google')
+  googleLogin(@Body() body: { idToken: string }) {
+    return this.authService.googleLogin(body.idToken);
+  }
+
   /**
    * POST /auth/refresh
    * Exchange a valid refresh token for a new access token + rotated refresh token.

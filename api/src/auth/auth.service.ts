@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { Model } from 'mongoose';
 import { PlanId } from '../common/constants/plans';
 import { OrgRole } from '../common/constants/roles';
@@ -43,7 +44,12 @@ export class AuthService {
     private readonly membersService: MembersService,
     private readonly billingService: BillingService,
     private readonly mailer: MailerService,
-  ) {}
+  ) {
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    this.googleClient = googleClientId ? new OAuth2Client(googleClientId) : null;
+  }
+
+  private readonly googleClient: OAuth2Client | null;
 
   async register(dto: RegisterDto) {
     const existing = await this.userModel.findOne({ email: dto.email.toLowerCase() });
@@ -114,7 +120,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    const valid = user.passwordHash ? await bcrypt.compare(dto.password, user.passwordHash) : false;
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -260,6 +266,93 @@ export class AuthService {
     });
 
     return { success: true };
+  }
+
+  // ── Google OAuth ─────────────────────────────────────────────────────────────
+
+  async googleLogin(idToken: string) {
+    if (!this.googleClient) {
+      throw new UnauthorizedException('Google login is not configured. Set GOOGLE_CLIENT_ID in your environment.');
+    }
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    }).catch(() => {
+      throw new UnauthorizedException('Invalid Google token');
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.sub) {
+      throw new UnauthorizedException('Invalid Google token payload');
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // 1. Look up by googleId first (existing Google user)
+    let user = await this.userModel.findOne({ googleId });
+
+    if (!user) {
+      // 2. Look up by email (user registered with email/password, now linking Google)
+      user = await this.userModel.findOne({ email: email.toLowerCase() });
+
+      if (user) {
+        // Link the Google account to this existing user
+        user.googleId = googleId;
+        if (picture && !user.avatarUrl) user.avatarUrl = picture;
+        await user.save();
+      } else {
+        // 3. Brand-new user — auto-create org + account
+        const displayName = name || email.split('@')[0];
+        const slug = await this.buildUniqueSlug(displayName + '-org');
+        const org = await this.orgModel.create({
+          name: `${displayName}'s Organisation`,
+          slug,
+          planId: 'trial',
+          subscriptionStatus: 'trialing',
+        });
+
+        await this.organizationsService.startTrial(org._id, 'trial');
+
+        user = await this.userModel.create({
+          email: email.toLowerCase(),
+          name: displayName,
+          googleId,
+          avatarUrl: picture,
+          organizationId: org._id,
+        });
+
+        await this.membersService.ensureMemberRecord(user._id, org._id, OrgRole.OWNER);
+
+        // Send onboarding email
+        const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
+        const body = this.mailer.onboardingEmail({ name: displayName, appUrl });
+        await this.mailer.send({ to: email, subject: 'Welcome to Evidara!', ...body });
+      }
+    } else {
+      // Update avatar if changed
+      if (picture && user.avatarUrl !== picture) {
+        user.avatarUrl = picture;
+        await user.save();
+      }
+    }
+
+    // Build auth response
+    let member = await this.memberModel.findOne({
+      userId: user._id,
+      organizationId: user.organizationId,
+      status: 'active',
+    });
+
+    if (!member) {
+      member = await this.membersService.ensureMemberRecord(
+        user._id,
+        user.organizationId,
+        OrgRole.OWNER,
+      );
+    }
+
+    return this.buildAuthResponse(user, member);
   }
 
   // ── Refresh Token ──────────────────────────────────────────────────────────
