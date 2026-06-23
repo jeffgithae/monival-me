@@ -108,7 +108,8 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.userModel.findOne({ email: dto.email.toLowerCase() });
+    const user = await this.userModel.findOne({ email: dto.email.toLowerCase() })
+      .select('+mfaSecret +mfaBackupCodes');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -116,6 +117,20 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // ── MFA gate ──────────────────────────────────────────────────────────────
+    if (user.mfaEnabled) {
+      // Issue a short-lived challenge token instead of a full auth token.
+      // The client must POST /auth/mfa/verify with this token + TOTP code.
+      const challengeToken = this.jwtService.sign(
+        { sub: user._id.toString(), mfaChallenge: true },
+        {
+          secret: this.configService.get<string>('JWT_SECRET', ''),
+          expiresIn: '5m',
+        },
+      );
+      return { mfaRequired: true, challengeToken };
     }
 
     let member = await this.memberModel.findOne({
@@ -130,6 +145,54 @@ export class AuthService {
         user.organizationId,
         OrgRole.OWNER,
       );
+    }
+
+    return this.buildAuthResponse(user, member);
+  }
+
+  async verifyMfaLogin(challengeToken: string, totpCode: string) {
+    let payload: { sub: string; mfaChallenge?: boolean };
+    try {
+      payload = this.jwtService.verify(challengeToken, {
+        secret: this.configService.get<string>('JWT_SECRET', ''),
+      });
+    } catch {
+      throw new UnauthorizedException('Challenge token invalid or expired');
+    }
+
+    if (!payload.mfaChallenge) {
+      throw new UnauthorizedException('Invalid challenge token');
+    }
+
+    const user = await this.userModel.findById(payload.sub).select('+mfaSecret +mfaBackupCodes');
+    if (!user || !user.mfaEnabled || !user.mfaSecret) {
+      throw new UnauthorizedException('MFA not configured');
+    }
+
+    const isValidTotp = require('speakeasy').totp.verify({
+      secret: user.mfaSecret,
+      encoding: 'base32',
+      token: totpCode,
+      window: 1,
+    });
+
+    if (!isValidTotp) {
+      // Check backup codes
+      const codeHash = require('crypto').createHash('sha256').update(totpCode).digest('hex');
+      const idx = user.mfaBackupCodes.indexOf(codeHash);
+      if (idx === -1) throw new UnauthorizedException('Invalid MFA code');
+      // Consume the backup code
+      user.mfaBackupCodes.splice(idx, 1);
+      await user.save();
+    }
+
+    let member = await this.memberModel.findOne({
+      userId: user._id,
+      organizationId: user.organizationId,
+      status: 'active',
+    });
+    if (!member) {
+      member = await this.membersService.ensureMemberRecord(user._id, user.organizationId, OrgRole.OWNER);
     }
 
     return this.buildAuthResponse(user, member);

@@ -47,7 +47,7 @@ export function canManageOrganization(role: OrgRole): boolean {
 }
 
 export function canManageBeneficiaries(role: OrgRole): boolean {
-  return ['owner', 'admin', 'me_officer', 'finance', 'field_officer'].includes(role);
+  return ['owner', 'admin', 'me_officer', 'finance'].includes(role);
 }
 
 export function canManageGrants(role: OrgRole): boolean {

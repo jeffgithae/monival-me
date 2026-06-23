@@ -214,6 +214,12 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
+    // Bump tokenVersion so the user's existing JWT is rejected on next use
+    await this.userModel.updateOne(
+      { _id: member.userId },
+      { $inc: { tokenVersion: 1 } },
+    );
+
     const user = await this.userModel.findById(member.userId);
     const org = await this.orgModel.findById(organizationId);
     if (user && org) {

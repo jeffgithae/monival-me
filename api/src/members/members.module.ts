@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { OrganizationsModule } from '../organizations/organizations.module';
@@ -11,6 +12,7 @@ import { OrganizationMember, OrganizationMemberSchema } from './schemas/organiza
 
 @Module({
   imports: [
+    AuditModule,
     OrganizationsModule,
     MailerModule,
     MongooseModule.forFeature([

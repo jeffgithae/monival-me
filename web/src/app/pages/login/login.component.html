@@ -1,39 +1,71 @@
 <div class="auth-page">
   <div class="auth-card">
-    <div class="brand">
-      <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
-      <p class="eyebrow">Secure access</p>
-      <h1>Sign in to Evidara </h1>
-      <p>Access your organisation's grant tracking, dashboards, and reporting tools from one premium workspace.</p>
-    </div>
-    <form (ngSubmit)="submit()">
-      <label>Email</label>
-      <input type="email" [(ngModel)]="email" name="email" required />
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-        <label style="margin-bottom: 0;">Password</label>
-        <a routerLink="/forgot-password" style="font-size: 0.85rem; font-weight: 500; color: #4338ca; text-decoration: none;">Forgot password?</a>
+
+    @if (step() === 'credentials') {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <p class="eyebrow">Secure access</p>
+        <h1>Sign in to Evidara</h1>
+        <p>Access your organisation's grant tracking, dashboards, and reporting tools from one premium workspace.</p>
       </div>
-      <input type="password" [(ngModel)]="password" name="password" required />
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
-      <button type="submit" [disabled]="loading()">
-        {{ loading() ? 'Signing in…' : 'Sign in' }}
-      </button>
-    </form>
-    @if (showDemoHint) {
-      <div class="demo-hint">
-        <strong>Demo account</strong> (requires API on port 3000)<br />
-        Email: <code>{{ demoEmail }}</code><br />
-        Password: <code>{{ demoPassword }}</code>
-        <button type="button" class="fill-demo" (click)="email = demoEmail; password = demoPassword">
-          Fill credentials
+      <form (ngSubmit)="submit()">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+          <label style="margin-bottom: 0;">Password</label>
+          <a routerLink="/forgot-password" style="font-size: 0.85rem; font-weight: 500; color: #4338ca; text-decoration: none;">Forgot password?</a>
+        </div>
+        <input type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+        <button type="submit" [disabled]="loading()">
+          {{ loading() ? 'Signing in…' : 'Sign in' }}
         </button>
-      </div>
+      </form>
+      @if (showDemoHint) {
+        <div class="demo-hint">
+          <strong>Demo account</strong> (requires API on port 3000)<br />
+          Email: <code>{{ demoEmail }}</code><br />
+          Password: <code>{{ demoPassword }}</code>
+          <button type="button" class="fill-demo" (click)="email = demoEmail; password = demoPassword">
+            Fill credentials
+          </button>
+        </div>
+      }
+      <p class="foot">
+        No account? <a routerLink="/register">Create organisation</a> ·
+        <a routerLink="/pricing">View plans</a>
+      </p>
     }
-    <p class="foot">
-      No account? <a routerLink="/register">Create organisation</a> ·
-      <a routerLink="/pricing">View plans</a>
-    </p>
+
+    @if (step() === 'mfa') {
+      <div class="brand">
+        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <p class="eyebrow">Two-factor authentication</p>
+        <h1>Enter your code</h1>
+        <p>Open your authenticator app and enter the 6-digit code for Evidara.</p>
+      </div>
+      <form (ngSubmit)="verifyMfa()">
+        <label>Authentication code</label>
+        <input type="text" [(ngModel)]="totpCode" name="totpCode"
+          inputmode="numeric" autocomplete="one-time-code"
+          placeholder="000000" maxlength="6" autofocus
+          style="letter-spacing: 0.3em; font-size: 1.5rem; text-align: center;" />
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+        <button type="submit" [disabled]="loading() || totpCode.length < 6">
+          {{ loading() ? 'Verifying…' : 'Verify & sign in' }}
+        </button>
+      </form>
+      <p class="foot">
+        <button class="link-btn" (click)="backToCredentials()">← Use a different account</button>
+      </p>
+      <p class="foot" style="font-size:0.8rem; color:#9ca3af; margin-top:0.35rem;">
+        Lost access to your authenticator? Enter a backup code above.
+      </p>
+    }
+
   </div>
 </div>

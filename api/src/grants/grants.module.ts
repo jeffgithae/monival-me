@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Grant, GrantSchema } from './schemas/grant.schema';
 import { Donor, DonorSchema } from '../donors/schemas/donor.schema';
@@ -9,6 +10,7 @@ import { GrantsController } from './grants.controller';
 
 @Module({
   imports: [
+    AuditModule,
     NotificationsModule,
     MongooseModule.forFeature([
       { name: Grant.name, schema: GrantSchema },

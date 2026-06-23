@@ -92,7 +92,18 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // ── 403 ───────────────────────────────────────────────────────────────
       if (err.status === 403) {
         const msg = extractMessage(err) || 'You don\'t have permission to do that.';
-        toaster.warning(msg);
+        // Subscription/trial expired → redirect to billing instead of generic toast
+        if (
+          msg.includes('trial has ended') ||
+          msg.includes('active subscription is required') ||
+          msg.includes('Subscribe in Billing') ||
+          msg.includes('Go to Billing')
+        ) {
+          router.navigate(['/settings/billing']);
+          toaster.warning('Your subscription has expired. Please update your billing to continue.');
+        } else {
+          toaster.warning(msg);
+        }
         return throwError(() => err);
       }
 

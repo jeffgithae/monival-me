@@ -1,3 +1,6 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { Controller, Get, Param, UseInterceptors, Post, UploadedFile, UploadedFiles, HttpException, HttpStatus } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
@@ -6,6 +9,7 @@ import { getDataFromFile } from '../utilities/file.read';
 import { parseAIResponse } from '../utilities/utilities';
 import { OPENAI_PROMPTS } from '@Sibasi/core';
 
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 @Controller('openai')
 @ApiTags('OpenAI')
 export class OpenaiController {

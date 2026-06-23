@@ -13,6 +13,12 @@ export class ImpactStory {
   @Prop({ type: Types.ObjectId, ref: 'Project' })
   projectId?: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Activity' })
+  activityId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Indicator' })
+  indicatorId?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'OrganizationMember', required: true })
   authorUserId!: Types.ObjectId;
 

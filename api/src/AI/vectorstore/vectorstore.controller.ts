@@ -1,3 +1,6 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { Controller, Delete, Get, Param, Post, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { VectorstoreService } from './vectorstore.service';
 import { ApiTags, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
@@ -5,6 +8,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 
 @ApiTags('Vectorstore')
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 @Controller('vectorstore')
 export class VectorstoreController {
     constructor(private readonly vectorStoreService: VectorstoreService) {}

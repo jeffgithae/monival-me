@@ -208,3 +208,13 @@ button[type='submit']:disabled {
     grid-template-columns: 1fr;
   }
 }
+.link-btn {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-weight: 600;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  &:hover { text-decoration: underline; }
+}

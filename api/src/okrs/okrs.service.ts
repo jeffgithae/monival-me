@@ -2,11 +2,15 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { OKR, OKRDocument } from './schemas/okr.schema';
+import { Indicator } from '../indicators/schemas/indicator.schema';
 import { CreateOKRDto, UpdateOKRDto, UpdateKeyResultDto } from './dto/okr.dto';
 
 @Injectable()
 export class OKRService {
-  constructor(@InjectModel(OKR.name) private okrModel: Model<OKRDocument>) {}
+  constructor(
+    @InjectModel(OKR.name) private okrModel: Model<OKRDocument>,
+    @InjectModel(Indicator.name) private indicatorModel: Model<Indicator>,
+  ) {}
 
   async create(organizationId: string, createDto: CreateOKRDto): Promise<OKRDocument> {
     const okr = new this.okrModel({
@@ -47,6 +51,25 @@ export class OKRService {
 
     if (!okr || okr.organizationId.toString() !== organizationId) {
       throw new NotFoundException('OKR not found');
+    }
+
+    // Sync currentValue from linked indicators (live data pull)
+    let dirty = false;
+    for (const kr of okr.keyResults) {
+      if (kr.indicatorId) {
+        const ind = await this.indicatorModel
+          .findOne({ _id: kr.indicatorId, organizationId: new Types.ObjectId(organizationId) })
+          .select('achieved')
+          .lean<{ achieved?: number }>();
+        if (ind && ind.achieved !== undefined && ind.achieved !== kr.currentValue) {
+          kr.currentValue = ind.achieved;
+          dirty = true;
+        }
+      }
+    }
+    if (dirty) {
+      await this.okrModel.findByIdAndUpdate(id, { keyResults: okr.keyResults });
+      await this.updateProgress(id);
     }
 
     return okr;

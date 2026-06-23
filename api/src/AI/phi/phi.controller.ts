@@ -1,3 +1,6 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { Controller, Get, Param, UseInterceptors, Post, UploadedFile, UploadedFiles, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
@@ -5,6 +8,7 @@ import { PhiService } from './phi.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { getDataFromFile } from '../utilities/file.read';
 
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 @Controller('phi')
 @ApiTags('Phi')
 export class PhiController {

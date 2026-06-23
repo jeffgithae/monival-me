@@ -33,6 +33,11 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('mfa/verify')
+  verifyMfa(@Body() dto: { challengeToken: string; totpCode: string }) {
+    return this.authService.verifyMfaLogin(dto.challengeToken, dto.totpCode);
+  }
+
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('forgot-password')
   forgotPassword(@Body() body: { email: string }) {

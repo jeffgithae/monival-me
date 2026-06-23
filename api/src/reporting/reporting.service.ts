@@ -93,8 +93,22 @@ export class ReportingService {
       .lean();
     const targetMap = new Map(targets.map((target) => [target.indicatorId.toString(), target]));
 
-    // Build all updates in memory first, then send as a single bulkWrite (C2 fix)
-    const bulkOps = indicators.map((indicator) => {
+    // Load existing results to check if any were manually entered
+    const existingResults = await this.resultModel
+      .find({ organizationId: orgId, reportingPeriodId: new Types.ObjectId(reportingPeriodId) })
+      .select('indicatorId source')
+      .lean();
+    const manualIndicatorIds = new Set(
+      existingResults
+        .filter((r: any) => r.source === 'manual')
+        .map((r: any) => r.indicatorId.toString()),
+    );
+
+    // Build all updates in memory first, then send as a single bulkWrite
+    // Skip indicators that have a manual result — don't silently overwrite them
+    const bulkOps = indicators
+      .filter((indicator) => !manualIndicatorIds.has(indicator._id.toString()))
+      .map((indicator) => {
       const linked = activities.filter(
         (a) => a.indicatorId?.toString() === indicator._id.toString(),
       );
@@ -107,6 +121,7 @@ export class ReportingService {
         reportingPeriodId: new Types.ObjectId(reportingPeriodId),
         indicatorId: indicator._id,
         achieved,
+        source: 'calculated',
         qualityFlags: this.qualityFlags({
           achieved,
           target: periodTarget?.target ?? indicator.target,
@@ -192,6 +207,7 @@ export class ReportingService {
         narrative: dto.narrative,
         disaggregations: dto.disaggregations ?? {},
         status: 'draft',
+        source: 'manual', // Marks this result as manually entered — calculateResults will not overwrite it
       },
       { new: true, upsert: true },
     );

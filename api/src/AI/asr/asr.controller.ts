@@ -1,8 +1,12 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 // asr.controller.ts
 import { Controller, Post, Body } from '@nestjs/common';
 import { AsrService } from './asr.service';
 import config from './config';
 
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 @Controller('asr')
 export class AsrController {
     constructor(private readonly asrService: AsrService) {}

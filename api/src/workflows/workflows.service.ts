@@ -200,6 +200,63 @@ export class WorkflowService {
     return instance;
   }
 
+  /**
+   * Auto-start the default workflow for a given entity type if one exists.
+   * Called non-blocking from other services (e.g. activities on submission).
+   */
+  async autoStartForEntity(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+    entityTitle: string,
+    initiatedByUserId: string,
+  ): Promise<void> {
+    // Find the default active definition for this entity type
+    const definition = await this.definitionModel.findOne({
+      organizationId: new Types.ObjectId(organizationId),
+      entityType: entityType as WorkflowEntityType,
+      isDefault: true,
+      isActive:  true,
+    }).lean() as WorkflowDefinitionDocument | null;
+
+    if (!definition) return; // No default workflow configured — skip silently
+
+    // Don't start a duplicate if one is already running for this entity
+    const existing = await this.instanceModel.findOne({
+      organizationId: new Types.ObjectId(organizationId),
+      entityId: new Types.ObjectId(entityId),
+      status: { $in: [WorkflowStatus.PENDING, WorkflowStatus.IN_REVIEW, WorkflowStatus.ESCALATED] },
+    }).lean() as WorkflowInstanceDocument | null;
+
+    if (existing) return;
+
+    const sortedSteps = [...definition.steps].sort((a, b) => a.order - b.order);
+    if (!sortedSteps.length) return;
+
+    const firstStep  = sortedSteps[0];
+    const stepDeadline = this._calcDeadline(firstStep.escalateAfterHours ?? 72);
+
+    const docs = await this.instanceModel.insertMany([{
+      organizationId:  new Types.ObjectId(organizationId),
+      definitionId:    definition._id,
+      entityType,
+      entityId:        new Types.ObjectId(entityId),
+      entityTitle,
+      initiatedBy:     new Types.ObjectId(initiatedByUserId),
+      initiatedByName: 'System (auto)',
+      status:          WorkflowStatus.PENDING,
+      currentStep:     1,
+      totalSteps:      sortedSteps.length,
+      steps:           sortedSteps as any[],
+      history:         [],
+      stepDeadline,
+    }]);
+    const instance = docs[0] as unknown as WorkflowInstanceDocument;
+
+    await this._notifyStep(instance, firstStep, organizationId);
+    this.logger.log(`Auto-workflow started: ${instance._id} for ${entityType}:${entityId}`);
+  }
+
   /** List instances — with optional "assigned to me" filter */
   async listInstances(
     organizationId: string,

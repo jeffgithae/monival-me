@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GrantsService } from '../grants/grants.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
+import { WorkflowService } from '../workflows/workflows.service';
 import { OrgRole } from '../common/constants/roles';
 import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
@@ -45,6 +46,7 @@ export class ActivitiesService {
     private readonly audit: AuditService,
     private readonly grantsService: GrantsService,
     private readonly webhooksService: WebhooksService,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   // ─── Validation ────────────────────────────────────────────────────────────
@@ -318,6 +320,11 @@ export class ActivitiesService {
         },
         userId,
       );
+
+      // Auto-start a workflow if a default activity-approval definition exists
+      this.workflowService.autoStartForEntity(
+        organizationId, 'activity', activity._id.toString(), activity.title, userId,
+      ).catch(() => {}); // non-blocking
     }
 
     await this.audit.record({
@@ -369,6 +376,29 @@ export class ActivitiesService {
         { new: true },
       ).lean();
     if (!activity) throw new NotFoundException('Activity not found');
+
+    // ── Indicator ↔ Activity linkage: sync achieved total ─────────────────
+    if (activity.indicatorId) {
+      try {
+        const agg = await this.activityModel.aggregate([
+          {
+            $match: {
+              organizationId: new Types.ObjectId(organizationId),
+              indicatorId: activity.indicatorId,
+              status: 'approved',
+            },
+          },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+        ]);
+        const totalAchieved: number = agg[0]?.total ?? 0;
+        await this.indicatorModel.updateOne(
+          { _id: activity.indicatorId, organizationId: new Types.ObjectId(organizationId) },
+          { $set: { achieved: totalAchieved } },
+        );
+      } catch {
+        // Non-blocking — indicator sync failure must not break activity approval
+      }
+    }
 
     // ── Grant ↔ Activity linkage: recalculate total approved spend ───────────
     if (status === 'approved' && activity.grantId) {
@@ -452,6 +482,26 @@ export class ActivitiesService {
       action: `activity.bulk_${status}`, entityType: 'Activity',
       metadata: { ids, status, modifiedCount: result.modifiedCount },
     });
+
+    // Sync achieved totals for all affected indicators (non-blocking)
+    if (status === 'approved' || status === 'rejected') {
+      const affected = await this.activityModel
+        .find({ _id: { $in: ids.map(id => new Types.ObjectId(id)) }, organizationId: new Types.ObjectId(organizationId) })
+        .select('indicatorId').lean();
+      const indicatorIds = [...new Set(affected.map(a => a.indicatorId?.toString()).filter(Boolean))];
+      for (const indId of indicatorIds) {
+        try {
+          const agg = await this.activityModel.aggregate([
+            { $match: { organizationId: new Types.ObjectId(organizationId), indicatorId: new Types.ObjectId(indId!), status: 'approved' } },
+            { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+          ]);
+          await this.indicatorModel.updateOne(
+            { _id: new Types.ObjectId(indId!), organizationId: new Types.ObjectId(organizationId) },
+            { $set: { achieved: agg[0]?.total ?? 0 } },
+          );
+        } catch { /* non-blocking */ }
+      }
+    }
 
     return { modifiedCount: result.modifiedCount };
   }

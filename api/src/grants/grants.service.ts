@@ -7,6 +7,7 @@ import { UpdateGrantDto } from './dto/update-grant.dto';
 import { Donor } from '../donors/schemas/donor.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { OrgRole } from '../common/constants/roles';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class GrantsService {
     @InjectModel(Donor.name) private donorModel: Model<Donor>,
     @InjectModel(Project.name) private projectModel: Model<Project>,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   private async assertReferences(organizationId: string, donorId?: string, linkedProjects?: string[]) {
@@ -158,7 +160,7 @@ export class GrantsService {
     return updated;
   }
 
-  async remove(id: string, organizationId: string): Promise<GrantDocument> {
+  async remove(id: string, organizationId: string, actorUserId?: string): Promise<GrantDocument> {
     const grant = await this.findOne(id, organizationId);
 
     const deleted = await this.grantModel.findByIdAndDelete(id).exec();
@@ -166,6 +168,15 @@ export class GrantsService {
     if (!deleted) {
       throw new NotFoundException('Grant not found');
     }
+
+    await this.audit.record({
+      organizationId,
+      actorUserId: actorUserId ?? 'system',
+      action: 'grant.deleted',
+      entityType: 'Grant',
+      entityId: id,
+      metadata: { name: grant.name, amount: grant.amount },
+    });
 
     return deleted;
   }

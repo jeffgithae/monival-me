@@ -38,6 +38,7 @@ export class OKR {
         confidence: { type: Number, min: 0, max: 100, default: 50 },
         status: { type: String, enum: ['not_started', 'in_progress', 'at_risk', 'completed'], default: 'not_started' },
         notes: String,
+        indicatorId: { type: Types.ObjectId, ref: 'Indicator', default: null },
       },
     ],
     default: [],
@@ -52,6 +53,7 @@ export class OKR {
     confidence: number;
     status: string;
     notes?: string;
+    indicatorId?: Types.ObjectId | null;
   }>;
 
   @Prop({ type: [Types.ObjectId], ref: 'Project', default: [] })

@@ -1,8 +1,12 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { Controller, Get, Param, UseInterceptors, Post, UploadedFile, UploadedFiles, HttpException, HttpStatus } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { WhisperService } from './whisper.service';
 import { ApiTags, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
 
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 @Controller('whisper')
 @ApiTags('Whisper')
 export class WhisperController {
