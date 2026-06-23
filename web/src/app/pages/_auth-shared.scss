@@ -63,6 +63,29 @@
   max-width: 34rem;
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  span {
+    padding: 0 1rem;
+  }
+}
+
 form {
   display: grid;
   gap: 1rem;

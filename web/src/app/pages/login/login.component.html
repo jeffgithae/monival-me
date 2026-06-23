@@ -8,6 +8,11 @@
         <h1>Sign in to Evidara</h1>
         <p>Access your organisation's grant tracking, dashboards, and reporting tools from one premium workspace.</p>
       </div>
+      
+      <app-google-auth (onSuccess)="onGoogleSuccess($event)"></app-google-auth>
+      
+      <div class="divider"><span>or sign in with email</span></div>
+
       <form (ngSubmit)="submit()">
         <label>Email</label>
         <input type="email" [(ngModel)]="email" name="email" required autocomplete="email" />

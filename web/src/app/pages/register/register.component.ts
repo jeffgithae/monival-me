@@ -5,11 +5,12 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
 import { LogoComponent } from '../../shared/logo.component';
+import { GoogleAuthComponent } from '../../shared/google-auth.component';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, LogoComponent],
+  imports: [FormsModule, RouterLink, LogoComponent, GoogleAuthComponent],
   templateUrl: './register.component.html',
   styleUrl: '../login/login.component.scss',
 })
@@ -85,5 +86,20 @@ export class RegisterComponent implements OnInit {
           this.error.set(formatHttpError(err, 'Registration failed'));
         },
       });
+  }
+
+  onGoogleSuccess(credential: string) {
+    this.loading.set(true);
+    this.error.set('');
+    this.auth.googleLogin(credential).subscribe({
+      next: (res: any) => {
+        this.loading.set(false);
+        // Navigate or handle post-login as needed
+      },
+      error: (err: any) => {
+        this.loading.set(false);
+        this.error.set(formatHttpError(err, 'Google registration failed'));
+      },
+    });
   }
 }

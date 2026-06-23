@@ -6,6 +6,11 @@
       <h1>Create your NGO monitoring account</h1>
       <p>Register your organisation, add your first administrator, and choose a plan built for grant-funded programs.</p>
     </div>
+
+    <app-google-auth (onSuccess)="onGoogleSuccess($event)"></app-google-auth>
+    
+    <div class="divider"><span>or register with email</span></div>
+
     <form (ngSubmit)="submit()">
       <div class="grid-2">
         <div>

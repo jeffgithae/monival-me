@@ -6,13 +6,14 @@ import { environment } from '../../../environments/environment.prod';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
 import { LogoComponent } from '../../shared/logo.component';
+import { GoogleAuthComponent } from '../../shared/google-auth.component';
 
 type Step = 'credentials' | 'mfa';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink, LogoComponent],
+  imports: [FormsModule, RouterLink, LogoComponent, GoogleAuthComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -77,5 +78,19 @@ export class LoginComponent {
     this.challengeToken = '';
     this.totpCode = '';
     this.error.set('');
+  }
+
+  onGoogleSuccess(credential: string) {
+    this.loading.set(true);
+    this.error.set('');
+    this.auth.googleLogin(credential).subscribe({
+      next: (res: any) => {
+        this.loading.set(false);
+      },
+      error: (err: any) => {
+        this.loading.set(false);
+        this.error.set(formatHttpError(err, 'Google login failed'));
+      },
+    });
   }
 }

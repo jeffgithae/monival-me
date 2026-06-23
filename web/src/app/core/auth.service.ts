@@ -93,6 +93,16 @@ export class AuthService {
       .pipe(tap(res => this.setSession(res)));
   }
 
+  googleLogin(idToken: string) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    return this.http
+      .post<AuthResponse>(`${environment.apiUrl}/auth/google`, {
+        idToken
+      })
+      .pipe(tap(res => this.setSession(res)));
+  }
+
   forgotPassword(email: string) {
     return this.http.post<{success: boolean}>(`${environment.apiUrl}/auth/forgot-password`, { email: email.trim().toLowerCase() });
   }
