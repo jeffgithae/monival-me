@@ -7,21 +7,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { OrganizationsService } from './organizations.service';
 
-import { AuthService } from '../auth/auth.service';
-import { BootstrapOrgDto } from './dto/bootstrap-org.dto';
-
 @Controller('organizations')
 @UseGuards(JwtAuthGuard)
 export class OrganizationsController {
-  constructor(
-    private readonly organizationsService: OrganizationsService,
-    private readonly authService: AuthService,
-  ) { }
-
-  @Post('bootstrap')
-  bootstrap(@CurrentUser() user: JwtPayload, @Body() dto: BootstrapOrgDto) {
-    return this.authService.bootstrapWorkspace(user.sub, dto);
-  }
+  constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Get('current')
   current(@CurrentUser() user: JwtPayload) {
