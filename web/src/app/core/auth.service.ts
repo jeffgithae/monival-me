@@ -23,21 +23,21 @@ interface RegisterResponse extends AuthResponse {
   checkout?: { url: string; mock?: boolean };
 }
 
-const TOKEN_KEY         = 'evidara_token';
+const TOKEN_KEY = 'evidara_token';
 const REFRESH_TOKEN_KEY = 'evidara_refresh_token';
-const NAV_CACHE_KEY     = 'evidara_nav_cache';
-const NAV_CACHE_TTL_MS  = 5 * 60 * 1000; // 5 minutes
+const NAV_CACHE_KEY = 'evidara_nav_cache';
+const NAV_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  isOwner()    { return this.user()?.role === 'owner'; }
-  isAdmin()    { return this.user()?.role === 'admin'; }
-  isFinance()  { return this.user()?.role === 'finance'; }
-  isMEOfficer(){ return this.user()?.role === 'me_officer'; }
+  isOwner() { return this.user()?.role === 'owner'; }
+  isAdmin() { return this.user()?.role === 'admin'; }
+  isFinance() { return this.user()?.role === 'finance'; }
+  isMEOfficer() { return this.user()?.role === 'me_officer'; }
 
-  readonly user         = signal<AuthUser | null>(null);
+  readonly user = signal<AuthUser | null>(null);
   readonly organization = signal<Organization | null>(null);
-  readonly navMenu      = signal<NavItem[]>([]);
+  readonly navMenu = signal<NavItem[]>([]);
 
   constructor(
     private readonly http: HttpClient,
@@ -58,9 +58,9 @@ export class AuthService {
     }
   }
 
-  get token(): string | null         { return localStorage.getItem(TOKEN_KEY); }
-  get refreshToken(): string | null  { return localStorage.getItem(REFRESH_TOKEN_KEY); }
-  get isLoggedIn(): boolean          { return !!this.token; }
+  get token(): string | null { return localStorage.getItem(TOKEN_KEY); }
+  get refreshToken(): string | null { return localStorage.getItem(REFRESH_TOKEN_KEY); }
+  get isLoggedIn(): boolean { return !!this.token; }
 
   register(payload: {
     email: string; password: string; name: string;
@@ -104,17 +104,17 @@ export class AuthService {
   }
 
   forgotPassword(email: string) {
-    return this.http.post<{success: boolean}>(`${environment.apiUrl}/auth/forgot-password`, { email: email.trim().toLowerCase() });
+    return this.http.post<{ success: boolean }>(`${environment.apiUrl}/auth/forgot-password`, { email: email.trim().toLowerCase() });
   }
 
   resetPassword(token: string, newPassword: string) {
-    return this.http.post<{success: boolean}>(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
+    return this.http.post<{ success: boolean }>(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
   }
 
   logout() {
     // Tell server to revoke the refresh token (fire-and-forget)
     if (this.token) {
-      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => { } });
     }
     this.clearSession();
     void this.router.navigate(['/login']);
@@ -128,7 +128,7 @@ export class AuthService {
    */
   clearSessionOnly() {
     if (this.token) {
-      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => { } });
     }
     this.clearSession();
   }
@@ -167,7 +167,7 @@ export class AuthService {
         this.navMenu.set(items);
         this.setNavCache(items);
       },
-      error: () => {},
+      error: () => { },
     });
   }
 

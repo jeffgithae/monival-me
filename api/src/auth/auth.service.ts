@@ -57,10 +57,32 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = await this.userModel.create({
+      email: dto.email.toLowerCase(),
+      passwordHash,
+      name: dto.name,
+    });
+
+    const auth = await this.buildAuthResponse(user, null);
+
+    return auth;
+  }
+
+  async bootstrapWorkspace(userId: string, dto: { name: string; country?: string; sector?: string; planId?: string }) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (user.organizationId) {
+      throw new ConflictException('User already belongs to an organization');
+    }
+
     const planId: PlanId = (dto.planId as PlanId) ?? 'trial';
-    const slug = await this.buildUniqueSlug(dto.organizationName);
+    const slug = await this.buildUniqueSlug(dto.name);
+    
     const org = await this.orgModel.create({
-      name: dto.organizationName,
+      name: dto.name,
       slug,
       country: dto.country,
       sector: dto.sector,
@@ -72,13 +94,8 @@ export class AuthService {
       await this.organizationsService.startTrial(org._id, 'trial');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = await this.userModel.create({
-      email: dto.email.toLowerCase(),
-      passwordHash,
-      name: dto.name,
-      organizationId: org._id,
-    });
+    user.organizationId = org._id;
+    await user.save();
 
     const member = await this.membersService.ensureMemberRecord(
       user._id,
@@ -139,13 +156,13 @@ export class AuthService {
       return { mfaRequired: true, challengeToken };
     }
 
-    let member = await this.memberModel.findOne({
+    let member = user.organizationId ? await this.memberModel.findOne({
       userId: user._id,
       organizationId: user.organizationId,
       status: 'active',
-    });
+    }) : null;
 
-    if (!member) {
+    if (!member && user.organizationId) {
       member = await this.membersService.ensureMemberRecord(
         user._id,
         user.organizationId,
@@ -302,32 +319,15 @@ export class AuthService {
         if (picture && !user.avatarUrl) user.avatarUrl = picture;
         await user.save();
       } else {
-        // 3. Brand-new user — auto-create org + account
+        // 3. Brand-new user — auto-create user only, no org yet
         const displayName = name || email.split('@')[0];
-        const slug = await this.buildUniqueSlug(displayName + '-org');
-        const org = await this.orgModel.create({
-          name: `${displayName}'s Organisation`,
-          slug,
-          planId: 'trial',
-          subscriptionStatus: 'trialing',
-        });
-
-        await this.organizationsService.startTrial(org._id, 'trial');
-
+        
         user = await this.userModel.create({
           email: email.toLowerCase(),
           name: displayName,
           googleId,
           avatarUrl: picture,
-          organizationId: org._id,
         });
-
-        await this.membersService.ensureMemberRecord(user._id, org._id, OrgRole.OWNER);
-
-        // Send onboarding email
-        const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
-        const body = this.mailer.onboardingEmail({ name: displayName, appUrl });
-        await this.mailer.send({ to: email, subject: 'Welcome to Evidara!', ...body });
       }
     } else {
       // Update avatar if changed
@@ -338,13 +338,13 @@ export class AuthService {
     }
 
     // Build auth response
-    let member = await this.memberModel.findOne({
+    let member = user.organizationId ? await this.memberModel.findOne({
       userId: user._id,
       organizationId: user.organizationId,
       status: 'active',
-    });
+    }) : null;
 
-    if (!member) {
+    if (!member && user.organizationId) {
       member = await this.membersService.ensureMemberRecord(
         user._id,
         user.organizationId,
@@ -459,17 +459,17 @@ export class AuthService {
 
   // ── Token building ─────────────────────────────────────────────────────────
 
-  private async buildAuthResponse(user: UserDocument, member: OrganizationMemberDocument) {
+  private async buildAuthResponse(user: UserDocument, member: OrganizationMemberDocument | null) {
     const jwtSecret = this.configService.get<string>('JWT_SECRET', '');
 
     const payload = {
       sub: user._id.toString(),
       email: user.email,
-      organizationId: user.organizationId.toString(),
-      role: member.role,
-      memberId: member._id.toString(),
-      projectScopeIds: member.projectScopeIds?.map((id) => id.toString()) ?? [],
-      partnerScopeIds: member.partnerScopeIds?.map((id) => id.toString()) ?? [],
+      organizationId: user.organizationId?.toString() ?? null,
+      role: member?.role ?? null,
+      memberId: member?._id?.toString() ?? null,
+      projectScopeIds: member?.projectScopeIds?.map((id) => id.toString()) ?? [],
+      partnerScopeIds: member?.partnerScopeIds?.map((id) => id.toString()) ?? [],
       tokenVersion: user.tokenVersion ?? 0,
     };
 
@@ -501,7 +501,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         organizationId: payload.organizationId,
-        role: member.role,
+        role: payload.role,
       },
     };
   }

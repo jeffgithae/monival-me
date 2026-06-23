@@ -13,7 +13,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly navService: NavService,
-  ) {}
+  ) { }
 
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('register')

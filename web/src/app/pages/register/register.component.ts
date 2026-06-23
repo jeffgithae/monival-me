@@ -29,7 +29,7 @@ export class RegisterComponent implements OnInit {
     private readonly auth: AuthService,
     private readonly api: ApiService,
     private readonly route: ActivatedRoute,
-  ) {}
+  ) { }
 
   ngOnInit() {
     const plan = this.route.snapshot.queryParamMap.get('plan');

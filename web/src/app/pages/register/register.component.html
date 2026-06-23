@@ -4,11 +4,12 @@
       <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
       <p class="eyebrow">Launch faster</p>
       <h1>Create your NGO monitoring account</h1>
-      <p>Register your organisation, add your first administrator, and choose a plan built for grant-funded programs.</p>
+      <p>Register your organisation, add your first administrator, and choose a plan built for grant-funded programs.
+      </p>
     </div>
 
     <app-google-auth (onSuccess)="onGoogleSuccess($event)"></app-google-auth>
-    
+
     <div class="divider"><span>or register with email</span></div>
 
     <form (ngSubmit)="submit()">
@@ -49,7 +50,7 @@
         </div>
       </div>
       @if (error()) {
-        <p class="error">{{ error() }}</p>
+      <p class="error">{{ error() }}</p>
       }
       <button type="submit" [disabled]="loading()">
         {{ loading() ? 'Creating…' : 'Create workspace' }}
