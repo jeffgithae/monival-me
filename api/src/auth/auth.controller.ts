@@ -21,6 +21,12 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Post('bootstrap')
+  @UseGuards(JwtAuthGuard)
+  bootstrap(@CurrentUser() user: JwtPayload, @Body() dto: { name: string; country?: string; sector?: string; planId?: string }) {
+    return this.authService.bootstrapWorkspace(user.sub, dto);
+  }
+
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('register-invited')
   registerInvited(@Body() dto: { name: string; password: string; token: string }) {
