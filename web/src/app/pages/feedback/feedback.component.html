@@ -195,7 +195,7 @@
 
           <div class="form-row">
             <label>Respondent name
-              <input type="text" formControlName="respondentName" placeholder="Optional" [disabled]="form.value.isAnonymous" />
+              <input type="text" formControlName="respondentName" placeholder="Optional" [disabled]="!!form.value.isAnonymous" />
             </label>
             <label>Location
               <input type="text" formControlName="respondentLocation" placeholder="Village, district…" />
@@ -277,9 +277,19 @@
           }
 
           @if (!f.isAnonymous && f.respondentName) {
-            <p class="respondent-line">From <strong>{{ f.respondentName }}</strong>@if (f.respondentLocation) {, {{ f.respondentLocation }}}</p>
+            <p class="respondent-line">
+              From <strong>{{ f.respondentName }}</strong>
+              @if (f.respondentLocation) {
+                <span>, {{ f.respondentLocation }}</span>
+              }
+            </p>
           } @else if (f.isAnonymous) {
-            <p class="respondent-line muted">Anonymous respondent@if (f.respondentLocation) { · {{ f.respondentLocation }}}</p>
+            <p class="respondent-line muted">
+              Anonymous respondent
+              @if (f.respondentLocation) {
+                <span> · {{ f.respondentLocation }}</span>
+              }
+            </p>
           }
 
           @if (f.actionsLog.length) {

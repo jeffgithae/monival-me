@@ -1,0 +1,139 @@
+<div class="field-collect-page">
+
+  <div class="page-header">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Field data collection</span>
+      <h1>Log an activity</h1>
+      <p class="page-subtitle">Works without a connection — entries save to this device and sync automatically once you're back online.</p>
+    </div>
+    <div class="connection-badge" [class.online]="queue.isOnline()" [class.offline]="!queue.isOnline()">
+      <span class="dot"></span>
+      {{ queue.isOnline() ? 'Online' : 'Offline' }}
+    </div>
+  </div>
+
+  @if (referenceDataStale()) {
+    <div class="warning-banner">
+      Project and indicator lists haven't loaded yet on this device. Connect once before going into the field so they're cached for offline use.
+    </div>
+  }
+
+  @if (savedFlash()) {
+    <div class="success-banner">
+      ✓ Saved on this device{{ queue.isOnline() ? ' — syncing now…' : '. It will sync once you\'re back online.' }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="collect-form">
+    <label>Project <span class="req">*</span>
+      <select formControlName="projectId">
+        <option value="" disabled>Select a project</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>Indicator <span class="hint">(optional)</span>
+      <select formControlName="indicatorId">
+        <option value="">None</option>
+        @for (ind of indicators(); track ind._id) {
+          <option [value]="ind._id">{{ ind.code }} — {{ ind.title }}</option>
+        }
+      </select>
+    </label>
+
+    <label>Activity title <span class="req">*</span>
+      <input type="text" formControlName="title" placeholder="e.g. Borehole rehabilitation training" />
+    </label>
+
+    <label>Date <span class="req">*</span>
+      <input type="date" formControlName="activityDate" />
+    </label>
+
+    <div class="form-row">
+      <label>District
+        <input type="text" formControlName="district" placeholder="District" />
+      </label>
+      <label>Village / site
+        <input type="text" formControlName="village" placeholder="Village or site" />
+      </label>
+    </div>
+
+    <label>Location notes
+      <input type="text" formControlName="location" placeholder="e.g. Community hall, near the market" />
+    </label>
+
+    <div class="gps-row">
+      <button type="button" class="btn-gps" (click)="useMyLocation()" [disabled]="locating()">
+        📍 {{ locating() ? 'Getting location…' : 'Use my GPS location' }}
+      </button>
+      @if (form.value.latitude && form.value.longitude) {
+        <span class="gps-value">{{ form.value.latitude }}, {{ form.value.longitude }}</span>
+      }
+    </div>
+    @if (locationError()) {
+      <p class="field-error">{{ locationError() }}</p>
+    }
+
+    <div class="form-row">
+      <label>Participants
+        <input type="number" min="0" formControlName="participants" placeholder="0" />
+      </label>
+      <label>Quantity / output
+        <input type="number" min="0" formControlName="quantity" placeholder="0" />
+      </label>
+    </div>
+
+    <label>Evidence URL <span class="hint">(photo, signed register, etc.)</span>
+      <input type="text" formControlName="evidenceUrl" placeholder="https://…" />
+    </label>
+
+    <label>Notes
+      <textarea formControlName="notes" rows="3" placeholder="What happened, who was involved, anything worth flagging…"></textarea>
+    </label>
+
+    <button type="submit" class="btn-submit" [disabled]="form.invalid || saving()">
+      {{ saving() ? 'Saving…' : '💾 Save activity' }}
+    </button>
+  </form>
+
+  <!-- Local queue -->
+  @if (pendingQueued().length > 0) {
+    <div class="queue-panel">
+      <div class="queue-header">
+        <h3>On this device <span class="queue-count">{{ pendingQueued().length }}</span></h3>
+        @if (queue.isOnline()) {
+          <button class="btn-retry" (click)="retrySync()" [disabled]="queue.isSyncing()">
+            {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
+          </button>
+        }
+      </div>
+      <p class="queue-sub">
+        @if (queue.isOnline()) {
+          These will sync automatically. If any are stuck, try syncing manually.
+        } @else {
+          These are saved only on this device until you reconnect.
+        }
+      </p>
+      <div class="queue-list">
+        @for (item of pendingQueued(); track item.clientId) {
+          <div class="queue-item" [class]="item.syncStatus">
+            <div class="queue-item-main">
+              <strong>{{ item.payload['title'] }}</strong>
+              <span class="queue-item-date">{{ item.payload['activityDate'] }}</span>
+            </div>
+            <div class="queue-item-status">
+              <span class="status-pill" [class]="item.syncStatus">{{ statusLabel(item.syncStatus) }}</span>
+              <button class="btn-discard" (click)="discardQueued(item.clientId)" title="Discard">✕</button>
+            </div>
+            @if (item.syncError) {
+              <p class="queue-item-error">{{ item.syncError }}</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { CommonModule, DatePipe, TitleCasePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -12,7 +12,7 @@ import {
 @Component({
   selector: 'app-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, DecimalPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, TitleCasePipe],
   templateUrl: './feedback.component.html',
   styleUrl: './feedback.component.scss',
 })

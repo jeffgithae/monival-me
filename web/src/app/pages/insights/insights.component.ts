@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DecimalPipe, DatePipe, KeyValuePipe } from '@angular/common';
+import { CommonModule, DatePipe, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { Insight, InsightSeverity, InsightsReport, Project } from '../../core/models';
@@ -7,7 +7,7 @@ import { Insight, InsightSeverity, InsightsReport, Project } from '../../core/mo
 @Component({
   selector: 'app-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, DecimalPipe, DatePipe, KeyValuePipe],
+  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe],
   templateUrl: './insights.component.html',
   styleUrl: './insights.component.scss',
 })
