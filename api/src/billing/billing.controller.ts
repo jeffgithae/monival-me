@@ -61,7 +61,7 @@ export class BillingController {
   @Post('webhook')
   webhook(
     @Req() req: RawBodyRequest<Request>,
-    @Headers('stripe-signature') signature: string,
+    @Headers('x-paystack-signature') signature: string,
   ) {
     const raw = req.rawBody ?? Buffer.from('');
     return this.billingService.handleWebhook(raw, signature ?? '');

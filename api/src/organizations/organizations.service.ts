@@ -50,8 +50,10 @@ export class OrganizationsService {
     orgId: string,
     data: {
       planId: PlanId;
-      stripeCustomerId: string;
-      stripeSubscriptionId: string;
+      stripeCustomerId?: string;
+      stripeSubscriptionId?: string;
+      paystackCustomerCode?: string;
+      paystackSubscriptionCode?: string;
       currentPeriodEnd?: Date;
     },
   ) {
@@ -60,6 +62,8 @@ export class OrganizationsService {
       subscriptionStatus: 'active',
       stripeCustomerId: data.stripeCustomerId,
       stripeSubscriptionId: data.stripeSubscriptionId,
+      paystackCustomerCode: data.paystackCustomerCode,
+      paystackSubscriptionCode: data.paystackSubscriptionCode,
       currentPeriodEnd: data.currentPeriodEnd,
       trialEndsAt: undefined,
     });

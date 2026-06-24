@@ -9,6 +9,7 @@ export interface PlanDefinition {
   maxUsers: number | null;
   maxIndicatorsPerProject: number | null;
   stripePriceId?: string;
+  paystackPlanCode?: string;
   trialDays?: number;
   features: string[];
   // Feature flags for plan gating
@@ -47,6 +48,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: 10,
     maxIndicatorsPerProject: 50,
     stripePriceId: process.env.STRIPE_PRICE_STARTER,
+    paystackPlanCode: process.env.PAYSTACK_PLAN_STARTER,
     features: [
       'Core M&E workspace',
       'Logframes, activities, and approvals',
@@ -69,6 +71,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: 50,
     maxIndicatorsPerProject: null,
     stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
+    paystackPlanCode: process.env.PAYSTACK_PLAN_PROFESSIONAL,
     features: [
       'Everything in Starter',
       'Grants and budget tracking',
@@ -93,6 +96,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: null,
     maxIndicatorsPerProject: null,
     stripePriceId: process.env.STRIPE_PRICE_ORGANIZATION,
+    paystackPlanCode: process.env.PAYSTACK_PLAN_ORGANIZATION,
     features: [
       'Everything in Growth',
       'Unlimited projects & users',
@@ -117,6 +121,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: null,
     maxIndicatorsPerProject: null,
     stripePriceId: process.env.STRIPE_PRICE_SCALE,
+    paystackPlanCode: process.env.PAYSTACK_PLAN_SCALE,
     features: [
       'Everything in Organization',
       'SSO / SAML 2.0 login',
@@ -140,6 +145,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: null,
     maxIndicatorsPerProject: null,
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE,
+    paystackPlanCode: process.env.PAYSTACK_PLAN_ENTERPRISE,
     features: [
       'Everything in Scale',
       'White-label deployment',

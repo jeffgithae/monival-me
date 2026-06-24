@@ -2,7 +2,8 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import Stripe from 'stripe';
+import axios from 'axios';
+import * as crypto from 'crypto';
 import { PlanId, PLANS } from '../common/constants/plans';
 import { Organization } from '../organizations/schemas/organization.schema';
 import { OrganizationsService } from '../organizations/organizations.service';
@@ -12,8 +13,7 @@ import { MailerService } from '../mailer/mailer.service';
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  // Stripe SDK instance (typed loosely for Nest isolatedModules compatibility)
-  private readonly stripe: InstanceType<typeof Stripe> | null;
+  private readonly paystackSecret: string;
   private readonly mockMode: boolean;
 
   constructor(
@@ -23,13 +23,12 @@ export class BillingService {
     private readonly organizationsService: OrganizationsService,
     private readonly mailer: MailerService,
   ) {
-    const key = this.config.get<string>('STRIPE_SECRET_KEY');
+    this.paystackSecret = this.config.get<string>('PAYSTACK_SECRET_KEY') || '';
     const forceMock = this.config.get('BILLING_MOCK') === 'true';
-    this.mockMode = forceMock || !key;
-    this.stripe = key ? new Stripe(key) : null;
+    this.mockMode = forceMock || !this.paystackSecret;
     if (this.mockMode) {
       this.logger.warn(
-        'Stripe is not configured or BILLING_MOCK=true. Billing endpoints will run in mock mode.',
+        'Paystack is not configured or BILLING_MOCK=true. Billing endpoints will run in mock mode.',
       );
     }
   }
@@ -43,7 +42,7 @@ export class BillingService {
       maxProjects: p.maxProjects,
       maxUsers: p.maxUsers,
       features: p.features,
-      stripeConfigured: !!p.stripePriceId && !this.mockMode,
+      paystackConfigured: !!p.paystackPlanCode && !this.mockMode,
     }));
   }
 
@@ -67,8 +66,8 @@ export class BillingService {
     if (this.mockMode) {
       await this.organizationsService.activateSubscription(organizationId, {
         planId,
-        stripeCustomerId: `mock_cus_${organizationId}`,
-        stripeSubscriptionId: `mock_sub_${planId}_${Date.now()}`,
+        paystackCustomerCode: `mock_cus_${organizationId}`,
+        paystackSubscriptionCode: `mock_sub_${planId}_${Date.now()}`,
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
       return {
@@ -77,40 +76,52 @@ export class BillingService {
       };
     }
 
-    if (!this.stripe || !plan.stripePriceId) {
-      throw new BadRequestException('Stripe is not configured for checkout');
+    if (!this.paystackSecret || !plan.paystackPlanCode) {
+      throw new BadRequestException('Paystack is not configured for checkout for this plan');
     }
 
-    let customerId = org.stripeCustomerId;
-    if (!customerId) {
-      const customer = await this.stripe.customers.create({
-        email: user.email,
-        name: org.name,
-        metadata: { organizationId },
-      });
-      customerId = customer.id;
-      org.stripeCustomerId = customerId;
-      await org.save();
+    // Initialize Paystack transaction
+    try {
+      const response = await axios.post(
+        'https://api.paystack.co/transaction/initialize',
+        {
+          email: user.email,
+          amount: plan.monthlyPriceUsd * 100, // amount in kobo/cents
+          plan: plan.paystackPlanCode,
+          callback_url: `${frontend}/settings/billing?success=1`,
+          metadata: {
+            custom_fields: [
+              {
+                display_name: "Organization ID",
+                variable_name: "organizationId",
+                value: organizationId
+              },
+              {
+                display_name: "Plan ID",
+                variable_name: "planId",
+                value: planId
+              }
+            ]
+          }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.paystackSecret}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      return { url: response.data.data.authorization_url, sessionId: response.data.data.reference };
+    } catch (error) {
+      this.logger.error('Failed to initialize Paystack transaction', error);
+      throw new BadRequestException('Failed to initiate payment');
     }
-
-    const session = await this.stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: customerId,
-      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-      success_url: `${frontend}/settings/billing?success=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontend}/settings/billing?canceled=1`,
-      metadata: { organizationId, planId },
-      subscription_data: {
-        metadata: { organizationId, planId },
-      },
-    });
-
-    return { url: session.url, sessionId: session.id };
   }
 
   async createPortalSession(organizationId: string) {
     const org = await this.orgModel.findById(organizationId);
-    if (!org?.stripeCustomerId) {
+    if (!org?.paystackCustomerCode && !org?.stripeCustomerId) {
       throw new BadRequestException('No billing account yet. Subscribe to a plan first.');
     }
     const frontend = this.config.get('FRONTEND_URL', 'http://localhost:4200');
@@ -119,150 +130,135 @@ export class BillingService {
       return { url: `${frontend}/settings/billing`, mock: true };
     }
 
-    if (!this.stripe) {
-      throw new BadRequestException('Stripe is not configured for billing portal');
-    }
-
-    const session = await this.stripe.billingPortal.sessions.create({
-      customer: org.stripeCustomerId,
-      return_url: `${frontend}/settings/billing`,
-    });
-    return { url: session.url };
+    // Paystack does not have a hosted billing portal like Stripe.
+    // Return to the billing page where the user can manage it natively via APIs if implemented.
+    return { url: `${frontend}/settings/billing?portal=unsupported` };
   }
 
   async handleWebhook(rawBody: Buffer, signature: string) {
     if (this.mockMode) {
       return { received: true, mock: true };
     }
-    if (!this.stripe) {
-      throw new BadRequestException('Stripe is not configured for webhook handling');
-    }
-    const secret = this.config.get<string>('STRIPE_WEBHOOK_SECRET');
-    if (!secret) {
-      throw new BadRequestException('Webhook secret not configured');
+    if (!this.paystackSecret) {
+      throw new BadRequestException('Paystack is not configured for webhook handling');
     }
 
-    const event = this.stripe.webhooks.constructEvent(rawBody, signature, secret);
+    // Verify Paystack signature
+    const hash = crypto
+      .createHmac('sha512', this.paystackSecret)
+      .update(rawBody)
+      .digest('hex');
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as {
-          metadata?: Record<string, string>;
-          subscription?: string | { id: string };
-          customer?: string;
-        };
-        const orgId = session.metadata?.organizationId;
-        const planId = session.metadata?.planId as PlanId | undefined;
-        if (orgId && planId && session.subscription) {
-          const subId =
-            typeof session.subscription === 'string'
-              ? session.subscription
-              : session.subscription.id;
+    if (hash !== signature) {
+      throw new BadRequestException('Invalid webhook signature');
+    }
+
+    let event;
+    try {
+      event = JSON.parse(rawBody.toString());
+    } catch (err) {
+      throw new BadRequestException('Invalid webhook payload');
+    }
+
+    const eventData = event.data;
+
+    switch (event.event) {
+      case 'charge.success': {
+        const metadata = eventData.metadata;
+        // Extract from custom_fields
+        const orgField = metadata?.custom_fields?.find((f: any) => f.variable_name === 'organizationId');
+        const planField = metadata?.custom_fields?.find((f: any) => f.variable_name === 'planId');
+        
+        const orgId = orgField?.value;
+        const planId = planField?.value as PlanId | undefined;
+
+        if (orgId && planId) {
           await this.organizationsService.activateSubscription(orgId, {
             planId,
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: subId,
+            paystackCustomerCode: eventData.customer?.customer_code,
+            // Paystack might not provide subscription code immediately in charge.success
+            // It will be sent in subscription.create, or we can just mark it active for now.
           });
-        }
-        break;
-      }
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
-        const sub = event.data.object as {
-          metadata?: Record<string, string>;
-          status?: string;
-          current_period_end?: number;
-        };
-        const orgId = sub.metadata?.organizationId;
-        if (orgId) {
-          const planId = (sub.metadata?.planId as PlanId) ?? 'starter';
-          const status =
-            sub.status === 'active'
-              ? 'active'
-              : sub.status === 'trialing'
-                ? 'trialing'
-                : sub.status === 'past_due'
-                  ? 'past_due'
-                  : 'canceled';
-          await this.organizationsService.updateSubscriptionStatus(orgId, status, planId);
-          if (sub.current_period_end) {
-            await this.orgModel.findByIdAndUpdate(orgId, {
-              currentPeriodEnd: new Date(sub.current_period_end * 1000),
-            });
-          }
-        }
-        break;
-      }
-      case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as {
-          subscription?: string;
-          metadata?: Record<string, string>;
-          status?: string;
-          customer?: string;
-          current_period_end?: number;
-        };
-        const orgId = invoice.metadata?.organizationId;
-        if (orgId && invoice.subscription) {
-          await this.organizationsService.updateSubscriptionStatus(orgId, 'active', invoice.metadata?.planId as PlanId);
-          if (invoice.current_period_end) {
-            await this.orgModel.findByIdAndUpdate(orgId, {
-              currentPeriodEnd: new Date(invoice.current_period_end * 1000),
-            });
-          }
-
+          
+          // Send invoice email
           const org = await this.orgModel.findById(orgId);
           const owner = await this.userModel.findOne({ organizationId: new Types.ObjectId(orgId) }).sort({ createdAt: 1 });
           if (org && owner) {
-            const invoiceUrl = (invoice as any).hosted_invoice_url || '';
-            const amount = `$${((invoice as any).amount_paid / 100).toFixed(2)}`;
-            const invoiceNumber = (invoice as any).number || 'N/A';
+            const amount = `$${(eventData.amount / 100).toFixed(2)}`;
+            const invoiceNumber = eventData.reference || 'N/A';
             const body = this.mailer.invoiceEmail({
               name: owner.name,
               amount,
               invoiceNumber,
-              downloadUrl: invoiceUrl,
+              downloadUrl: '#', // Paystack receipt URL is sent to customer email by default
             });
             await this.mailer.send({
               to: owner.email,
-              subject: `Invoice Available - ${invoiceNumber}`,
+              subject: `Payment Receipt - ${invoiceNumber}`,
               ...body,
             });
           }
         }
         break;
       }
+      
+      case 'subscription.create': {
+        const customerCode = eventData.customer?.customer_code;
+        const subscriptionCode = eventData.subscription_code;
+        if (customerCode && subscriptionCode) {
+          // Find the org by customer code and update the subscription code
+          const org = await this.orgModel.findOne({ paystackCustomerCode: customerCode });
+          if (org) {
+            await this.orgModel.findByIdAndUpdate(org._id, {
+              paystackSubscriptionCode: subscriptionCode,
+              currentPeriodEnd: new Date(eventData.next_payment_date),
+            });
+          }
+        }
+        break;
+      }
+
+      case 'subscription.disable':
+      case 'subscription.not_renew': {
+        const customerCode = eventData.customer?.customer_code;
+        if (customerCode) {
+          const org = await this.orgModel.findOne({ paystackCustomerCode: customerCode });
+          if (org) {
+            await this.organizationsService.updateSubscriptionStatus(org._id.toString(), 'canceled');
+          }
+        }
+        break;
+      }
+
+      case 'charge.failed':
       case 'invoice.payment_failed': {
-        const invoice = event.data.object as {
-          subscription?: string;
-          metadata?: Record<string, string>;
-          status?: string;
-          customer?: string;
-          current_period_end?: number;
-        };
-        const orgId = invoice.metadata?.organizationId;
-        if (orgId) {
-          await this.organizationsService.updateSubscriptionStatus(orgId, 'past_due', invoice.metadata?.planId as PlanId);
-          const org = await this.orgModel.findById(orgId);
-          const owner = await this.userModel.findOne({ organizationId: new Types.ObjectId(orgId) }).sort({ createdAt: 1 });
-          if (org && owner) {
-            const paymentUrl = (invoice as any).hosted_invoice_url || '';
-            const amount = `$${((invoice as any).amount_due / 100).toFixed(2)}`;
-            const dueDate = new Date().toLocaleDateString();
-            const body = this.mailer.paymentReminderEmail({
-              name: owner.name,
-              amount,
-              dueDate,
-              paymentUrl,
-            });
-            await this.mailer.send({
-              to: owner.email,
-              subject: `Payment Reminder - Action Required`,
-              ...body,
-            });
+        const customerCode = eventData.customer?.customer_code;
+        if (customerCode) {
+          const org = await this.orgModel.findOne({ paystackCustomerCode: customerCode });
+          if (org) {
+            await this.organizationsService.updateSubscriptionStatus(org._id.toString(), 'past_due');
+            
+            const owner = await this.userModel.findOne({ organizationId: org._id }).sort({ createdAt: 1 });
+            if (owner) {
+              const amount = `$${(eventData.amount / 100).toFixed(2)}`;
+              const dueDate = new Date().toLocaleDateString();
+              const body = this.mailer.paymentReminderEmail({
+                name: owner.name,
+                amount,
+                dueDate,
+                paymentUrl: '#', 
+              });
+              await this.mailer.send({
+                to: owner.email,
+                subject: `Payment Reminder - Action Required`,
+                ...body,
+              });
+            }
           }
         }
         break;
       }
+      
       default:
         break;
     }
@@ -282,7 +278,7 @@ export class BillingService {
       subscriptionStatus: org.subscriptionStatus,
       trialEndsAt: org.trialEndsAt,
       currentPeriodEnd: org.currentPeriodEnd,
-      stripeConfigured: !this.mockMode,
+      paystackConfigured: !this.mockMode,
       mockMode: this.mockMode,
     };
   }

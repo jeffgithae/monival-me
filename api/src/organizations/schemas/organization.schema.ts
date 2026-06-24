@@ -38,6 +38,12 @@ export class Organization {
   stripeSubscriptionId?: string;
 
   @Prop()
+  paystackCustomerCode?: string;
+
+  @Prop()
+  paystackSubscriptionCode?: string;
+
+  @Prop()
   trialEndsAt?: Date;
 
   @Prop()
