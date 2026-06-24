@@ -164,54 +164,45 @@ export class CopilotService {
     const periodId = new Types.ObjectId(dto.reportingPeriodId);
     const style    = dto.style ?? 'narrative';
 
-    // ── Gather all data in a single parallel batch ─────────────────────────
-    const [period, results, activities, grants, feedback] = await Promise.all([
-      this.reportingPeriodModel.findOne({ _id: periodId, organizationId: orgId }).lean(),
-
-      this.resultModel
-        .find({ reportingPeriodId: periodId, organizationId: orgId })
-        .populate('indicatorId')
-        .lean(),
-
-      this.activityModel
-        .find({
-          organizationId: orgId,
-          status: 'approved',
-          activityDate: {
-            $gte: period ? new Date((period as any).startDate) : new Date(0),
-            $lte: period ? new Date((period as any).endDate)   : new Date(),
-          },
-        })
-        .lean()
-        .catch(() => []),
-
-      dto.includeFinancials !== false
-        ? this.grantModel
-            .find({ organizationId: orgId, status: { $in: ['active', 'pending'] } })
-            .lean()
-        : Promise.resolve([]),
-
-      dto.includeFeedback !== false
-        ? this.feedbackModel
-            .find({
-              organizationId: orgId,
-              ...(period ? { projectId: (period as any).projectId } : {}),
-              createdAt: {
-                $gte: period ? new Date((period as any).startDate) : new Date(0),
-                $lte: period ? new Date((period as any).endDate)   : new Date(),
-              },
-            })
-            .sort({ sentimentScore: -1 })
-            .limit(5)
-            .lean()
-        : Promise.resolve([]),
-    ]);
+    // ── Step 1: fetch the reporting period first (needed for date filters) ──
+    const period = await this.reportingPeriodModel
+      .findOne({ _id: periodId, organizationId: orgId })
+      .lean();
 
     if (!period) {
       throw new Error('Reporting period not found.');
     }
 
-    // ── Fetch activities (period data was needed above for dates) ──────────
+    // ── Step 2: parallel fetch now that period dates are known ─────────────
+    const [results, grants, feedback] = await Promise.all([
+      this.resultModel
+        .find({ reportingPeriodId: periodId, organizationId: orgId })
+        .populate('indicatorId')
+        .lean(),
+
+      dto.includeFinancials !== false
+        ? (this.grantModel
+            .find({ organizationId: orgId, status: { $in: ['active', 'pending'] } })
+            .lean() as Promise<Grant[]>)
+        : Promise.resolve([] as Grant[]),
+
+      dto.includeFeedback !== false
+        ? (this.feedbackModel
+            .find({
+              organizationId: orgId,
+              ...(period.projectId ? { projectId: period.projectId } : {}),
+              createdAt: {
+                $gte: new Date(period.startDate),
+                $lte: new Date(period.endDate),
+              },
+            })
+            .sort({ sentimentScore: -1 })
+            .limit(5)
+            .lean() as Promise<StakeholderFeedback[]>)
+        : Promise.resolve([] as StakeholderFeedback[]),
+    ]);
+
+    // ── Fetch activities ───────────────────────────────────────────────────
     const approvedActivities = await this.activityModel
       .find({
         organizationId: orgId,
@@ -333,11 +324,13 @@ export class CopilotService {
       ? challengesSection
       : 'No specific challenges or lessons were recorded for this period.';
 
-    const nextPeriodPlans = period.nextPeriodPlans ?? approvedActivities
+    const activityPlans = approvedActivities
       .filter(a => a.recommendations || a.followUpActions)
       .slice(0, 2)
       .map(a => a.recommendations ?? a.followUpActions)
-      .join('. ') || 'Continuation of programmatic activities as per project workplan.';
+      .join('. ');
+    const nextPeriodPlans = period.nextPeriodPlans
+      ?? (activityPlans || 'Continuation of programmatic activities as per project workplan.');
 
     return {
       reportingPeriodId: dto.reportingPeriodId,

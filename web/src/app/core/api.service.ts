@@ -361,6 +361,13 @@ export class ApiService {
     return this.http.patch<{ updated: number }>(`${this.base}/activities/bulk-review`, dto);
   }
 
+  offlineSyncActivities(batch: Record<string, unknown>[]) {
+    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
+      `${this.base}/activities/offline-sync`,
+      { activities: batch },
+    );
+  }
+
   // Beneficiaries
   beneficiaries(params?: Record<string, string | number | boolean>) {
     return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: params as any });
