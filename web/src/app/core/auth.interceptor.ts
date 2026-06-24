@@ -34,8 +34,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const addAuth = (r: HttpRequest<unknown>) => {
     const token = localStorage.getItem(TOKEN_KEY);
-    return token
-      ? r.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (r.method === 'GET') {
+      headers['Cache-Control'] = 'no-cache, no-store';
+      headers['Pragma'] = 'no-cache';
+    }
+    return Object.keys(headers).length > 0
+      ? r.clone({ setHeaders: headers })
       : r;
   };
 

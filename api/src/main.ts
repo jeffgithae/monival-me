@@ -37,6 +37,14 @@ async function bootstrap() {
   // ── Compression (C3) ──────────────────────────────────────────────────────
   app.use(compression());
 
+  // ── Disable browser caching for all API responses ─────────────────────────
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+  });
+
   // ── MongoDB injection sanitisation (H5) ───────────────────────────────────
   app.use((req: any, res: any, next: any) => {
     ['body', 'params', 'headers'].forEach((k) => {
