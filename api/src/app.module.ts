@@ -40,6 +40,7 @@ import { NetworksModule } from './networks/networks.module';
 import { MfaModule } from './mfa/mfa.module';
 import { ImpactStoriesModule } from './impact-stories/impact-stories.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { StakeholderFeedbackModule } from './stakeholder-feedback/stakeholder-feedback.module';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     MfaModule,
     WebhooksModule,
     ImpactStoriesModule,
+    StakeholderFeedbackModule,
   ],
   providers: [
     SubscriptionGuard,

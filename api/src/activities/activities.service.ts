@@ -355,6 +355,92 @@ export class ActivitiesService {
     return { created: results.length, errors, results };
   }
 
+  // ─── PWA Offline Sync ─────────────────────────────────────────────────────
+  //
+  // Field workers capture activity records on the mobile PWA while in the
+  // field without connectivity. When they regain internet access, the client
+  // pushes the queued batch here. Each record carries a client-generated UUID
+  // (`clientId`) used as an idempotency key.
+  //
+  // Processing steps:
+  //   1. Look up which clientIds already exist in the DB (already-synced records)
+  //   2. For new records, run the standard create() pipeline (validation, notifs, audit)
+  //   3. Return per-record status so the client can clear only synced items
+  //
+  async offlineSync(
+    organizationId: string,
+    items: Array<CreateActivityDto & { clientId: string }>,
+    role: OrgRole,
+    userId: string,
+  ) {
+    if (!items?.length) return { synced: 0, skipped: 0, errors: [], results: [] };
+
+    // Step 1: find which clientIds are already persisted
+    const clientIds = items.map(i => i.clientId).filter(Boolean);
+    const existing  = await this.activityModel
+      .find({ organizationId: new Types.ObjectId(organizationId), clientId: { $in: clientIds } })
+      .select('clientId')
+      .lean();
+    const alreadySynced = new Set(existing.map(e => (e as any).clientId as string));
+
+    // Step 2: process each item
+    const results: Array<{
+      clientId: string;
+      status: 'synced' | 'skipped' | 'error';
+      activityId?: string;
+      message?: string;
+    }> = [];
+
+    let synced  = 0;
+    let skipped = 0;
+
+    for (const item of items) {
+      if (!item.clientId) {
+        results.push({ clientId: '', status: 'error', message: 'clientId is required for offline sync.' });
+        continue;
+      }
+
+      if (alreadySynced.has(item.clientId)) {
+        results.push({ clientId: item.clientId, status: 'skipped' });
+        skipped++;
+        continue;
+      }
+
+      try {
+        const activity = await this.create(
+          organizationId,
+          { ...item, syncedFromOffline: true } as any,
+          role,
+          userId,
+        );
+        // Persist the clientId to prevent future duplicates
+        await this.activityModel.updateOne(
+          { _id: activity._id },
+          { $set: { clientId: item.clientId, syncedFromOffline: true } },
+        );
+        results.push({ clientId: item.clientId, status: 'synced', activityId: activity._id.toString() });
+        synced++;
+      } catch (err: any) {
+        results.push({ clientId: item.clientId, status: 'error', message: err.message });
+      }
+    }
+
+    await this.audit.record({
+      organizationId,
+      actorUserId: userId,
+      action: 'activity.offline_sync',
+      entityType: 'Activity',
+      metadata: { total: items.length, synced, skipped, errors: results.filter(r => r.status === 'error').length },
+    });
+
+    return {
+      synced,
+      skipped,
+      errors: results.filter(r => r.status === 'error'),
+      results,
+    };
+  }
+
   // ─── Review ────────────────────────────────────────────────────────────────
 
   async review(
@@ -379,45 +465,12 @@ export class ActivitiesService {
 
     // ── Indicator ↔ Activity linkage: sync achieved total ─────────────────
     if (activity.indicatorId) {
-      try {
-        const agg = await this.activityModel.aggregate([
-          {
-            $match: {
-              organizationId: new Types.ObjectId(organizationId),
-              indicatorId: activity.indicatorId,
-              status: 'approved',
-            },
-          },
-          { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
-        ]);
-        const totalAchieved: number = agg[0]?.total ?? 0;
-        await this.indicatorModel.updateOne(
-          { _id: activity.indicatorId, organizationId: new Types.ObjectId(organizationId) },
-          { $set: { achieved: totalAchieved } },
-        );
-      } catch {
-        // Non-blocking — indicator sync failure must not break activity approval
-      }
+      await this.syncIndicatorTotal(organizationId, activity.indicatorId);
     }
 
     // ── Grant ↔ Activity linkage: recalculate total approved spend ───────────
-    if (status === 'approved' && activity.grantId) {
-      try {
-        const agg = await this.activityModel.aggregate([
-          {
-            $match: {
-              organizationId: new Types.ObjectId(organizationId),
-              grantId: activity.grantId,
-              status: 'approved',
-            },
-          },
-          { $group: { _id: null, total: { $sum: { $ifNull: ['$cost', 0] } } } },
-        ]);
-        const totalSpent: number = agg[0]?.total ?? 0;
-        await this.grantsService.updateGrantSpending(activity.grantId.toString(), organizationId, totalSpent);
-      } catch {
-        // Non-blocking — grant update failure must not break activity approval
-      }
+    if (activity.grantId) {
+      await this.syncGrantTotal(organizationId, activity.grantId);
     }
 
     // ── Fire webhook events ────────────────────────────────────────────────
@@ -483,23 +536,20 @@ export class ActivitiesService {
       metadata: { ids, status, modifiedCount: result.modifiedCount },
     });
 
-    // Sync achieved totals for all affected indicators (non-blocking)
+    // Sync achieved totals for all affected indicators and grants (non-blocking)
     if (status === 'approved' || status === 'rejected') {
       const affected = await this.activityModel
         .find({ _id: { $in: ids.map(id => new Types.ObjectId(id)) }, organizationId: new Types.ObjectId(organizationId) })
-        .select('indicatorId').lean();
+        .select('indicatorId grantId').lean();
+      
       const indicatorIds = [...new Set(affected.map(a => a.indicatorId?.toString()).filter(Boolean))];
       for (const indId of indicatorIds) {
-        try {
-          const agg = await this.activityModel.aggregate([
-            { $match: { organizationId: new Types.ObjectId(organizationId), indicatorId: new Types.ObjectId(indId!), status: 'approved' } },
-            { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
-          ]);
-          await this.indicatorModel.updateOne(
-            { _id: new Types.ObjectId(indId!), organizationId: new Types.ObjectId(organizationId) },
-            { $set: { achieved: agg[0]?.total ?? 0 } },
-          );
-        } catch { /* non-blocking */ }
+        await this.syncIndicatorTotal(organizationId, new Types.ObjectId(indId!));
+      }
+
+      const grantIds = [...new Set(affected.map(a => a.grantId?.toString()).filter(Boolean))];
+      for (const gId of grantIds) {
+        await this.syncGrantTotal(organizationId, new Types.ObjectId(gId!));
       }
     }
 
@@ -509,9 +559,10 @@ export class ActivitiesService {
   // ─── Update ────────────────────────────────────────────────────────────────
 
   async update(organizationId: string, id: string, dto: UpdateActivityDto, actorUserId?: string) {
+    const existing = await this.activityModel.findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) }).lean();
+    if (!existing) throw new NotFoundException('Activity not found');
+
     if (dto.indicatorId) {
-      const existing = await this.activityModel.findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) });
-      if (!existing) throw new NotFoundException('Activity not found');
       await this.assertRefs(organizationId, existing.projectId.toString(), dto.indicatorId);
     }
 
@@ -536,6 +587,22 @@ export class ActivitiesService {
       ).lean();
     if (!activity) throw new NotFoundException('Activity not found');
 
+    // Sync old and new indicators if changed or quantity changed
+    const indicatorsToSync = new Set<string>();
+    if (existing.indicatorId) indicatorsToSync.add(existing.indicatorId.toString());
+    if (activity.indicatorId) indicatorsToSync.add(activity.indicatorId.toString());
+    for (const indId of indicatorsToSync) {
+      await this.syncIndicatorTotal(organizationId, new Types.ObjectId(indId));
+    }
+
+    // Sync old and new grants if changed or cost changed
+    const grantsToSync = new Set<string>();
+    if (existing.grantId) grantsToSync.add(existing.grantId.toString());
+    if (activity.grantId) grantsToSync.add(activity.grantId.toString());
+    for (const gId of grantsToSync) {
+      await this.syncGrantTotal(organizationId, new Types.ObjectId(gId));
+    }
+
     await this.audit.record({
       organizationId, actorUserId,
       action: 'activity.updated', entityType: 'Activity', entityId: id,
@@ -548,15 +615,50 @@ export class ActivitiesService {
   // ─── Delete ────────────────────────────────────────────────────────────────
 
   async remove(organizationId: string, id: string, actorUserId?: string) {
-    const result = await this.activityModel.deleteOne({
+    const activity = await this.activityModel.findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) }).lean();
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    await this.activityModel.deleteOne({
       _id: id, organizationId: new Types.ObjectId(organizationId),
     });
-    if (result.deletedCount === 0) throw new NotFoundException('Activity not found');
+
+    if (activity.indicatorId) {
+      await this.syncIndicatorTotal(organizationId, activity.indicatorId);
+    }
+    if (activity.grantId) {
+      await this.syncGrantTotal(organizationId, activity.grantId);
+    }
+
     await this.audit.record({
       organizationId, actorUserId,
       action: 'activity.deleted', entityType: 'Activity', entityId: id,
     });
     return { deleted: true };
+  }
+
+  // ─── Sync Helpers ──────────────────────────────────────────────────────────
+
+  private async syncIndicatorTotal(organizationId: string, indicatorId: Types.ObjectId) {
+    try {
+      const agg = await this.activityModel.aggregate([
+        { $match: { organizationId: new Types.ObjectId(organizationId), indicatorId, status: 'approved' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+      ]);
+      await this.indicatorModel.updateOne(
+        { _id: indicatorId, organizationId: new Types.ObjectId(organizationId) },
+        { $set: { lastAchievedValue: agg[0]?.total ?? 0, lastAchievedDate: new Date() } },
+      );
+    } catch { /* non-blocking */ }
+  }
+
+  private async syncGrantTotal(organizationId: string, grantId: Types.ObjectId) {
+    try {
+      const agg = await this.activityModel.aggregate([
+        { $match: { organizationId: new Types.ObjectId(organizationId), grantId, status: 'approved' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$cost', 0] } } } },
+      ]);
+      await this.grantsService.updateGrantSpending(grantId.toString(), organizationId, agg[0]?.total ?? 0);
+    } catch { /* non-blocking */ }
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────

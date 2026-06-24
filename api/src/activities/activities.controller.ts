@@ -107,6 +107,33 @@ export class ActivitiesController {
     return this.svc.bulkCreate(user.organizationId, body.activities, user.role, user.sub);
   }
 
+  /**
+   * PWA Offline Sync Endpoint.
+   *
+   * Field workers collect activity data in the mobile PWA while offline.
+   * When connectivity is restored, the client pushes the queued batch here.
+   *
+   * Each record must include a `clientId` (client-generated UUID) used as an
+   * idempotency key — the server skips any record whose clientId has already
+   * been persisted, preventing duplicate submissions on retry.
+   *
+   * Returns per-record results so the PWA can selectively clear synced items
+   * from local IndexedDB storage.
+   */
+  @Post('offline-sync')
+  @Roles(...PERMISSIONS.LOG_ACTIVITIES)
+  @ApiOperation({
+    summary: 'PWA offline sync — push a batch of activities collected without connectivity',
+    description: 'Each item must include a clientId (UUID) for idempotency. Already-synced records are skipped, not duplicated.',
+  })
+  offlineSync(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { activities: Array<CreateActivityDto & { clientId: string }> },
+  ) {
+    return this.svc.offlineSync(user.organizationId, body.activities, user.role, user.sub);
+  }
+
+
   @Post('templates')
   @Roles(...PERMISSIONS.LOG_ACTIVITIES)
   @ApiOperation({ summary: 'Save an activity template' })
