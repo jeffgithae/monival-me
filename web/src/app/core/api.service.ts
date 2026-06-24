@@ -223,8 +223,10 @@ export class ApiService {
   //   return this.http.post(`${this.base}/donors`, body);
   // }
 
-  projects() {
-    return this.http.get<Project[]>(`${this.base}/projects`);
+  projects(params?: Record<string, string | number | boolean>) {
+    return this.http.get<PaginatedResult<Project> | Project[]>(`${this.base}/projects`, { params: params as any }).pipe(
+      map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+    );
   }
 
   project(id: string) {
@@ -314,7 +316,9 @@ export class ApiService {
     if (projectId) {
       params = params.set('projectId', projectId);
     }
-    return this.http.get<Indicator[]>(`${this.base}/indicators`, { params });
+    return this.http.get<PaginatedResult<Indicator> | Indicator[]>(`${this.base}/indicators`, { params }).pipe(
+      map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+    );
   }
 
   createIndicator(body: Record<string, unknown>) {
