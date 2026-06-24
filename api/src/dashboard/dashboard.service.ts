@@ -345,7 +345,7 @@ export class DashboardService {
       this.grantModel.find(grantFilter).lean(),
       this.indicatorModel.find(projectFilter).lean(),
       this.activityModel
-        .find({ ...projectFilter, activityDate: { $gte: new Date(now.getTime() - 90 * 86400000) } })
+        .find({ ...projectFilter, activityDate: { $gte: new Date(now.getTime() - 180 * 86400000) } })
         .sort({ activityDate: -1 })
         .lean(),
       this.reportingModel
@@ -364,11 +364,61 @@ export class DashboardService {
       entityType?: string;
     }> = [];
 
-    // ── 1. Burn rate vs. indicator progress (Financial ↔ Programmatic) ────────
-    for (const grant of grants) {
-      const burnPct  = grant.amount > 0 ? (grant.amountSpent / grant.amount) * 100 : 0;
+    // Helper: resolve achieved value from either field
+    const getAchieved = (ind: any): number =>
+      ind.achieved ?? ind.lastAchievedValue ?? 0;
 
-      // Find linked indicators and their achievement
+    // ── 1. Grant health alerts ─────────────────────────────────────────────────
+    for (const grant of grants) {
+      const amount     = grant.amount ?? 0;
+      const spent      = grant.amountSpent ?? 0;
+      const burnPct    = amount > 0 ? (spent / amount) * 100 : 0;
+      const currency   = grant.currency ?? 'USD';
+
+      // Expiry alert — 90 days window (was 60)
+      if (grant.endDate) {
+        const daysToExpiry = Math.ceil((new Date(grant.endDate).getTime() - now.getTime()) / 86400000);
+        if (daysToExpiry > 0 && daysToExpiry <= 90 && burnPct < 80) {
+          insights.push({
+            type: daysToExpiry <= 30 ? 'critical' : 'warning',
+            category: 'grant_expiry',
+            title: `${grant.name} expires in ${daysToExpiry} day${daysToExpiry === 1 ? '' : 's'}`,
+            message: `Only ${burnPct.toFixed(0)}% of the ${currency} ${amount.toLocaleString()} grant has been spent with ${daysToExpiry} days remaining. Unspent funds may need to be returned.`,
+            action: 'Accelerate approved activity implementation or negotiate a no-cost extension.',
+            metric: { daysToExpiry, burnRate: Math.round(burnPct) },
+            entityId:   grant._id.toString(),
+            entityType: 'Grant',
+          });
+        }
+        // Already expired but still active
+        if (daysToExpiry <= 0 && grant.status === 'active') {
+          insights.push({
+            type: 'critical',
+            category: 'grant_expiry',
+            title: `${grant.name} has expired`,
+            message: `This grant expired ${Math.abs(daysToExpiry)} days ago but is still marked active. Confirm final disbursement status with your donor.`,
+            action: 'Close the grant or update its status in the Grants module.',
+            metric: { burnRate: Math.round(burnPct) },
+            entityId:   grant._id.toString(),
+            entityType: 'Grant',
+          });
+        }
+      }
+
+      // Zero spend on active grant
+      if (burnPct === 0 && grant.status === 'active') {
+        insights.push({
+          type: 'info',
+          category: 'grant_utilisation',
+          title: `${grant.name}: No spend recorded yet`,
+          message: `This active grant (${currency} ${amount.toLocaleString()}) has ${burnPct.toFixed(0)}% utilisation. If implementation has begun, record expenditure to track burn rate.`,
+          action: 'Update amountSpent in the Grants module or link approved activities to this grant.',
+          entityId:   grant._id.toString(),
+          entityType: 'Grant',
+        });
+      }
+
+      // Find linked indicators via activities
       const linkedActivities = activities.filter(
         a => a.grantId?.toString() === grant._id.toString() && a.status === 'approved',
       );
@@ -377,41 +427,41 @@ export class DashboardService {
 
       if (linkedIndicators.length > 0) {
         const avgProgress = linkedIndicators.reduce((sum, ind) => {
-          const achieved  = (ind as any).lastAchievedValue ?? 0;
+          const achieved  = getAchieved(ind);
           const targetVal = ind.target ?? 0;
           return sum + (targetVal > 0 ? (achieved / targetVal) * 100 : 0);
         }, 0) / linkedIndicators.length;
 
         const gap = burnPct - avgProgress;
 
-        if (burnPct > 60 && avgProgress < 30) {
+        if (burnPct > 50 && avgProgress < 25) {
           insights.push({
             type: 'critical',
             category: 'financial_programmatic',
             title: `${grant.name}: High spend, low impact`,
-            message: `You have burned ${burnPct.toFixed(0)}% of the ${grant.currency} ${grant.amount.toLocaleString()} grant but only achieved ${avgProgress.toFixed(0)}% of linked indicator targets. A ${gap.toFixed(0)}% efficiency gap warrants urgent review.`,
-            action: `Review linked activities for ${grant.name} and consider pausing spend until targets are on track.`,
+            message: `You have burned ${burnPct.toFixed(0)}% of the ${currency} ${amount.toLocaleString()} grant but achieved only ${avgProgress.toFixed(0)}% of linked indicator targets. A ${gap.toFixed(0)}% efficiency gap warrants urgent review.`,
+            action: `Review linked activities for ${grant.name} and ensure quantity data is recorded.`,
             metric: { burnRate: Math.round(burnPct), indicatorProgress: Math.round(avgProgress), efficiencyGap: Math.round(gap) },
             entityId:   grant._id.toString(),
             entityType: 'Grant',
           });
-        } else if (gap > 25) {
+        } else if (gap > 20) {
           insights.push({
             type: 'warning',
             category: 'financial_programmatic',
             title: `${grant.name}: Spend ahead of impact`,
-            message: `Grant burn rate (${burnPct.toFixed(0)}%) is ${gap.toFixed(0)} points ahead of indicator progress (${avgProgress.toFixed(0)}%). Ensure financial disbursements translate to measurable outcomes.`,
-            action: 'Check whether approved activities are correctly linked to indicators and quantities are recorded.',
+            message: `Grant burn rate (${burnPct.toFixed(0)}%) is ${gap.toFixed(0)} points ahead of linked indicator progress (${avgProgress.toFixed(0)}%). Ensure disbursements translate to measurable outcomes.`,
+            action: 'Check that approved activities are linked to indicators and quantities are recorded.',
             metric: { burnRate: Math.round(burnPct), indicatorProgress: Math.round(avgProgress) },
             entityId:   grant._id.toString(),
             entityType: 'Grant',
           });
-        } else if (avgProgress > 80 && burnPct < 50) {
+        } else if (avgProgress > 75 && burnPct < 60) {
           insights.push({
             type: 'opportunity',
             category: 'financial_programmatic',
             title: `${grant.name}: Strong impact, budget headroom available`,
-            message: `Indicators are at ${avgProgress.toFixed(0)}% while only ${burnPct.toFixed(0)}% of the grant has been spent. Remaining budget could accelerate scale-up.`,
+            message: `Indicators are at ${avgProgress.toFixed(0)}% of target while only ${burnPct.toFixed(0)}% of the grant has been spent. Remaining budget could accelerate scale-up.`,
             action: 'Consider allocating remaining grant funds to geographic or demographic expansion.',
             metric: { burnRate: Math.round(burnPct), indicatorProgress: Math.round(avgProgress) },
             entityId:   grant._id.toString(),
@@ -419,53 +469,69 @@ export class DashboardService {
           });
         }
       }
+    }
 
-      // Expiry alert
-      const daysToExpiry = Math.ceil((new Date(grant.endDate).getTime() - now.getTime()) / 86400000);
-      if (daysToExpiry > 0 && daysToExpiry <= 60 && burnPct < 70) {
+    // ── 2. Indicator progress alerts ──────────────────────────────────────────
+    let noBaselineCount = 0;
+    let zeroProgressCount = 0;
+
+    for (const ind of indicators) {
+      const achieved  = getAchieved(ind);
+      const targetVal = ind.target ?? 0;
+
+      if (!targetVal) {
+        noBaselineCount++;
+        continue;
+      }
+
+      const pct = (achieved / targetVal) * 100;
+
+      if (achieved === 0) {
+        zeroProgressCount++;
+      } else if (pct < 25) {
+        const lastDate = (ind as any).lastAchievedDate ?? (ind as any).updatedAt;
+        const daysSince = lastDate
+          ? Math.ceil((now.getTime() - new Date(lastDate).getTime()) / 86400000)
+          : null;
         insights.push({
           type: 'warning',
-          category: 'grant_expiry',
-          title: `${grant.name} expires in ${daysToExpiry} days`,
-          message: `Only ${burnPct.toFixed(0)}% of this grant has been spent with ${daysToExpiry} days remaining. Remaining funds may be clawed back if unspent.`,
-          action: 'Accelerate approved activity implementation or negotiate a no-cost extension.',
-          metric: { daysToExpiry, burnRate: Math.round(burnPct) },
-          entityId:   grant._id.toString(),
-          entityType: 'Grant',
+          category: 'indicator_health',
+          title: `${ind.code}: Behind target (${pct.toFixed(0)}% achieved)`,
+          message: `"${ind.title}" is at ${pct.toFixed(0)}% of its target of ${targetVal} ${ind.unit ?? ''}${daysSince !== null ? `, with no update in ${daysSince} days` : ''}.`,
+          action: 'Approve pending activities linked to this indicator or review the data collection plan.',
+          metric: { progress: Math.round(pct), ...(daysSince !== null ? { daysSinceUpdate: daysSince } : {}) },
+          entityId: ind._id.toString(), entityType: 'Indicator',
+        });
+      } else if (pct >= 100) {
+        insights.push({
+          type: 'opportunity',
+          category: 'indicator_health',
+          title: `${ind.code}: Target achieved`,
+          message: `"${ind.title}" has reached ${pct.toFixed(0)}% of its target. Consider setting a stretch target or scaling the intervention.`,
+          action: 'Review whether a higher target or geographic expansion is feasible.',
+          entityId: ind._id.toString(), entityType: 'Indicator',
         });
       }
     }
 
-    // ── 2. Indicator progress alerts ──────────────────────────────────────────
-    for (const ind of indicators) {
-      const achieved  = (ind as any).lastAchievedValue ?? 0;
-      const targetVal = ind.target ?? 0;
-      if (!targetVal) {
-        insights.push({
-          type: 'warning',
-          category: 'indicator_health',
-          title: `Indicator ${ind.code} has no target`,
-          message: `Without a life-of-project target, progress cannot be measured for "${ind.title}".`,
-          action: 'Set a baseline and target value for this indicator.',
-          entityId: ind._id.toString(), entityType: 'Indicator',
-        });
-        continue;
-      }
-      const pct = (achieved / targetVal) * 100;
-      if (pct < 25 && (ind as any).lastAchievedDate) {
-        const daysSince = Math.ceil((now.getTime() - new Date((ind as any).lastAchievedDate).getTime()) / 86400000);
-        if (daysSince > 30) {
-          insights.push({
-            type: 'critical',
-            category: 'indicator_health',
-            title: `${ind.code}: Critically behind (${pct.toFixed(0)}% achieved)`,
-            message: `This indicator is at ${pct.toFixed(0)}% of its target with no update in ${daysSince} days. It may require adaptive intervention.`,
-            action: 'Review the data collection plan and approve any pending activities linked to this indicator.',
-            metric: { progress: Math.round(pct), daysSinceUpdate: daysSince },
-            entityId: ind._id.toString(), entityType: 'Indicator',
-          });
-        }
-      }
+    if (noBaselineCount > 0) {
+      insights.push({
+        type: 'warning',
+        category: 'indicator_health',
+        title: `${noBaselineCount} indicator${noBaselineCount > 1 ? 's have' : ' has'} no target set`,
+        message: `Without life-of-project targets, progress cannot be measured or reported to donors.`,
+        action: 'Set baseline and target values for all indicators in the Indicators module.',
+      });
+    }
+
+    if (zeroProgressCount > 0) {
+      insights.push({
+        type: 'info',
+        category: 'indicator_health',
+        title: `${zeroProgressCount} indicator${zeroProgressCount > 1 ? 's have' : ' has'} zero achievement recorded`,
+        message: `These indicators have a target but no achieved value. If implementation has begun, run Calculate Results in a reporting period.`,
+        action: 'Open an active reporting period and use Calculate Results to update achievements.',
+      });
     }
 
     // ── 3. Activity cadence & data collection health ──────────────────────────
@@ -474,25 +540,52 @@ export class DashboardService {
     const missingEvidence = activities.filter(a =>
       a.status === 'approved' && !a.evidenceUrl && !a.evidenceNotes,
     ).length;
+    const approvedCount   = activities.filter(a => a.status === 'approved').length;
 
-    if (submittedCount > 10) {
+    if (submittedCount >= 1) {
       insights.push({
-        type: 'warning',
+        type: submittedCount >= 5 ? 'warning' : 'info',
         category: 'approvals_backlog',
-        title: `${submittedCount} activities awaiting approval`,
-        message: `A large approval backlog delays indicator calculations and report readiness. Batch-approve to unblock the data pipeline.`,
+        title: `${submittedCount} ${submittedCount === 1 ? 'activity' : 'activities'} awaiting approval`,
+        message: `Unapproved activities are excluded from indicator calculations and donor reports. ${draftCount > 0 ? `${draftCount} additional draft(s) are not yet submitted.` : ''}`,
         action: 'Use bulk-review to approve pending activities before the next reporting period closes.',
         metric: { submittedCount, draftCount },
       });
     }
-    if (missingEvidence > 5) {
+
+    if (draftCount >= 3 && submittedCount === 0) {
+      insights.push({
+        type: 'info',
+        category: 'approvals_backlog',
+        title: `${draftCount} activities stuck in draft`,
+        message: `These activities have not been submitted for review and will not count toward any indicators or reports.`,
+        action: 'Submit draft activities for approval when data entry is complete.',
+        metric: { draftCount },
+      });
+    }
+
+    if (missingEvidence >= 1) {
       insights.push({
         type: 'info',
         category: 'data_quality',
-        title: `${missingEvidence} approved activities lack evidence`,
-        message: `These activities are approved but have neither an evidence URL nor evidence notes, which weakens audit trails for donor reports.`,
+        title: `${missingEvidence} approved ${missingEvidence === 1 ? 'activity lacks' : 'activities lack'} evidence`,
+        message: `Approved activities without evidence URLs or notes weaken audit trails for donor reports.`,
         action: 'Request field officers to attach photographic or documentary evidence via the activity update form.',
-        metric: { missingEvidence },
+        metric: { missingEvidence, approvedCount },
+      });
+    }
+
+    // No activities in 30 days
+    const recentActivities = activities.filter(
+      a => new Date(a.activityDate).getTime() > now.getTime() - 30 * 86400000,
+    );
+    if (activities.length > 0 && recentActivities.length === 0) {
+      insights.push({
+        type: 'warning',
+        category: 'activity_cadence',
+        title: 'No activities recorded in the last 30 days',
+        message: 'Implementation appears to have stalled. If activities are ongoing, ensure field officers are logging them.',
+        action: 'Check with field teams and log any recent activities. Unapproved activities do not count.',
       });
     }
 
@@ -503,12 +596,27 @@ export class DashboardService {
         insights.push({
           type: 'critical',
           category: 'reporting_compliance',
-          title: `"${period.name}" is ${daysOverdue} days overdue`,
+          title: `"${period.name}" is ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue`,
           message: `This reporting period closed on ${new Date(period.endDate).toLocaleDateString()} and has not been submitted. This may breach donor reporting obligations.`,
           action: 'Calculate results, complete the narrative, and submit this reporting period immediately.',
           metric: { daysOverdue },
           entityId: period._id.toString(), entityType: 'ReportingPeriod',
         });
+      }
+      // Approaching deadline — 14 days
+      if (period.status === 'open' && period.endDate) {
+        const daysToClose = Math.ceil((new Date(period.endDate).getTime() - now.getTime()) / 86400000);
+        if (daysToClose > 0 && daysToClose <= 14) {
+          insights.push({
+            type: 'warning',
+            category: 'reporting_compliance',
+            title: `"${period.name}" closes in ${daysToClose} day${daysToClose === 1 ? '' : 's'}`,
+            message: `Ensure all activities are approved and results are calculated before the reporting period closes.`,
+            action: 'Review pending activities and run Calculate Results before the deadline.',
+            metric: { daysToClose },
+            entityId: period._id.toString(), entityType: 'ReportingPeriod',
+          });
+        }
       }
     }
 
