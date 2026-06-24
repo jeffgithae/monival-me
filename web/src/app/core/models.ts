@@ -2025,3 +2025,165 @@ export interface PaginatedResult<T> {
   pages: number;
   hasMore: boolean;
 }
+
+// ─── Adaptive Management Insights ────────────────────────────────────────────
+// Matches api/src/dashboard/dashboard.service.ts `insights()` exactly.
+export type InsightSeverity = 'critical' | 'warning' | 'opportunity' | 'info';
+
+export interface Insight {
+  type: InsightSeverity;
+  category: string;
+  title: string;
+  message: string;
+  action: string;
+  metric?: Record<string, number | string>;
+  entityId?: string;
+  entityType?: string;
+}
+
+export interface InsightsReport {
+  generatedAt: string;
+  totalInsights: number;
+  critical: number;
+  warning: number;
+  opportunity: number;
+  info: number;
+  insights: Insight[];
+}
+
+// ─── ROI / Cost-per-Impact ───────────────────────────────────────────────────
+// Matches api/src/dashboard/dashboard.service.ts `roi()` exactly.
+export interface IndicatorROI {
+  indicatorId: string;
+  code: string;
+  title: string;
+  unit: string;
+  level: string;
+  target: number;
+  achieved: number;
+  progressPct: number | null;
+  activityCount: number;
+  totalCost: number;
+  costPerUnit: number | null;
+  remainingGap: number | null;
+  projectedCostToTarget: number | null;
+  efficiency: 'high' | 'medium' | 'low' | 'no_data';
+}
+
+export interface ROIReport {
+  generatedAt: string;
+  portfolio: {
+    grantCount: number;
+    totalGrantAmount: number;
+    totalGrantSpent: number;
+    burnRatePct: number;
+    totalAchievedUnits: number;
+    portfolioCostPerUnit: number | null;
+    currency: string;
+  };
+  efficiency: { high: number; medium: number; low: number; noData: number };
+  indicators: IndicatorROI[];
+}
+
+// ─── Stakeholder Feedback ────────────────────────────────────────────────────
+// Matches api/src/stakeholder-feedback/schemas/stakeholder-feedback.schema.ts
+export type FeedbackChannel =
+  | 'survey' | 'interview' | 'focus_group_discussion' | 'complaint'
+  | 'suggestion' | 'sms' | 'social_media' | 'other';
+
+export type FeedbackSentiment = 'very_positive' | 'positive' | 'neutral' | 'negative' | 'very_negative';
+
+export type FeedbackStatus = 'received' | 'reviewed' | 'actioned' | 'closed';
+
+export interface FeedbackMedia {
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+  caption?: string;
+}
+
+export interface FeedbackAction {
+  action: string;
+  takenAt: string;
+  byUserId?: string;
+  notes?: string;
+}
+
+export interface StakeholderFeedback {
+  _id: string;
+  organizationId: string;
+  projectId?: string;
+  indicatorId?: string;
+  activityId?: string;
+  beneficiaryId?: string;
+  collectedByUserId?: string;
+  respondentName?: string;
+  respondentContact?: string;
+  respondentSex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  respondentAge?: number;
+  respondentLocation?: string;
+  isAnonymous: boolean;
+  title: string;
+  content: string;
+  channel: FeedbackChannel;
+  sentiment?: FeedbackSentiment;
+  sentimentScore?: number;
+  thematicTags: string[];
+  media: FeedbackMedia[];
+  status: FeedbackStatus;
+  actionsLog: FeedbackAction[];
+  responseNotes?: string;
+  consentToPublish: boolean;
+  collectedAt?: string;
+  aiSummary?: string;
+  aiConfidence?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateFeedbackDto {
+  projectId?: string;
+  indicatorId?: string;
+  activityId?: string;
+  beneficiaryId?: string;
+  title: string;
+  content: string;
+  channel?: FeedbackChannel;
+  sentiment?: FeedbackSentiment;
+  sentimentScore?: number;
+  thematicTags?: string[];
+  respondentName?: string;
+  respondentContact?: string;
+  respondentSex?: string;
+  respondentAge?: number;
+  respondentLocation?: string;
+  isAnonymous?: boolean;
+  consentToPublish?: boolean;
+  collectedAt?: string;
+  media?: FeedbackMedia[];
+}
+
+export interface FeedbackListQuery {
+  projectId?: string;
+  indicatorId?: string;
+  status?: string;
+  channel?: string;
+  sentiment?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface FeedbackAnalytics {
+  totals: {
+    total: number;
+    avgScore: number | null;
+    withEvidence: number;
+    withConsent: number;
+    actionedPct: number;
+  };
+  bySentiment: Record<string, { count: number; avgScore: number | null }>;
+  byChannel: Array<{ channel: string; count: number }>;
+  byStatus: Record<string, number>;
+  topThemes: Array<{ theme: string; count: number }>;
+  sentimentTrend: Array<{ year: number; month: number; avgScore: number | null; count: number }>;
+}

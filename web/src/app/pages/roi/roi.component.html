@@ -1,0 +1,147 @@
+<div class="roi-page">
+
+  <div class="page-header">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Financial × programmatic</span>
+      <h1>Cost per Impact</h1>
+      <p class="page-subtitle">Bridges grant spend with indicator achievement so you can see what each unit of impact actually costs.</p>
+    </div>
+    <div class="page-actions">
+      <select class="project-select" [ngModel]="projectId()" (ngModelChange)="setProject($event)">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+      <button class="btn-refresh" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading() && !report()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Reconciling grants with indicator results…</p>
+    </div>
+  } @else if (report()) {
+    @let r = report()!;
+
+    <!-- Portfolio summary -->
+    <div class="portfolio-strip">
+      <div class="portfolio-card">
+        <span class="card-label">Grant portfolio</span>
+        <span class="card-value">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantAmount | number:'1.0-0' }}</span>
+        <span class="card-sub">across {{ r.portfolio.grantCount }} grant{{ r.portfolio.grantCount === 1 ? '' : 's' }}</span>
+      </div>
+      <div class="portfolio-card">
+        <span class="card-label">Burn rate</span>
+        <span class="card-value" [class.warn]="r.portfolio.burnRatePct >= 75" [class.crit]="r.portfolio.burnRatePct >= 90">
+          {{ r.portfolio.burnRatePct }}%
+        </span>
+        <span class="card-sub">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantSpent | number:'1.0-0' }} spent</span>
+      </div>
+      <div class="portfolio-card">
+        <span class="card-label">Units achieved</span>
+        <span class="card-value">{{ r.portfolio.totalAchievedUnits | number:'1.0-0' }}</span>
+        <span class="card-sub">across all indicators</span>
+      </div>
+      <div class="portfolio-card highlight">
+        <span class="card-label">Portfolio cost per unit</span>
+        <span class="card-value">
+          @if (r.portfolio.portfolioCostPerUnit !== null) {
+            {{ r.portfolio.currency }} {{ r.portfolio.portfolioCostPerUnit | number:'1.0-0' }}
+          } @else { — }
+        </span>
+        <span class="card-sub">total spend ÷ units achieved</span>
+      </div>
+    </div>
+
+    <!-- Efficiency filter -->
+    <div class="tabs">
+      <button class="tab" [class.active]="efficiencyFilter() === 'all'" (click)="setEfficiencyFilter('all')">
+        All <span class="tab-count">{{ r.indicators.length }}</span>
+      </button>
+      <button class="tab tab-high" [class.active]="efficiencyFilter() === 'high'" (click)="setEfficiencyFilter('high')">
+        High efficiency <span class="tab-count">{{ r.efficiency.high }}</span>
+      </button>
+      <button class="tab tab-medium" [class.active]="efficiencyFilter() === 'medium'" (click)="setEfficiencyFilter('medium')">
+        Medium <span class="tab-count">{{ r.efficiency.medium }}</span>
+      </button>
+      <button class="tab tab-low" [class.active]="efficiencyFilter() === 'low'" (click)="setEfficiencyFilter('low')">
+        Low efficiency <span class="tab-count">{{ r.efficiency.low }}</span>
+      </button>
+      <button class="tab" [class.active]="efficiencyFilter() === 'no_data'" (click)="setEfficiencyFilter('no_data')">
+        No data <span class="tab-count">{{ r.efficiency.noData }}</span>
+      </button>
+    </div>
+
+    @if (visibleIndicators().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">📐</span>
+        <h3>No indicators in this view</h3>
+        <p>Try a different efficiency filter or project scope.</p>
+      </div>
+    } @else {
+      <div class="indicator-table">
+        <div class="table-head">
+          <button class="th th-code" (click)="setSort('code')">Indicator</button>
+          <button class="th th-progress" (click)="setSort('progressPct')">Progress</button>
+          <button class="th th-cost" (click)="setSort('totalCost')">Spend</button>
+          <button class="th th-unit-cost" (click)="setSort('costPerUnit')">Cost / unit</button>
+        </div>
+
+        @for (ind of visibleIndicators(); track ind.indicatorId) {
+          <div class="indicator-row" [class]="ind.efficiency">
+            <div class="row-main">
+              <div class="row-code">
+                <span class="code-badge">{{ ind.code }}</span>
+                <span class="level-tag">{{ ind.level }}</span>
+              </div>
+              <h4>{{ ind.title }}</h4>
+              @if (efficiencySentence(ind, r.portfolio.currency)) {
+                <p class="row-sentence">{{ efficiencySentence(ind, r.portfolio.currency) }}</p>
+              }
+            </div>
+
+            <div class="row-progress">
+              <div class="dual-bar">
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="ind.progressPct ?? 0"></div>
+                </div>
+                <span class="bar-label">
+                  {{ ind.achieved | number:'1.0-0' }} / {{ ind.target | number:'1.0-0' }} {{ ind.unit }}
+                  @if (ind.progressPct !== null) { · {{ ind.progressPct }}% }
+                </span>
+              </div>
+            </div>
+
+            <div class="row-cost">
+              <span class="cost-value">{{ r.portfolio.currency }} {{ ind.totalCost | number:'1.0-0' }}</span>
+              <span class="cost-sub">{{ ind.activityCount }} activit{{ ind.activityCount === 1 ? 'y' : 'ies' }}</span>
+            </div>
+
+            <div class="row-unit-cost">
+              @if (ind.costPerUnit !== null) {
+                <span class="unit-cost-value">{{ r.portfolio.currency }} {{ ind.costPerUnit | number:'1.0-0' }}</span>
+                @if (ind.projectedCostToTarget !== null) {
+                  <span class="unit-cost-sub">~{{ r.portfolio.currency }} {{ ind.projectedCostToTarget | number:'1.0-0' }} to reach target</span>
+                }
+              } @else {
+                <span class="unit-cost-value muted">—</span>
+              }
+              <span class="efficiency-badge" [class]="ind.efficiency">{{ efficiencyLabel(ind.efficiency) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <p class="generated-note">Last refreshed {{ r.generatedAt | date:'medium' }}</p>
+  }
+
+</div>

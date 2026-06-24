@@ -57,6 +57,14 @@ import {
   ProjectMilestone,
   ProjectStakeholder,
   NavItem,
+  InsightsReport,
+  ROIReport,
+  StakeholderFeedback,
+  CreateFeedbackDto,
+  FeedbackListQuery,
+  FeedbackStatus,
+  FeedbackAnalytics,
+  PaginatedResult,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -1249,5 +1257,53 @@ export class ApiService {
 
   importTemplate(kind: string) {
     return this.http.get(`${this.base}/reports/templates/${kind}.csv`, { responseType: 'text' });
+  }
+
+  // ── Adaptive Management Insights ──────────────────────────────────────────
+
+  insights(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<InsightsReport>(`${this.base}/dashboard/insights`, { params });
+  }
+
+  // ── ROI / Cost-per-Impact ──────────────────────────────────────────────────
+
+  roi(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<ROIReport>(`${this.base}/dashboard/roi`, { params });
+  }
+
+  // ── Stakeholder Feedback ───────────────────────────────────────────────────
+
+  feedbackList(query: FeedbackListQuery = {}) {
+    let params = new HttpParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v));
+    });
+    return this.http.get<PaginatedResult<StakeholderFeedback>>(`${this.base}/stakeholder-feedback`, { params });
+  }
+
+  feedbackAnalytics(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<FeedbackAnalytics>(`${this.base}/stakeholder-feedback/analytics`, { params });
+  }
+
+  feedbackOne(id: string) {
+    return this.http.get<StakeholderFeedback>(`${this.base}/stakeholder-feedback/${id}`);
+  }
+
+  createFeedback(dto: CreateFeedbackDto) {
+    return this.http.post<StakeholderFeedback>(`${this.base}/stakeholder-feedback`, dto);
+  }
+
+  actionFeedback(id: string, body: { status: FeedbackStatus; action: string; notes?: string }) {
+    return this.http.patch<StakeholderFeedback>(`${this.base}/stakeholder-feedback/${id}/action`, body);
+  }
+
+  deleteFeedback(id: string) {
+    return this.http.delete<{ deleted: boolean }>(`${this.base}/stakeholder-feedback/${id}`);
   }
 }

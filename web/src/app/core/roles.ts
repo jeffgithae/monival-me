@@ -61,3 +61,7 @@ export function canManageDonors(role: OrgRole): boolean {
 export function canManageDataCollection(role: OrgRole): boolean {
   return ['owner', 'admin', 'me_officer', 'field_officer'].includes(role);
 }
+
+export function canManageStakeholderFeedback(role: OrgRole): boolean {
+  return ['owner', 'admin', 'me_officer', 'field_officer'].includes(role);
+}

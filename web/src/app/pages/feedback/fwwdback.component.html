@@ -1,0 +1,329 @@
+<div class="feedback-page">
+
+  <div class="page-header">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Qualitative data</span>
+      <h1>Stakeholder Feedback</h1>
+      <p class="page-subtitle">Beneficiary voices, community feedback, and field narratives — tagged to indicators and activities, with equal weight to quantitative targets.</p>
+    </div>
+    @if (canManage()) {
+      <button class="btn-new" (click)="toggleForm()">
+        {{ showForm() ? '✕ Cancel' : '+ Log feedback' }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <!-- Analytics strip -->
+  @if (analytics()) {
+    @let a = analytics()!;
+    <div class="analytics-strip">
+      <div class="kpi">
+        <span class="kpi-label">Total records</span>
+        <span class="kpi-value">{{ a.totals.total }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Avg. sentiment</span>
+        <span class="kpi-value">{{ a.totals.avgScore !== null ? a.totals.avgScore + '/100' : '—' }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">With media evidence</span>
+        <span class="kpi-value">{{ a.totals.withEvidence }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Acted on</span>
+        <span class="kpi-value">{{ a.totals.actionedPct }}%</span>
+      </div>
+      @if (a.topThemes.length) {
+        <div class="kpi kpi-themes">
+          <span class="kpi-label">Top themes</span>
+          <div class="theme-pills">
+            @for (t of a.topThemes.slice(0, 5); track t.theme) {
+              <span class="theme-pill">{{ t.theme }} <strong>{{ t.count }}</strong></span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <select class="filter-select" [ngModel]="filterProject()" (ngModelChange)="setProjectFilter($event)">
+      <option value="">All projects</option>
+      @for (p of projects(); track p._id) {
+        <option [value]="p._id">{{ p.name }}</option>
+      }
+    </select>
+    <select class="filter-select" [ngModel]="filterChannel()" (ngModelChange)="setChannelFilter($event)">
+      <option value="">All channels</option>
+      @for (c of channels; track c.id) {
+        <option [value]="c.id">{{ c.label }}</option>
+      }
+    </select>
+    <select class="filter-select" [ngModel]="filterSentiment()" (ngModelChange)="setSentimentFilter($event)">
+      <option value="">All sentiment</option>
+      @for (s of sentiments; track s.id) {
+        <option [value]="s.id">{{ s.icon }} {{ s.label }}</option>
+      }
+    </select>
+    <div class="search-box">
+      <input type="text" placeholder="Search title or content…" [(ngModel)]="searchQuery" (keyup.enter)="search()" />
+      @if (searchQuery()) {
+        <button class="clear-search" (click)="clearSearch()">✕</button>
+      }
+    </div>
+  </div>
+
+  <!-- Status tabs -->
+  <div class="status-tabs">
+    <button class="status-tab" [class.active]="filterStatus() === ''" (click)="setStatusFilter('')">All</button>
+    @for (s of statuses; track s) {
+      <button class="status-tab" [class.active]="filterStatus() === s" (click)="setStatusFilter(s)">
+        {{ s | titlecase }}
+      </button>
+    }
+  </div>
+
+  @if (loading() && feedback().length === 0) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading feedback…</p>
+    </div>
+  } @else if (feedback().length === 0) {
+    <div class="empty-state">
+      <span class="empty-icon">💬</span>
+      <h3>No feedback yet</h3>
+      <p>Stakeholder voices, complaints, and stories you log will show up here.</p>
+    </div>
+  } @else {
+    <div class="feedback-list">
+      @for (f of feedback(); track f._id) {
+        <div class="feedback-card" (click)="openDetail(f)">
+          <div class="card-top">
+            <span class="sentiment-icon">{{ sentimentIcon(f.sentiment) }}</span>
+            <div class="card-title-group">
+              <h4>{{ f.title }}</h4>
+              <div class="card-meta">
+                <span class="channel-tag">{{ channelLabel(f.channel) }}</span>
+                <span class="status-badge" [class]="statusClass(f.status)">{{ f.status | titlecase }}</span>
+                @if (f.media.length) {
+                  <span class="media-tag">📎 {{ f.media.length }}</span>
+                }
+              </div>
+            </div>
+            <span class="card-date">{{ f.createdAt | date:'d MMM y' }}</span>
+          </div>
+          <p class="card-excerpt">{{ f.content }}</p>
+          @if (f.thematicTags.length) {
+            <div class="tag-row">
+              @for (tag of f.thematicTags.slice(0, 4); track tag) {
+                <span class="theme-tag">{{ tag }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="pagination">
+      <button (click)="prevPage()" [disabled]="!hasPrev">← Prev</button>
+      <span>Page {{ page() }} of {{ totalPages }}</span>
+      <button (click)="nextPage()" [disabled]="!hasNext">Next →</button>
+    </div>
+  }
+
+  <!-- Create modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="toggleForm()">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Log stakeholder feedback</h2>
+          <button class="modal-close" (click)="toggleForm()">✕</button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="modal-body">
+          <label>Title <span class="req">*</span>
+            <input type="text" formControlName="title" placeholder="Short summary" />
+          </label>
+          <label>Content <span class="req">*</span>
+            <textarea formControlName="content" rows="4" placeholder="What did they say?"></textarea>
+          </label>
+
+          <div class="form-row">
+            <label>Channel
+              <select formControlName="channel">
+                @for (c of channels; track c.id) {
+                  <option [value]="c.id">{{ c.label }}</option>
+                }
+              </select>
+            </label>
+            <label>Sentiment
+              <select formControlName="sentiment">
+                <option value="">Not assessed</option>
+                @for (s of sentiments; track s.id) {
+                  <option [value]="s.id">{{ s.icon }} {{ s.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>Project
+              <select formControlName="projectId">
+                <option value="">No specific project</option>
+                @for (p of projects(); track p._id) {
+                  <option [value]="p._id">{{ p.name }}</option>
+                }
+              </select>
+            </label>
+            <label>Linked indicator
+              <select formControlName="indicatorId">
+                <option value="">None</option>
+                @for (ind of indicators(); track ind._id) {
+                  <option [value]="ind._id">{{ ind.code }} — {{ ind.title }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <label>Thematic tags
+            <input type="text" formControlName="thematicTags" placeholder="comma, separated, tags" />
+          </label>
+
+          <div class="form-row">
+            <label>Respondent name
+              <input type="text" formControlName="respondentName" placeholder="Optional" [disabled]="form.value.isAnonymous" />
+            </label>
+            <label>Location
+              <input type="text" formControlName="respondentLocation" placeholder="Village, district…" />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>Evidence URL <span class="hint">(photo, audio, video, document)</span>
+              <input type="text" formControlName="mediaUrl" placeholder="https://…" />
+            </label>
+            <label>Evidence type
+              <select formControlName="mediaType">
+                <option value="image">Photo</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
+                <option value="document">Document</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isAnonymous" />
+              Keep respondent anonymous
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="consentToPublish" />
+              Respondent consented to publishing this story
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="toggleForm()">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+              {{ saving() ? 'Saving…' : 'Save feedback' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Detail / action modal -->
+  @if (selected()) {
+    @let f = selected()!;
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ f.title }}</h2>
+          <button class="modal-close" (click)="closeDetail()">✕</button>
+        </div>
+        <div class="modal-body detail-body">
+          <div class="detail-meta">
+            <span class="sentiment-icon">{{ sentimentIcon(f.sentiment) }}</span>
+            <span class="channel-tag">{{ channelLabel(f.channel) }}</span>
+            <span class="status-badge" [class]="statusClass(f.status)">{{ f.status | titlecase }}</span>
+            <span class="card-date">{{ f.createdAt | date:'medium' }}</span>
+          </div>
+
+          <p class="detail-content">{{ f.content }}</p>
+
+          @if (f.thematicTags.length) {
+            <div class="tag-row">
+              @for (tag of f.thematicTags; track tag) {
+                <span class="theme-tag">{{ tag }}</span>
+              }
+            </div>
+          }
+
+          @if (f.media.length) {
+            <div class="media-list">
+              @for (m of f.media; track m.url) {
+                <a [href]="m.url" target="_blank" class="media-item">
+                  {{ m.type === 'image' ? '🖼️' : m.type === 'video' ? '🎬' : m.type === 'audio' ? '🎙️' : '📄' }}
+                  {{ m.caption || m.type }}
+                </a>
+              }
+            </div>
+          }
+
+          @if (!f.isAnonymous && f.respondentName) {
+            <p class="respondent-line">From <strong>{{ f.respondentName }}</strong>@if (f.respondentLocation) {, {{ f.respondentLocation }}}</p>
+          } @else if (f.isAnonymous) {
+            <p class="respondent-line muted">Anonymous respondent@if (f.respondentLocation) { · {{ f.respondentLocation }}}</p>
+          }
+
+          @if (f.actionsLog.length) {
+            <div class="actions-log">
+              <span class="section-label">Action history</span>
+              @for (act of f.actionsLog; track act.takenAt) {
+                <div class="action-entry">
+                  <strong>{{ act.action }}</strong>
+                  <span class="action-date">{{ act.takenAt | date:'d MMM y, h:mm a' }}</span>
+                  @if (act.notes) { <p>{{ act.notes }}</p> }
+                </div>
+              }
+            </div>
+          }
+
+          @if (canManage()) {
+            <form [formGroup]="actionForm" (ngSubmit)="submitAction()" class="action-form">
+              <span class="section-label">Log a new action</span>
+              <div class="form-row">
+                <label>Update status
+                  <select formControlName="status">
+                    @for (s of statuses; track s) {
+                      <option [value]="s">{{ s | titlecase }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+              <label>Action taken <span class="req">*</span>
+                <input type="text" formControlName="action" placeholder="e.g. Followed up with field team" />
+              </label>
+              <label>Notes
+                <textarea formControlName="notes" rows="2"></textarea>
+              </label>
+              <div class="modal-actions">
+                <button type="button" class="btn-danger-text" (click)="deleteFeedback(f._id, f.title)">Delete record</button>
+                <button type="submit" class="btn-primary" [disabled]="actionForm.invalid || saving()">
+                  {{ saving() ? 'Saving…' : 'Log action' }}
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

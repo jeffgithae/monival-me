@@ -1,0 +1,87 @@
+<div class="insights-page">
+
+  <div class="page-header">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Adaptive management</span>
+      <h1>Insights</h1>
+      <p class="page-subtitle">Cross-correlated alerts from your grants, indicators, activities, and reporting periods — ranked by what needs attention first.</p>
+    </div>
+    <div class="page-actions">
+      <select class="project-select" [ngModel]="projectId()" (ngModelChange)="setProject($event)">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+      <button class="btn-refresh" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading() && !report()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cross-referencing your portfolio…</p>
+    </div>
+  } @else if (report()) {
+
+    <div class="tabs">
+      @for (tab of tabs; track tab.id) {
+        <button
+          class="tab"
+          [class.active]="activeTab() === tab.id"
+          [class.tab-critical]="tab.id === 'critical'"
+          [class.tab-warning]="tab.id === 'warning'"
+          [class.tab-opportunity]="tab.id === 'opportunity'"
+          [class.tab-info]="tab.id === 'info'"
+          (click)="setTab(tab.id)">
+          {{ tab.label }}
+          <span class="tab-count">{{ tabCount()(tab.id) }}</span>
+        </button>
+      }
+    </div>
+
+    @if (filteredInsights().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">✨</span>
+        <h3>Nothing here right now</h3>
+        <p>No {{ activeTab() === 'all' ? '' : activeTab() + ' ' }}insights for this scope. Check back after the next activity or reporting update.</p>
+      </div>
+    } @else {
+      <div class="insights-list">
+        @for (insight of filteredInsights(); track insight.title) {
+          <div class="insight-card" [class]="insight.type">
+            <div class="insight-stripe"></div>
+            <div class="insight-body">
+              <div class="insight-meta">
+                <span class="insight-icon">{{ severityIcon(insight.type) }}</span>
+                <span class="insight-category">{{ categoryLabel(insight.category) }}</span>
+              </div>
+              <h3>{{ insight.title }}</h3>
+              <p class="insight-message">{{ insight.message }}</p>
+              <div class="insight-action">
+                <span class="action-label">Suggested action</span>
+                <p>{{ insight.action }}</p>
+              </div>
+              @if (insight.metric) {
+                <div class="insight-metrics">
+                  @for (m of insight.metric | keyvalue; track m.key) {
+                    <span class="metric-pill">{{ m.key }}: <strong>{{ m.value }}</strong></span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <p class="generated-note">Last refreshed {{ report()!.generatedAt | date:'medium' }}</p>
+  }
+
+</div>

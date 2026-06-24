@@ -390,7 +390,7 @@ export class DashboardService {
             category: 'financial_programmatic',
             title: `${grant.name}: High spend, low impact`,
             message: `You have burned ${burnPct.toFixed(0)}% of the ${grant.currency} ${grant.amount.toLocaleString()} grant but only achieved ${avgProgress.toFixed(0)}% of linked indicator targets. A ${gap.toFixed(0)}% efficiency gap warrants urgent review.`,
-            action: 'Review linked activities for ${grant.name} and consider pausing spend until targets are on track.',
+            action: `Review linked activities for ${grant.name} and consider pausing spend until targets are on track.`,
             metric: { burnRate: Math.round(burnPct), indicatorProgress: Math.round(avgProgress), efficiencyGap: Math.round(gap) },
             entityId:   grant._id.toString(),
             entityType: 'Grant',

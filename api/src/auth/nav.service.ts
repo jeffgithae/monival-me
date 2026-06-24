@@ -70,6 +70,12 @@ export class NavService {
     }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
       items.push({ id: 'strategic', label: 'Strategic Overview', icon: '🎯', route: '/strategic' });
+      items.push({ id: 'insights', label: 'Insights', icon: '💡', route: '/insights' });
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE)) {
+      if (!items.find(i => i.id === 'roi')) {
+        items.push({ id: 'roi', label: 'Cost per Impact', icon: '📐', route: '/roi' });
+      }
     }
 
     // ── Funding ───────────────────────────────────────────────────────────────
@@ -93,6 +99,7 @@ export class NavService {
       if (!items.find(i => i.id === 'reporting')) {
         items.push({ id: 'reporting', label: 'Reporting Periods', icon: '📋', route: '/reporting', section: reportingSection });
       }
+      items.push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' });
       items.push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' });
     }
 
