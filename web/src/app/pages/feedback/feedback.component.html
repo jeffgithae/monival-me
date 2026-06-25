@@ -71,7 +71,10 @@
       }
     </select>
     <div class="search-box">
-      <input type="text" placeholder="Search title or content…" [(ngModel)]="searchQuery" (keyup.enter)="search()" />
+      <input type="text" placeholder="Search title or content…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        (keyup.enter)="search()" />
       @if (searchQuery()) {
         <button class="clear-search" (click)="clearSearch()">✕</button>
       }

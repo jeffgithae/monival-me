@@ -1,18 +1,21 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import { Insight, InsightSeverity, InsightsReport, Project } from '../../core/models';
 
 @Component({
   selector: 'app-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe],
+  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe, RouterLink],
   templateUrl: './insights.component.html',
   styleUrl: './insights.component.scss',
 })
 export class InsightsComponent implements OnInit {
-  private api = inject(ApiService);
+  private api  = inject(ApiService);
+  private auth = inject(AuthService);
 
   report      = signal<InsightsReport | null>(null);
   projects    = signal<Project[]>([]);
@@ -85,22 +88,26 @@ export class InsightsComponent implements OnInit {
     const m: Record<string, string> = {
       financial_programmatic: 'Financial × Programmatic',
       grant_expiry:           'Grant Expiry',
+      grant_utilisation:      'Grant Utilisation',
       indicator_health:       'Indicator Health',
       approvals_backlog:      'Approvals',
       data_quality:           'Data Quality',
+      activity_cadence:       'Activity Cadence',
       reporting_compliance:   'Reporting Compliance',
     };
-    return m[category] ?? category;
+    return m[category] ?? category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
   entityRoute(insight: Insight): string[] | null {
     if (!insight.entityId || !insight.entityType) return null;
     const map: Record<string, string> = {
-      Grant: '/grants',
-      Indicator: '/reporting',
+      Grant:           '/grant',
+      Indicator:       '/reporting',
       ReportingPeriod: '/reporting',
     };
     const base = map[insight.entityType];
-    return base ? [base] : null;
+    if (!base) return null;
+    // Grant has a detail page at /grant/:id; Reporting at /reporting (list, no detail route)
+    return insight.entityType === 'Grant' ? [base, insight.entityId] : [base];
   }
 }

@@ -75,6 +75,9 @@
                   }
                 </div>
               }
+              @if (entityRoute(insight)) {
+                <a class="insight-link" [routerLink]="entityRoute(insight)">View →</a>
+              }
             </div>
           </div>
         }
