@@ -101,13 +101,16 @@ export class InsightsComponent implements OnInit {
   entityRoute(insight: Insight): string[] | null {
     if (!insight.entityId || !insight.entityType) return null;
     const map: Record<string, string> = {
-      Grant:           '/grant',
+      Grant:           '/grants',
       Indicator:       '/reporting',
       ReportingPeriod: '/reporting',
     };
     const base = map[insight.entityType];
     if (!base) return null;
-    // Grant has a detail page at /grant/:id; Reporting at /reporting (list, no detail route)
-    return insight.entityType === 'Grant' ? [base, insight.entityId] : [base];
+    // Note: none of these are detail routes — /grants is a flat list with no
+    // :id param, and there's no standalone indicator/reporting-period detail
+    // page in this app. Appending entityId would build a path the router
+    // can't match, so every link here intentionally goes to the list view.
+    return [base];
   }
 }
