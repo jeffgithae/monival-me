@@ -3,12 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Anthropic model (used when ANTHROPIC_API_KEY is set)
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
-
-// Gemini free-tier model (used when GEMINI_API_KEY is set, no credit card required)
-// gemini-1.5-flash: 15 RPM, 1500 RPD free — https://aistudio.google.com
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL    = 'gemini-1.5-flash';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -47,18 +43,11 @@ export class AnthropicService implements OnModuleInit {
     }
   }
 
-  // ── Single-turn completion ─────────────────────────────────────────────────
-  async complete(
-    systemPrompt: string,
-    userPrompt: string,
-    maxTokens = 2048,
-  ): Promise<string> {
+  async complete(systemPrompt: string, userPrompt: string, maxTokens = 2048): Promise<string> {
     this.assertConfigured();
-
     if (this.backend === 'gemini') {
       return this.geminiComplete(systemPrompt, userPrompt, maxTokens);
     }
-
     const response = await this.anthropicClient.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
@@ -70,24 +59,15 @@ export class AnthropicService implements OnModuleInit {
     return block.text;
   }
 
-  // ── Multi-turn chat ────────────────────────────────────────────────────────
-  async chat(
-    systemPrompt: string,
-    messages: ClaudeMessage[],
-    maxTokens = 2048,
-  ): Promise<string> {
+  async chat(systemPrompt: string, messages: ClaudeMessage[], maxTokens = 2048): Promise<string> {
     this.assertConfigured();
-
     if (this.backend === 'gemini') {
-      // Flatten history into a single user prompt with context for Gemini
       const history = messages.slice(0, -1)
         .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n\n');
       const lastMsg = messages[messages.length - 1]?.content ?? '';
-      const combined = history ? `${history}\n\nUser: ${lastMsg}` : lastMsg;
-      return this.geminiComplete(systemPrompt, combined, maxTokens);
+      return this.geminiComplete(systemPrompt, history ? `${history}\n\nUser: ${lastMsg}` : lastMsg, maxTokens);
     }
-
     const response = await this.anthropicClient.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
@@ -99,12 +79,7 @@ export class AnthropicService implements OnModuleInit {
     return block.text;
   }
 
-  // ── Gemini implementation ─────────────────────────────────────────────────
-  private async geminiComplete(
-    systemPrompt: string,
-    userPrompt: string,
-    maxTokens: number,
-  ): Promise<string> {
+  private async geminiComplete(systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
     const model = this.geminiClient.getGenerativeModel({
       model: GEMINI_MODEL,
       systemInstruction: systemPrompt,
@@ -114,7 +89,6 @@ export class AnthropicService implements OnModuleInit {
     return result.response.text();
   }
 
-  // ── Guard ─────────────────────────────────────────────────────────────────
   private assertConfigured() {
     if (this.backend === 'none') {
       throw new Error(
