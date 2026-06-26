@@ -1,10 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
-const GEMINI_MODEL    = 'gemini-1.5-flash-8b';
+
+// Direct REST call — no SDK dependency, works with any key format
+// Models with free tier: gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-lite
+const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -18,27 +21,27 @@ export class AnthropicService implements OnModuleInit {
   private readonly logger = new Logger(AnthropicService.name);
   private backend: Backend = 'none';
   private anthropicClient!: Anthropic;
-  private geminiClient!: GoogleGenerativeAI;
+  private geminiKey = '';
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   onModuleInit() {
     const anthropicKey = (this.config.get<string>('ANTHROPIC_API_KEY') ?? '').trim();
-    const geminiKey    = (this.config.get<string>('GEMINI_API_KEY') ?? '').trim();
+    const geminiKey = (this.config.get<string>('GEMINI_API_KEY') ?? '').trim();
 
     if (anthropicKey && anthropicKey.startsWith('sk-ant-')) {
       this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
       this.backend = 'anthropic';
       this.logger.log('Evidara Copilot: using Anthropic Claude.');
     } else if (geminiKey) {
-      this.geminiClient = new GoogleGenerativeAI(geminiKey);
+      this.geminiKey = geminiKey;
       this.backend = 'gemini';
-      this.logger.log('Evidara Copilot: using Google Gemini (free tier).');
+      this.logger.log(`Evidara Copilot: using Google Gemini (${GEMINI_MODEL}) via REST.`);
     } else {
       this.backend = 'none';
       this.logger.warn(
-        'No AI key configured. Set ANTHROPIC_API_KEY or GEMINI_API_KEY in Railway variables. ' +
-        'Get a free Gemini key at https://aistudio.google.com',
+        'No AI key configured. Set GEMINI_API_KEY in Railway variables. ' +
+        'Get a free key at https://aistudio.google.com',
       );
     }
   }
@@ -66,7 +69,8 @@ export class AnthropicService implements OnModuleInit {
         .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n\n');
       const lastMsg = messages[messages.length - 1]?.content ?? '';
-      return this.geminiComplete(systemPrompt, history ? `${history}\n\nUser: ${lastMsg}` : lastMsg, maxTokens);
+      const combined = history ? `${history}\n\nUser: ${lastMsg}` : lastMsg;
+      return this.geminiComplete(systemPrompt, combined, maxTokens);
     }
     const response = await this.anthropicClient.messages.create({
       model: ANTHROPIC_MODEL,
@@ -79,20 +83,43 @@ export class AnthropicService implements OnModuleInit {
     return block.text;
   }
 
+  // Direct REST call — bypasses SDK version issues entirely
   private async geminiComplete(systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
-    const model = this.geminiClient.getGenerativeModel({
-      model: GEMINI_MODEL,
-      systemInstruction: systemPrompt,
+    const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${this.geminiKey}`;
+
+    const body = {
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       generationConfig: { maxOutputTokens: maxTokens },
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
-    const result = await model.generateContent(userPrompt);
-    return result.response.text();
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText);
+      throw new Error(`Gemini API error ${res.status}: ${err}`);
+    }
+
+    const data = await res.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      error?: { message: string };
+    };
+
+    if (data.error) throw new Error(`Gemini error: ${data.error.message}`);
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Empty response from Gemini');
+    return text;
   }
 
   private assertConfigured() {
     if (this.backend === 'none') {
       throw new Error(
-        'AI Copilot is not configured. Please set GEMINI_API_KEY in Railway environment variables. ' +
+        'AI Copilot is not configured. Set GEMINI_API_KEY in Railway variables. ' +
         'Get a free key at https://aistudio.google.com',
       );
     }
