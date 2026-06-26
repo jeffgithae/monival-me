@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Activity, ActivitySchema } from '../activities/schemas/activity.schema';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
@@ -10,9 +11,11 @@ import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
 import { StakeholderFeedback, StakeholderFeedbackSchema } from '../stakeholder-feedback/schemas/stakeholder-feedback.schema';
 import { CopilotController } from './copilot/copilot.controller';
 import { CopilotService } from './copilot/copilot.service';
+import { AnthropicService } from './anthropic.service';
 
 @Module({
   imports: [
+    ConfigModule,
     MongooseModule.forFeature([
       { name: Project.name,             schema: ProjectSchema },
       { name: Indicator.name,           schema: IndicatorSchema },
@@ -25,7 +28,7 @@ import { CopilotService } from './copilot/copilot.service';
     ]),
   ],
   controllers: [CopilotController],
-  providers: [CopilotService],
-  exports: [CopilotService],
+  providers: [AnthropicService, CopilotService],
+  exports: [AnthropicService, CopilotService],
 })
 export class AIModule {}

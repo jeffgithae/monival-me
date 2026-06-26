@@ -1231,14 +1231,95 @@ export interface PeriodTarget {
 
 export type ReportingPeriodStatus = 'open' | 'submitted' | 'approved' | 'locked';
 
+// ─── AI / Copilot ─────────────────────────────────────────────────────────────
+
+export interface CopilotChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface CopilotIndicatorSummary {
+  code: string;
+  title: string;
+  unit: string;
+  achieved: number;
+  target: number;
+  progressPct: number | null;
+  hasTarget: boolean;
+}
+
 export interface CopilotResponse {
   answer: string;
-  recommendations: string[];
   context: {
     projects: Array<{ id: string; name: string; status: string; donor?: string; endDate?: string }>;
+    beneficiaries: { total: number; active: number; vulnerable: number };
+    grants: { count: number; totalAmount: number; totalSpent: number; burnRatePct: number; currency: string };
+    indicators: CopilotIndicatorSummary[];
     recentActivities: Array<{ id: string; title: string; status?: string; activityDate: string }>;
     reportingPeriods: Array<{ id: string; name: string; status: ReportingPeriodStatus; startDate: string; endDate: string }>;
   };
+}
+
+export interface DraftReportSection {
+  title: string;
+  executiveSummary: string;
+  indicatorPerformance: string;
+  activitiesNarrative: string;
+  challengesAndLessons: string;
+  financialSummary: string | null;
+  stakeholderVoice: string | null;
+  nextPeriodPlans: string;
+  qualityFlags: string[];
+}
+
+export interface DraftReportResponse {
+  reportingPeriodId: string;
+  generatedAt: string;
+  style: 'narrative' | 'bullet' | 'executive';
+  report: DraftReportSection;
+  rawData: {
+    activityCount: number;
+    resultCount: number;
+    totalParticipants: number;
+    totalQuantity: number;
+    grantCount: number;
+    feedbackCount: number;
+  };
+}
+
+export interface ToCResponse {
+  projectId: string;
+  generatedAt: string;
+  theoryOfChange: string;
+}
+
+export interface IndicatorDefinitionResponse {
+  generatedAt: string;
+  definition: {
+    refinedTitle: string;
+    definition: string;
+    unit: string;
+    numerator: string;
+    denominator: string;
+    dataSources: string;
+    frequency: string;
+    disaggregation: string;
+    baselineMethod: string;
+    pitfalls: string;
+    [key: string]: string;
+  };
+}
+
+export interface SuggestedAction {
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  area: string;
+  action: string;
+  rationale: string;
+}
+
+export interface SuggestActionsResponse {
+  generatedAt: string;
+  actions: SuggestedAction[];
 }
 
 // ─── Create DTOs ──────────────────────────────────────────────────────────────

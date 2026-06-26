@@ -1,45 +1,76 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import type { JwtPayload } from '../../common/types/jwt-payload';
-import { CopilotService, DraftReportDto } from './copilot.service';
+import { CopilotService } from './copilot.service';
 import { CopilotMessageDto } from './dto/copilot-message.dto';
+import { DraftReportDto } from './dto/draft-report.dto';
 
-@ApiTags('Copilot')
+@ApiTags('AI Copilot')
 @Controller('ai/copilot')
 @UseGuards(JwtAuthGuard, SubscriptionGuard)
 export class CopilotController {
-  constructor(private readonly copilotService: CopilotService) {}
+  constructor(private readonly svc: CopilotService) {}
 
   /**
-   * General-purpose M&E copilot chat.
-   * Accepts a natural-language message and returns a contextual answer,
-   * data-backed recommendations, and a structured portfolio context object.
+   * POST /ai/copilot/message
+   * General-purpose M&E chat with full portfolio context.
+   * Supports multi-turn via the optional `history` array.
    */
   @Post('message')
-  @ApiOperation({ summary: 'Ask the M&E copilot a question about your portfolio' })
+  @ApiOperation({ summary: 'Ask the Evidara M&E Copilot a question about your portfolio' })
   message(@CurrentUser() user: JwtPayload, @Body() dto: CopilotMessageDto) {
-    return this.copilotService.message(user.organizationId, dto);
+    return this.svc.message(user.organizationId, dto);
   }
 
   /**
-   * AI Donor Report Drafter.
-   *
-   * Aggregates all approved activities, indicator results, grant financials,
-   * and stakeholder feedback for a given reporting period, then composes a
-   * structured first-draft donor report the user can review and submit.
-   *
-   * Body:
-   *   - reportingPeriodId (required): the period to draft the report for
-   *   - style: 'narrative' | 'bullet' | 'executive'  (default: narrative)
-   *   - includeFinancials: boolean (default: true)
-   *   - includeFeedback:   boolean (default: true)
+   * POST /ai/copilot/draft-report
+   * AI-generated donor report draft for a completed reporting period.
    */
   @Post('draft-report')
-  @ApiOperation({ summary: 'AI-generated first-draft donor report for a reporting period' })
+  @ApiOperation({ summary: 'Generate a first-draft donor report for a reporting period' })
   draftReport(@CurrentUser() user: JwtPayload, @Body() dto: DraftReportDto) {
-    return this.copilotService.draftReport(user.organizationId, dto);
+    return this.svc.draftReport(user.organizationId, dto);
+  }
+
+  /**
+   * GET /ai/copilot/theory-of-change/:projectId
+   * Generate a Theory of Change narrative for a project.
+   */
+  @Get('theory-of-change/:projectId')
+  @ApiOperation({ summary: 'Generate a Theory of Change for a project' })
+  generateToC(
+    @CurrentUser() user: JwtPayload,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.svc.generateToC(user.organizationId, projectId);
+  }
+
+  /**
+   * POST /ai/copilot/indicator-definition
+   * Generate a complete SMART indicator definition.
+   */
+  @Post('indicator-definition')
+  @ApiOperation({ summary: 'Generate a SMART indicator definition' })
+  indicatorDefinition(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { title: string; level: string; sector?: string; unit?: string },
+  ) {
+    return this.svc.generateIndicatorDefinition(user.organizationId, body);
+  }
+
+  /**
+   * GET /ai/copilot/suggest-actions
+   * Adaptive management recommendations based on current portfolio state.
+   */
+  @Get('suggest-actions')
+  @ApiOperation({ summary: 'Get adaptive management action recommendations' })
+  suggestActions(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.svc.suggestActions(user.organizationId, projectId);
   }
 }

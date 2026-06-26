@@ -1,116 +1,405 @@
-<div class="page copilot-page">
+<div class="copilot-page">
+
   <div class="page-header">
-    <div>
-      <span class="eyebrow">AI Copilot</span>
-      <h1>Workspace Copilot</h1>
-      <p class="page-subtitle">Ask questions grounded in your projects, indicators, activities, and reporting periods.</p>
+    <div class="page-title-group">
+      <span class="page-eyebrow">Powered by Claude</span>
+      <h1>AI Copilot</h1>
+      <p class="page-subtitle">M&E intelligence grounded in your Evidara portfolio — chat, draft reports, build Theory of Change, and define indicators.</p>
     </div>
   </div>
 
-  <section class="copilot-layout">
-    <div class="panel composer">
-      <label>
-        Project focus
-        <select [ngModel]="selectedProjectId()" (ngModelChange)="selectedProjectId.set($event)">
-          <option value="">All projects</option>
-          @for (project of projects(); track project._id) {
-            <option [value]="project._id">{{ project.name }}</option>
+  <!-- Tab nav -->
+  <nav class="copilot-tabs">
+    <button class="tab" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
+      ✨ Chat
+    </button>
+    <button class="tab" [class.active]="activeTab() === 'actions'" (click)="setTab('actions')">
+      ⚡ Suggested Actions
+    </button>
+    <button class="tab" [class.active]="activeTab() === 'report'" (click)="setTab('report')">
+      📄 Draft Report
+    </button>
+    <button class="tab" [class.active]="activeTab() === 'toc'" (click)="setTab('toc')">
+      🗺 Theory of Change
+    </button>
+    <button class="tab" [class.active]="activeTab() === 'indicator'" (click)="setTab('indicator')">
+      📐 Indicator Builder
+    </button>
+  </nav>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <!-- ── CHAT ────────────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'chat') {
+    <div class="chat-layout">
+      <div class="chat-sidebar">
+        <label class="field-label">Project focus
+          <select [ngModel]="selectedProjectId()" (ngModelChange)="selectedProjectId.set($event)">
+            <option value="">All projects</option>
+            @for (p of projects(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="prompt-suggestions">
+          <span class="sidebar-heading">Suggested prompts</span>
+          @for (prompt of suggestedPrompts; track prompt) {
+            <button class="prompt-chip" (click)="sendMessage(prompt)" [disabled]="loading()">
+              {{ prompt }}
+            </button>
           }
-        </select>
-      </label>
+        </div>
 
-      <label>
-        Question
-        <textarea
-          rows="6"
-          [ngModel]="message()"
-          (ngModelChange)="message.set($event)"
-          placeholder="Ask about report readiness, stale data, indicator gaps, or next actions."
-        ></textarea>
-      </label>
+        @if (chatHistory().length > 0) {
+          <button class="btn-clear" (click)="clearChat()">Clear conversation</button>
+        }
+      </div>
 
-      <button class="btn btn-primary" type="button" (click)="ask()" [disabled]="loading() || !message().trim()">
-        {{ loading() ? 'Thinking...' : 'Ask Copilot' }}
-      </button>
+      <div class="chat-main">
+        <div class="chat-messages">
+          @if (chatHistory().length === 0) {
+            <div class="chat-empty">
+              <span class="empty-icon">✨</span>
+              <h3>Ask anything about your portfolio</h3>
+              <p>The Copilot has access to your projects, indicators, activities, grants, and reporting periods.</p>
+            </div>
+          }
 
-      <div class="prompt-row">
-        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('Which reporting periods need attention?')">
-          Reporting
-        </button>
-        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('Where are our indicator data gaps?')">
-          Indicators
-        </button>
-        <button type="button" class="btn btn-outline btn-sm" (click)="usePrompt('What activities should be reviewed first?')">
-          Activities
-        </button>
+          @for (msg of chatHistory(); track $index) {
+            <div class="chat-bubble" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+              <div class="bubble-label">{{ msg.role === 'user' ? 'You' : 'Evidara Copilot' }}</div>
+              <div class="bubble-content">{{ msg.content }}</div>
+            </div>
+          }
+
+          @if (loading() && activeTab() === 'chat') {
+            <div class="chat-bubble assistant">
+              <div class="bubble-label">Evidara Copilot</div>
+              <div class="bubble-content typing">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="chat-composer">
+          <textarea
+            rows="3"
+            placeholder="Ask about report readiness, indicator gaps, grant burn rate, or anything in your portfolio…"
+            [ngModel]="chatInput()"
+            (ngModelChange)="chatInput.set($event)"
+            (keydown.enter)="$event.shiftKey ? null : (sendMessage(), $event.preventDefault())"
+            [disabled]="loading()">
+          </textarea>
+          <button class="btn-send" (click)="sendMessage()" [disabled]="loading() || !chatInput().trim()">
+            {{ loading() ? '…' : 'Send' }}
+          </button>
+        </div>
+
+        @if (lastResponse()?.context; as ctx) {
+          <details class="context-drawer">
+            <summary>Portfolio context used in this response</summary>
+            <div class="context-grid">
+              <div class="ctx-card">
+                <strong>Grants</strong>
+                <span>{{ ctx.grants.count }} active · {{ ctx.grants.currency }} {{ ctx.grants.totalSpent | number }} / {{ ctx.grants.totalAmount | number }} ({{ ctx.grants.burnRatePct }}% burn)</span>
+              </div>
+              <div class="ctx-card">
+                <strong>Beneficiaries</strong>
+                <span>{{ ctx.beneficiaries.total }} registered · {{ ctx.beneficiaries.active }} active · {{ ctx.beneficiaries.vulnerable }} vulnerable</span>
+              </div>
+              <div class="ctx-card">
+                <strong>Indicators ({{ ctx.indicators.length }})</strong>
+                @for (i of ctx.indicators.slice(0, 4); track i.code) {
+                  <span class="ctx-row">{{ i.code }}: {{ i.progressPct !== null ? i.progressPct + '%' : 'no target' }}</span>
+                }
+              </div>
+              <div class="ctx-card">
+                <strong>Recent Activities</strong>
+                @for (a of ctx.recentActivities.slice(0, 3); track a.id) {
+                  <span class="ctx-row">{{ a.title }} [{{ a.status }}]</span>
+                }
+              </div>
+            </div>
+          </details>
+        }
       </div>
     </div>
+  }
 
-    <div class="results">
-      @if (error()) {
-        <div class="alert alert-error">{{ error() }}</div>
-      }
+  <!-- ── SUGGESTED ACTIONS ─────────────────────────────────────────────── -->
+  @if (activeTab() === 'actions') {
+    <div class="tool-panel">
+      <div class="tool-controls">
+        <label class="field-label">Project scope
+          <select [ngModel]="actionsProjectId()" (ngModelChange)="actionsProjectId.set($event)">
+            <option value="">Full workspace</option>
+            @for (p of projects(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <button class="btn-primary" (click)="loadActions()" [disabled]="loading()">
+          {{ loading() ? 'Analysing…' : 'Generate recommendations' }}
+        </button>
+      </div>
 
-      @if (!response() && !loading()) {
-        <div class="card empty-state">
-          <h3>Ready when you are</h3>
-          <p>Choose a project or ask across the full workspace.</p>
+      @if (actionsResult()) {
+        <p class="generated-note">Generated {{ actionsResult()!.generatedAt | date:'medium' }}</p>
+        <div class="actions-list">
+          @for (action of sortedActions(); track action.action) {
+            <div class="action-card" [class]="action.priority">
+              <div class="action-header">
+                <span class="priority-icon">{{ priorityIcon(action.priority) }}</span>
+                <span class="action-area">{{ action.area }}</span>
+                <span class="priority-badge" [class]="action.priority">{{ action.priority }}</span>
+              </div>
+              <p class="action-text">{{ action.action }}</p>
+              @if (action.rationale) {
+                <p class="action-rationale">{{ action.rationale }}</p>
+              }
+            </div>
+          }
         </div>
-      }
-
-      @if (response(); as result) {
-        <article class="card answer-card">
-          <h2>Answer</h2>
-          <p>{{ result.answer }}</p>
-        </article>
-
-        <article class="card">
-          <h3>Recommended Actions</h3>
-          <ul class="action-list">
-            @for (item of result.recommendations; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </article>
-
-        <div class="context-grid">
-          <article class="card">
-            <h3>Projects</h3>
-            @for (project of result.context.projects; track project.id) {
-              <div class="context-item">
-                <strong>{{ project.name }}</strong>
-                <span>{{ project.status }} @if (project.donor) { · {{ project.donor }} }</span>
-              </div>
-            } @empty {
-              <p class="muted">No projects found.</p>
-            }
-          </article>
-
-          <article class="card">
-            <h3>Recent Activities</h3>
-            @for (activity of result.context.recentActivities; track activity.id) {
-              <div class="context-item">
-                <strong>{{ activity.title }}</strong>
-                <span>{{ activity.status || 'draft' }} · {{ activity.activityDate | date:'mediumDate' }}</span>
-              </div>
-            } @empty {
-              <p class="muted">No recent activities found.</p>
-            }
-          </article>
-
-          <article class="card">
-            <h3>Reporting Periods</h3>
-            @for (period of result.context.reportingPeriods; track period.id) {
-              <div class="context-item">
-                <strong>{{ period.name }}</strong>
-                <span>{{ period.status }} · {{ period.endDate | date:'mediumDate' }}</span>
-              </div>
-            } @empty {
-              <p class="muted">No reporting periods found.</p>
-            }
-          </article>
+      } @else if (!loading()) {
+        <div class="tool-empty">
+          <span class="empty-icon">⚡</span>
+          <p>Generate AI-powered adaptive management recommendations based on your current portfolio state.</p>
         </div>
       }
     </div>
-  </section>
+  }
+
+  <!-- ── DRAFT REPORT ───────────────────────────────────────────────────── -->
+  @if (activeTab() === 'report') {
+    <div class="tool-panel">
+      <div class="tool-controls">
+        <label class="field-label">Project
+          <select
+            [ngModel]="selectedProjectId()"
+            (ngModelChange)="selectedProjectId.set($event); loadPeriodsForProject($event)">
+            <option value="">Select a project</option>
+            @for (p of projects(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-label">Reporting period
+          <select [ngModel]="reportPeriodId()" (ngModelChange)="reportPeriodId.set($event)">
+            <option value="">Select a period</option>
+            @for (p of periods(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-label">Style
+          <select [ngModel]="reportStyle()" (ngModelChange)="reportStyle.set($event)">
+            <option value="narrative">Narrative</option>
+            <option value="bullet">Bullet points</option>
+            <option value="executive">Executive summary</option>
+          </select>
+        </label>
+
+        <div class="checkbox-row">
+          <label><input type="checkbox" [ngModel]="reportFinancials()" (ngModelChange)="reportFinancials.set($event)" /> Include financials</label>
+          <label><input type="checkbox" [ngModel]="reportFeedback()" (ngModelChange)="reportFeedback.set($event)" /> Include stakeholder feedback</label>
+        </div>
+
+        <button class="btn-primary" (click)="generateReport()" [disabled]="loading() || !reportPeriodId()">
+          {{ loading() ? 'Drafting…' : 'Generate report draft' }}
+        </button>
+      </div>
+
+      @if (draftReport(); as dr) {
+        @if (dr.report.qualityFlags.length > 0) {
+          <div class="quality-flags">
+            <strong>⚠ Data quality notes</strong>
+            <ul>
+              @for (flag of dr.report.qualityFlags; track flag) {
+                <li>{{ flag }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="report-sections">
+          <div class="report-section">
+            <div class="section-header">
+              <h3>Executive Summary</h3>
+              <button class="btn-copy" (click)="copySection(dr.report.executiveSummary)" title="Copy">📋</button>
+            </div>
+            <p>{{ dr.report.executiveSummary }}</p>
+          </div>
+
+          <div class="report-section">
+            <div class="section-header">
+              <h3>Indicator Performance</h3>
+              <button class="btn-copy" (click)="copySection(dr.report.indicatorPerformance)" title="Copy">📋</button>
+            </div>
+            <p style="white-space: pre-line">{{ dr.report.indicatorPerformance }}</p>
+          </div>
+
+          <div class="report-section">
+            <div class="section-header">
+              <h3>Activities Narrative</h3>
+              <button class="btn-copy" (click)="copySection(dr.report.activitiesNarrative)" title="Copy">📋</button>
+            </div>
+            <p style="white-space: pre-line">{{ dr.report.activitiesNarrative }}</p>
+          </div>
+
+          <div class="report-section">
+            <div class="section-header">
+              <h3>Challenges &amp; Lessons Learned</h3>
+              <button class="btn-copy" (click)="copySection(dr.report.challengesAndLessons)" title="Copy">📋</button>
+            </div>
+            <p style="white-space: pre-line">{{ dr.report.challengesAndLessons }}</p>
+          </div>
+
+          @if (dr.report.financialSummary) {
+            <div class="report-section">
+              <div class="section-header">
+                <h3>Financial Summary</h3>
+                <button class="btn-copy" (click)="copySection(dr.report.financialSummary)" title="Copy">📋</button>
+              </div>
+              <p style="white-space: pre-line">{{ dr.report.financialSummary }}</p>
+            </div>
+          }
+
+          @if (dr.report.stakeholderVoice) {
+            <div class="report-section">
+              <div class="section-header">
+                <h3>Stakeholder Voice</h3>
+                <button class="btn-copy" (click)="copySection(dr.report.stakeholderVoice)" title="Copy">📋</button>
+              </div>
+              <p style="white-space: pre-line">{{ dr.report.stakeholderVoice }}</p>
+            </div>
+          }
+
+          <div class="report-section">
+            <div class="section-header">
+              <h3>Next Period Plans</h3>
+              <button class="btn-copy" (click)="copySection(dr.report.nextPeriodPlans)" title="Copy">📋</button>
+            </div>
+            <p style="white-space: pre-line">{{ dr.report.nextPeriodPlans }}</p>
+          </div>
+        </div>
+
+        <p class="generated-note">Generated {{ dr.generatedAt | date:'medium' }} · Style: {{ dr.style }}</p>
+      } @else if (!loading()) {
+        <div class="tool-empty">
+          <span class="empty-icon">📄</span>
+          <p>Select a project and reporting period to generate a first-draft donor report. Claude will use your approved activities, indicator results, grants, and stakeholder feedback.</p>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── THEORY OF CHANGE ───────────────────────────────────────────────── -->
+  @if (activeTab() === 'toc') {
+    <div class="tool-panel">
+      <div class="tool-controls">
+        <label class="field-label">Project
+          <select [ngModel]="tocProjectId()" (ngModelChange)="tocProjectId.set($event)">
+            <option value="">Select a project</option>
+            @for (p of projects(); track p._id) {
+              <option [value]="p._id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <button class="btn-primary" (click)="generateToC()" [disabled]="loading() || !tocProjectId()">
+          {{ loading() ? 'Generating…' : 'Generate Theory of Change' }}
+        </button>
+      </div>
+
+      @if (tocResult()) {
+        <div class="report-section toc-output">
+          <div class="section-header">
+            <h3>Theory of Change</h3>
+            <button class="btn-copy" (click)="copySection(tocResult()!.theoryOfChange)" title="Copy">📋</button>
+          </div>
+          <pre class="toc-text">{{ tocResult()!.theoryOfChange }}</pre>
+        </div>
+        <p class="generated-note">Generated {{ tocResult()!.generatedAt | date:'medium' }}</p>
+      } @else if (!loading()) {
+        <div class="tool-empty">
+          <span class="empty-icon">🗺</span>
+          <p>Select a project. Evidara will draft a Theory of Change using your project description, objectives, sector, and indicators.</p>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── INDICATOR BUILDER ─────────────────────────────────────────────── -->
+  @if (activeTab() === 'indicator') {
+    <div class="tool-panel">
+      <div class="tool-controls ind-controls">
+        <label class="field-label">Indicator title <span class="req">*</span>
+          <input type="text" [ngModel]="indTitle()" (ngModelChange)="indTitle.set($event)"
+            placeholder="e.g. Number of women accessing clean water" />
+        </label>
+
+        <div class="control-row">
+          <label class="field-label">Level
+            <select [ngModel]="indLevel()" (ngModelChange)="indLevel.set($event)">
+              <option value="output">Output</option>
+              <option value="outcome">Outcome</option>
+              <option value="impact">Impact</option>
+            </select>
+          </label>
+          <label class="field-label">Sector
+            <input type="text" [ngModel]="indSector()" (ngModelChange)="indSector.set($event)"
+              placeholder="e.g. WASH, Education, Health" />
+          </label>
+          <label class="field-label">Unit of measurement
+            <input type="text" [ngModel]="indUnit()" (ngModelChange)="indUnit.set($event)"
+              placeholder="e.g. people, sessions, households" />
+          </label>
+        </div>
+
+        <button class="btn-primary" (click)="generateIndicatorDef()" [disabled]="loading() || !indTitle().trim()">
+          {{ loading() ? 'Building definition…' : 'Generate definition' }}
+        </button>
+      </div>
+
+      @if (indResult(); as r) {
+        @let d = r.definition;
+        <div class="ind-result">
+          <h3 class="ind-title">{{ d.refinedTitle }}</h3>
+
+          <div class="ind-grid">
+            @for (field of [
+              { label: 'Definition', key: 'definition' },
+              { label: 'Unit', key: 'unit' },
+              { label: 'Numerator', key: 'numerator' },
+              { label: 'Denominator', key: 'denominator' },
+              { label: 'Data sources', key: 'dataSources' },
+              { label: 'Collection frequency', key: 'frequency' },
+              { label: 'Disaggregation', key: 'disaggregation' },
+              { label: 'Baseline method', key: 'baselineMethod' },
+              { label: 'Common pitfalls', key: 'pitfalls' }
+            ]; track field.key) {
+              <div class="ind-field">
+                <span class="ind-field-label">{{ field.label }}</span>
+                <span class="ind-field-value">{{ d[field.key] ?? '—' }}</span>
+              </div>
+            }
+          </div>
+
+          <button class="btn-secondary" (click)="copySection(JSON.stringify(d, null, 2))">Copy as JSON</button>
+        </div>
+        <p class="generated-note">Generated {{ r.generatedAt | date:'medium' }}</p>
+      } @else if (!loading()) {
+        <div class="tool-empty">
+          <span class="empty-icon">📐</span>
+          <p>Enter an indicator title and level. Evidara will generate a complete SMART definition with data source recommendations, disaggregation variables, and pitfalls to avoid.</p>
+        </div>
+      }
+    </div>
+  }
+
 </div>

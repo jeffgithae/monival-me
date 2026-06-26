@@ -48,6 +48,11 @@ import {
   PeriodTarget,
   ReportingPeriodStatus,
   CopilotResponse,
+  CopilotChatMessage,
+  DraftReportResponse,
+  ToCResponse,
+  IndicatorDefinitionResponse,
+  SuggestActionsResponse,
   CreateBeneficiaryDto,
   BeneficiaryStatistics,
   ServiceRecordDto,
@@ -383,13 +388,6 @@ export class ApiService {
 
   createBeneficiary(body: CreateBeneficiaryDto) {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
-  }
-
-  offlineSyncBeneficiaries(batch: Record<string, unknown>[]) {
-    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
-      `${this.base}/beneficiaries/offline-sync`,
-      { beneficiaries: batch },
-    );
   }
 
   updateBeneficiary(id: string, body: Partial<CreateBeneficiaryDto>) {
@@ -923,11 +921,40 @@ export class ApiService {
 
 // ─── AI Copilot ──────────────────────────────────────────────────────────────
 
-  copilotMessage(message: string, projectId?: string) {
+  copilotMessage(
+    message: string,
+    projectId?: string,
+    history?: CopilotChatMessage[],
+  ) {
     return this.http.post<CopilotResponse>(`${this.base}/ai/copilot/message`, {
       message,
       projectId: projectId || undefined,
+      history: history?.length ? history : undefined,
     });
+  }
+
+  copilotDraftReport(
+    reportingPeriodId: string,
+    options?: { style?: 'narrative' | 'bullet' | 'executive'; includeFinancials?: boolean; includeFeedback?: boolean },
+  ) {
+    return this.http.post<DraftReportResponse>(`${this.base}/ai/copilot/draft-report`, {
+      reportingPeriodId,
+      ...options,
+    });
+  }
+
+  copilotToC(projectId: string) {
+    return this.http.get<ToCResponse>(`${this.base}/ai/copilot/theory-of-change/${projectId}`);
+  }
+
+  copilotIndicatorDefinition(data: { title: string; level: string; sector?: string; unit?: string }) {
+    return this.http.post<IndicatorDefinitionResponse>(`${this.base}/ai/copilot/indicator-definition`, data);
+  }
+
+  copilotSuggestActions(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<SuggestActionsResponse>(`${this.base}/ai/copilot/suggest-actions`, { params });
   }
 
 
@@ -1092,13 +1119,6 @@ export class ApiService {
 
   submitFormResponseNew(dto: Record<string, unknown>) {
     return this.http.post<any>(`${this.base}/forms/responses`, dto);
-  }
-
-  offlineSyncFormResponses(batch: Record<string, unknown>[]) {
-    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
-      `${this.base}/forms/responses/offline-sync`,
-      { responses: batch },
-    );
   }
 
   // ─── Cloud Storage Integrations ────────────────────────────────────────────

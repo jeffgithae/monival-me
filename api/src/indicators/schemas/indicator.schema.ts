@@ -70,6 +70,9 @@ export class Indicator {
   @Prop({ required: true })
   target!: number;
 
+  @Prop({ type: Number, default: 0 })
+  achieved!: number;
+
   // Multi-year targets: each year has its own incremental target
   @Prop({ type: [AnnualTarget], default: [] })
   annualTargets!: AnnualTarget[];
