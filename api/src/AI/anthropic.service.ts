@@ -34,7 +34,7 @@ export class AnthropicService implements OnModuleInit {
       this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
       this.backend = 'anthropic';
       this.logger.log('Evidara Copilot: using Anthropic Claude.');
-    } else if (geminiKey && geminiKey.startsWith('AIza')) {
+    } else if (geminiKey) {
       this.geminiClient = new GoogleGenerativeAI(geminiKey);
       this.backend = 'gemini';
       this.logger.log('Evidara Copilot: using Google Gemini (free tier).');
