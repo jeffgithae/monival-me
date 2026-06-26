@@ -15,6 +15,7 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule],
   templateUrl: './reporting-period.component.html',
+  styleUrl: './reporting-period.component.scss',
 })
 export class ReportingPeriodsComponent implements OnInit {
   private api   = inject(ApiService);
