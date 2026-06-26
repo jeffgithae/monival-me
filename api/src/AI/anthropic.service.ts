@@ -27,14 +27,14 @@ export class AnthropicService implements OnModuleInit {
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
-    const anthropicKey = this.config.get<string>('ANTHROPIC_API_KEY');
-    const geminiKey    = this.config.get<string>('GEMINI_API_KEY');
+    const anthropicKey = (this.config.get<string>('ANTHROPIC_API_KEY') ?? '').trim();
+    const geminiKey    = (this.config.get<string>('GEMINI_API_KEY') ?? '').trim();
 
-    if (anthropicKey) {
+    if (anthropicKey && anthropicKey.startsWith('sk-ant-')) {
       this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
       this.backend = 'anthropic';
       this.logger.log('Evidara Copilot: using Anthropic Claude.');
-    } else if (geminiKey) {
+    } else if (geminiKey && geminiKey.startsWith('AIza')) {
       this.geminiClient = new GoogleGenerativeAI(geminiKey);
       this.backend = 'gemini';
       this.logger.log('Evidara Copilot: using Google Gemini (free tier).');
