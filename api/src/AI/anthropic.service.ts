@@ -6,7 +6,7 @@ const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
 // Direct REST call — no SDK dependency, works with any key format
 // Models with free tier: gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-lite
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL    = 'gemini-1.5-flash';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models';
 
 export interface ClaudeMessage {
@@ -23,11 +23,11 @@ export class AnthropicService implements OnModuleInit {
   private anthropicClient!: Anthropic;
   private geminiKey = '';
 
-  constructor(private readonly config: ConfigService) { }
+  constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
     const anthropicKey = (this.config.get<string>('ANTHROPIC_API_KEY') ?? '').trim();
-    const geminiKey = (this.config.get<string>('GEMINI_API_KEY') ?? '').trim();
+    const geminiKey    = (this.config.get<string>('GEMINI_API_KEY') ?? '').trim();
 
     if (anthropicKey && anthropicKey.startsWith('sk-ant-')) {
       this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
@@ -88,8 +88,10 @@ export class AnthropicService implements OnModuleInit {
     const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${this.geminiKey}`;
 
     const body = {
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      contents: [{
+        role: 'user',
+        parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
+      }],
       generationConfig: { maxOutputTokens: maxTokens },
     };
 
