@@ -7,7 +7,7 @@ const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 // Direct REST call — no SDK dependency, works with any key format
 // Models with free tier: gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-lite
 const GEMINI_MODEL    = 'gemini-1.5-flash';
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -88,10 +88,8 @@ export class AnthropicService implements OnModuleInit {
     const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${this.geminiKey}`;
 
     const body = {
-      contents: [{
-        role: 'user',
-        parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
-      }],
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       generationConfig: { maxOutputTokens: maxTokens },
     };
 
