@@ -377,6 +377,20 @@ export class ApiService {
     );
   }
 
+  offlineSyncBeneficiaries(batch: Record<string, unknown>[]) {
+    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
+      `${this.base}/beneficiaries/offline-sync`,
+      { beneficiaries: batch },
+    );
+  }
+
+  offlineSyncFormResponses(batch: Record<string, unknown>[]) {
+    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
+      `${this.base}/forms/offline-sync`,
+      { responses: batch },
+    );
+  }
+
   // Beneficiaries
   beneficiaries(params?: Record<string, string | number | boolean>) {
     return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: params as any });

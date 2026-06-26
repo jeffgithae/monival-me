@@ -192,6 +192,22 @@ export class AiCopilotComponent implements OnInit {
     });
   }
 
+  onEnterKey(event: Event) {
+    const ke = event as KeyboardEvent;
+    if (!ke.shiftKey) {
+      ke.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  getField(obj: Record<string, string>, key: string): string {
+    return obj[key] ?? '—';
+  }
+
+  copyDefinitionJson(d: Record<string, string>) {
+    navigator.clipboard.writeText(JSON.stringify(d, null, 2));
+  }
+
   priorityIcon(p: string) {
     return { critical: '🔴', high: '🟠', medium: '🟡', low: '🔵' }[p] ?? '⚪';
   }

@@ -91,7 +91,7 @@
             placeholder="Ask about report readiness, indicator gaps, grant burn rate, or anything in your portfolio…"
             [ngModel]="chatInput()"
             (ngModelChange)="chatInput.set($event)"
-            (keydown.enter)="$event.shiftKey ? null : (sendMessage(), $event.preventDefault())"
+            (keydown.enter)="onEnterKey($event)"
             [disabled]="loading()">
           </textarea>
           <button class="btn-send" (click)="sendMessage()" [disabled]="loading() || !chatInput().trim()">
@@ -385,12 +385,12 @@
             ]; track field.key) {
               <div class="ind-field">
                 <span class="ind-field-label">{{ field.label }}</span>
-                <span class="ind-field-value">{{ d[field.key] ?? '—' }}</span>
+                <span class="ind-field-value">{{ getField(d, field.key) }}</span>
               </div>
             }
           </div>
 
-          <button class="btn-secondary" (click)="copySection(JSON.stringify(d, null, 2))">Copy as JSON</button>
+          <button class="btn-secondary" (click)="copyDefinitionJson(d)">Copy as JSON</button>
         </div>
         <p class="generated-note">Generated {{ r.generatedAt | date:'medium' }}</p>
       } @else if (!loading()) {
