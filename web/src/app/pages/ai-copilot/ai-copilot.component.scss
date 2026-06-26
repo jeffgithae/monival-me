@@ -535,6 +535,31 @@
   }
 }
 
+// ── Export / report actions ───────────────────────────────────────────────────
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0;
+}
+
+.btn-export-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  background: #1e3a5f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+
+  &:hover { background: #162d4a; }
+  &:active { transform: scale(0.98); }
+}
+
 // ── Shared buttons ────────────────────────────────────────────────────────────
 .btn-primary {
   padding: 0.55rem 1.25rem;

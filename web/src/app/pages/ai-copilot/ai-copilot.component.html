@@ -289,6 +289,9 @@
           </div>
         </div>
 
+        <div class="report-actions">
+          <button class="btn-export-pdf" (click)="exportReportPdf()">⬇ Export PDF</button>
+        </div>
         <p class="generated-note">Generated {{ dr.generatedAt | date:'medium' }} · Style: {{ dr.style }}</p>
       } @else if (!loading()) {
         <div class="tool-empty">
@@ -323,6 +326,9 @@
             <button class="btn-copy" (click)="copySection(tocResult()!.theoryOfChange)" title="Copy">📋</button>
           </div>
           <pre class="toc-text">{{ tocResult()!.theoryOfChange }}</pre>
+        </div>
+        <div class="report-actions">
+          <button class="btn-export-pdf" (click)="exportTocPdf()">⬇ Export PDF</button>
         </div>
         <p class="generated-note">Generated {{ tocResult()!.generatedAt | date:'medium' }}</p>
       } @else if (!loading()) {
