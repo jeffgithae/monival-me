@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
-const GEMINI_MODEL    = 'gemini-1.5-flash';
+const GEMINI_MODEL    = 'gemini-2.0-flash';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
