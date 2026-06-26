@@ -7,6 +7,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import {
   Beneficiary, BeneficiaryStatistics, BeneficiaryStatus,
   BeneficiaryRegistrationType, Project, CreateBeneficiaryDto,
@@ -55,6 +56,7 @@ export class BeneficiariesComponent implements OnInit {
   private api  = inject(ApiService);
   private auth = inject(AuthService);
   private fb   = inject(FormBuilder);
+  queue = inject(OfflineQueueService);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   beneficiaries = signal<Beneficiary[]>([]);
@@ -85,6 +87,14 @@ export class BeneficiariesComponent implements OnInit {
   merging          = signal<string | null>(null); // duplicateId being merged
   exitReason       = signal('');
   showExitModal    = signal<ProgramEnrollment | null>(null);
+  locating         = signal(false);
+  locationError    = signal('');
+  savedOfflineFlash = signal(false);
+  queuedRegistrations = signal<QueuedItem[]>([]);
+
+  readonly pendingQueuedRegistrations = computed(() =>
+    this.queuedRegistrations().filter(q => q.syncStatus !== 'synced'),
+  );
 
   // ── Filters ───────────────────────────────────────────────────────────────
   search         = signal('');
@@ -192,6 +202,8 @@ export class BeneficiariesComponent implements OnInit {
     village:                  [''],
     location:                 [''],
     settlementType:           [''],
+    latitude:                 [null as number | null],
+    longitude:                [null as number | null],
     status:                   ['active'],
     caseWorker:               [''],
     consentGiven:             [false],
@@ -227,6 +239,54 @@ export class BeneficiariesComponent implements OnInit {
       },
       error: () => {},
     });
+    this.refreshQueuedRegistrations();
+  }
+
+  async refreshQueuedRegistrations(): Promise<void> {
+    this.queuedRegistrations.set(await this.queue.getAllOfType('beneficiary'));
+  }
+
+  async discardQueuedRegistration(clientId: string, name: string): Promise<void> {
+    if (!confirm(`Discard the queued registration for "${name}"? It has not been saved to the server.`)) return;
+    await this.queue.remove(clientId);
+    await this.refreshQueuedRegistrations();
+  }
+
+  retryQueuedSync(): void {
+    this.queue.syncAll().then(() => {
+      this.refreshQueuedRegistrations();
+      this.load();
+    });
+  }
+
+  queuedStatusLabel(status: QueuedItem['syncStatus']): string {
+    const m: Record<QueuedItem['syncStatus'], string> = {
+      pending: 'Waiting to sync', syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed',
+    };
+    return m[status];
+  }
+
+  useMyLocation(): void {
+    if (!('geolocation' in navigator)) {
+      this.locationError.set('GPS is not available on this device.');
+      return;
+    }
+    this.locating.set(true);
+    this.locationError.set('');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        this.form.patchValue({
+          latitude: Math.round(pos.coords.latitude * 1e6) / 1e6,
+          longitude: Math.round(pos.coords.longitude * 1e6) / 1e6,
+        });
+        this.locating.set(false);
+      },
+      err => {
+        this.locationError.set(err.message || 'Could not get your location.');
+        this.locating.set(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
   }
 
   load(): void {
@@ -381,6 +441,8 @@ export class BeneficiariesComponent implements OnInit {
       village:                 v.village || undefined,
       location:                v.location || undefined,
       settlementType:          v.settlementType || undefined,
+      latitude:                v.latitude ?? undefined,
+      longitude:               v.longitude ?? undefined,
       status:                  (v.status ?? 'active') as BeneficiaryStatus,
       caseWorker:              v.caseWorker || undefined,
       consentGiven:            v.consentGiven ?? false,
@@ -392,6 +454,28 @@ export class BeneficiariesComponent implements OnInit {
         ? (v.tags as string).split(',').map((t: string) => t.trim()).filter(Boolean)
         : [],
     };
+
+    // Offline-first: if there's no connection, queue locally instead of
+    // calling the API. We can't select() a freshly-created record in this
+    // path since there's no server-assigned _id yet — the form just closes
+    // with a "saved on this device" confirmation, and the record appears in
+    // the registry list once it syncs.
+    if (!this.queue.isOnline()) {
+      this.queue.enqueue('beneficiary', { ...body }, body.name || 'Beneficiary')
+        .then(() => {
+          this.saving.set(false);
+          this.showForm.set(false);
+          this.formStep.set(1);
+          this.form.reset({
+            registrationType: 'individual', status: 'active',
+            consentMethod: 'verbal', householdSize: 1,
+          });
+          this.savedOfflineFlash.set(true);
+          setTimeout(() => this.savedOfflineFlash.set(false), 3000);
+          this.refreshQueuedRegistrations();
+        });
+      return;
+    }
 
     this.api.createBeneficiary(body).subscribe({
       next: (created: Beneficiary) => {

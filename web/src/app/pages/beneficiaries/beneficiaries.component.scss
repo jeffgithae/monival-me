@@ -344,6 +344,182 @@ $red-light:   #fdecea;
 
 .step-sep { color: $muted; font-size: 0.75rem; }
 
+// ─── Offline support ────────────────────────────────────────────────────────
+
+.connection-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: $forest-light;
+  color: $forest;
+  white-space: nowrap;
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: $forest-mid; }
+
+  &.offline {
+    background: $amber-light;
+    color: $amber;
+    .dot { background: $amber; }
+  }
+}
+
+.success-banner {
+  background: $forest-light;
+  color: $forest;
+  border: 1px solid rgba(45,107,82,0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  margin: 1rem 1.5rem 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.gps-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.btn-gps {
+  border: 1px dashed $border;
+  background: $surface;
+  color: $ink;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: $forest-mid; }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.gps-value {
+  font-size: 0.78rem;
+  color: $muted;
+  font-family: monospace;
+}
+
+.field-error {
+  margin: 0.4rem 0 0;
+  color: $red;
+  font-size: 0.78rem;
+}
+
+.queue-panel {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 16px;
+  padding: 1.1rem 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+
+  h3 { margin: 0; font-size: 0.94rem; font-weight: 700; color: $ink; }
+}
+
+.queue-count {
+  background: $forest-light;
+  color: $forest;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.5rem;
+  margin-left: 0.4rem;
+}
+
+.btn-retry {
+  border: 1px solid $border;
+  background: $white;
+  color: $ink;
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: $forest-mid; }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.queue-sub {
+  margin: 0 0 0.8rem;
+  font-size: 0.78rem;
+  color: $muted;
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.queue-item {
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+
+  &.error { border-color: rgba(192,57,43,0.3); }
+}
+
+.queue-item-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+
+  strong { font-size: 0.86rem; color: $ink; }
+}
+
+.queue-item-date { font-size: 0.74rem; color: $muted; white-space: nowrap; }
+
+.queue-item-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.status-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.08rem 0.55rem;
+
+  &.pending { background: $amber-light; color: $amber; }
+  &.syncing { background: $forest-light; color: $forest-mid; }
+  &.error   { background: $red-light; color: $red; }
+}
+
+.btn-discard {
+  border: none;
+  background: none;
+  color: $muted;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.1rem 0.3rem;
+
+  &:hover { color: $red; }
+}
+
+.queue-item-error {
+  margin: 0.3rem 0 0;
+  font-size: 0.76rem;
+  color: $red;
+}
+
 form {
   padding: 1.25rem 1.5rem;
 }

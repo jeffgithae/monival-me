@@ -465,6 +465,80 @@ export class BeneficiariesService {
     return { matched: result.matchedCount, modified: result.modifiedCount };
   }
 
+  // ─── Offline sync ───────────────────────────────────────────────────────────
+  //
+  // Field workers register beneficiaries on the mobile PWA while offline.
+  // When connectivity returns, the client pushes the queued batch here. Each
+  // record carries a client-generated UUID (`clientId`) used as an
+  // idempotency key — see activities.service.ts#offlineSync for the same
+  // pattern applied to Activity records.
+  //
+  async offlineSync(
+    organizationId: string,
+    items: Array<CreateBeneficiaryDto & { clientId: string }>,
+  ) {
+    if (!items?.length) return { synced: 0, skipped: 0, errors: [], results: [] };
+
+    const orgId = new Types.ObjectId(organizationId);
+
+    // Step 1: find which clientIds are already persisted
+    const clientIds = items.map(i => i.clientId).filter(Boolean);
+    const existing  = await this.model
+      .find({ organizationId: orgId, clientId: { $in: clientIds } })
+      .select('clientId')
+      .lean();
+    const alreadySynced = new Set(existing.map(e => (e as any).clientId as string));
+
+    const results: Array<{
+      clientId: string;
+      status: 'synced' | 'skipped' | 'error';
+      beneficiaryId?: string;
+      message?: string;
+    }> = [];
+
+    let synced  = 0;
+    let skipped = 0;
+
+    for (const item of items) {
+      if (!item.clientId) {
+        results.push({ clientId: '', status: 'error', message: 'clientId is required for offline sync.' });
+        continue;
+      }
+
+      if (alreadySynced.has(item.clientId)) {
+        results.push({ clientId: item.clientId, status: 'skipped' });
+        skipped++;
+        continue;
+      }
+
+      try {
+        const beneficiary = await this.create(organizationId, item);
+        // Persist the clientId to prevent future duplicates. Note: a
+        // duplicate nationalId/phone from the partial unique indexes throws
+        // before reaching here and is caught below as a per-item error, so
+        // this updateOne only ever runs for genuinely new records.
+        await this.model.updateOne(
+          { _id: beneficiary._id },
+          { $set: { clientId: item.clientId, syncedFromOffline: true } },
+        );
+        results.push({ clientId: item.clientId, status: 'synced', beneficiaryId: beneficiary._id.toString() });
+        synced++;
+      } catch (err: any) {
+        const message = err.code === 11000
+          ? 'A beneficiary with this National ID or phone number already exists.'
+          : err.message;
+        results.push({ clientId: item.clientId, status: 'error', message });
+      }
+    }
+
+    return {
+      synced,
+      skipped,
+      errors: results.filter(r => r.status === 'error'),
+      results,
+    };
+  }
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   private computeAgeGroup(age: number): string {

@@ -64,4 +64,24 @@ export class FormsController {
   createResponse(@CurrentUser() user: JwtPayload, @Body() dto: CreateFormResponseDto) {
     return this.formsService.createResponse(user.organizationId, dto, user.sub);
   }
+
+  /**
+   * PWA Offline Sync Endpoint.
+   *
+   * Field workers fill out custom survey templates in the mobile PWA while
+   * offline. When connectivity is restored, the client pushes the queued
+   * batch here.
+   *
+   * Each record must include a `clientId` (client-generated UUID) used as an
+   * idempotency key — the server skips any record whose clientId has already
+   * been persisted, preventing duplicate submissions on retry.
+   */
+  @Post('responses/offline-sync')
+  @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
+  offlineSyncResponses(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { responses: Array<CreateFormResponseDto & { clientId: string }> },
+  ) {
+    return this.formsService.offlineSync(user.organizationId, body.responses, user.sub);
+  }
 }

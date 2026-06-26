@@ -136,6 +136,78 @@ export class FormsService {
     });
   }
 
+  // ─── Offline sync ───────────────────────────────────────────────────────────
+  //
+  // Field workers fill out custom survey templates on the mobile PWA while
+  // offline. When connectivity is restored, the client pushes the queued
+  // batch here. Each record carries a client-generated UUID (`clientId`)
+  // used as an idempotency key — see activities.service.ts#offlineSync for
+  // the same pattern applied to Activity records.
+  //
+  // Reuses createResponse() per item, so the same project/template/indicator/
+  // activity existence checks and answer-shape validation run on every
+  // synced record — a template that was edited or archived while the worker
+  // was offline surfaces as a per-record error rather than corrupting data.
+  //
+  async offlineSync(
+    organizationId: string,
+    items: Array<CreateFormResponseDto & { clientId: string }>,
+    submittedByUserId?: string,
+  ) {
+    if (!items?.length) return { synced: 0, skipped: 0, errors: [], results: [] };
+
+    const orgId = new Types.ObjectId(organizationId);
+
+    const clientIds = items.map(i => i.clientId).filter(Boolean);
+    const existing  = await this.responseModel
+      .find({ organizationId: orgId, clientId: { $in: clientIds } })
+      .select('clientId')
+      .lean();
+    const alreadySynced = new Set(existing.map(e => (e as any).clientId as string));
+
+    const results: Array<{
+      clientId: string;
+      status: 'synced' | 'skipped' | 'error';
+      responseId?: string;
+      message?: string;
+    }> = [];
+
+    let synced  = 0;
+    let skipped = 0;
+
+    for (const item of items) {
+      if (!item.clientId) {
+        results.push({ clientId: '', status: 'error', message: 'clientId is required for offline sync.' });
+        continue;
+      }
+
+      if (alreadySynced.has(item.clientId)) {
+        results.push({ clientId: item.clientId, status: 'skipped' });
+        skipped++;
+        continue;
+      }
+
+      try {
+        const response = await this.createResponse(organizationId, item, submittedByUserId);
+        await this.responseModel.updateOne(
+          { _id: response._id },
+          { $set: { clientId: item.clientId, syncedFromOffline: true } },
+        );
+        results.push({ clientId: item.clientId, status: 'synced', responseId: response._id.toString() });
+        synced++;
+      } catch (err: any) {
+        results.push({ clientId: item.clientId, status: 'error', message: err.message });
+      }
+    }
+
+    return {
+      synced,
+      skipped,
+      errors: results.filter(r => r.status === 'error'),
+      results,
+    };
+  }
+
   private async assertProjectExists(organizationId: string, projectId: string) {
     const exists = await this.projectModel.exists({
       _id: projectId,

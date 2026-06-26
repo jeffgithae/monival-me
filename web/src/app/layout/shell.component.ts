@@ -9,6 +9,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeService } from '../core/theme.service';
 import { CommandPaletteService } from '../shared/command-palette.service';
 import { LogoComponent } from '../shared/logo.component';
+import { OfflineQueueService } from '../core/offline-queue.service';
 
 @Component({
   selector: 'app-shell',
@@ -30,6 +31,7 @@ export class ShellComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   readonly palette = inject(CommandPaletteService);
+  readonly offlineQueue = inject(OfflineQueueService);
 
   constructor(
     readonly auth: AuthService,

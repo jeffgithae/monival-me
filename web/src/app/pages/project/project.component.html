@@ -350,7 +350,17 @@
   <div class="tab-content">
     @if (canLogActivities) {
       <div class="panel">
-        <h3>Log activity</h3>
+        <div class="panel-head-row">
+          <h3>Log activity</h3>
+          <span class="connection-pill" [class.offline]="!queue.isOnline()">
+            <span class="dot"></span>{{ queue.isOnline() ? 'Online' : 'Offline — saving to this device' }}
+          </span>
+        </div>
+        @if (savedActivityOfflineFlash()) {
+          <div class="success-banner">
+            ✓ Saved on this device. It will sync to the server once you're back online.
+          </div>
+        }
         <form class="create-form" (ngSubmit)="addActivity()">
           <div class="form-row">
             <label>Template
@@ -395,11 +405,50 @@
             <textarea [(ngModel)]="activityForm.notes" name="notes" rows="2" placeholder="Additional notes…"></textarea>
           </label>
           <div class="form-actions">
-            <button type="submit" class="btn-primary">Log activity</button>
+            <button type="submit" class="btn-primary">
+              {{ queue.isOnline() ? 'Log activity' : '💾 Save on this device' }}
+            </button>
             <button type="button" class="btn-ghost" (click)="saveActivityTemplate()">Save as template</button>
           </div>
         </form>
       </div>
+
+      @if (pendingQueuedActivities().length > 0) {
+        <div class="panel queue-panel">
+          <div class="queue-header">
+            <h3>Logged on this device <span class="queue-count">{{ pendingQueuedActivities().length }}</span></h3>
+            @if (queue.isOnline()) {
+              <button class="btn-ghost btn-sm" (click)="retryQueuedActivitySync()" [disabled]="queue.isSyncing()">
+                {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
+              </button>
+            }
+          </div>
+          <p class="queue-sub">
+            @if (queue.isOnline()) {
+              These will sync automatically. If any are stuck, try syncing manually.
+            } @else {
+              These activities are saved only on this device until you reconnect.
+            }
+          </p>
+          <div class="queue-list">
+            @for (item of pendingQueuedActivities(); track item.clientId) {
+              <div class="queue-item" [class]="item.syncStatus">
+                <div class="queue-item-main">
+                  <strong>{{ item.label }}</strong>
+                  <span class="queue-item-date">{{ item.queuedAt | date:'d MMM, h:mm a' }}</span>
+                </div>
+                <div class="queue-item-status">
+                  <span class="status-pill" [class]="item.syncStatus">{{ queuedActivityStatusLabel(item.syncStatus) }}</span>
+                  <button class="btn-discard" (click)="discardQueuedActivity(item.clientId, item.label)" title="Discard">✕</button>
+                </div>
+                @if (item.syncError) {
+                  <p class="queue-item-error">{{ item.syncError }}</p>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
     }
 
     <div class="panel table-panel">

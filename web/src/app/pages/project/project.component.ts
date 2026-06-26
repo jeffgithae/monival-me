@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import { AutosaveService } from '../../shared/autosave.service';
 import { ConfirmService } from '../../shared/confirm.service';
 import { BreadcrumbService } from '../../shared/breadcrumb.service';
@@ -54,9 +55,15 @@ export class ProjectComponent implements OnInit, OnDestroy {
   private autosave = inject(AutosaveService);
   private confirm  = inject(ConfirmService);
   private breadcrumb = inject(BreadcrumbService);
+  queue = inject(OfflineQueueService);
 
   readonly hasDraft = signal(false);
   readonly draftAge = signal<string | null>(null);
+  readonly savedActivityOfflineFlash = signal(false);
+  readonly queuedActivities = signal<QueuedItem[]>([]);
+  readonly pendingQueuedActivities = computed(() =>
+    this.queuedActivities().filter(q => q.syncStatus !== 'synced'),
+  );
 
   project = signal<Project | null>(null);
   indicators = signal<Indicator[]>([]);
@@ -390,6 +397,34 @@ export class ProjectComponent implements OnInit, OnDestroy {
       }
     }
     this.reload();
+    this.refreshQueuedActivities();
+  }
+
+  async refreshQueuedActivities(): Promise<void> {
+    const all = await this.queue.getAllOfType('activity');
+    // Scope to this project — the global queue may hold activities queued
+    // from other projects (or from /field-collect) too.
+    this.queuedActivities.set(all.filter(i => i.payload['projectId'] === this.projectId));
+  }
+
+  retryQueuedActivitySync(): void {
+    this.queue.syncAll().then(() => {
+      this.refreshQueuedActivities();
+      this.reload();
+    });
+  }
+
+  async discardQueuedActivity(clientId: string, label: string): Promise<void> {
+    if (!confirm(`Discard the queued activity "${label}"? It has not been saved to the server.`)) return;
+    await this.queue.remove(clientId);
+    await this.refreshQueuedActivities();
+  }
+
+  queuedActivityStatusLabel(status: QueuedItem['syncStatus']): string {
+    const m: Record<QueuedItem['syncStatus'], string> = {
+      pending: 'Waiting to sync', syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed',
+    };
+    return m[status];
   }
 
   ngOnDestroy() {
@@ -485,46 +520,63 @@ export class ProjectComponent implements OnInit, OnDestroy {
   }
 
   addActivity() {
-    const draftKey = `activity-form-${this.projectId}`;
-    this.api
-      .createActivity({
-        projectId: this.projectId,
-        title: this.activityForm.title,
-        activityDate: this.activityForm.activityDate,
-        indicatorId: this.activityForm.indicatorId || undefined,
-        partnerId: this.activityForm.partnerId || undefined,
-        beneficiaryIds: this.activityForm.beneficiaryIds?.length ? this.activityForm.beneficiaryIds : undefined,
-        location: this.activityForm.location || undefined,
-        activityType: this.activityForm.activityType || undefined,
-        templateId: this.activityForm.templateId || undefined,
-        evidenceUrl: this.activityForm.evidenceUrl || undefined,
-        evidenceNotes: this.activityForm.evidenceNotes || undefined,
-        participants: Number(this.activityForm.participants),
-        quantity: Number(this.activityForm.quantity),
-        notes: this.activityForm.notes || undefined,
-        status: this.activityForm.status,
-      })
-      .subscribe(() => {
-        // Clear autosave draft on successful submit
-        this.clearDraft();
-        this.activityForm = {
-          title: '',
-          activityDate: new Date().toISOString().slice(0, 10),
-          indicatorId: '',
-          partnerId: '',
-          beneficiaryIds: [],
-          location: '',
-          activityType: '',
-          templateId: '',
-          evidenceUrl: '',
-          evidenceNotes: '',
-          participants: 0,
-          quantity: 0,
-          notes: '',
-          status: 'submitted',
-        };
-        this.reload();
+    const body = {
+      projectId: this.projectId,
+      title: this.activityForm.title,
+      activityDate: this.activityForm.activityDate,
+      indicatorId: this.activityForm.indicatorId || undefined,
+      partnerId: this.activityForm.partnerId || undefined,
+      beneficiaryIds: this.activityForm.beneficiaryIds?.length ? this.activityForm.beneficiaryIds : undefined,
+      location: this.activityForm.location || undefined,
+      activityType: this.activityForm.activityType || undefined,
+      templateId: this.activityForm.templateId || undefined,
+      evidenceUrl: this.activityForm.evidenceUrl || undefined,
+      evidenceNotes: this.activityForm.evidenceNotes || undefined,
+      participants: Number(this.activityForm.participants),
+      quantity: Number(this.activityForm.quantity),
+      notes: this.activityForm.notes || undefined,
+      status: this.activityForm.status,
+    };
+
+    const resetForm = () => {
+      this.clearDraft();
+      this.activityForm = {
+        title: '',
+        activityDate: new Date().toISOString().slice(0, 10),
+        indicatorId: '',
+        partnerId: '',
+        beneficiaryIds: [],
+        location: '',
+        activityType: '',
+        templateId: '',
+        evidenceUrl: '',
+        evidenceNotes: '',
+        participants: 0,
+        quantity: 0,
+        notes: '',
+        status: 'submitted',
+      };
+    };
+
+    // Offline-first: queue locally instead of calling the API when there's
+    // no connection. The form clears immediately with a "saved on this
+    // device" confirmation; the activity appears in the list below once it
+    // syncs (see refreshQueuedActivities for how the local queue is shown
+    // in the meantime).
+    if (!this.queue.isOnline()) {
+      this.queue.enqueue('activity', body, body.title || 'Activity').then(() => {
+        resetForm();
+        this.savedActivityOfflineFlash.set(true);
+        setTimeout(() => this.savedActivityOfflineFlash.set(false), 3000);
+        this.refreshQueuedActivities();
       });
+      return;
+    }
+
+    this.api.createActivity(body).subscribe(() => {
+      resetForm();
+      this.reload();
+    });
   }
 
   selectActivityTemplate(templateId: string) {

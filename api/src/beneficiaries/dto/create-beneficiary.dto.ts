@@ -105,4 +105,7 @@ export class CreateBeneficiaryDto {
   @IsOptional() @IsString() notes?: string;
   @IsOptional() @IsObject() customFields?: Record<string, unknown>;
   @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];
+
+  // Offline sync — client-generated idempotency key, see offline-sync endpoint
+  @IsOptional() @IsString() clientId?: string;
 }

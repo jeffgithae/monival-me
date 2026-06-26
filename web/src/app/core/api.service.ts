@@ -385,6 +385,13 @@ export class ApiService {
     return this.http.post<Beneficiary>(`${this.base}/beneficiaries`, body);
   }
 
+  offlineSyncBeneficiaries(batch: Record<string, unknown>[]) {
+    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
+      `${this.base}/beneficiaries/offline-sync`,
+      { beneficiaries: batch },
+    );
+  }
+
   updateBeneficiary(id: string, body: Partial<CreateBeneficiaryDto>) {
     return this.http.patch<Beneficiary>(`${this.base}/beneficiaries/${id}`, body);
   }
@@ -1085,6 +1092,13 @@ export class ApiService {
 
   submitFormResponseNew(dto: Record<string, unknown>) {
     return this.http.post<any>(`${this.base}/forms/responses`, dto);
+  }
+
+  offlineSyncFormResponses(batch: Record<string, unknown>[]) {
+    return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
+      `${this.base}/forms/responses/offline-sync`,
+      { responses: batch },
+    );
   }
 
   // ─── Cloud Storage Integrations ────────────────────────────────────────────

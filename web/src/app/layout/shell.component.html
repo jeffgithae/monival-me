@@ -69,6 +69,12 @@
           <small>{{ roleLabel(auth.user()?.role ?? 'viewer') }}</small>
         </div>
       </a>
+      @if (!offlineQueue.isOnline() || offlineQueue.pendingCount() > 0) {
+        <span class="offline-badge" [class.offline]="!offlineQueue.isOnline()" title="Items saved on this device, pending sync to the server">
+          <span class="dot"></span>
+          {{ offlineQueue.isOnline() ? (offlineQueue.pendingCount() + ' to sync') : 'Offline' }}
+        </span>
+      }
       <button type="button" class="notif-btn" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" title="Notifications">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         @if (unreadCount() > 0) {

@@ -304,7 +304,18 @@
           <span class="step-sep">→</span>
           <span class="step-pill" [class.active]="formStep() >= 3">3 Location</span>
         </div>
+        @if (!showEditForm()) {
+          <span class="connection-pill" [class.offline]="!queue.isOnline()">
+            <span class="dot"></span>{{ queue.isOnline() ? 'Online' : 'Offline — saving to this device' }}
+          </span>
+        }
       </div>
+
+      @if (savedOfflineFlash()) {
+        <div class="success-banner">
+          ✓ Saved on this device. It will sync to the server once you're back online.
+        </div>
+      }
 
       <form [formGroup]="form" (ngSubmit)="showEditForm() ? submitEdit() : submitCreate()">
 
@@ -505,6 +516,17 @@
                 </select>
               </label>
             </div>
+            <div class="gps-row">
+              <button type="button" class="btn-gps" (click)="useMyLocation()" [disabled]="locating()">
+                📍 {{ locating() ? 'Getting location…' : 'Capture GPS location' }}
+              </button>
+              @if (form.value.latitude && form.value.longitude) {
+                <span class="gps-value">{{ form.value.latitude }}, {{ form.value.longitude }}</span>
+              }
+            </div>
+            @if (locationError()) {
+              <p class="field-error">{{ locationError() }}</p>
+            }
           </div>
 
           <div class="form-section">
@@ -543,11 +565,56 @@
           <div class="form-actions">
             <button type="button" class="btn-ghost" (click)="prevStep()">← Back</button>
             <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
-              @if (saving()) { Saving… } @else { {{ showEditForm() ? 'Save changes' : 'Register beneficiary' }} }
+              @if (saving()) {
+                Saving…
+              } @else if (showEditForm()) {
+                Save changes
+              } @else if (!queue.isOnline()) {
+                💾 Save on this device
+              } @else {
+                Register beneficiary
+              }
             </button>
           </div>
         }
       </form>
+    </div>
+  }
+
+  @if (pendingQueuedRegistrations().length > 0) {
+    <div class="queue-panel">
+      <div class="queue-header">
+        <h3>Registered on this device <span class="queue-count">{{ pendingQueuedRegistrations().length }}</span></h3>
+        @if (queue.isOnline()) {
+          <button class="btn-retry" (click)="retryQueuedSync()" [disabled]="queue.isSyncing()">
+            {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
+          </button>
+        }
+      </div>
+      <p class="queue-sub">
+        @if (queue.isOnline()) {
+          These will sync automatically. If any are stuck, try syncing manually.
+        } @else {
+          These registrations are saved only on this device until you reconnect.
+        }
+      </p>
+      <div class="queue-list">
+        @for (item of pendingQueuedRegistrations(); track item.clientId) {
+          <div class="queue-item" [class]="item.syncStatus">
+            <div class="queue-item-main">
+              <strong>{{ item.label }}</strong>
+              <span class="queue-item-date">{{ item.queuedAt | date:'d MMM, h:mm a' }}</span>
+            </div>
+            <div class="queue-item-status">
+              <span class="status-pill" [class]="item.syncStatus">{{ queuedStatusLabel(item.syncStatus) }}</span>
+              <button class="btn-discard" (click)="discardQueuedRegistration(item.clientId, item.label)" title="Discard">✕</button>
+            </div>
+            @if (item.syncError) {
+              <p class="queue-item-error">{{ item.syncError }}</p>
+            }
+          </div>
+        }
+      </div>
     </div>
   }
 

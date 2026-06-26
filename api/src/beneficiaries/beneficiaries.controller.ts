@@ -148,4 +148,34 @@ export class BeneficiariesController {
   ) {
     return this.svc.mergeBeneficiaries(user.organizationId, body.primaryId, body.duplicateId);
   }
+
+  /**
+   * PWA Offline Sync Endpoint.
+   *
+   * Field workers register beneficiaries in the mobile PWA while offline.
+   * When connectivity is restored, the client pushes the queued batch here.
+   *
+   * Each record must include a `clientId` (client-generated UUID) used as an
+   * idempotency key — the server skips any record whose clientId has already
+   * been persisted, preventing duplicate registrations on retry. A genuine
+   * nationalId/phone conflict with an existing beneficiary is still reported
+   * back as a per-record error, since that's a real duplicate-person concern
+   * the fuzzy-dedup engine and a human reviewer should resolve, not silently
+   * merge.
+   *
+   * Returns per-record results so the PWA can selectively clear synced items
+   * from local IndexedDB storage.
+   */
+  @Post('offline-sync')
+  @Roles(...PERMISSIONS.MANAGE_BENEFICIARIES)
+  @ApiOperation({
+    summary: 'PWA offline sync — push a batch of beneficiaries registered without connectivity',
+    description: 'Each item must include a clientId (UUID) for idempotency. Already-synced records are skipped, not duplicated.',
+  })
+  offlineSync(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { beneficiaries: Array<CreateBeneficiaryDto & { clientId: string }> },
+  ) {
+    return this.svc.offlineSync(user.organizationId, body.beneficiaries);
+  }
 }

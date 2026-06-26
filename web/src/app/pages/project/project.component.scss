@@ -351,6 +351,140 @@ h1 {
   font-weight: 700;
 }
 
+// ─── Offline support ────────────────────────────────────────────────────────
+
+.panel-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+
+  h3 { margin: 0; }
+}
+
+.connection-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: rgba($green, 0.1);
+  color: $green;
+  white-space: nowrap;
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: $green; }
+
+  &.offline {
+    background: rgba($amber, 0.12);
+    color: $amber;
+    .dot { background: $amber; }
+  }
+}
+
+.success-banner {
+  background: rgba($green, 0.1);
+  color: color.adjust($green, $lightness: -15%);
+  border: 1px solid rgba($green, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.1rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.queue-panel {
+  margin-top: 1rem;
+}
+
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+
+  h3 { margin: 0; display: flex; align-items: center; gap: 0.4rem; }
+}
+
+.queue-count {
+  background: rgba($indigo, 0.1);
+  color: $indigo;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.5rem;
+}
+
+.queue-sub {
+  margin: 0.5rem 0 0.9rem;
+  font-size: 0.78rem;
+  color: $muted;
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.queue-item {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+
+  &.error { border-color: rgba($red, 0.3); }
+}
+
+.queue-item-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+
+  strong { font-size: 0.86rem; color: $text; }
+}
+
+.queue-item-date { font-size: 0.74rem; color: $muted; white-space: nowrap; }
+
+.queue-item-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.status-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.08rem 0.55rem;
+
+  &.pending { background: rgba($amber, 0.12); color: $amber; }
+  &.syncing { background: rgba($indigo, 0.1); color: $indigo; }
+  &.error   { background: rgba($red, 0.1); color: $red; }
+}
+
+.btn-discard {
+  border: none;
+  background: none;
+  color: $muted;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.1rem 0.3rem;
+
+  &:hover { color: $red; }
+}
+
+.queue-item-error {
+  margin: 0.3rem 0 0;
+  font-size: 0.76rem;
+  color: $red;
+}
+
 .empty-panel {
   display: flex;
   flex-direction: column;

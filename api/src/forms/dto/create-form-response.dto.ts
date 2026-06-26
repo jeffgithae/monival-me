@@ -22,4 +22,9 @@ export class CreateFormResponseDto {
   @IsOptional()
   @IsIn(['draft', 'submitted'])
   status?: string;
+
+  // Offline sync — client-generated idempotency key, see offline-sync endpoint
+  @IsOptional()
+  @IsString()
+  clientId?: string;
 }

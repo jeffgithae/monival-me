@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import { canManageDataCollection } from '../../core/roles';
 import {
   ExternalIntegration, IntegrationPlatform, FormTemplate,
@@ -58,6 +59,11 @@ export class DataCollectionComponent implements OnInit {
   selectedIntegration = signal<ExternalIntegration | null>(null);
   selectedResponse    = signal<FormResponse | null>(null);
   lastSyncResult      = signal<SyncResult | null>(null);
+  savedResponseOfflineFlash = signal(false);
+  queuedResponses     = signal<QueuedItem[]>([]);
+  readonly pendingQueuedResponses = computed(() =>
+    this.queuedResponses().filter(q => q.syncStatus !== 'synced'),
+  );
 
   // Filters
   filterProject  = '';
@@ -155,9 +161,37 @@ export class DataCollectionComponent implements OnInit {
   constructor(
     private readonly api: ApiService,
     readonly auth: AuthService,
+    readonly queue: OfflineQueueService,
   ) {}
 
-  ngOnInit() { this.loadAll(); }
+  ngOnInit() {
+    this.loadAll();
+    this.refreshQueuedResponses();
+  }
+
+  async refreshQueuedResponses(): Promise<void> {
+    this.queuedResponses.set(await this.queue.getAllOfType('formResponse'));
+  }
+
+  retryQueuedResponseSync(): void {
+    this.queue.syncAll().then(() => {
+      this.refreshQueuedResponses();
+      this.loadAll();
+    });
+  }
+
+  async discardQueuedResponse(clientId: string, label: string): Promise<void> {
+    if (!confirm(`Discard the queued response "${label}"? It has not been saved to the server.`)) return;
+    await this.queue.remove(clientId);
+    await this.refreshQueuedResponses();
+  }
+
+  queuedResponseStatusLabel(status: QueuedItem['syncStatus']): string {
+    const m: Record<QueuedItem['syncStatus'], string> = {
+      pending: 'Waiting to sync', syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed',
+    };
+    return m[status];
+  }
 
   loadAll() {
     this.loading.set(true);
@@ -252,14 +286,36 @@ export class DataCollectionComponent implements OnInit {
   submitResponse() {
     const f = this.selectedForm();
     if (!f) return;
-    this.saving.set(true);
+
     const payload = {
       projectId: f.projectId,
       templateId: f._id,
       indicatorId: (f as any).indicatorId,
       answers: this.formResponseDraft,
-      status: 'submitted'
+      status: 'submitted',
     };
+
+    // Offline-first: queue locally instead of calling the API when there's
+    // no connection. submitFormResponseNew() validates the answers against
+    // the live template server-side (project/template/indicator existence,
+    // answer shape) — that validation simply runs later, when the queued
+    // response actually syncs, rather than at submit time. If the template
+    // changed in the meantime, the sync surfaces that as a per-item error
+    // the field worker (or an admin) can review, rather than silently
+    // corrupting data.
+    if (!this.queue.isOnline()) {
+      this.saving.set(true);
+      this.queue.enqueue('formResponse', payload, f.name || 'Form response').then(() => {
+        this.saving.set(false);
+        this.closeModal();
+        this.savedResponseOfflineFlash.set(true);
+        setTimeout(() => this.savedResponseOfflineFlash.set(false), 3000);
+        this.refreshQueuedResponses();
+      });
+      return;
+    }
+
+    this.saving.set(true);
     this.api.submitFormResponseNew(payload).subscribe({
       next: () => {
         this.saving.set(false);

@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
-import { OfflineQueueService, QueuedActivity } from '../../core/offline/offline-queue.service';
+import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import { Project, Indicator } from '../../core/models';
 
 @Component({
@@ -19,7 +19,7 @@ export class FieldCollectComponent implements OnInit {
 
   projects   = signal<Project[]>([]);
   indicators = signal<Indicator[]>([]);
-  queued     = signal<QueuedActivity[]>([]);
+  queued     = signal<QueuedItem[]>([]);
   saving     = signal(false);
   savedFlash = signal(false);
   locating   = signal(false);
@@ -61,7 +61,9 @@ export class FieldCollectComponent implements OnInit {
   }
 
   async refreshQueue() {
-    this.queued.set(await this.queue.getAll());
+    // Scoped to this page's entity type — a beneficiary or survey-response
+    // queued elsewhere shouldn't show up in the activity queue here.
+    this.queued.set(await this.queue.getAllOfType('activity'));
   }
 
   useMyLocation() {
@@ -114,7 +116,7 @@ export class FieldCollectComponent implements OnInit {
     // triggers an immediate sync attempt right after saving locally, so
     // the perceived behaviour when connected is "submit and it's gone";
     // when offline it just sits in the queue until connectivity returns.
-    await this.queue.enqueue(payload);
+    await this.queue.enqueue('activity', payload, (v.title as string) || 'Activity');
 
     this.form.reset({
       projectId: v.projectId, // keep project selected for the next entry — field workers usually log several activities for the same project in one sitting
@@ -136,8 +138,8 @@ export class FieldCollectComponent implements OnInit {
     await this.refreshQueue();
   }
 
-  statusLabel(status: QueuedActivity['syncStatus']): string {
-    const m: Record<QueuedActivity['syncStatus'], string> = {
+  statusLabel(status: QueuedItem['syncStatus']): string {
+    const m: Record<QueuedItem['syncStatus'], string> = {
       pending: 'Waiting to sync', syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed',
     };
     return m[status];

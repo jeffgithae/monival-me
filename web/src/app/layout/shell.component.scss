@@ -166,6 +166,27 @@ nav a.nav-link:hover, nav a.nav-link.active {
   }
 }
 
+.offline-badge {
+  display: flex; align-items: center; gap: 0.35rem;
+  height: 34px; padding: 0 0.65rem; border-radius: 10px;
+  background: rgba(245,158,11,0.18);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #fcd34d;
+  font-size: 0.74rem; font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: default;
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #fcd34d; }
+
+  &.offline {
+    background: rgba(239,68,68,0.18);
+    border-color: rgba(239,68,68,0.3);
+    color: #fca5a5;
+    .dot { background: #fca5a5; }
+  }
+}
+
 // ─── Notifications Panel ──────────────────────────────────────────────────────
 
 .notif-overlay {
