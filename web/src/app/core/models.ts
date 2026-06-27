@@ -598,6 +598,7 @@ export interface ReportingPeriod {
   dueDate?: string;
   notes?: string;
   donorRequirements?: string;
+  reportTemplate?: string;
   narrative?: string;
   challenges?: string;
   lessonsLearned?: string;
@@ -606,13 +607,17 @@ export interface ReportingPeriod {
   completionPct?: number;
   narrativeComplete?: boolean;
   financialsComplete?: boolean;
+  // Computed server-side in reporting.service.ts#enrichPeriod from Activity
+  // records whose activityDate falls in [startDate, endDate] — Activity has
+  // no direct reportingPeriodId field, so this is the only way to get these.
   approvedActivities?: number;
   totalActivities?: number;
-  results?: IndicatorResult[];
-  submittedBy?: string;
+  // Indicator results are NEVER embedded here — always fetch separately via
+  // ApiService.indicatorResults(periodId).
+  submittedBy?: { name: string; email: string };
   submittedByUserId?: string;
   submittedAt?: string;
-  approvedBy?: string;
+  approvedBy?: { name: string; email: string };
   approvedByUserId?: string;
   approvedAt?: string;
   lockedAt?: string;
@@ -634,32 +639,24 @@ export interface IndicatorResult {
   projectId: string;
   reportingPeriodId: string;
   indicatorId: string | Indicator;
-  indicatorTitle?: string;
   achieved: number;
-  achievedValue?: number;
-  calculatedValue?: number;
-  targetValue?: number;
-  percentAchieved?: number;
   activityCount: number;
   sourceActivityIds: string[];
-  disaggregatedResults?: DisaggregatedResult[];
   disaggregations: Record<string, unknown>;
-  periodTarget?: number;
-  varianceAbs?: number;
-  variancePct?: number;
   narrative?: string;
-  challengesNarrative?: string;
-  lessonsNarrative?: string;
-  nextStepsNarrative?: string;
-  previousPeriodAchieved?: number;
-  periodOverPeriodChange?: number;
-  periodOverPeriodPct?: number;
   qualityFlags?: string[];
   status: 'draft' | 'submitted' | 'approved' | 'locked';
   submittedByUserId?: string;
   submittedAt?: string;
   approvedByUserId?: string;
   approvedAt?: string;
+  // Enrichment added by GET /reporting/results (reporting.service.ts#listResults)
+  // — joined against IndicatorTarget server-side. null (not undefined) when
+  // no target exists at all, so the UI can distinguish "not loaded" from
+  // "genuinely has no target".
+  targetValue?: number | null;
+  baseline?: number | null;
+  percentAchieved?: number | null;
 }
 
 // ─── Indicator target ─────────────────────────────────────────────────────────
@@ -1189,24 +1186,13 @@ export interface AppNotification {
 // ─── Data quality ─────────────────────────────────────────────────────────────
 
 export interface DataQualityIssue {
-  indicatorId?: string;
-  indicatorTitle?: string;
-  entityType?: string;
-  entityId?: string;
-  issueType?: string;
   severity: 'critical' | 'warning' | 'info';
+  entityType: string;
+  entityId?: string;
   message: string;
-  description?: string;
-  lastUpdated?: string;
 }
 
 export interface DataQualityReport {
-  overallScore: number;
-  indicatorsWithData: number;
-  totalIndicators: number;
-  indicatorsOnTrack: number;
-  staleIndicators: number;
-  issues: DataQualityIssue[];
   generatedAt: string;
   counts: {
     indicators: number;

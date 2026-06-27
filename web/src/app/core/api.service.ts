@@ -856,6 +856,9 @@ export class ApiService {
       ...(dueDate ? { dueDate } : {}),
     });
   }
+  updateReportingPeriod(id: string, body: { name?: string; cadence?: string; startDate?: string; endDate?: string; dueDate?: string; notes?: string }) {
+    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}`, body);
+  }
   calculatePeriodResults(id: string) {
     return this.http.post<IndicatorResult[]>(`${this.base}/reporting/periods/${id}/calculate`, {});
   }
