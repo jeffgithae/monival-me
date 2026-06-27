@@ -1,205 +1,310 @@
-<!-- web/src/app/pages/reporting-periods/reporting-periods.component.html -->
-<div class="page periods-page">
+<div class="rp-page">
+
   <div class="page-header">
-    <div>
+    <div class="page-title-group">
+      <span class="page-eyebrow">Reporting</span>
       <h1>Reporting Periods</h1>
-      <p class="page-subtitle">Manage and lock indicator results per reporting period</p>
+      <p class="page-subtitle">Track indicator results, narratives, and approvals for each donor reporting cycle.</p>
     </div>
     @if (canManage()) {
-      <button class="btn btn-primary" (click)="showForm.set(!showForm())">
-        {{ showForm() ? '✕ Cancel' : '+ New Period' }}
+      <button class="btn-new" (click)="toggleForm()">
+        {{ showForm() && !editingPeriod() ? '✕ Cancel' : '+ New period' }}
       </button>
     }
   </div>
 
-  <div class="reporting-summary cards-grid">
-    <div class="summary-card card">
-      <div class="summary-value">{{ totalPeriods() }}</div>
-      <div class="summary-label">Total periods</div>
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <span class="kpi-value">{{ totalPeriods() }}</span>
+      <span class="kpi-label">Total periods</span>
     </div>
-    <div class="summary-card card">
-      <div class="summary-value">{{ approvedPeriods() }}</div>
-      <div class="summary-label">Approved</div>
+    <div class="kpi">
+      <span class="kpi-value">{{ openPeriods() }}</span>
+      <span class="kpi-label">Open</span>
     </div>
-    <div class="summary-card card">
-      <div class="summary-value">{{ submittedPeriods() }}</div>
-      <div class="summary-label">Submitted</div>
+    <div class="kpi">
+      <span class="kpi-value">{{ submittedPeriods() }}</span>
+      <span class="kpi-label">Awaiting approval</span>
     </div>
-    <div class="summary-card card">
-      <div class="summary-value">{{ openPeriods() }}</div>
-      <div class="summary-label">Open</div>
+    <div class="kpi">
+      <span class="kpi-value">{{ approvedPeriods() }}</span>
+      <span class="kpi-label">Approved</span>
+    </div>
+    <div class="kpi" [class.kpi-warn]="overdueCount() > 0">
+      <span class="kpi-value">{{ overdueCount() }}</span>
+      <span class="kpi-label">Overdue</span>
     </div>
   </div>
 
-  @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+  <!-- Filters -->
+  <div class="filters-row">
+    <select class="filter-select" [ngModel]="filterProjectId()" (ngModelChange)="setProjectFilter($event)">
+      <option value="">All projects</option>
+      @for (proj of projects(); track proj._id) {
+        <option [value]="proj._id">{{ proj.name }}</option>
+      }
+    </select>
+    <div class="status-tabs">
+      <button class="status-tab" [class.active]="filterStatus() === ''" (click)="setStatusFilter('')">All</button>
+      @for (s of statuses; track s) {
+        <button class="status-tab" [class.active]="filterStatus() === s" (click)="setStatusFilter(s)">
+          {{ statusLabel(s) }}
+        </button>
+      }
+    </div>
+    <div class="search-box">
+      <input type="text" placeholder="Search periods…" [(ngModel)]="searchQuery" />
+    </div>
+  </div>
 
-  <!-- Create form -->
-  @if (showForm() && canManage()) {
-    <div class="card form-card">
-      <h3>New Reporting Period</h3>
-      <form [formGroup]="form" (ngSubmit)="createPeriod()">
-        <div class="form-grid-2">
-          <div class="field">
-            <label>Period Name *</label>
-            <input formControlName="name" placeholder="Q1 2026 Progress Report" />
-          </div>
-          <div class="field">
-            <label>Frequency *</label>
-            <select formControlName="cadence">
-              @for (f of frequencies; track f) {
-                <option [value]="f">{{ f | titlecase }}</option>
+  <!-- Create / edit form -->
+  @if (showForm()) {
+    <div class="form-panel">
+      <h3>{{ editingPeriod() ? 'Edit reporting period' : 'New reporting period' }}</h3>
+      <form [formGroup]="form" (ngSubmit)="submitForm()">
+        <div class="form-row">
+          <label>Project <span class="req">*</span>
+            <select formControlName="projectId" [class.disabled-select]="editingPeriod()">
+              <option value="" disabled>Select a project</option>
+              @for (proj of projects(); track proj._id) {
+                <option [value]="proj._id">{{ proj.name }}</option>
               }
             </select>
-          </div>
+            @if (editingPeriod()) {
+              <span class="hint">Project can't be changed after a period is created</span>
+            }
+          </label>
+          <label>Name <span class="req">*</span>
+            <input type="text" formControlName="name" placeholder="e.g. Q3 2026" />
+          </label>
         </div>
-        <div class="form-grid-3">
-          <div class="field">
-            <label>Start Date *</label>
-            <input formControlName="startDate" type="date" />
-          </div>
-          <div class="field">
-            <label>End Date *</label>
-            <input formControlName="endDate" type="date" />
-          </div>
-          <div class="field">
-            <label>Report Due Date</label>
-            <input formControlName="dueDate" type="date" />
-          </div>
+        <div class="form-row">
+          <label>Cadence <span class="req">*</span>
+            <select formControlName="cadence">
+              @for (c of cadences; track c.id) {
+                <option [value]="c.id">{{ c.label }}</option>
+              }
+            </select>
+          </label>
+          <label>Due date <span class="hint">(optional)</span>
+            <input type="date" formControlName="dueDate" />
+          </label>
         </div>
+        <div class="form-row">
+          <label>Start date <span class="req">*</span>
+            <input type="date" formControlName="startDate" />
+          </label>
+          <label>End date <span class="req">*</span>
+            <input type="date" formControlName="endDate" />
+          </label>
+        </div>
+        <label>Notes <span class="hint">(optional)</span>
+          <textarea formControlName="notes" rows="2" placeholder="Anything worth flagging about this period…"></textarea>
+        </label>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
-            {{ saving() ? 'Creating…' : 'Create Period' }}
+          <button type="button" class="btn-secondary" (click)="toggleForm()">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+            {{ saving() ? 'Saving…' : (editingPeriod() ? 'Save changes' : 'Create period') }}
           </button>
         </div>
       </form>
     </div>
   }
 
-  <div class="periods-layout">
-    <!-- Left: period list -->
-    <div class="periods-list">
+  <!-- Main layout: list + detail -->
+  <div class="rp-layout" [class.has-detail]="selected()">
+
+    <!-- List -->
+    <div class="period-list">
       @if (loading()) {
-        <div class="loading">Loading…</div>
-      } @else if (periods().length === 0) {
-        <div class="empty-state"><p>No reporting periods yet.</p></div>
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading reporting periods…</p>
+        </div>
+      } @else if (filteredPeriods().length === 0) {
+        <div class="empty-state">
+          <span class="empty-icon">📋</span>
+          <h3>{{ periods().length === 0 ? 'No reporting periods yet' : 'No periods match these filters' }}</h3>
+          <p>
+            @if (periods().length === 0) {
+              Create your first reporting period to start tracking indicator results against a donor cycle.
+            } @else {
+              Try a different project, status, or search term.
+            }
+          </p>
+        </div>
       } @else {
-        @for (p of periods(); track p._id) {
-          <div class="period-card" [class.active]="selected()?._id === p._id" (click)="selectPeriod(p)">
-            <div class="period-name">{{ p.name }}</div>
-            <div class="period-meta">
-              <span [class]="'badge ' + statusBadge(p.status)">{{ p.status }}</span>
-              <span class="period-dates">{{ p.startDate | date:'d MMM' }} – {{ p.endDate | date:'d MMM y' }}</span>
+        @for (p of filteredPeriods(); track p._id) {
+          <div class="period-card" [class.selected]="selected()?._id === p._id" [class.overdue]="isOverdue(p)" (click)="selectPeriod(p)">
+            <div class="period-card-top">
+              <span class="status-badge" [class]="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
+              @if (isOverdue(p)) {
+                <span class="overdue-pill">Overdue</span>
+              }
             </div>
-            @if (p.projectName) {
-              <div class="period-project">📁 {{ p.projectName }}</div>
-            }
-            @if (p.dueDate) {
-              <div class="period-due">Due: {{ p.dueDate | date:'d MMM y' }}</div>
-            }
-            <div class="period-stats">
-              <span>✅ {{ p.approvedActivities ?? 0 }}/{{ p.totalActivities ?? 0 }} activities</span>
+            <h4>{{ p.name }}</h4>
+            <p class="period-project">{{ p.projectName ?? 'Unknown project' }}</p>
+            <p class="period-dates">{{ p.startDate | date:'d MMM y' }} – {{ p.endDate | date:'d MMM y' }}</p>
+            <div class="period-card-footer">
+              <span class="activity-count">{{ p.approvedActivities ?? 0 }}/{{ p.totalActivities ?? 0 }} activities approved</span>
+              @if (p.dueDate) {
+                <span class="due-date">Due {{ p.dueDate | date:'d MMM' }}</span>
+              }
             </div>
           </div>
         }
       }
     </div>
 
-    <!-- Right: period detail -->
-    @if (selected()) {
-      <div class="period-detail card">
-        <!-- Header -->
+    <!-- Detail panel -->
+    @if (selected(); as p) {
+      <div class="detail-panel">
         <div class="detail-header">
-          <div>
-            <h2>{{ selected()!.name }}</h2>
-            <span [class]="'badge ' + statusBadge(selected()!.status)">{{ selected()!.status }}</span>
+          <div class="detail-title-group">
+            <div class="detail-title-row">
+              <h2>{{ p.name }}</h2>
+              <span class="status-badge" [class]="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
+            </div>
+            <p class="detail-meta">
+              {{ p.projectName ?? 'Unknown project' }} · {{ cadenceLabel(p.cadence) }} ·
+              {{ p.startDate | date:'d MMM y' }} – {{ p.endDate | date:'d MMM y' }}
+              @if (p.dueDate) {
+                · Due {{ p.dueDate | date:'d MMM y' }}
+                @if (isOverdue(p)) { <span class="overdue-text">(overdue)</span> }
+              }
+            </p>
           </div>
-          <!-- Action buttons by status -->
-          <div class="detail-actions">
-            @if (canCalculate()) {
-              <button class="btn btn-outline" (click)="calculate()" [disabled]="calculating()">
-                {{ calculating() ? '⏳ Calculating…' : '🔄 Calculate from Activities' }}
-              </button>
+          <div class="detail-header-actions">
+            @if (canManage() && p.status !== 'locked') {
+              <button class="icon-btn" (click)="startEdit(p)" title="Edit period details">✎</button>
             }
-            @if (canSubmit()) {
-              <button class="btn btn-primary" (click)="changeStatus('submitted')">Submit for Review →</button>
-            }
-            @if (canApproveSelected()) {
-              <button class="btn btn-success" (click)="changeStatus('approved')">✅ Approve</button>
-            }
-            @if (canLock()) {
-              <button class="btn btn-warning" (click)="changeStatus('locked')">🔒 Lock Period</button>
-            }
-            @if (selected()!.status === 'locked' || selected()!.status === 'approved') {
-              <button class="btn btn-outline" (click)="export('pdf')">📄 PDF</button>
-              <button class="btn btn-outline" (click)="export('excel')">📊 Excel</button>
-            }
+            <button class="icon-btn" (click)="closeDetail()" title="Close">✕</button>
           </div>
         </div>
 
+        <!-- Workflow action bar -->
+        <div class="action-bar">
+          @if (canCalculate()) {
+            <button class="btn-secondary" (click)="calculate()" [disabled]="calculating()">
+              {{ calculating() ? 'Calculating…' : '⟲ Calculate from activities' }}
+            </button>
+          }
+          <div class="action-bar-spacer"></div>
+          @if (canSubmit()) {
+            <button class="btn-primary" (click)="confirmStatusChange('submitted')">Submit for approval</button>
+          }
+          @if (canApproveSelected()) {
+            <button class="btn-primary" (click)="confirmStatusChange('approved')">Approve</button>
+          }
+          @if (canApproveSelected() || canLock()) {
+            <button class="btn-secondary" (click)="confirmStatusChange('open')">Send back to open</button>
+          }
+          @if (canLock()) {
+            <button class="btn-danger" (click)="confirmStatusChange('locked')">🔒 Lock period</button>
+          }
+          <button class="btn-ghost" (click)="export('excel')">⬇ Excel</button>
+          <button class="btn-ghost" (click)="export('pdf')">⬇ PDF</button>
+        </div>
+
+        @if (isLocked()) {
+          <div class="locked-banner">🔒 This period is locked. No further edits are possible.</div>
+        }
+
         <!-- Tabs -->
-        <div class="tabs">
-          <button [class.active]="activeTab()==='results'"   (click)="activeTab.set('results')">📊 Results</button>
-          <button [class.active]="activeTab()==='narrative'" (click)="activeTab.set('narrative')">📝 Narrative</button>
-          <button [class.active]="activeTab()==='dq'"        (click)="activeTab.set('dq')">🔍 Data Quality</button>
+        <div class="detail-tabs">
+          <button class="dp-tab" [class.active]="activeTab() === 'results'" (click)="switchTab('results')">
+            Results
+            @if (results().length) { <span class="tab-count">{{ results().length }}</span> }
+          </button>
+          <button class="dp-tab" [class.active]="activeTab() === 'narrative'" (click)="switchTab('narrative')">Narrative</button>
+          <button class="dp-tab" [class.active]="activeTab() === 'dq'" (click)="switchTab('dq')">Data Quality</button>
+          <button class="dp-tab" [class.active]="activeTab() === 'history'" (click)="switchTab('history')">History</button>
         </div>
 
         <!-- Results tab -->
         @if (activeTab() === 'results') {
           <div class="tab-content">
-            @if (!selected()!.results?.length) {
-              <div class="empty-state">
-                <p>No indicator results yet.</p>
-                @if (canCalculate()) {
-                  <p>Click "Calculate from Activities" to auto-populate results from approved activities.</p>
-                }
+            @if (resultsProgress() !== null) {
+              <div class="progress-summary">
+                <span class="progress-label">Average progress against target</span>
+                <div class="progress-track">
+                  <div class="progress-fill" [class]="progressBarClass(resultsProgress())" [style.width.%]="resultsProgress()"></div>
+                </div>
+                <span class="progress-value">{{ resultsProgress() }}%</span>
+              </div>
+            }
+
+            @if (resultsLoading()) {
+              <div class="loading-state small"><div class="spinner"></div></div>
+            } @else if (results().length === 0) {
+              <div class="empty-state small">
+                <span class="empty-icon">📊</span>
+                <h3>No indicator results yet</h3>
+                <p>
+                  @if (canCalculate()) {
+                    Calculate results from approved activities in this period's date range to get started.
+                  } @else {
+                    Results will appear here once they've been calculated.
+                  }
+                </p>
               </div>
             } @else {
-              <table class="data-table results-table">
-                <thead>
-                  <tr>
-                    <th>Indicator</th>
-                    <th>Target</th>
-                    <th>Calculated</th>
-                    <th>Achieved</th>
-                    <th>% Achieved</th>
-                    <th>Narrative</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (r of selected()!.results; track r.indicatorId) {
-                    <tr>
-                      <td>{{ r.indicatorTitle || r.indicatorId }}</td>
-                      <td>{{ r.targetValue ?? '—' }}</td>
-                      <td class="muted">{{ r.calculatedValue ?? '—' }}</td>
-                      <td>
-                        @if (!isLocked()) {
-                          <input type="number" class="inline-input"
-                            [value]="r.achievedValue"
-                            (change)="updateResult($any(r.indicatorId), 'achievedValue', +$any($event.target).value)" />
-                        } @else {
-                          {{ r.achievedValue }}
-                        }
-                      </td>
-                      <td>
-                        @if (r.percentAchieved != null) {
-                          <span [class]="r.percentAchieved >= 80 ? 'text-green' : r.percentAchieved >= 50 ? 'text-yellow' : 'text-red'">
-                            {{ r.percentAchieved | number:'1.0-0' }}%
-                          </span>
-                        } @else { — }
-                      </td>
-                      <td>
-                        @if (!isLocked()) {
-                          <input class="inline-input wide" [value]="r.narrative || ''"
-                            (change)="updateResult($any(r.indicatorId), 'narrative', $any($event.target).value)"
-                            placeholder="Explain variance…" />
-                        } @else {
-                          <span class="muted">{{ r.narrative || '—' }}</span>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              <div class="results-table">
+                <div class="results-head">
+                  <span>Indicator</span>
+                  <span>Target</span>
+                  <span>Achieved</span>
+                  <span>% Achieved</span>
+                  <span>Narrative</span>
+                </div>
+                @for (r of results(); track r._id) {
+                  <div class="results-row">
+                    <div class="result-indicator">
+                      @if (indicatorOf(r)) {
+                        <span class="code-badge">{{ indicatorOf(r)!.code }}</span>
+                        <span class="indicator-title">{{ indicatorOf(r)!.title }}</span>
+                      } @else {
+                        <span class="indicator-title muted">Indicator unavailable</span>
+                      }
+                    </div>
+                    <div class="result-target">
+                      {{ r.targetValue !== null && r.targetValue !== undefined ? r.targetValue : '—' }}
+                    </div>
+                    <div class="result-achieved">
+                      <input
+                        type="number"
+                        [value]="r.achieved"
+                        [disabled]="isLocked() || !canManage()"
+                        (change)="updateResult(r, 'achieved', $any($event.target).value)"
+                      />
+                    </div>
+                    <div class="result-pct">
+                      @if (r.percentAchieved !== null && r.percentAchieved !== undefined) {
+                        <div class="mini-bar-track">
+                          <div class="mini-bar-fill" [class]="progressBarClass(r.percentAchieved)" [style.width.%]="r.percentAchieved"></div>
+                        </div>
+                        <span>{{ r.percentAchieved }}%</span>
+                      } @else {
+                        <span class="muted">No target set</span>
+                      }
+                    </div>
+                    <div class="result-narrative">
+                      <input
+                        type="text"
+                        [value]="r.narrative ?? ''"
+                        placeholder="Add a note…"
+                        [disabled]="isLocked() || !canManage()"
+                        (change)="updateResult(r, 'narrative', $any($event.target).value)"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
             }
           </div>
         }
@@ -207,35 +312,25 @@
         <!-- Narrative tab -->
         @if (activeTab() === 'narrative') {
           <div class="tab-content">
-            <form [formGroup]="narrativeForm">
-              <div class="field">
-                <label>Period Narrative</label>
-                <textarea formControlName="narrative" rows="5"
-                  placeholder="Overall progress narrative for this period…"
-                  [readonly]="isLocked()"></textarea>
-              </div>
-              <div class="field">
-                <label>Challenges & Risks</label>
-                <textarea formControlName="challenges" rows="3"
-                  placeholder="Key challenges encountered…"
-                  [readonly]="isLocked()"></textarea>
-              </div>
-              <div class="field">
-                <label>Lessons Learned</label>
-                <textarea formControlName="lessonsLearned" rows="3"
-                  placeholder="What did we learn this period…"
-                  [readonly]="isLocked()"></textarea>
-              </div>
-              <div class="field">
-                <label>Plans for Next Period</label>
-                <textarea formControlName="nextPeriodPlans" rows="3"
-                  placeholder="Priority actions for the next period…"
-                  [readonly]="isLocked()"></textarea>
-              </div>
-              @if (!isLocked()) {
-                <button type="button" class="btn btn-primary" (click)="saveNarrative()" [disabled]="saving()">
-                  {{ saving() ? 'Saving…' : 'Save Narrative' }}
-                </button>
+            <form [formGroup]="narrativeForm" (ngSubmit)="saveNarrative()">
+              <label>Narrative summary
+                <textarea formControlName="narrative" rows="4" [disabled]="!canEditNarrative()" placeholder="What happened this period?"></textarea>
+              </label>
+              <label>Challenges & risks
+                <textarea formControlName="challenges" rows="3" [disabled]="!canEditNarrative()" placeholder="What got in the way?"></textarea>
+              </label>
+              <label>Lessons learned
+                <textarea formControlName="lessonsLearned" rows="3" [disabled]="!canEditNarrative()" placeholder="What would you do differently?"></textarea>
+              </label>
+              <label>Plans for next period
+                <textarea formControlName="nextPeriodPlans" rows="3" [disabled]="!canEditNarrative()" placeholder="What's next?"></textarea>
+              </label>
+              @if (canEditNarrative()) {
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary" [disabled]="saving()">
+                    {{ saving() ? 'Saving…' : 'Save narrative' }}
+                  </button>
+                </div>
               }
             </form>
           </div>
@@ -244,60 +339,112 @@
         <!-- Data Quality tab -->
         @if (activeTab() === 'dq') {
           <div class="tab-content">
-            @if (!dqReport()) {
-              <div class="empty-state"><p>No data quality report available for this period.</p></div>
-            } @else {
-              <div class="dq-header">
-                <div class="dq-score-ring" [class]="dqReport()!.overallScore >= 80 ? 'good' : dqReport()!.overallScore >= 50 ? 'fair' : 'poor'">
-                  <span class="dq-score">{{ dqReport()!.overallScore | number:'1.0-0' }}%</span>
-                  <span class="dq-label">DQ Score</span>
-                </div>
-                <div class="dq-stats">
-                  <div>📊 {{ dqReport()!.indicatorsWithData }}/{{ dqReport()!.totalIndicators }} indicators have data</div>
-                  <div>✅ {{ dqReport()!.indicatorsOnTrack }} on track</div>
-                  <div>⏳ {{ dqReport()!.staleIndicators }} stale</div>
-                </div>
+            @if (dqLoading()) {
+              <div class="loading-state small"><div class="spinner"></div></div>
+            } @else if (!dqReport()) {
+              <div class="empty-state small">
+                <span class="empty-icon">✓</span>
+                <h3>Couldn't load data quality</h3>
+                <p>Try switching tabs and back, or refresh the page.</p>
               </div>
-              @if (dqReport()!.issues.length === 0) {
-                <div class="dq-ok">✅ No data quality issues found.</div>
+            } @else {
+              @let dq = dqReport()!;
+              <div class="dq-counts">
+                <div class="dq-count-pill critical">{{ dq.counts.critical }} critical</div>
+                <div class="dq-count-pill warning">{{ dq.counts.warning }} warning</div>
+                <div class="dq-count-pill info">{{ dq.counts.info }} info</div>
+              </div>
+              @if (dq.alerts.length === 0) {
+                <div class="empty-state small">
+                  <span class="empty-icon">✨</span>
+                  <h3>No data quality issues</h3>
+                  <p>Activities and indicators in this period's window look clean.</p>
+                </div>
               } @else {
-                <table class="data-table">
-                  <thead>
-                    <tr><th>Indicator</th><th>Issue</th><th>Severity</th><th>Description</th></tr>
-                  </thead>
-                  <tbody>
-                    @for (issue of dqReport()!.issues; track issue.indicatorId) {
-                      <tr>
-                        <td>{{ issue.indicatorTitle }}</td>
-                        <td>{{ issue.issueType | titlecase }}</td>
-                        <td><span [class]="dqSeverityClass(issue.severity)">{{ issue.severity }}</span></td>
-                        <td>{{ issue.description }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+                <div class="dq-alert-list">
+                  @for (alert of dq.alerts; track alert.message + alert.entityId) {
+                    <div class="dq-alert" [class]="alert.severity">
+                      <span class="dq-icon">{{ severityIcon(alert.severity) }}</span>
+                      <div class="dq-alert-body">
+                        <span class="dq-entity-type">{{ alert.entityType }}</span>
+                        <p>{{ alert.message }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
               }
+              <p class="generated-note">Scoped to this period's date range · Generated {{ dq.generatedAt | date:'medium' }}</p>
             }
           </div>
         }
 
-        <!-- Meta -->
-        <div class="period-meta-footer">
-          @if (selected()!.submittedBy) {
-            <span>Submitted: {{ selected()!.submittedAt | date:'d MMM y HH:mm' }}</span>
-          }
-          @if (selected()!.approvedBy) {
-            <span>Approved: {{ selected()!.approvedAt | date:'d MMM y HH:mm' }}</span>
-          }
-          @if (selected()!.lockedAt) {
-            <span>🔒 Locked: {{ selected()!.lockedAt | date:'d MMM y HH:mm' }}</span>
-          }
-        </div>
-      </div>
-    } @else {
-      <div class="period-placeholder card">
-        <p>← Select a reporting period to view details</p>
+        <!-- History tab -->
+        @if (activeTab() === 'history') {
+          <div class="tab-content">
+            <div class="history-list">
+              <div class="history-item">
+                <span class="history-dot created"></span>
+                <div class="history-body">
+                  <strong>Period created</strong>
+                  <span class="history-date">{{ p.createdAt | date:'medium' }}</span>
+                </div>
+              </div>
+              @if (p.submittedAt) {
+                <div class="history-item">
+                  <span class="history-dot submitted"></span>
+                  <div class="history-body">
+                    <strong>Submitted for approval</strong>
+                    @if (p.submittedBy) { <span>by {{ p.submittedBy.name }}</span> }
+                    <span class="history-date">{{ p.submittedAt | date:'medium' }}</span>
+                  </div>
+                </div>
+              }
+              @if (p.approvedAt) {
+                <div class="history-item">
+                  <span class="history-dot approved"></span>
+                  <div class="history-body">
+                    <strong>{{ p.status === 'locked' ? 'Locked' : 'Approved' }}</strong>
+                    @if (p.approvedBy) { <span>by {{ p.approvedBy.name }}</span> }
+                    <span class="history-date">{{ p.approvedAt | date:'medium' }}</span>
+                  </div>
+                </div>
+              }
+              @if (!p.submittedAt && !p.approvedAt) {
+                <p class="muted">No status changes yet — this period is still open.</p>
+              }
+            </div>
+          </div>
+        }
       </div>
     }
   </div>
+
+  <!-- Status change confirmation modal -->
+  @if (showStatusConfirm(); as newStatus) {
+    <div class="modal-overlay" (click)="cancelStatusChange()">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ newStatus === 'locked' ? 'Lock this period?' : 'Change status to ' + statusLabel(newStatus) + '?' }}</h2>
+          <button class="modal-close" (click)="cancelStatusChange()">✕</button>
+        </div>
+        <div class="modal-body">
+          @if (newStatus === 'locked') {
+            <p class="modal-warning">Locking is final — no further edits to results or narrative will be possible afterward.</p>
+          }
+          <form [formGroup]="statusNoteForm">
+            <label>Note <span class="hint">(optional, visible in this period's history)</span>
+              <textarea formControlName="notes" rows="3" placeholder="Add context for this change…"></textarea>
+            </label>
+          </form>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="cancelStatusChange()">Cancel</button>
+            <button type="button" [class]="newStatus === 'locked' ? 'btn-danger' : 'btn-primary'" (click)="applyStatusChange()" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : (newStatus === 'locked' ? 'Lock period' : 'Confirm') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
 </div>

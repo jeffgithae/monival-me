@@ -5,7 +5,8 @@ import { Activity } from '../activities/schemas/activity.schema';
 import { AuditService } from '../audit/audit.service';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Project } from '../projects/schemas/project.schema';
-import { CreateReportingPeriodDto, UpsertIndicatorResultDto, UpsertIndicatorTargetDto } from './dto/reporting.dto';
+import { User } from '../users/schemas/user.schema';
+import { CreateReportingPeriodDto, UpdateReportingPeriodDto, UpsertIndicatorResultDto, UpsertIndicatorTargetDto } from './dto/reporting.dto';
 import { IndicatorResult } from './schemas/indicator-result.schema';
 import { IndicatorTarget } from './schemas/indicator-target.schema';
 import { ReportingPeriod } from './schemas/reporting-period.schema';
@@ -19,6 +20,7 @@ export class ReportingService {
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly audit: AuditService,
   ) {}
 
@@ -36,6 +38,7 @@ export class ReportingService {
       cadence: dto.cadence ?? 'quarterly',
       startDate,
       endDate,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
       notes: dto.notes,
     });
     await this.audit.record({
@@ -48,15 +51,47 @@ export class ReportingService {
     return period;
   }
 
-  listPeriods(organizationId: string, projectId?: string, status?: string) {
-    const filter: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId) };
+  async updatePeriod(organizationId: string, reportingPeriodId: string, dto: UpdateReportingPeriodDto) {
+    const period = await this.getEditablePeriod(organizationId, reportingPeriodId);
+
+    const update: Record<string, unknown> = {};
+    if (dto.name !== undefined)     update.name = dto.name;
+    if (dto.cadence !== undefined)  update.cadence = dto.cadence;
+    if (dto.notes !== undefined)    update.notes = dto.notes;
+    if (dto.dueDate !== undefined)  update.dueDate = dto.dueDate ? new Date(dto.dueDate) : undefined;
+
+    const startDate = dto.startDate ? new Date(dto.startDate) : period.startDate;
+    const endDate   = dto.endDate   ? new Date(dto.endDate)   : period.endDate;
+    if (endDate < startDate) {
+      throw new BadRequestException('Reporting period end date must be after start date');
+    }
+    if (dto.startDate !== undefined) update.startDate = startDate;
+    if (dto.endDate !== undefined)   update.endDate = endDate;
+
+    const updated = await this.periodModel
+      .findByIdAndUpdate(reportingPeriodId, update, { new: true })
+      .lean();
+    await this.audit.record({
+      organizationId,
+      action: 'reporting_period.updated',
+      entityType: 'ReportingPeriod',
+      entityId: reportingPeriodId,
+      metadata: { fields: Object.keys(update) },
+    });
+    return this.enrichPeriod(updated!);
+  }
+
+  async listPeriods(organizationId: string, projectId?: string, status?: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const filter: Record<string, unknown> = { organizationId: orgId };
     if (projectId) {
       filter.projectId = new Types.ObjectId(projectId);
     }
     if (status) {
       filter.status = status;
     }
-    return this.periodModel.find(filter).sort({ startDate: -1 }).lean();
+    const periods = await this.periodModel.find(filter).sort({ startDate: -1 }).lean();
+    return Promise.all(periods.map((p) => this.enrichPeriod(p)));
   }
 
   async getPeriod(organizationId: string, id: string) {
@@ -66,7 +101,50 @@ export class ReportingService {
     if (!period) {
       throw new NotFoundException('Reporting period not found');
     }
-    return period;
+    return this.enrichPeriod(period);
+  }
+
+  /**
+   * Attaches display-friendly fields the frontend needs that don't live
+   * directly on the ReportingPeriod document: the project's name, resolved
+   * submitter/approver names (only the ObjectId is stored on the period
+   * itself), and how many activities fall inside this period's date range
+   * (Activity has no direct reportingPeriodId — it's associated purely by
+   * projectId + activityDate, the same association calculateResults() uses).
+   */
+  private async enrichPeriod<T extends Record<string, any>>(period: T) {
+    const orgId = new Types.ObjectId(period.organizationId);
+    const projectId = period.projectId;
+
+    const [project, submittedByUser, approvedByUser, totalActivities, approvedActivities] = await Promise.all([
+      this.projectModel.findOne({ _id: projectId, organizationId: orgId }).select('name').lean(),
+      period.submittedByUserId
+        ? this.userModel.findById(period.submittedByUserId).select('name email').lean()
+        : null,
+      period.approvedByUserId
+        ? this.userModel.findById(period.approvedByUserId).select('name email').lean()
+        : null,
+      this.activityModel.countDocuments({
+        organizationId: orgId,
+        projectId,
+        activityDate: { $gte: period.startDate, $lte: period.endDate },
+      }),
+      this.activityModel.countDocuments({
+        organizationId: orgId,
+        projectId,
+        status: 'approved',
+        activityDate: { $gte: period.startDate, $lte: period.endDate },
+      }),
+    ]);
+
+    return {
+      ...period,
+      projectName: project?.name,
+      submittedBy: submittedByUser ? { name: submittedByUser.name, email: submittedByUser.email } : undefined,
+      approvedBy: approvedByUser ? { name: approvedByUser.name, email: approvedByUser.email } : undefined,
+      totalActivities,
+      approvedActivities,
+    };
   }
 
   async calculateResults(organizationId: string, reportingPeriodId: string) {
@@ -170,15 +248,36 @@ export class ReportingService {
     return results;
   }
 
-  listResults(organizationId: string, reportingPeriodId: string) {
-    return this.resultModel
-      .find({
-        organizationId: new Types.ObjectId(organizationId),
-        reportingPeriodId: new Types.ObjectId(reportingPeriodId),
-      })
-      .populate('indicatorId')
-      .sort({ createdAt: 1 })
-      .lean();
+  async listResults(organizationId: string, reportingPeriodId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const periodObjId = new Types.ObjectId(reportingPeriodId);
+
+    const [results, targets] = await Promise.all([
+      this.resultModel
+        .find({ organizationId: orgId, reportingPeriodId: periodObjId })
+        .populate('indicatorId')
+        .sort({ createdAt: 1 })
+        .lean(),
+      this.targetModel
+        .find({ organizationId: orgId, reportingPeriodId: periodObjId })
+        .lean(),
+    ]);
+
+    const targetByIndicator = new Map(targets.map((t) => [t.indicatorId.toString(), t]));
+
+    return results.map((r: any) => {
+      const periodTarget = targetByIndicator.get(r.indicatorId?._id?.toString() ?? r.indicatorId?.toString());
+      // Fall back to the indicator's own default target if no period-specific
+      // target was set — same fallback calculateResults() uses internally.
+      const targetValue = periodTarget?.target ?? r.indicatorId?.target;
+      const percentAchieved = targetValue ? Math.round((r.achieved / targetValue) * 1000) / 10 : null;
+      return {
+        ...r,
+        targetValue: targetValue ?? null,
+        baseline: periodTarget?.baseline ?? null,
+        percentAchieved,
+      };
+    });
   }
 
   async upsertResult(organizationId: string, dto: UpsertIndicatorResultDto) {
@@ -281,8 +380,9 @@ export class ReportingService {
   async transitionPeriod(
     organizationId: string,
     reportingPeriodId: string,
-    status: 'submitted' | 'approved' | 'locked',
+    status: 'open' | 'submitted' | 'approved' | 'locked',
     userId: string,
+    notes?: string,
   ) {
     const period = await this.periodModel.findOne({
       _id: reportingPeriodId,
@@ -296,8 +396,23 @@ export class ReportingService {
       throw new ForbiddenException('Reporting period is locked');
     }
 
+    const legalTransitions: Record<string, string[]> = {
+      open:      ['submitted'],
+      submitted: ['open', 'approved'],
+      approved:  ['open', 'locked'],
+    };
+    if (!legalTransitions[period.status]?.includes(status)) {
+      throw new BadRequestException(
+        `Cannot move a "${period.status}" period to "${status}". ` +
+        `Valid next steps: ${legalTransitions[period.status]?.join(', ') ?? 'none'}.`,
+      );
+    }
+
     const update: Record<string, unknown> = { status };
     const resultUpdate: Record<string, unknown> = { status };
+    if (notes !== undefined) {
+      update.notes = notes;
+    }
     if (status === 'submitted') {
       update.submittedByUserId = new Types.ObjectId(userId);
       update.submittedAt = new Date();
@@ -309,6 +424,23 @@ export class ReportingService {
       update.approvedAt = new Date();
       resultUpdate.approvedByUserId = new Types.ObjectId(userId);
       resultUpdate.approvedAt = update.approvedAt;
+    }
+    if (status === 'open') {
+      // Sent back for revision — clear whichever step we're undoing so the
+      // History tab doesn't show a stale "submitted by"/"approved by" from
+      // a cycle that no longer applies.
+      if (period.status === 'submitted') {
+        update.submittedByUserId = null;
+        update.submittedAt = null;
+        resultUpdate.submittedByUserId = null;
+        resultUpdate.submittedAt = null;
+      }
+      if (period.status === 'approved') {
+        update.approvedByUserId = null;
+        update.approvedAt = null;
+        resultUpdate.approvedByUserId = null;
+        resultUpdate.approvedAt = null;
+      }
     }
 
     const updated = await this.periodModel
@@ -328,7 +460,7 @@ export class ReportingService {
       entityType: 'ReportingPeriod',
       entityId: reportingPeriodId,
     });
-    return updated;
+    return this.enrichPeriod(updated!);
   }
 
   async updateNarrative(
@@ -361,13 +493,25 @@ export class ReportingService {
       .lean();
   }
 
-  async dataQuality(organizationId: string, projectId?: string) {
+  async dataQuality(
+    organizationId: string,
+    projectId?: string,
+    dateRange?: { from: Date; to: Date },
+  ) {
     const orgId = new Types.ObjectId(organizationId);
     const projectFilter: Record<string, unknown> = { organizationId: orgId };
     if (projectId) projectFilter['projectId'] = new Types.ObjectId(projectId);
 
     const now = new Date();
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // When scoped to a reporting period, only count activities that fall
+    // inside that period's date range — otherwise this reports on the
+    // project's entire history, which is correct for the standalone Data
+    // Quality view but misleading when shown inside a specific period.
+    const activityDateMatch: Record<string, unknown> = dateRange
+      ? { activityDate: { $gte: dateRange.from, $lte: dateRange.to } }
+      : {};
 
     // Single aggregation — join activities into indicators server-side (H2 fix)
     // No full collection loaded into Node.js heap
@@ -386,6 +530,7 @@ export class ReportingService {
                     { $eq: ['$organizationId', '$$orgId'] },
                   ],
                 },
+                ...activityDateMatch,
               },
             },
             { $project: { activityDate: 1, evidenceUrl: 1, evidenceNotes: 1, status: 1 } },
@@ -409,7 +554,7 @@ export class ReportingService {
     ]);
 
     const activityAlerts = await this.activityModel.aggregate([
-      { $match: { ...projectFilter, status: 'approved' } },
+      { $match: { ...projectFilter, status: 'approved', ...activityDateMatch } },
       {
         $project: {
           _id: 1,

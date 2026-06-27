@@ -19,6 +19,10 @@ export class CreateReportingPeriodDto {
   endDate!: string;
 
   @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
   @IsString()
   notes?: string;
 }
@@ -62,8 +66,39 @@ export class UpsertIndicatorTargetDto {
 }
 
 export class ReviewReportingPeriodDto {
-  @IsIn(['submitted', 'approved', 'locked'])
-  status!: 'submitted' | 'approved' | 'locked';
+  @IsIn(['open', 'submitted', 'approved', 'locked'])
+  status!: 'open' | 'submitted' | 'approved' | 'locked';
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateReportingPeriodDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  name?: string;
+
+  @IsOptional()
+  @IsIn(['monthly', 'quarterly', 'semiannual', 'annual', 'custom'])
+  cadence?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class UpdateNarrativeDto {

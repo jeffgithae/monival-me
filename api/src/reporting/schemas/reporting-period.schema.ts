@@ -19,6 +19,7 @@ export class ReportingPeriod {
 
   @Prop({ required: true }) startDate!: Date;
   @Prop({ required: true }) endDate!: Date;
+  @Prop() dueDate?: Date;
 
   @Prop({ trim: true }) notes?: string;
   @Prop({ trim: true }) donorRequirements?: string;
