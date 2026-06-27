@@ -15,6 +15,7 @@ import { FormsService } from '../forms/forms.service';
 import { IntegrationsService } from '../forms/integrations.service';
 import { ImpactStoriesService } from '../impact-stories/impact-stories.service';
 import { ScheduledReportsService } from '../reports/scheduled-reports.service';
+import { StakeholderFeedbackService } from '../stakeholder-feedback/stakeholder-feedback.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
 import { OrgRole } from '../common/constants/roles';
 import { Indicator } from '../indicators/schemas/indicator.schema';
@@ -64,6 +65,7 @@ export class ProjectsService {
     private readonly integrationsService: IntegrationsService,
     private readonly impactStoriesService: ImpactStoriesService,
     private readonly scheduledReportsService: ScheduledReportsService,
+    private readonly stakeholderFeedbackService: StakeholderFeedbackService,
     private readonly webhooksService: WebhooksService,
   ) {}
 
@@ -485,6 +487,7 @@ export class ProjectsService {
       this.integrationsService.disableForProject(organizationId, id),
       this.impactStoriesService.unscopeFromProject(organizationId, id),
       this.scheduledReportsService.removeForProject(organizationId, id),
+      this.stakeholderFeedbackService.unscopeFromProject(organizationId, id),
       this.webhooksService.unscopeFromProject(organizationId, id),
     ]);
     const crossModuleFailures = crossModuleResults

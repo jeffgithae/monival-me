@@ -13,6 +13,7 @@ import { DocumentsModule } from '../documents/documents.module';
 import { FormsModule } from '../forms/forms.module';
 import { ImpactStoriesModule } from '../impact-stories/impact-stories.module';
 import { ReportsModule } from '../reports/reports.module';
+import { StakeholderFeedbackModule } from '../stakeholder-feedback/stakeholder-feedback.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
@@ -30,6 +31,7 @@ import { Project, ProjectSchema } from './schemas/project.schema';
     FormsModule,
     ImpactStoriesModule,
     ReportsModule,
+    StakeholderFeedbackModule,
     WebhooksModule,
     MongooseModule.forFeature([
       { name: Project.name, schema: ProjectSchema },
