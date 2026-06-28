@@ -17,10 +17,21 @@ export class DashboardController {
   /**
    * Dashboard overview — cached 30s per org.
    * Heavy: 7 DB queries. SkipThrottle so page loads don't exhaust limits.
+   *
+   * NOTE: must use a request-aware key factory, not a static @CacheKey()
+   * string. A static key is shared across every organization — see
+   * CacheInterceptor#trackBy in @nestjs/cache-manager: when
+   * CACHE_KEY_METADATA is present it's returned verbatim, bypassing the
+   * per-request URL-based key NestJS would otherwise generate. This was
+   * previously the exact bug on /reporting/data-quality; this endpoint —
+   * the most-viewed page in the app — had the same bug independently.
    */
   @Get('overview')
   @SkipThrottle()
-  @CacheKey('dashboard:overview')
+  @CacheKey((context) => {
+    const req = context.switchToHttp().getRequest();
+    return `dashboard:overview:${req.user?.organizationId}`;
+  })
   @CacheTTL(30_000)
   overview(@CurrentUser() user: JwtPayload) {
     return this.dashboardService.overview(user.organizationId);
@@ -61,5 +72,43 @@ export class DashboardController {
     @Query('projectId') projectId?: string,
   ) {
     return this.dashboardService.roi(user.organizationId, projectId);
+  }
+
+  /**
+   * Unique Beneficiary Reach.
+   *
+   * Distinguishes cumulative attendance (sum of Activity.participants,
+   * double-counts repeat attendees) from unique people actually served
+   * (distinct Beneficiary records linked via Activity.beneficiaryIds).
+   * Includes a coveragePct so the UI can show how much of the figure is
+   * backed by real linkage data rather than presenting a partial count as
+   * comprehensive.
+   */
+  @Get('beneficiary-reach')
+  @ApiOperation({ summary: 'Unique beneficiaries reached vs. cumulative attendance, with sex/age/disability breakdown' })
+  beneficiaryReach(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.dashboardService.beneficiaryReach(user.organizationId, projectId);
+  }
+
+  /**
+   * Geo-tagged points for map visualization, across activities,
+   * beneficiaries (anonymized/clustered — see service docstring),
+   * partners, and projects.
+   */
+  @Get('geo')
+  @ApiOperation({ summary: 'Geo-tagged activity/beneficiary/partner/project points for map display' })
+  geoData(
+    @CurrentUser() user: JwtPayload,
+    @Query('projectId') projectId?: string,
+    @Query('types') types?: string,
+  ) {
+    return this.dashboardService.geoData(
+      user.organizationId,
+      projectId,
+      types ? types.split(',').filter(Boolean) : undefined,
+    );
   }
 }

@@ -131,6 +131,7 @@ ActivitySchema.index({ organizationId: 1, status: 1 });
 ActivitySchema.index({ organizationId: 1, projectId: 1, status: 1 });
 ActivitySchema.index({ organizationId: 1, activityType: 1 });
 ActivitySchema.index({ organizationId: 1, grantId: 1 });
+ActivitySchema.index({ organizationId: 1, beneficiaryIds: 1 });
 // Partial unique index: only enforce uniqueness when clientId is present.
 // This prevents duplicate submissions when the PWA retries a failed sync.
 ActivitySchema.index(

@@ -1,0 +1,87 @@
+<div class="map-page">
+
+  <div class="page-header">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Geography</span>
+      <h1>Map</h1>
+      <p class="page-subtitle">Where your activities, beneficiaries, and partners are located.</p>
+    </div>
+    <div class="page-actions">
+      <select class="project-select" [ngModel]="projectId()" (ngModelChange)="setProject($event)">
+        <option value="">All projects</option>
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}</option>
+        }
+      </select>
+      <button class="btn-refresh" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (report(); as r) {
+    <div class="type-filters">
+      @for (t of typeFilters; track t.id) {
+        <button
+          class="type-chip"
+          [class]="t.id"
+          [class.active]="isActive(t.id)"
+          (click)="toggleType(t.id)"
+        >
+          {{ t.icon }} {{ t.label }} <span class="type-count">{{ r.counts[t.id] }}</span>
+        </button>
+      }
+    </div>
+
+    @if (r.counts.beneficiary > 0) {
+      <p class="privacy-note">
+        🔒 Beneficiary locations are shown as anonymous clusters, never with names or individual pins — see a cluster's count, not who's there.
+      </p>
+    }
+  }
+
+  @if (loading() && !report()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading map data…</p>
+    </div>
+  } @else if (report() && points().length === 0) {
+    <div class="empty-state">
+      <span class="empty-icon">🗺️</span>
+      <h3>No located records yet</h3>
+      <p>Activities, beneficiaries, and partners with GPS coordinates will appear here once recorded — the field-collection forms can capture location automatically.</p>
+    </div>
+  } @else {
+    <app-leaflet-map
+      [points]="points()"
+      height="560px"
+      (markerClick)="onMarkerClick($event)"
+    ></app-leaflet-map>
+  }
+
+  @if (selected(); as s) {
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ s.title }}</h2>
+          <button class="modal-close" (click)="closeDetail()">✕</button>
+        </div>
+        <div class="modal-body">
+          <span class="detail-type" [class]="s.type">{{ s.type }}</span>
+          @if (s.subtitle) {
+            <p class="detail-subtitle">{{ s.subtitle }}</p>
+          }
+          <p class="detail-coords">{{ s.latitude }}, {{ s.longitude }}</p>
+          @if (s.type === 'project') {
+            <button class="btn-primary" (click)="goToEntity(s)">View project →</button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

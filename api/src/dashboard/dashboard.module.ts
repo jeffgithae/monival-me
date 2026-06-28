@@ -7,6 +7,7 @@ import { ImpactStory, ImpactStorySchema } from '../impact-stories/schemas/impact
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { OrganizationMember, OrganizationMemberSchema } from '../members/schemas/organization-member.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
+import { Partner, PartnerSchema } from '../partners/schemas/partner.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { IndicatorResult, IndicatorResultSchema } from '../reporting/schemas/indicator-result.schema';
 import { ReportingPeriod, ReportingPeriodSchema } from '../reporting/schemas/reporting-period.schema';
@@ -26,6 +27,7 @@ import { DashboardService } from './dashboard.service';
       { name: Grant.name,              schema: GrantSchema },
       { name: ReportingPeriod.name,    schema: ReportingPeriodSchema },
       { name: ImpactStory.name,        schema: ImpactStorySchema },
+      { name: Partner.name,            schema: PartnerSchema },
     ]),
   ],
   controllers: [DashboardController],

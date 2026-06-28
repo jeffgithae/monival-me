@@ -5,6 +5,7 @@ import { Organization, OrganizationSchema } from '../organizations/schemas/organ
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Activity, ActivitySchema } from '../activities/schemas/activity.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
+import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
 import { NetworksService } from './networks.service';
 import { NetworksController } from './networks.controller';
 
@@ -16,6 +17,7 @@ import { NetworksController } from './networks.controller';
       { name: Indicator.name, schema: IndicatorSchema },
       { name: Activity.name, schema: ActivitySchema },
       { name: Project.name, schema: ProjectSchema },
+      { name: Grant.name, schema: GrantSchema },
     ]),
   ],
   controllers: [NetworksController],

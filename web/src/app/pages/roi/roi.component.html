@@ -32,34 +32,60 @@
     @let r = report()!;
 
     <!-- Portfolio summary -->
-    <div class="portfolio-strip">
-      <div class="portfolio-card">
-        <span class="card-label">Grant portfolio</span>
-        <span class="card-value">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantAmount | number:'1.0-0' }}</span>
-        <span class="card-sub">across {{ r.portfolio.grantCount }} grant{{ r.portfolio.grantCount === 1 ? '' : 's' }}</span>
+    @if (r.portfolio.isSingleCurrency) {
+      <div class="portfolio-strip">
+        <div class="portfolio-card">
+          <span class="card-label">Grant portfolio</span>
+          <span class="card-value">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantAmount | number:'1.0-0' }}</span>
+          <span class="card-sub">across {{ r.portfolio.grantCount }} grant{{ r.portfolio.grantCount === 1 ? '' : 's' }}</span>
+        </div>
+        <div class="portfolio-card">
+          <span class="card-label">Burn rate</span>
+          <span class="card-value" [class.warn]="r.portfolio.burnRatePct >= 75" [class.crit]="r.portfolio.burnRatePct >= 90">
+            {{ r.portfolio.burnRatePct }}%
+          </span>
+          <span class="card-sub">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantSpent | number:'1.0-0' }} spent</span>
+        </div>
+        <div class="portfolio-card">
+          <span class="card-label">Units achieved</span>
+          <span class="card-value">{{ r.portfolio.totalAchievedUnits | number:'1.0-0' }}</span>
+          <span class="card-sub">across all indicators</span>
+        </div>
+        <div class="portfolio-card highlight">
+          <span class="card-label">Portfolio cost per unit</span>
+          <span class="card-value">
+            @if (r.portfolio.portfolioCostPerUnit !== null) {
+              {{ r.portfolio.currency }} {{ r.portfolio.portfolioCostPerUnit | number:'1.0-0' }}
+            } @else { — }
+          </span>
+          <span class="card-sub">total spend ÷ units achieved</span>
+        </div>
       </div>
-      <div class="portfolio-card">
-        <span class="card-label">Burn rate</span>
-        <span class="card-value" [class.warn]="r.portfolio.burnRatePct >= 75" [class.crit]="r.portfolio.burnRatePct >= 90">
-          {{ r.portfolio.burnRatePct }}%
-        </span>
-        <span class="card-sub">{{ r.portfolio.currency }} {{ r.portfolio.totalGrantSpent | number:'1.0-0' }} spent</span>
+    } @else {
+      <!-- Multi-currency portfolio: a single blended total would be
+           meaningless (there's no FX-rate source in this system), so each
+           currency gets its own row instead of one misleading number. -->
+      <div class="currency-notice">
+        This portfolio spans {{ r.portfolio.byCurrency.length }} currencies — shown separately below rather than as one blended total.
       </div>
-      <div class="portfolio-card">
-        <span class="card-label">Units achieved</span>
-        <span class="card-value">{{ r.portfolio.totalAchievedUnits | number:'1.0-0' }}</span>
-        <span class="card-sub">across all indicators</span>
+      <div class="currency-breakdown">
+        @for (c of r.portfolio.byCurrency; track c.currency) {
+          <div class="portfolio-card">
+            <span class="card-label">{{ c.currency }} · {{ c.grantCount }} grant{{ c.grantCount === 1 ? '' : 's' }}</span>
+            <span class="card-value">{{ c.currency }} {{ c.totalGrantAmount | number:'1.0-0' }}</span>
+            <span class="card-sub">
+              {{ c.currency }} {{ c.totalGrantSpent | number:'1.0-0' }} spent ·
+              <span [class.warn]="c.burnRatePct >= 75" [class.crit]="c.burnRatePct >= 90">{{ c.burnRatePct }}% burn</span>
+            </span>
+          </div>
+        }
+        <div class="portfolio-card">
+          <span class="card-label">Units achieved</span>
+          <span class="card-value">{{ r.portfolio.totalAchievedUnits | number:'1.0-0' }}</span>
+          <span class="card-sub">across all indicators</span>
+        </div>
       </div>
-      <div class="portfolio-card highlight">
-        <span class="card-label">Portfolio cost per unit</span>
-        <span class="card-value">
-          @if (r.portfolio.portfolioCostPerUnit !== null) {
-            {{ r.portfolio.currency }} {{ r.portfolio.portfolioCostPerUnit | number:'1.0-0' }}
-          } @else { — }
-        </span>
-        <span class="card-sub">total spend ÷ units achieved</span>
-      </div>
-    </div>
+    }
 
     <!-- Efficiency filter -->
     <div class="tabs">
@@ -121,15 +147,15 @@
             </div>
 
             <div class="row-cost">
-              <span class="cost-value">{{ r.portfolio.currency }} {{ ind.totalCost | number:'1.0-0' }}</span>
+              <span class="cost-value">{{ currencyPrefix(r.portfolio.currency) }}{{ ind.totalCost | number:'1.0-0' }}</span>
               <span class="cost-sub">{{ ind.activityCount }} activit{{ ind.activityCount === 1 ? 'y' : 'ies' }}</span>
             </div>
 
             <div class="row-unit-cost">
               @if (ind.costPerUnit !== null) {
-                <span class="unit-cost-value">{{ r.portfolio.currency }} {{ ind.costPerUnit | number:'1.0-0' }}</span>
+                <span class="unit-cost-value">{{ currencyPrefix(r.portfolio.currency) }}{{ ind.costPerUnit | number:'1.0-0' }}</span>
                 @if (ind.projectedCostToTarget !== null) {
-                  <span class="unit-cost-sub">~{{ r.portfolio.currency }} {{ ind.projectedCostToTarget | number:'1.0-0' }} to reach target</span>
+                  <span class="unit-cost-sub">~{{ currencyPrefix(r.portfolio.currency) }}{{ ind.projectedCostToTarget | number:'1.0-0' }} to reach target</span>
                 }
               } @else {
                 <span class="unit-cost-value muted">—</span>

@@ -64,6 +64,8 @@ import {
   NavItem,
   InsightsReport,
   ROIReport,
+  BeneficiaryReachReport,
+  GeoDataReport,
   StakeholderFeedback,
   CreateFeedbackDto,
   FeedbackListQuery,
@@ -1335,6 +1337,25 @@ export class ApiService {
     let params = new HttpParams();
     if (projectId) params = params.set('projectId', projectId);
     return this.http.get<ROIReport>(`${this.base}/dashboard/roi`, { params });
+  }
+
+  /**
+   * Unique beneficiaries reached vs. cumulative attendance. See
+   * dashboard.service.ts#beneficiaryReach — coveragePct tells you how much
+   * of the figure is backed by real Activity.beneficiaryIds links, since
+   * that field isn't populated by every activity-creation flow yet.
+   */
+  beneficiaryReach(projectId?: string) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<BeneficiaryReachReport>(`${this.base}/dashboard/beneficiary-reach`, { params });
+  }
+
+  geoData(projectId?: string, types?: string[]) {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    if (types?.length) params = params.set('types', types.join(','));
+    return this.http.get<GeoDataReport>(`${this.base}/dashboard/geo`, { params });
   }
 
   // ── Stakeholder Feedback ───────────────────────────────────────────────────

@@ -991,14 +991,28 @@ export interface DonorProfile {
   };
 }
 
+export interface DonorFinancialsByCurrency {
+  currency: string;
+  grantCount: number;
+  totalAwarded: number;
+  totalSpent: number;
+  remaining: number;
+}
+
 export interface DonorPortfolioSummary {
   totalDonors: number;
   totalGrants: number;
   activeGrants: number;
+  isSingleCurrency: boolean;
+  // currency/totalAwarded/totalSpent/remaining are only meaningful when
+  // isSingleCurrency is true. When the portfolio spans more than one
+  // currency, these are 0/null and financialsByCurrency must be used
+  // instead — see donors.service.ts#getPortfolioSummary.
+  currency: string | null;
   totalAwarded: number;
   totalSpent: number;
-  totalDisbursed: number;
   remaining: number;
+  financialsByCurrency: DonorFinancialsByCurrency[];
   countByType: Record<string, number>;
   countByStatus: Record<string, number>;
   expiringIn30Days: number;
@@ -2016,7 +2030,17 @@ export interface NetworkRollupIndicator {
   totalTarget: number;
   totalAchieved: number;
   progressPct: number;
-  byOrg: Array<{ orgId: string; orgName: string; target: number; achieved: number }>;
+  byOrg: Array<{
+    orgId: string; orgName: string; target: number; achieved: number;
+    direction: string; baseline: number | null;
+  }>;
+}
+
+export interface NetworkGrantSpendByCurrency {
+  currency: string;
+  grantCount: number;
+  totalAwarded: number;
+  totalSpent: number;
 }
 
 export interface NetworkRollupResult {
@@ -2032,12 +2056,18 @@ export interface NetworkRollupResult {
     totalParticipants: number;
     byOrg: Array<{ orgId: string; orgName: string; count: number; participants: number }>;
   };
+  // Expenditure lives on Grant, not Project — see grantSpendByCurrency.
+  // isSingleCurrency tells you whether totalAwarded/totalSpent on a single
+  // grantSpendByCurrency entry can be read as "the" total; when false,
+  // the network's grants span multiple currencies and must be shown
+  // separately (there's no FX-rate source in this system to blend them).
   projects: {
     total: number;
     active: number;
     completed: number;
     totalBudget: number;
-    totalExpenditure: number;
+    isSingleCurrency: boolean;
+    grantSpendByCurrency: NetworkGrantSpendByCurrency[];
   };
 }
 
@@ -2137,19 +2167,71 @@ export interface IndicatorROI {
   efficiency: 'high' | 'medium' | 'low' | 'no_data';
 }
 
+export interface GrantFinancialsByCurrency {
+  currency: string;
+  grantCount: number;
+  totalGrantAmount: number;
+  totalGrantSpent: number;
+  burnRatePct: number;
+}
+
 export interface ROIReport {
   generatedAt: string;
   portfolio: {
     grantCount: number;
+    isSingleCurrency: boolean;
+    // totalGrantAmount/totalGrantSpent/burnRatePct/currency/portfolioCostPerUnit
+    // are only meaningful when isSingleCurrency is true — see byCurrency
+    // for correct per-currency figures otherwise. See
+    // dashboard.service.ts#roi for why: there's no FX-rate source in this
+    // system, so grants in different currencies are never blindly summed.
     totalGrantAmount: number;
     totalGrantSpent: number;
     burnRatePct: number;
+    currency: string | null;
+    byCurrency: GrantFinancialsByCurrency[];
     totalAchievedUnits: number;
     portfolioCostPerUnit: number | null;
-    currency: string;
   };
   efficiency: { high: number; medium: number; low: number; noData: number };
   indicators: IndicatorROI[];
+}
+
+// ─── Unique beneficiary reach ─────────────────────────────────────────────────
+// Matches api/src/dashboard/dashboard.service.ts#beneficiaryReach exactly.
+export interface BeneficiaryReachReport {
+  generatedAt: string;
+  cumulativeAttendance: number;
+  uniqueBeneficiariesReached: number;
+  activityCount: number;
+  activitiesWithBeneficiaryLinks: number;
+  // % of activities (not people) that have at least one real Beneficiary
+  // link — an honest confidence signal, since beneficiaryIds isn't
+  // populated by every activity-creation flow. Low coverage means
+  // uniqueBeneficiariesReached is an undercount, not a wrong number.
+  coveragePct: number;
+  bySex: Record<string, number>;
+  byAgeGroup: Record<string, number>;
+  withDisability: number;
+}
+
+// ─── Geo data (maps) ───────────────────────────────────────────────────────────
+// Matches api/src/dashboard/dashboard.service.ts#geoData. Beneficiary
+// points are deliberately anonymized server-side — never a name, always
+// clustered by rounded coordinate — see the backend docstring for why.
+export interface GeoDataPoint {
+  id: string;
+  type: 'activity' | 'beneficiary' | 'partner' | 'project';
+  latitude: number;
+  longitude: number;
+  title: string;
+  subtitle?: string;
+}
+
+export interface GeoDataReport {
+  generatedAt: string;
+  points: GeoDataPoint[];
+  counts: { activity: number; beneficiary: number; partner: number; project: number };
 }
 
 // ─── Stakeholder Feedback ────────────────────────────────────────────────────

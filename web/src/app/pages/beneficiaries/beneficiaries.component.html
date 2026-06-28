@@ -656,10 +656,24 @@
       <div class="result-meta">
         <span>{{ total() | number }} beneficiar{{ total() !== 1 ? 'ies' : 'y' }}</span>
         @if (hasFilters()) { <span class="filter-active-dot">● Filtered</span> }
+        @if (mapPoints().length > 0) {
+          <button class="toggle-view" (click)="showMap.set(!showMap())">
+            {{ showMap() ? '✕ Hide map' : '🗺️ Map' }}
+          </button>
+        }
         <button class="toggle-view" (click)="viewMode.set(viewMode() === 'list' ? 'card' : 'list')">
           {{ viewMode() === 'list' ? '⊞ Cards' : '☰ List' }}
         </button>
       </div>
+
+      @if (showMap() && mapPoints().length > 0) {
+        <p class="map-privacy-note">🔒 Locations shown as anonymous clusters only — never an individually named pin.</p>
+        @defer {
+          <app-leaflet-map [points]="mapPoints()" height="320px"></app-leaflet-map>
+        } @loading {
+          <div class="map-loading-placeholder">Loading map…</div>
+        }
+      }
 
       <!-- LIST VIEW -->
       @if (viewMode() === 'list') {

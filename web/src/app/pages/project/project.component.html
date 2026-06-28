@@ -401,6 +401,66 @@
             <label>Participants<input type="number" [(ngModel)]="activityForm.participants" name="participants" placeholder="0" /></label>
             <label>Quantity (progress)<input type="number" [(ngModel)]="activityForm.quantity" name="quantity" placeholder="0" /></label>
           </div>
+          <div class="beneficiary-picker">
+            <label class="picker-label">Implementing partner <span class="hint">(optional)</span></label>
+            @if (partners().length === 0) {
+              <p class="picker-empty">No partners registered for this project.</p>
+            } @else {
+              <input
+                type="text"
+                class="picker-search"
+                placeholder="Search partners…"
+                [ngModel]="partnerQuery()"
+                (ngModelChange)="partnerQuery.set($event)"
+                name="partnerSearch"
+              />
+              <div class="picker-list">
+                @for (p of filteredPartners(); track p._id) {
+                  <label class="picker-item" [class.checked]="activityForm.partnerId === p._id">
+                    <input
+                      type="radio"
+                      name="partnerId"
+                      [checked]="activityForm.partnerId === p._id"
+                      (change)="selectPartner(p._id)"
+                    />
+                    {{ p.name }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+          <div class="beneficiary-picker">
+            <label class="picker-label">
+              Link beneficiaries <span class="hint">(optional — enables unique-reach reporting, not just a headcount)</span>
+            </label>
+            @if (beneficiaries().length === 0) {
+              <p class="picker-empty">No beneficiaries registered for this project yet.</p>
+            } @else {
+              <input
+                type="text"
+                class="picker-search"
+                placeholder="Search beneficiaries…"
+                [ngModel]="beneficiaryQuery()"
+                (ngModelChange)="beneficiaryQuery.set($event)"
+                name="beneficiarySearch"
+              />
+              <div class="picker-list">
+                @for (b of filteredBeneficiaries(); track b._id) {
+                  <label class="picker-item" [class.checked]="isBeneficiarySelected(b._id)">
+                    <input
+                      type="checkbox"
+                      [checked]="isBeneficiarySelected(b._id)"
+                      (change)="toggleBeneficiary(b._id)"
+                    />
+                    {{ b.name }}
+                  </label>
+                }
+              </div>
+              @if (activityForm.beneficiaryIds.length) {
+                <span class="picker-count">{{ activityForm.beneficiaryIds.length }} linked</span>
+              }
+            }
+          </div>
           <label class="full-label">Notes
             <textarea [(ngModel)]="activityForm.notes" name="notes" rows="2" placeholder="Additional notes…"></textarea>
           </label>
@@ -452,7 +512,21 @@
     }
 
     <div class="panel table-panel">
-      <h3>Activities <span class="count-chip">{{ activities().length }}</span></h3>
+      <h3>
+        Activities <span class="count-chip">{{ activities().length }}</span>
+        @if (activityMapPoints().length > 0) {
+          <button type="button" class="map-toggle-btn" (click)="showActivityMap.set(!showActivityMap())">
+            {{ showActivityMap() ? '✕ Hide map' : '🗺️ Show on map (' + activityMapPoints().length + ')' }}
+          </button>
+        }
+      </h3>
+      @if (showActivityMap() && activityMapPoints().length > 0) {
+        @defer {
+          <app-leaflet-map [points]="activityMapPoints()" height="320px"></app-leaflet-map>
+        } @loading {
+          <div class="map-loading-placeholder">Loading map…</div>
+        }
+      }
       <ul class="activity-feed">
         @for (a of activities(); track a._id) {
           <li class="feed-row">

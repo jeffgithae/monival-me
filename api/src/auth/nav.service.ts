@@ -72,6 +72,9 @@ export class NavService {
       items.push({ id: 'strategic', label: 'Strategic Overview', icon: '🎯', route: '/strategic' });
       items.push({ id: 'insights', label: 'Insights', icon: '💡', route: '/insights' });
     }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+      items.push({ id: 'map', label: 'Map', icon: '🗺️', route: '/map' });
+    }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE)) {
       if (!items.find(i => i.id === 'roi')) {
         items.push({ id: 'roi', label: 'Cost per Impact', icon: '📐', route: '/roi' });

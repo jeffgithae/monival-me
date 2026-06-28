@@ -27,6 +27,7 @@ import {
   canLogActivities,
   canManageIndicators,
 } from '../../core/roles';
+import { LeafletMapComponent, MapPoint } from '../../shared/map/leaflet-map.component';
 
 type Tab = 'framework' | 'indicators' | 'activities' | 'reporting' | 'report' | 'budgets' | 'documents';
 
@@ -44,7 +45,7 @@ interface IndicatorNode extends Indicator {
 @Component({
   selector: 'app-project',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, DatePipe],
+  imports: [CommonModule, RouterLink, FormsModule, DatePipe, LeafletMapComponent],
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
 })
@@ -68,6 +69,19 @@ export class ProjectComponent implements OnInit, OnDestroy {
   project = signal<Project | null>(null);
   indicators = signal<Indicator[]>([]);
   activities = signal<Activity[]>([]);
+  showActivityMap = signal(false);
+  readonly activityMapPoints = computed<MapPoint[]>(() =>
+    this.activities()
+      .filter(a => a.geoPoint)
+      .map(a => ({
+        id: a._id,
+        type: 'activity' as const,
+        latitude: a.geoPoint!.latitude,
+        longitude: a.geoPoint!.longitude,
+        title: a.title,
+        subtitle: a.activityDate ? new Date(a.activityDate).toLocaleDateString() : undefined,
+      })),
+  );
   activityTemplates = signal<ActivityTemplate[]>([]);
   formTemplates = signal<FormTemplate[]>([]);
   formResponses = signal<FormResponse[]>([]);

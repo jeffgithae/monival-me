@@ -81,9 +81,21 @@ export class RoiComponent implements OnInit {
    * indicator's own recorded activity cost, not a portfolio-wide grant
    * burn rate (which lives on the Insights page, where it's correctly
    * computed per-grant).
+   *
+   * currency is null when the portfolio spans more than one currency (see
+   * ROIReport.portfolio.currency) — Activity.cost itself has no currency
+   * field at all, so even in the single-currency case this is an inference
+   * from the portfolio's grants, not a verified fact about the activity.
+   * When null, the sentence omits a currency label rather than show "null".
    */
-  efficiencySentence(ind: IndicatorROI, currency: string): string | null {
+  efficiencySentence(ind: IndicatorROI, currency: string | null): string | null {
     if (ind.progressPct === null || ind.costPerUnit === null) return null;
-    return `${currency} ${ind.totalCost.toLocaleString()} spent on this indicator so far has achieved ${ind.progressPct}% of target — ${currency} ${ind.costPerUnit.toLocaleString()} per ${ind.unit}.`;
+    const prefix = currency ? `${currency} ` : '';
+    return `${prefix}${ind.totalCost.toLocaleString()} spent on this indicator so far has achieved ${ind.progressPct}% of target — ${prefix}${ind.costPerUnit.toLocaleString()} per ${ind.unit}.`;
+  }
+
+  /** Returns "USD " or "" — avoids rendering the literal string "null" in the template when the portfolio spans multiple currencies. */
+  currencyPrefix(currency: string | null): string {
+    return currency ? `${currency} ` : '';
   }
 }

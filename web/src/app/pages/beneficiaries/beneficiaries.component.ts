@@ -13,6 +13,7 @@ import {
   BeneficiaryRegistrationType, Project, CreateBeneficiaryDto,
   ProgramEnrollment, ServiceRecord, Activity,
 } from '../../core/models';
+import { LeafletMapComponent, MapPoint } from '../../shared/map/leaflet-map.component';
 
 type DetailTab = 'profile' | 'household' | 'enrollment' | 'services' | 'activities' | 'dedup';
 type ViewMode  = 'list' | 'card';
@@ -48,7 +49,7 @@ interface DupGroup {
   selector: 'app-beneficiaries',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, TitleCasePipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, TitleCasePipe, LeafletMapComponent],
   templateUrl: './beneficiaries.component.html',
   styleUrls: ['./beneficiaries.component.scss'],
 })
@@ -60,6 +61,39 @@ export class BeneficiariesComponent implements OnInit {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   beneficiaries = signal<Beneficiary[]>([]);
+  showMap = signal(false);
+
+  /**
+   * Anonymized location clusters for the currently-filtered beneficiary
+   * list. Never an individually-named pin per person — coordinates are
+   * rounded to ~3 decimal places (roughly 100m) and grouped, same
+   * safeguarding approach as dashboard.service.ts#geoData. A consent flag
+   * alone doesn't make it appropriate to plot named, addressable points
+   * for a population that may include survivors of violence, refugees, or
+   * other vulnerable groups, so this isn't configurable — it's a
+   * deliberate, conservative default.
+   */
+  readonly mapPoints = computed<MapPoint[]>(() => {
+    const clusters = new Map<string, number>();
+    for (const b of this.beneficiaries()) {
+      const gp = (b as any).geoPoint;
+      if (!gp || !Number.isFinite(gp.latitude) || !Number.isFinite(gp.longitude)) continue;
+      const lat = Math.round(gp.latitude * 1000) / 1000;
+      const lng = Math.round(gp.longitude * 1000) / 1000;
+      const key = `${lat},${lng}`;
+      clusters.set(key, (clusters.get(key) ?? 0) + 1);
+    }
+    return Array.from(clusters.entries()).map(([key, count]) => {
+      const [lat, lng] = key.split(',').map(Number);
+      return {
+        id: `cluster-${key}`,
+        type: 'beneficiary' as const,
+        latitude: lat,
+        longitude: lng,
+        title: `${count} beneficiar${count === 1 ? 'y' : 'ies'}`,
+      };
+    });
+  });
   stats         = signal<BeneficiaryStatistics | null>(null);
   projects      = signal<Project[]>([]);
   selected      = signal<Beneficiary | null>(null);

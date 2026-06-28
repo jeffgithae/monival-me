@@ -26,7 +26,7 @@ export class CreateIndicatorDto {
   @IsOptional() @IsIn(['number','percentage','yes_no','text','currency'])
   indicatorType?: string;
 
-  @IsOptional() @IsIn(['increasing','decreasing','maintained'])
+  @IsOptional() @IsIn(['increasing','decreasing','maintain'])
   direction?: string;
 
   @IsOptional() @IsBoolean() cumulative?: boolean;

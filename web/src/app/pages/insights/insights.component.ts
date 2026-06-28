@@ -1,15 +1,15 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DatePipe, KeyValuePipe } from '@angular/common';
+import { CommonModule, DatePipe, KeyValuePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { Insight, InsightSeverity, InsightsReport, Project } from '../../core/models';
+import { Insight, InsightSeverity, InsightsReport, Project, BeneficiaryReachReport } from '../../core/models';
 
 @Component({
   selector: 'app-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe, RouterLink],
+  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe, DecimalPipe, RouterLink],
   templateUrl: './insights.component.html',
   styleUrl: './insights.component.scss',
 })
@@ -18,6 +18,7 @@ export class InsightsComponent implements OnInit {
   private auth = inject(AuthService);
 
   report      = signal<InsightsReport | null>(null);
+  reach       = signal<BeneficiaryReachReport | null>(null);
   projects    = signal<Project[]>([]);
   loading     = signal(true);
   error       = signal('');
@@ -65,6 +66,10 @@ export class InsightsComponent implements OnInit {
         this.error.set(err.error?.message || 'Failed to load insights');
         this.loading.set(false);
       },
+    });
+    this.api.beneficiaryReach(this.projectId() || undefined).subscribe({
+      next: r => this.reach.set(r),
+      error: () => this.reach.set(null),
     });
   }
 

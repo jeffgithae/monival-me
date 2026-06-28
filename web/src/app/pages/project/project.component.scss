@@ -1283,3 +1283,101 @@ h1 {
   color: $muted;
   line-height: 1.4;
 }
+// ─── Beneficiary / partner picker ────────────────────────────────────────────
+
+.beneficiary-picker {
+  margin: 0.9rem 0;
+}
+
+.picker-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $muted;
+  margin-bottom: 0.4rem;
+
+  .hint { font-weight: 400; color: rgba($muted, 0.8); font-size: 0.76rem; }
+}
+
+.picker-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: $muted;
+  font-style: italic;
+}
+
+.picker-search {
+  width: 100%;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+.picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 0.4rem;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: $text;
+  cursor: pointer;
+
+  &:hover { background: rgba($indigo, 0.06); }
+  &.checked { background: rgba($indigo, 0.1); font-weight: 600; }
+
+  input[type="checkbox"], input[type="radio"] { accent-color: $indigo; }
+}
+
+.picker-count {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: $indigo;
+}
+
+.map-toggle-btn {
+  margin-left: auto;
+  border: 1px solid $border;
+  background: $surface;
+  color: $indigo;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { background: rgba($indigo, 0.06); border-color: $indigo; }
+}
+
+app-leaflet-map {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.map-loading-placeholder {
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($indigo, 0.04);
+  border-radius: 14px;
+  color: $muted;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}

@@ -84,6 +84,62 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
+.reach-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.1rem 1.4rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.reach-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.reach-value { font-size: 1.6rem; font-weight: 800; color: var(--text-strong); }
+.reach-label { font-size: 0.74rem; color: var(--muted); }
+
+.reach-stat-secondary .reach-value { color: var(--muted); font-size: 1.2rem; }
+
+.reach-coverage {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-left: auto;
+  padding: 0.4rem 0.8rem;
+  border-radius: 10px;
+  background: var(--green-bg);
+
+  &.low { background: var(--amber-bg); }
+}
+
+.coverage-pct { font-weight: 700; color: var(--green); font-size: 0.95rem; }
+.reach-coverage.low .coverage-pct { color: var(--amber); }
+.coverage-label { font-size: 0.76rem; color: var(--text-soft); max-width: 32ch; }
+
+.reach-breakdown {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.breakdown-pill {
+  font-size: 0.72rem;
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  text-transform: capitalize;
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;

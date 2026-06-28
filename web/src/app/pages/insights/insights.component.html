@@ -23,6 +23,38 @@
     <div class="error-banner">{{ error() }}</div>
   }
 
+  @if (reach(); as r) {
+    <div class="reach-card">
+      <div class="reach-stat">
+        <span class="reach-value">{{ r.uniqueBeneficiariesReached | number }}</span>
+        <span class="reach-label">Unique beneficiaries reached</span>
+      </div>
+      <div class="reach-stat reach-stat-secondary">
+        <span class="reach-value">{{ r.cumulativeAttendance | number }}</span>
+        <span class="reach-label">Cumulative attendance</span>
+      </div>
+      <div class="reach-coverage" [class.low]="r.coveragePct < 50">
+        <span class="coverage-pct">{{ r.coveragePct }}%</span>
+        <span class="coverage-label">
+          of activities have a real beneficiary link
+          @if (r.coveragePct < 50) {
+            — treat the reach figure as a minimum, not a complete count
+          }
+        </span>
+      </div>
+      @if (r.withDisability > 0 || (r.bySex | keyvalue).length) {
+        <div class="reach-breakdown">
+          @for (s of r.bySex | keyvalue; track s.key) {
+            <span class="breakdown-pill">{{ s.key }}: {{ s.value }}</span>
+          }
+          @if (r.withDisability > 0) {
+            <span class="breakdown-pill">{{ r.withDisability }} with disability</span>
+          }
+        </div>
+      }
+    </div>
+  }
+
   @if (loading() && !report()) {
     <div class="loading-state">
       <div class="spinner"></div>

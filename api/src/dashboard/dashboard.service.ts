@@ -3,11 +3,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activity } from '../activities/schemas/activity.schema';
 import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
+import { calculateProgressPct, efficiencyTier } from '../common/utils/progress';
 import { Grant } from '../grants/schemas/grant.schema';
 import { ImpactStory } from '../impact-stories/schemas/impact-story.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { OrganizationMember } from '../members/schemas/organization-member.schema';
 import { Organization } from '../organizations/schemas/organization.schema';
+import { Partner } from '../partners/schemas/partner.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { ReportingPeriod } from '../reporting/schemas/reporting-period.schema';
 import { IndicatorResult } from '../reporting/schemas/indicator-result.schema';
@@ -25,6 +27,7 @@ export class DashboardService {
     @InjectModel(Grant.name)              private readonly grantModel:         Model<Grant>,
     @InjectModel(ReportingPeriod.name)    private readonly reportingModel:     Model<ReportingPeriod>,
     @InjectModel(ImpactStory.name)        private readonly impactStoryModel:   Model<ImpactStory>,
+    @InjectModel(Partner.name)            private readonly partnerModel:       Model<Partner>,
   ) {}
 
   async overview(organizationId: string) {
@@ -429,7 +432,10 @@ export class DashboardService {
         const avgProgress = linkedIndicators.reduce((sum, ind) => {
           const achieved  = getAchieved(ind);
           const targetVal = ind.target ?? 0;
-          return sum + (targetVal > 0 ? (achieved / targetVal) * 100 : 0);
+          const pct = calculateProgressPct({
+            achieved, target: targetVal, baseline: ind.baseline, direction: ind.direction,
+          });
+          return sum + (pct ?? 0);
         }, 0) / linkedIndicators.length;
 
         const gap = burnPct - avgProgress;
@@ -484,9 +490,15 @@ export class DashboardService {
         continue;
       }
 
-      const pct = (achieved / targetVal) * 100;
+      const pct = calculateProgressPct({
+        achieved, target: targetVal, baseline: ind.baseline, direction: ind.direction,
+      }) ?? 0;
 
-      if (achieved === 0) {
+      // Use the direction-aware percentage, not the raw achieved number, to
+      // decide "no progress yet" — for a decreasing indicator, achieved=0
+      // can be the best possible outcome (e.g. 0% of facilities without
+      // clean water), not zero progress.
+      if (pct === 0 && achieved === 0 && (ind.direction ?? 'increasing') === 'increasing') {
         zeroProgressCount++;
       } else if (pct < 25) {
         const lastDate = (ind as any).lastAchievedDate ?? (ind as any).updatedAt;
@@ -670,9 +682,35 @@ export class DashboardService {
     // Build lookup maps
     const rollupMap = new Map(activityRollup.map((r: any) => [r._id.toString(), r]));
 
-    // Grant financials by project
-    const totalGrantAmount = grants.reduce((s, g) => s + (g.amount ?? 0), 0);
-    const totalGrantSpent  = grants.reduce((s, g) => s + (g.amountSpent ?? 0), 0);
+    // Grant financials — grouped by currency. Silently summing $500k and
+    // €300k as "800000" and labelling it with whichever currency happens to
+    // be first in the list is worse than no number at all, so when a
+    // portfolio spans more than one currency we report each currency's
+    // totals separately rather than collapsing them into one misleading
+    // figure. There's no FX-rate source anywhere in this system to convert
+    // correctly, so a single blended total is never attempted.
+    const currenciesInPortfolio = Array.from(new Set(grants.map(g => g.currency ?? 'USD')));
+    const isSingleCurrency = currenciesInPortfolio.length <= 1;
+    const portfolioCurrency = currenciesInPortfolio[0] ?? 'USD';
+
+    const byCurrency = currenciesInPortfolio.map(currency => {
+      const grantsInCurrency = grants.filter(g => (g.currency ?? 'USD') === currency);
+      const amount = grantsInCurrency.reduce((s, g) => s + (g.amount ?? 0), 0);
+      const spent  = grantsInCurrency.reduce((s, g) => s + (g.amountSpent ?? 0), 0);
+      return {
+        currency,
+        grantCount: grantsInCurrency.length,
+        totalGrantAmount: amount,
+        totalGrantSpent: spent,
+        burnRatePct: amount > 0 ? Math.round((spent / amount) * 100) : 0,
+      };
+    });
+
+    // Only meaningful as single numbers when the whole portfolio is in one
+    // currency — otherwise these are the single currency's totals, used
+    // only internally below for portfolioCostPerUnit when applicable.
+    const totalGrantAmount = isSingleCurrency ? (byCurrency[0]?.totalGrantAmount ?? 0) : 0;
+    const totalGrantSpent  = isSingleCurrency ? (byCurrency[0]?.totalGrantSpent ?? 0) : 0;
 
     // Per-indicator ROI
     const indicatorROI = indicators.map(ind => {
@@ -680,9 +718,19 @@ export class DashboardService {
       const achieved    = (ind as any).lastAchievedValue ?? rollup?.totalQuantity ?? 0;
       const totalCost   = rollup?.totalCost ?? 0;
       const targetVal   = ind.target ?? 0;
-      const progressPct = targetVal > 0 ? Math.round((achieved / targetVal) * 100) : null;
+      const direction   = (ind as any).direction ?? 'increasing';
+      const progressPct = calculateProgressPct({
+        achieved, target: targetVal, baseline: (ind as any).baseline, direction,
+      });
       const costPerUnit  = achieved > 0 && totalCost > 0 ? Math.round(totalCost / achieved) : null;
-      const remainingGap = targetVal > 0 ? Math.max(0, targetVal - achieved) : null;
+      // Gap remaining is direction-aware: for a reduction target, the gap
+      // is how far achieved still needs to FALL to reach target (achieved
+      // - target), not target - achieved, which goes negative (and was
+      // being clamped to 0 — incorrectly showing "no gap remaining" for a
+      // decreasing indicator that hadn't reached its target yet).
+      const remainingGap = targetVal > 0
+        ? Math.max(0, direction === 'decreasing' ? achieved - targetVal : targetVal - achieved)
+        : null;
 
       // Extrapolated cost to reach target based on current cost-per-unit
       const projectedCostToTarget = costPerUnit && remainingGap
@@ -703,9 +751,7 @@ export class DashboardService {
         costPerUnit,
         remainingGap,
         projectedCostToTarget,
-        efficiency:    progressPct && progressPct > 0
-          ? progressPct >= 80 ? 'high' : progressPct >= 50 ? 'medium' : 'low'
-          : 'no_data',
+        efficiency:    efficiencyTier(progressPct),
       };
     }).sort((a, b) => (a.costPerUnit ?? Infinity) - (b.costPerUnit ?? Infinity));
 
@@ -726,15 +772,237 @@ export class DashboardService {
       generatedAt: new Date().toISOString(),
       portfolio: {
         grantCount:          grants.length,
+        isSingleCurrency,
+        // totalGrantAmount/totalGrantSpent/burnRatePct/currency are only
+        // populated when the portfolio is genuinely in one currency — they
+        // exist for backward compatibility with single-currency orgs (the
+        // overwhelming majority) so existing UI doesn't need to branch.
+        // Multi-currency orgs MUST use byCurrency instead; these three
+        // top-level numbers are 0 in that case, not a blended total.
         totalGrantAmount,
         totalGrantSpent,
         burnRatePct:         totalGrantAmount > 0 ? Math.round((totalGrantSpent / totalGrantAmount) * 100) : 0,
+        currency:            isSingleCurrency ? portfolioCurrency : null,
+        byCurrency,
         totalAchievedUnits,
-        portfolioCostPerUnit,
-        currency:            grants[0]?.currency ?? 'USD',
+        portfolioCostPerUnit: isSingleCurrency ? portfolioCostPerUnit : null,
       },
       efficiency,
       indicators: indicatorROI,
+    };
+  }
+
+  /**
+   * Unique-beneficiary reach, as distinct from cumulative attendance.
+   *
+   * Activity.participants is a raw headcount per activity — summing it
+   * across activities double-counts anyone who attended more than once.
+   * Activity.beneficiaryIds links specific Beneficiary records to an
+   * activity, which lets us count distinct people instead. Most major
+   * donors (PEPFAR, USAID, etc.) explicitly require unique reach, not
+   * cumulative touchpoints, so this distinction matters for reporting.
+   *
+   * Coverage is reported honestly: beneficiaryIds is optional and not
+   * every activity-creation flow in this app exposes it yet, so the
+   * unique-reach number is only as complete as the underlying linkage
+   * data. `coveragePct` tells the caller how much of the cumulative
+   * attendance is actually backed by a real beneficiary link, so the UI
+   * can show the number with an honest confidence signal rather than
+   * presenting a partial count as if it were comprehensive.
+   */
+  async beneficiaryReach(organizationId: string, projectId?: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const filter: Record<string, unknown> = { organizationId: orgId, status: 'approved' };
+    if (projectId) filter.projectId = new Types.ObjectId(projectId);
+
+    const [totals, uniqueBeneficiaryIds] = await Promise.all([
+      this.activityModel.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            activityCount: { $sum: 1 },
+            cumulativeAttendance: { $sum: { $ifNull: ['$participants', 0] } },
+            activitiesWithLinks: {
+              $sum: { $cond: [{ $gt: [{ $size: { $ifNull: ['$beneficiaryIds', []] } }, 0] }, 1, 0] },
+            },
+          },
+        },
+      ]),
+      this.activityModel.aggregate([
+        { $match: { ...filter, beneficiaryIds: { $exists: true, $ne: [] } } },
+        { $unwind: '$beneficiaryIds' },
+        { $group: { _id: '$beneficiaryIds' } },
+      ]),
+    ]);
+
+    const t = totals[0] ?? { activityCount: 0, cumulativeAttendance: 0, activitiesWithLinks: 0 };
+    const uniqueReached = uniqueBeneficiaryIds.length;
+
+    // Disaggregation of the actually-reached unique beneficiaries — sex,
+    // age group, disability status. Only meaningful for beneficiaries that
+    // are genuinely linked, so this is naturally scoped to the same set
+    // uniqueReached counts.
+    const beneficiaryIds = uniqueBeneficiaryIds.map((r: any) => r._id);
+    const disaggregation = beneficiaryIds.length > 0
+      ? await this.beneficiaryModel.aggregate([
+          { $match: { _id: { $in: beneficiaryIds }, organizationId: orgId } },
+          {
+            $group: {
+              _id: null,
+              bySex: {
+                $push: '$sex',
+              },
+              byAgeGroup: { $push: '$ageGroup' },
+              withDisability: { $sum: { $cond: ['$hasDisability', 1, 0] } },
+            },
+          },
+        ])
+      : [];
+
+    const countBy = (values: any[]) => {
+      const counts: Record<string, number> = {};
+      for (const v of values) {
+        const key = v ?? 'unspecified';
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+      return counts;
+    };
+
+    const d = disaggregation[0];
+
+    return {
+      generatedAt: new Date().toISOString(),
+      cumulativeAttendance: t.cumulativeAttendance,
+      uniqueBeneficiariesReached: uniqueReached,
+      activityCount: t.activityCount,
+      activitiesWithBeneficiaryLinks: t.activitiesWithLinks,
+      // How much of the cumulative-attendance figure is actually backed by
+      // a real beneficiary link, as a % of activities (not people) — a
+      // direct, honest signal of how trustworthy uniqueBeneficiariesReached
+      // is for this org/project today.
+      coveragePct: t.activityCount > 0 ? Math.round((t.activitiesWithLinks / t.activityCount) * 1000) / 10 : 0,
+      bySex: d ? countBy(d.bySex) : {},
+      byAgeGroup: d ? countBy(d.byAgeGroup) : {},
+      withDisability: d?.withDisability ?? 0,
+    };
+  }
+
+  /**
+   * Geo-tagged points across activities, beneficiaries, partners, and
+   * projects, for map visualization. GPS data has been collected on these
+   * entities for a while but never actually used anywhere in the app —
+   * no map, no spatial queries, no geo-indexing.
+   *
+   * Safeguarding note: beneficiary points are deliberately anonymized —
+   * never labelled with a name, and clustered by exact coordinate into a
+   * single "N beneficiaries" marker rather than one individually
+   * identifiable pin per person. Plotting named, addressable points for a
+   * population that may include survivors of violence, refugees, or other
+   * vulnerable groups is a real safeguarding risk that a consent flag
+   * alone doesn't resolve (consentGiven is about program enrollment, not
+   * "show my location with my name on a map"), so this isn't configurable
+   * per-org today — it's a deliberate, conservative default.
+   */
+  async geoData(organizationId: string, projectId?: string, types?: string[]) {
+    const orgId = new Types.ObjectId(organizationId);
+    const wantsType = (t: string) => !types || types.length === 0 || types.includes(t);
+    const projectFilter: Record<string, unknown> = projectId ? { projectId: new Types.ObjectId(projectId) } : {};
+
+    const points: Array<{
+      id: string; type: string; latitude: number; longitude: number; title: string; subtitle?: string;
+    }> = [];
+
+    if (wantsType('activity')) {
+      const activities = await this.activityModel
+        .find({ organizationId: orgId, ...projectFilter, geoPoint: { $exists: true } })
+        .select('title activityDate geoPoint')
+        .limit(2000)
+        .lean();
+      for (const a of activities) {
+        const gp = (a as any).geoPoint;
+        if (!gp) continue;
+        points.push({
+          id: a._id.toString(),
+          type: 'activity',
+          latitude: gp.latitude,
+          longitude: gp.longitude,
+          title: a.title,
+          subtitle: new Date((a as any).activityDate).toLocaleDateString(),
+        });
+      }
+    }
+
+    if (wantsType('partner')) {
+      const partners = await this.partnerModel
+        .find({ organizationId: orgId, geoPoint: { $exists: true } })
+        .select('name geoPoint')
+        .limit(500)
+        .lean();
+      for (const p of partners) {
+        const gp = (p as any).geoPoint;
+        if (!gp) continue;
+        points.push({
+          id: p._id.toString(), type: 'partner', latitude: gp.latitude, longitude: gp.longitude, title: p.name,
+        });
+      }
+    }
+
+    if (wantsType('project')) {
+      const projects = await this.projectModel
+        .find({ organizationId: orgId, geoPoint: { $exists: true }, ...(projectId ? { _id: new Types.ObjectId(projectId) } : {}) })
+        .select('name geoPoint')
+        .limit(200)
+        .lean();
+      for (const p of projects) {
+        const gp = (p as any).geoPoint;
+        if (!gp) continue;
+        points.push({
+          id: p._id.toString(), type: 'project', latitude: gp.latitude, longitude: gp.longitude, title: p.name,
+        });
+      }
+    }
+
+    if (wantsType('beneficiary')) {
+      // Aggregated, anonymized — see method docstring. Rounds coordinates
+      // to ~3 decimal places (roughly 100m) before grouping, both to
+      // cluster near-identical GPS readings (consumer GPS jitter) and as
+      // an extra layer of imprecision for safeguarding.
+      const benFilter: Record<string, unknown> = { organizationId: orgId, geoPoint: { $exists: true } };
+      if (projectId) benFilter['programEnrollments.projectId'] = new Types.ObjectId(projectId);
+      const clusters = await this.beneficiaryModel.aggregate([
+        { $match: benFilter },
+        {
+          $group: {
+            _id: {
+              lat: { $round: ['$geoPoint.latitude', 3] },
+              lng: { $round: ['$geoPoint.longitude', 3] },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $limit: 2000 },
+      ]);
+      for (const c of clusters) {
+        points.push({
+          id: `ben-cluster-${c._id.lat}-${c._id.lng}`,
+          type: 'beneficiary',
+          latitude: c._id.lat,
+          longitude: c._id.lng,
+          title: `${c.count} beneficiar${c.count === 1 ? 'y' : 'ies'}`,
+        });
+      }
+    }
+
+    return {
+      generatedAt: new Date().toISOString(),
+      points,
+      counts: {
+        activity: points.filter(p => p.type === 'activity').length,
+        beneficiary: points.filter(p => p.type === 'beneficiary').length,
+        partner: points.filter(p => p.type === 'partner').length,
+        project: points.filter(p => p.type === 'project').length,
+      },
     };
   }
 }

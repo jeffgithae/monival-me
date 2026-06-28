@@ -1741,3 +1741,25 @@ label {
     justify-content: flex-end;
   }
 }
+.map-privacy-note {
+  font-size: 0.78rem;
+  color: $muted;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.map-loading-placeholder {
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $forest-light;
+  border-radius: 14px;
+  color: $muted;
+  font-size: 0.85rem;
+  margin-bottom: 0.8rem;
+}
+
+app-leaflet-map {
+  display: block;
+  margin-bottom: 0.8rem;
+}

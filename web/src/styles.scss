@@ -630,3 +630,46 @@ input:focus, select:focus, textarea:focus {
   code { background: rgba(129,140,248,0.12) !important; color: #a5b4fc !important; }
   pre, .audit-raw { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; color: #94a3b8 !important; }
 }
+// ─── Leaflet map markers & popups ──────────────────────────────────────────────
+// Leaflet appends marker/popup DOM nodes directly, outside Angular's view
+// encapsulation, so these styles must live globally rather than inside
+// LeafletMapComponent's own (encapsulated) styles.
+
+.custom-map-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-marker-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+}
+
+.leaflet-popup-content-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+.map-popup-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.map-popup-title {
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.map-popup-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+}

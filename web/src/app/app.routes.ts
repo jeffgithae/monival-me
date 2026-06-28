@@ -85,6 +85,7 @@ export const routes: Routes = [
       { path: 'feedback', loadComponent: () => import('./pages/feedback/feedback.component').then(m => m.FeedbackComponent) },
       { path: 'roi', loadComponent: () => import('./pages/roi/roi.component').then(m => m.RoiComponent) },
       { path: 'insights', loadComponent: () => import('./pages/insights/insights.component').then(m => m.InsightsComponent) },
+      { path: 'map', loadComponent: () => import('./pages/map/map.component').then(m => m.MapComponent) },
     ],
   },
   { path: '**', redirectTo: '/dashboard', pathMatch: 'full' },

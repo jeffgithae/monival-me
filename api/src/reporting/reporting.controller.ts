@@ -3,7 +3,7 @@ import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PERMISSIONS } from '../common/constants/roles';
+import { OrgRole, PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -165,5 +165,18 @@ export class ReportingController {
       from: new Date(period.startDate),
       to: new Date(period.endDate),
     });
+  }
+
+  /**
+   * One-time data repair: backfills `source` on IndicatorResult documents
+   * that predate this field being declared on the schema. See
+   * ReportingService#backfillResultSource for the full explanation. Safe
+   * to call more than once — it only ever touches documents still missing
+   * the field, so a second call is a no-op.
+   */
+  @Post('results/backfill-source')
+  @Roles(OrgRole.OWNER)
+  backfillResultSource(@CurrentUser() user: JwtPayload) {
+    return this.reportingService.backfillResultSource(user.organizationId);
   }
 }

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activity } from '../activities/schemas/activity.schema';
 import { AuditService } from '../audit/audit.service';
+import { calculateProgressPct } from '../common/utils/progress';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { User } from '../users/schemas/user.schema';
@@ -190,7 +191,30 @@ export class ReportingService {
       const linked = activities.filter(
         (a) => a.indicatorId?.toString() === indicator._id.toString(),
       );
-      const achieved = linked.reduce((sum, a) => sum + (a.quantity ?? 0), 0);
+
+      // cumulative defaults to true (additive — most indicators are, e.g.
+      // "number of trainings held"). For cumulative: false indicators
+      // (snapshot/point-in-time, e.g. "current staff vacancy rate"),
+      // summing activity quantities across the period is meaningless —
+      // the correct reading is the most recent recorded value within the
+      // period, not a total. This was previously ignored entirely; every
+      // indicator was summed regardless of this flag.
+      const isCumulative = (indicator as any).cumulative !== false;
+      let achieved: number;
+      if (isCumulative) {
+        achieved = linked.reduce((sum, a) => sum + (a.quantity ?? 0), 0);
+      } else if (linked.length > 0) {
+        const mostRecent = [...linked].sort((a, b) => {
+          const dateDiff = new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          // Same-day tiebreaker: most recently created record wins.
+          return new Date((b as any).createdAt).getTime() - new Date((a as any).createdAt).getTime();
+        })[0];
+        achieved = mostRecent.quantity ?? 0;
+      } else {
+        achieved = 0;
+      }
+
       const periodTarget = targetMap.get(indicator._id.toString());
 
       const doc = {
@@ -203,11 +227,18 @@ export class ReportingService {
         qualityFlags: this.qualityFlags({
           achieved,
           target: periodTarget?.target ?? indicator.target,
+          baseline: periodTarget?.baseline ?? indicator.baseline,
+          direction: indicator.direction,
           activityCount: linked.length,
           evidenceMissing: linked.filter(
             (a) => !a.evidenceUrl && !a.evidenceNotes,
           ).length,
         }),
+        // Kept as ALL linked activities (not just the one snapshot reading
+        // used for `achieved` on non-cumulative indicators) — this is the
+        // full evidence trail of monitoring activity in the period, useful
+        // for review even when only the latest reading counts toward the
+        // result itself.
         activityCount: linked.length,
         sourceActivityIds: linked.map((a) => a._id),
         status: 'draft',
@@ -267,14 +298,23 @@ export class ReportingService {
 
     return results.map((r: any) => {
       const periodTarget = targetByIndicator.get(r.indicatorId?._id?.toString() ?? r.indicatorId?.toString());
-      // Fall back to the indicator's own default target if no period-specific
-      // target was set — same fallback calculateResults() uses internally.
+      // Fall back to the indicator's own default target/baseline if no
+      // period-specific target was set — same fallback calculateResults()
+      // uses internally.
       const targetValue = periodTarget?.target ?? r.indicatorId?.target;
-      const percentAchieved = targetValue ? Math.round((r.achieved / targetValue) * 1000) / 10 : null;
+      const baseline     = periodTarget?.baseline ?? r.indicatorId?.baseline ?? null;
+      const percentAchieved = targetValue
+        ? calculateProgressPct({
+            achieved: r.achieved,
+            target: targetValue,
+            baseline,
+            direction: r.indicatorId?.direction,
+          })
+        : null;
       return {
         ...r,
         targetValue: targetValue ?? null,
-        baseline: periodTarget?.baseline ?? null,
+        baseline: baseline ?? null,
         percentAchieved,
       };
     });
@@ -617,6 +657,56 @@ export class ReportingService {
     };
   }
 
+  // ─── One-time data repair ───────────────────────────────────────────────────
+  //
+  // Backfills `source` on IndicatorResult documents created before this field
+  // was declared on the schema (Mongoose silently dropped it on every write,
+  // so calculateResults()'s "don't overwrite manual entries" check was
+  // always false). Safe to run repeatedly — only touches documents where
+  // `source` is genuinely absent.
+  //
+  // Heuristic: upsertResult() (the manual-entry path) never populates
+  // sourceActivityIds, while calculateResults() always does — even when an
+  // indicator happens to have zero linked activities, the array is set
+  // (to []) rather than left unset. So "sourceActivityIds doesn't exist at
+  // all" reliably identifies manually-entered results.
+  async backfillResultSource(organizationId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const filter = { organizationId: orgId, source: { $exists: false } };
+
+    const [manualCount, calculatedCount] = await Promise.all([
+      this.resultModel.countDocuments({ ...filter, sourceActivityIds: { $exists: false } }),
+      this.resultModel.countDocuments({ ...filter, sourceActivityIds: { $exists: true } }),
+    ]);
+
+    const [manualResult, calculatedResult] = await Promise.all([
+      this.resultModel.updateMany(
+        { ...filter, sourceActivityIds: { $exists: false } },
+        { $set: { source: 'manual' } },
+      ),
+      this.resultModel.updateMany(
+        { ...filter, sourceActivityIds: { $exists: true } },
+        { $set: { source: 'calculated' } },
+      ),
+    ]);
+
+    await this.audit.record({
+      organizationId,
+      action: 'reporting.backfill_result_source',
+      entityType: 'IndicatorResult',
+      metadata: {
+        markedManual: manualResult.modifiedCount,
+        markedCalculated: calculatedResult.modifiedCount,
+      },
+    });
+
+    return {
+      markedManual: manualResult.modifiedCount,
+      markedCalculated: calculatedResult.modifiedCount,
+      candidatesFound: { manual: manualCount, calculated: calculatedCount },
+    };
+  }
+
   private async assertProject(organizationId: string, projectId: string) {
     const project = await this.projectModel.exists({
       _id: projectId,
@@ -644,14 +734,24 @@ export class ReportingService {
   private qualityFlags(input: {
     achieved: number;
     target: number;
+    baseline?: number | null;
+    direction?: string | null;
     activityCount: number;
     evidenceMissing: number;
   }) {
     const flags: string[] = [];
     if (input.activityCount === 0) flags.push('no_activity_evidence');
     if (input.evidenceMissing > 0) flags.push('missing_evidence');
-    if (input.target > 0 && input.achieved > input.target * 1.25) flags.push('over_target_outlier');
-    if (input.target > 0 && input.achieved < input.target * 0.25) flags.push('low_progress');
+
+    const pct = input.target > 0
+      ? calculateProgressPct({
+          achieved: input.achieved, target: input.target, baseline: input.baseline, direction: input.direction,
+        })
+      : null;
+    if (pct !== null) {
+      if (pct > 125) flags.push('over_target_outlier');
+      if (pct < 25) flags.push('low_progress');
+    }
     return flags;
   }
 }

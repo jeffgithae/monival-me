@@ -12,6 +12,7 @@ import { StakeholderFeedback } from '../../stakeholder-feedback/schemas/stakehol
 import { CopilotMessageDto } from './dto/copilot-message.dto';
 import { AnthropicService } from '../anthropic.service';
 import { DraftReportDto } from './dto/draft-report.dto';
+import { calculateProgressPct } from '../../common/utils/progress';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 const EVIDARA_SYSTEM_PROMPT = `\
@@ -121,7 +122,9 @@ export class CopilotService {
     const indicatorSummary = indicators.map(ind => {
       const achieved = ind.achieved ?? (ind as any).lastAchievedValue ?? 0;
       const target   = ind.target ?? 0;
-      const pct      = target > 0 ? Math.round((achieved / target) * 100) : null;
+      const pct      = calculateProgressPct({
+        achieved, target, baseline: (ind as any).baseline, direction: (ind as any).direction,
+      });
       return {
         code: ind.code,
         title: ind.title,
@@ -271,7 +274,10 @@ Total registered: ${benStats[0]?.total ?? 0} | Active: ${benStats[0]?.active ?? 
       qualityFlags.push('No approved activities found in this date range.');
     const atRisk = results.filter(r => {
       const ind = (r as any).indicatorId as any;
-      return ind?.target > 0 && r.achieved < ind.target * 0.5;
+      const pct = calculateProgressPct({
+        achieved: r.achieved, target: ind?.target ?? 0, baseline: ind?.baseline, direction: ind?.direction,
+      });
+      return pct !== null && pct < 50;
     }).length;
     if (atRisk > 0)
       qualityFlags.push(`${atRisk} indicator(s) below 50% of target — address in challenges section.`);
@@ -283,13 +289,18 @@ Total registered: ${benStats[0]?.total ?? 0} | Active: ${benStats[0]?.active ?? 
     const totalQuantity     = approvedActivities.reduce((s, a) => s + ((a as any).quantity ?? 0), 0);
     const onTarget          = results.filter(r => {
       const ind = (r as any).indicatorId as any;
-      return ind?.target > 0 && r.achieved >= ind.target * 0.8;
+      const pct = calculateProgressPct({
+        achieved: r.achieved, target: ind?.target ?? 0, baseline: ind?.baseline, direction: ind?.direction,
+      });
+      return pct !== null && pct >= 80;
     }).length;
 
     const indicatorRows = results.map(r => {
       const ind    = (r as any).indicatorId as any;
       const target = ind?.target ?? 0;
-      const pct    = target > 0 ? Math.round((r.achieved / target) * 100) : null;
+      const pct    = calculateProgressPct({
+        achieved: r.achieved, target, baseline: ind?.baseline, direction: ind?.direction,
+      });
       return `${ind?.code ?? '?'} — ${ind?.title ?? 'Unknown'}: achieved ${r.achieved} ${ind?.unit ?? ''} of ${target} ${ind?.unit ?? ''} target${pct !== null ? ` (${pct}%)` : ''}`;
     }).join('\n');
 
