@@ -162,6 +162,8 @@ async function clearDemoData(
   Document: mongoose.Model<unknown>,
   DocumentVersion: mongoose.Model<unknown>,
   Notification: mongoose.Model<unknown>,
+  StakeholderFeedback: mongoose.Model<unknown>,
+  ImpactStory: mongoose.Model<unknown>,
 ) {
   const existing = (await User.findOne({ email: SEED_EMAIL.toLowerCase() }).lean()) as
     | SeedUser
@@ -199,6 +201,8 @@ async function clearDemoData(
   await AuditEvent.deleteMany({ organizationId: orgId });
   await DocumentVersion.deleteMany({ organizationId: orgId });
   await Document.deleteMany({ organizationId: orgId });
+  await StakeholderFeedback.deleteMany({ organizationId: orgId });
+  await ImpactStory.deleteMany({ organizationId: orgId });
   await Indicator.deleteMany({ organizationId: orgId });
   await Project.deleteMany({ organizationId: orgId });
   await OrganizationMember.deleteMany({ organizationId: orgId });
@@ -240,6 +244,8 @@ async function seed() {
   const Document = mongoose.model('Document', require('../src/documents/schemas/document.schema').DocumentSchema) as mongoose.Model<unknown>;
   const DocumentVersion = mongoose.model('DocumentVersion', require('../src/documents/schemas/document-version.schema').DocumentVersionSchema) as mongoose.Model<unknown>;
   const Notification = mongoose.model('Notification', require('../src/notifications/schemas/notification.schema').NotificationSchema) as mongoose.Model<unknown>;
+  const StakeholderFeedback = mongoose.model('StakeholderFeedback', require('../src/stakeholder-feedback/schemas/stakeholder-feedback.schema').StakeholderFeedbackSchema) as mongoose.Model<unknown>;
+  const ImpactStory = mongoose.model('ImpactStory', require('../src/impact-stories/schemas/impact-story.schema').ImpactStorySchema) as mongoose.Model<unknown>;
 
   await clearDemoData(
     User,
@@ -268,6 +274,8 @@ async function seed() {
     Document,
     DocumentVersion,
     Notification,
+    StakeholderFeedback,
+    ImpactStory,
   );
 
   const periodEnd = new Date();
@@ -1969,6 +1977,295 @@ async function seed() {
       },
     ],
   });
+
+  // ─── Add GPS coordinates to activities ───────────────────────────────────
+  // Kisumu area coordinates (real locations in Western Kenya)
+  const activityGps: Record<string, { latitude: number; longitude: number }> = {
+    'Borehole commissioning — Ward A':   { latitude: -0.0917, longitude: 34.7680 },
+    'Water point rehabilitation':         { latitude: -0.1120, longitude: 34.7820 },
+    'CLTS triggering workshop':           { latitude: -0.5273, longitude: 34.4571 },
+    'School hygiene club training':       { latitude: -0.0917, longitude: 34.7600 },
+    'Mobile clinic — ANC day':            { latitude: 0.0610,  longitude: 34.2422 },
+    'Referral transport facilitation':    { latitude: 0.0500,  longitude: 34.2300 },
+    'CHW mentorship session':             { latitude: 0.0650,  longitude: 34.2500 },
+    'School meal distribution launch':    { latitude: -0.1020, longitude: 34.7540 },
+    'Growth monitoring clinic':           { latitude: -0.0980, longitude: 34.7510 },
+  };
+
+  for (const [title, geoPoint] of Object.entries(activityGps)) {
+    await Activity.updateOne(
+      { title, organizationId: org._id },
+      { $set: { geoPoint } },
+    );
+  }
+
+  // ─── Add GPS coordinates to individual beneficiaries ─────────────────────
+  const [ben1, ben2] = beneficiaries as any[];
+  if (ben1) await Beneficiary.updateOne({ _id: ben1._id }, { $set: { geoPoint: { latitude: -0.0917, longitude: 34.7680 } } });
+  if (ben2) await Beneficiary.updateOne({ _id: ben2._id }, { $set: { geoPoint: { latitude: 0.0610, longitude: 34.2422 } } });
+
+  // ─── Stakeholder Feedback ─────────────────────────────────────────────────
+  await StakeholderFeedback.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      collectedByUserId: meOfficerUser._id,
+      respondentName: 'Mary Atieno',
+      respondentSex: 'female',
+      respondentAge: 34,
+      respondentLocation: 'Kisumu, Ward A',
+      isAnonymous: false,
+      title: 'Water access has transformed our household',
+      content: 'Before the borehole was rehabilitated, I walked 4 kilometres every morning to collect water from the river. My children were frequently sick with diarrhoea. Now we have clean water within 200 metres and my children\'s health has improved tremendously. Thank you for this project.',
+      channel: 'interview',
+      sentiment: 'very_positive',
+      sentimentScore: 92,
+      thematicTags: ['water access', 'health improvement', 'women empowerment'],
+      status: 'actioned',
+      consentToPublish: true,
+      collectedAt: new Date('2025-05-10'),
+      actionsLog: [{
+        action: 'Story shared with donor in quarterly report',
+        takenAt: new Date('2025-05-15'),
+        byUserId: adminUser._id,
+        notes: 'Included in Global Fund Q1 narrative report as a case study.',
+      }],
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      collectedByUserId: meOfficerUser._id,
+      respondentName: 'James Ochieng',
+      respondentSex: 'male',
+      respondentAge: 52,
+      respondentLocation: 'Homa Bay',
+      isAnonymous: false,
+      title: 'CLTS training needs practical follow-up',
+      content: 'The triggering session was informative but we need more follow-up support. Some households have reverted to open defecation after two months. We need community monitors to be paid or at least given some incentive to continue the work. The committee is doing its best but lacks resources.',
+      channel: 'focus_group_discussion',
+      sentiment: 'neutral',
+      sentimentScore: 48,
+      thematicTags: ['CLTS', 'sustainability', 'community ownership', 'follow-up'],
+      status: 'reviewed',
+      consentToPublish: false,
+      collectedAt: new Date('2025-05-20'),
+      responseNotes: 'Flagged for adaptive management — review community incentive structure in next programme review.',
+    },
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      collectedByUserId: meOfficerUser._id,
+      respondentName: 'Grace Nyamollo',
+      respondentSex: 'female',
+      respondentAge: 24,
+      respondentLocation: 'Siaya County',
+      isAnonymous: false,
+      title: 'Mobile clinic saved my life',
+      content: 'I am a first-time mother and I was scared during my pregnancy. The mobile clinic came to our village every two weeks and the midwives were very kind. They found that my blood pressure was high at 32 weeks and referred me to hospital quickly. I delivered safely at Siaya County Hospital. I do not think I would have survived without this outreach.',
+      channel: 'interview',
+      sentiment: 'very_positive',
+      sentimentScore: 98,
+      thematicTags: ['ANC', 'referral', 'maternal mortality', 'mobile clinic'],
+      status: 'actioned',
+      consentToPublish: true,
+      collectedAt: new Date('2025-04-25'),
+      actionsLog: [{
+        action: 'Case study documented for USAID end-of-project report',
+        takenAt: new Date('2025-05-01'),
+        byUserId: adminUser._id,
+        notes: 'Written consent obtained. Story anonymised slightly to protect privacy.',
+      }],
+    },
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      collectedByUserId: meOfficerUser._id,
+      isAnonymous: true,
+      title: 'Complaint: Long waiting times at clinic',
+      content: 'The mobile clinic is very good but we wait for 3-4 hours every time. There is only one nurse who handles everything. Women who come from far away give up and go home without being seen. Please send more staff or organise appointment times so we do not waste the whole day.',
+      channel: 'complaint',
+      sentiment: 'negative',
+      sentimentScore: 25,
+      thematicTags: ['waiting times', 'staffing', 'service quality'],
+      status: 'received',
+      consentToPublish: false,
+      collectedAt: new Date('2025-06-01'),
+    },
+    {
+      organizationId: org._id,
+      projectId: school._id,
+      collectedByUserId: meOfficerUser._id,
+      respondentName: 'Mrs. Esther Wambua',
+      respondentSex: 'female',
+      respondentAge: 44,
+      respondentLocation: 'Kisumu Central',
+      isAnonymous: false,
+      title: 'School meals have improved attendance',
+      content: 'As a teacher, I have noticed a clear improvement in class attendance since the school meal programme started. Children come to school on time and are more attentive in afternoon lessons. Parents who previously kept children home to help with household chores are now sending them to school because they know the child will eat. We also have fewer cases of children fainting in class.',
+      channel: 'interview',
+      sentiment: 'positive',
+      sentimentScore: 82,
+      thematicTags: ['school attendance', 'nutrition', 'learning outcomes'],
+      status: 'reviewed',
+      consentToPublish: true,
+      collectedAt: new Date('2025-05-28'),
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      collectedByUserId: meOfficerUser._id,
+      respondentName: 'Peter Onyango',
+      respondentSex: 'male',
+      respondentAge: 61,
+      respondentLocation: 'Kisumu, Ward B',
+      isAnonymous: false,
+      title: 'Suggestion: Include livestock watering points',
+      content: 'The water point is excellent for our household use. I would suggest that in the next phase, we also include a trough for livestock watering. Right now farmers still take their animals to the polluted river because the borehole platform is not suitable for animals. This causes contamination risk when children play near the river.',
+      channel: 'suggestion',
+      sentiment: 'positive',
+      sentimentScore: 70,
+      thematicTags: ['livestock', 'water safety', 'suggestion', 'next phase'],
+      status: 'closed',
+      consentToPublish: true,
+      collectedAt: new Date('2025-06-10'),
+      responseNotes: 'Submitted as a recommendation in the midterm review. Programme team will consider livestock troughs in Phase 2 design.',
+      actionsLog: [{
+        action: 'Recommendation logged in programme adaptive management register',
+        takenAt: new Date('2025-06-12'),
+        byUserId: adminUser._id,
+      }],
+    },
+  ]);
+
+  // ─── Impact Stories ───────────────────────────────────────────────────────
+  await ImpactStory.insertMany([
+    {
+      organizationId: org._id,
+      projectId: maternal._id,
+      authorUserId: user._id,
+      title: 'A Safe Delivery in Siaya: How Mobile Clinics Reached Grace',
+      narrative: `Grace Nyamollo, 24, was seven months pregnant when the mobile clinic arrived in her village for the first time. Like many women in rural Siaya County, Grace had not received any antenatal care — the nearest health facility was a two-hour walk away, and her husband's income could not cover transport costs.
+
+"I was scared," Grace recalls. "My mother told me everything would be fine, but she also lost her first child during delivery. That fear stayed with me."
+
+The Lakeside Community Development Trust mobile clinic, deployed under the USAID-supported Maternal Health Outreach Programme, visited Grace's village every two weeks. At her second visit, the attending midwife detected elevated blood pressure — a warning sign for preeclampsia. Grace was immediately referred to Siaya County Hospital, where she was admitted and monitored closely.
+
+Three weeks later, Grace delivered a healthy baby girl, Amara, by emergency caesarean section. Both mother and child survived.
+
+"The midwife saved our lives," Grace says. "If she had not found the problem, I would not have known. I would have stayed home and tried to deliver with the traditional birth attendant."
+
+Grace's story is not unique. Across the programme's 12 target villages, the mobile clinics have reached 520 women with four or more antenatal visits — exceeding the Q1 target of 312 by 67%. Early detection and timely referrals have prevented an estimated 14 maternal complications that could have resulted in death or permanent disability.
+
+The programme's success lies in its community-based model. Community Health Promoters — 80 trained and deployed across all wards — identify pregnant women, schedule clinic visits, and follow up with women who miss appointments. Transport vouchers ensure that referred women reach facilities without financial barriers.
+
+For Grace, the impact is simple and profound: "My daughter will grow up knowing her mother. That is everything."`,
+      pullQuote: 'The midwife saved our lives. If she had not found the problem, I would not have known.',
+      subjectName: 'Grace Nyamollo',
+      subjectAge: 24,
+      subjectSex: 'female',
+      subjectLocation: 'Siaya County',
+      consentObtained: true,
+      isAnonymised: false,
+      tags: ['maternal health', 'ANC', 'mobile clinic', 'referral', 'USAID'],
+      thematicArea: 'Maternal & Newborn Health',
+      sdgGoals: [3, 5],
+      status: 'published',
+      publishedAt: new Date('2025-05-20'),
+      publishedByUserId: adminUser._id,
+      isPubliclyVisible: true,
+      viewCount: 47,
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      authorUserId: meOfficerUser._id,
+      title: 'Ward A Transforms: From a 4-km Walk to 200 Metres of Clean Water',
+      narrative: `For Mary Atieno, the daily water collection walk defined her mornings. Every day, before dawn, Mary would wake her eldest daughter and begin the four-kilometre journey to the Nyamasaria river — a journey that took two hours return and exposed them both to risk.
+
+"The river water made us sick regularly," Mary explains. "My youngest child was hospitalised twice for waterborne diarrhoea in one year. Every time, it cost us money we did not have."
+
+The Lakeside Community Development Trust's WASH Programme, funded by Global Fund, identified Ward A in Kisumu County as a priority area in its baseline survey. Of the 1,200 households in the ward, fewer than 8% had access to a safely managed water source within 200 metres.
+
+In February 2025, the programme commissioned the first rehabilitated borehole in Ward A, alongside a community water committee trained in governance, maintenance, and chlorination. Twelve boreholes were rehabilitated across Kisumu County in Phase 1, connecting over 6,000 households to clean water.
+
+The change has been immediate and measurable. Within three months of commissioning, the health facility in Ward A reported a 34% reduction in diarrhoeal disease cases compared to the same period the previous year.
+
+For Mary, the change is visible in her daughter's face. "She sleeps an extra two hours now. She comes to school alert and ready to learn. I can use those two hours to tend to my garden instead of walking to the river."
+
+The Water User Committee, chaired by a local woman named Faith Achieng, collects a small fee from connected households each month — enough to maintain the pump and fund minor repairs. The model is designed for sustainability beyond the project period.
+
+"This is not a project that will end when the NGO leaves," Faith says. "We own this water point. We will maintain it for our children."`,
+      pullQuote: 'She sleeps an extra two hours now. She comes to school alert and ready to learn.',
+      subjectName: 'Mary Atieno',
+      subjectAge: 34,
+      subjectSex: 'female',
+      subjectLocation: 'Kisumu, Ward A',
+      consentObtained: true,
+      isAnonymised: false,
+      tags: ['WASH', 'water access', 'women', 'health outcomes', 'Global Fund'],
+      thematicArea: 'Water, Sanitation & Hygiene',
+      sdgGoals: [3, 6, 5],
+      status: 'published',
+      publishedAt: new Date('2025-06-01'),
+      publishedByUserId: adminUser._id,
+      isPubliclyVisible: true,
+      viewCount: 83,
+    },
+    {
+      organizationId: org._id,
+      projectId: school._id,
+      authorUserId: adminUser._id,
+      title: 'Empty Chairs Filling Up: School Meals and the Return of Absent Pupils',
+      narrative: `When the School Nutrition Initiative launched at Kisumu Central Primary School in March 2025, headteacher Mrs. Esther Wambua had a simple hope: that fewer children would sit in class too hungry to learn.
+
+What she did not expect was the phone call from a parent in week two of the programme.
+
+"A father called me to say thank you," Mrs. Wambua recounts. "He said he had been keeping his daughter home to help with household work because he could not afford to send her to school on an empty stomach. But now that the school provides a meal, he sends her every day. He was crying on the phone."
+
+That child — whose name is withheld — is one of dozens of previously irregular attenders who now come to school daily. The school's attendance register shows a 22% improvement in average daily attendance since the programme started, with the largest gains among girls aged 10-14.
+
+The meals themselves — a plate of githeri (maize and beans) with leafy vegetables sourced from local farmers — are simple but nutritious. Growth monitoring sessions, held monthly by a programme nutritionist, track weight and height for all 1,200 enrolled pupils. In the first monitoring round, 47 children were identified as moderately malnourished and referred for therapeutic support.
+
+"The data tells the story," says Joseph Mwangi, the programme's M&E officer. "When you track attendance, learning outcomes, and growth in one system, you can see the connections. A fed child attends school. An attending child learns. A learning child has a future."
+
+The programme works with a network of 12 smallholder farmers within a 20-kilometre radius of the school, providing a stable market for their produce. This dual impact — nutrition for children and income for farmers — reflects the Trust's integrated development approach.
+
+Mrs. Wambua's empty chairs are filling up. One meal at a time.`,
+      pullQuote: 'A fed child attends school. An attending child learns. A learning child has a future.',
+      subjectName: 'Esther Wambua',
+      subjectAge: 44,
+      subjectSex: 'female',
+      subjectLocation: 'Kisumu Central',
+      consentObtained: true,
+      isAnonymised: false,
+      tags: ['nutrition', 'school meals', 'attendance', 'girls education', 'UNICEF'],
+      thematicArea: 'Nutrition & Education',
+      sdgGoals: [2, 4],
+      status: 'review',
+      isPubliclyVisible: false,
+      viewCount: 12,
+    },
+  ]);
+
+  // ─── Add GPS to individual beneficiaries in seed ──────────────────────────
+  // Update WASH activities with realistic GPS around Kisumu for maps feature
+  const allActivities = await Activity.find({ organizationId: org._id }).lean() as any[];
+  for (const act of allActivities) {
+    if (!act.geoPoint && act.location) {
+      // Assign approximate GPS based on location strings already in the activity
+      const locationGps: Record<string, { latitude: number; longitude: number }> = {
+        'Kisumu, Ward A':   { latitude: -0.0917 + (Math.random() - 0.5) * 0.02, longitude: 34.7680 + (Math.random() - 0.5) * 0.02 },
+        'Kisumu, Ward B':   { latitude: -0.1120 + (Math.random() - 0.5) * 0.02, longitude: 34.7820 + (Math.random() - 0.5) * 0.02 },
+        'Kisumu Central':   { latitude: -0.1022 + (Math.random() - 0.5) * 0.01, longitude: 34.7617 + (Math.random() - 0.5) * 0.01 },
+        'Homa Bay':         { latitude: -0.5273 + (Math.random() - 0.5) * 0.03, longitude: 34.4571 + (Math.random() - 0.5) * 0.03 },
+        'Siaya County':     { latitude:  0.0610 + (Math.random() - 0.5) * 0.04, longitude: 34.2422 + (Math.random() - 0.5) * 0.04 },
+      };
+      const geoPoint = locationGps[act.location];
+      if (geoPoint) {
+        await Activity.updateOne({ _id: act._id }, { $set: { geoPoint } });
+      }
+    }
+  }
 
   // --- End demo data ---
 
