@@ -388,7 +388,7 @@ export class ApiService {
 
   offlineSyncFormResponses(batch: Record<string, unknown>[]) {
     return this.http.post<{ results: Array<{ clientId: string; status: string; message?: string }> }>(
-      `${this.base}/forms/offline-sync`,
+      `${this.base}/forms/responses/offline-sync`,
       { responses: batch },
     );
   }
