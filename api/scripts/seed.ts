@@ -68,67 +68,18 @@ const UserSchema = new Schema(
   },
   { timestamps: true },
 );
-const ProjectSchema = new Schema(
-  {
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
-    name: String,
-    donor: String,
-    description: String,
-    startDate: Date,
-    endDate: Date,
-    status: { type: String, default: 'active' },
-    workplan: [
-      {
-        title: String,
-        description: String,
-        startDate: Date,
-        endDate: Date,
-        status: { type: String, default: 'planned' },
-        progressPct: { type: Number, default: 0 },
-        quarter: String,
-        responsibleName: String,
-        estimatedCost: Number,
-        actualCost: Number,
-        outputDescription: String,
-      },
-    ],
-  },
-  { timestamps: true },
-);
-const IndicatorSchema = new Schema(
-  {
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    parentId: { type: Schema.Types.ObjectId, ref: 'Indicator' },
-    level: { type: String, default: 'output' },
-    code: String,
-    title: String,
-    unit: String,
-    meansOfVerification: String,
-    baseline: { type: Number, default: 0 },
-    target: Number,
-    frequency: { type: String, default: 'quarterly' },
-  },
-  { timestamps: true },
-);
-const ActivitySchema = new Schema(
-  {
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    indicatorId: { type: Schema.Types.ObjectId, ref: 'Indicator' },
-    partnerId: { type: Schema.Types.ObjectId, ref: 'Partner' },
-    beneficiaryIds: [{ type: Schema.Types.ObjectId, ref: 'Beneficiary' }],
-    title: String,
-    description: String,
-    activityDate: Date,
-    location: String,
-    participants: { type: Number, default: 0 },
-    quantity: { type: Number, default: 0 },
-    notes: String,
-    status: { type: String, default: 'approved' },
-  },
-  { timestamps: true },
-);
+// Project, Indicator, and Activity now use the REAL schemas (imported below,
+// same pattern already used for Beneficiary/Grant/Partner) rather than
+// hand-maintained inline copies. The inline versions had drifted badly out
+// of sync with their real counterparts — missing geoPoint, direction,
+// cumulative, evidenceUrl, grantId, and others — and since Mongoose schemas
+// default to strict mode, any seed data trying to set those fields would
+// have been silently dropped on save rather than erroring, which is exactly
+// the kind of bug that's easy to miss until a feature built against the
+// real schema (the map, beneficiary linkage) finds nothing seeded.
+const { ProjectSchema } = require('../src/projects/schemas/project.schema');
+const { IndicatorSchema } = require('../src/indicators/schemas/indicator.schema');
+const { ActivitySchema } = require('../src/activities/schemas/activity.schema');
 
 interface SeedUser {
   _id: Types.ObjectId;
@@ -163,7 +114,7 @@ async function clearDemoData(
   DocumentVersion: mongoose.Model<unknown>,
   Notification: mongoose.Model<unknown>,
   StakeholderFeedback: mongoose.Model<unknown>,
-  ImpactStory: mongoose.Model<unknown>,
+  OrgNetwork: mongoose.Model<unknown>,
 ) {
   const existing = (await User.findOne({ email: SEED_EMAIL.toLowerCase() }).lean()) as
     | SeedUser
@@ -198,11 +149,17 @@ async function clearDemoData(
   await IndicatorTarget.deleteMany({ organizationId: orgId });
   await ReportingPeriod.deleteMany({ organizationId: orgId });
   await Notification.deleteMany({ organizationId: orgId });
+  await StakeholderFeedback.deleteMany({ organizationId: orgId });
+  // OrgNetwork has no organizationId field at all — it's a cross-org
+  // structure with hubOrganizationId plus a members[] array of other orgs.
+  // Clear both directions so a stale network doesn't linger if this org
+  // was previously a member of one rather than the hub.
+  await OrgNetwork.deleteMany({
+    $or: [{ hubOrganizationId: orgId }, { 'members.organizationId': orgId }],
+  });
   await AuditEvent.deleteMany({ organizationId: orgId });
   await DocumentVersion.deleteMany({ organizationId: orgId });
   await Document.deleteMany({ organizationId: orgId });
-  await StakeholderFeedback.deleteMany({ organizationId: orgId });
-  await ImpactStory.deleteMany({ organizationId: orgId });
   await Indicator.deleteMany({ organizationId: orgId });
   await Project.deleteMany({ organizationId: orgId });
   await OrganizationMember.deleteMany({ organizationId: orgId });
@@ -245,7 +202,7 @@ async function seed() {
   const DocumentVersion = mongoose.model('DocumentVersion', require('../src/documents/schemas/document-version.schema').DocumentVersionSchema) as mongoose.Model<unknown>;
   const Notification = mongoose.model('Notification', require('../src/notifications/schemas/notification.schema').NotificationSchema) as mongoose.Model<unknown>;
   const StakeholderFeedback = mongoose.model('StakeholderFeedback', require('../src/stakeholder-feedback/schemas/stakeholder-feedback.schema').StakeholderFeedbackSchema) as mongoose.Model<unknown>;
-  const ImpactStory = mongoose.model('ImpactStory', require('../src/impact-stories/schemas/impact-story.schema').ImpactStorySchema) as mongoose.Model<unknown>;
+  const OrgNetwork = mongoose.model('OrgNetwork', require('../src/networks/schemas/org-network.schema').OrgNetworkSchema) as mongoose.Model<unknown>;
 
   await clearDemoData(
     User,
@@ -275,7 +232,7 @@ async function seed() {
     DocumentVersion,
     Notification,
     StakeholderFeedback,
-    ImpactStory,
+    OrgNetwork,
   );
 
   const periodEnd = new Date();
@@ -284,7 +241,11 @@ async function seed() {
     name: 'Lakeside Community Development Trust',
     country: 'Kenya',
     sector: 'Health & WASH',
-    planId: 'professional',
+    // 'scale' (not 'professional') so hasMultiOrgAggregation is true and
+    // the Networks tab under Enterprise settings is actually reachable in
+    // the demo — it was previously locked behind a plan tier the seed org
+    // never had, which is exactly why no network demo data existed before.
+    planId: 'scale',
     subscriptionStatus: 'active',
     currentPeriodEnd: periodEnd,
   });
@@ -394,6 +355,7 @@ async function seed() {
       contactEmail: 'khd@kisumu.example',
       country: 'Kenya',
       notes: 'Local government health partner',
+      geoPoint: { latitude: -0.1022, longitude: 34.7617 },
     },
     {
       organizationId: org._id,
@@ -401,6 +363,7 @@ async function seed() {
       contactEmail: 'cwc-warda@example.org',
       country: 'Kenya',
       notes: 'Community-level water management committee',
+      geoPoint: { latitude: -0.0978, longitude: 34.7589 },
     },
   ]);
 
@@ -412,6 +375,7 @@ async function seed() {
       groupType: 'household',
       location: 'Kisumu, Ward A',
       notes: 'Representative household grouping used for monitoring',
+      geoPoint: { latitude: -0.0985, longitude: 34.7601 },
     },
     {
       organizationId: org._id,
@@ -420,6 +384,7 @@ async function seed() {
       groupType: 'cohort',
       location: 'Siaya County',
       notes: 'Cohort tracked for ANC follow-up and referrals',
+      geoPoint: { latitude: 0.0607, longitude: 34.2881 },
     },
   ]);
 
@@ -431,6 +396,7 @@ async function seed() {
     startDate: new Date('2025-01-01'),
     endDate: new Date('2026-12-31'),
     status: 'active',
+    geoPoint: { latitude: -0.1022, longitude: 34.7617 },
   });
 
 
@@ -674,6 +640,7 @@ async function seed() {
       participants: 85,
       quantity: 120,
       notes: '120 households now on piped supply.',
+      geoPoint: { latitude: -0.0978, longitude: 34.7589 },
     },
     {
       organizationId: org._id,
@@ -684,6 +651,7 @@ async function seed() {
       location: 'Kisumu, Ward B',
       participants: 42,
       quantity: 65,
+      geoPoint: { latitude: -0.1104, longitude: 34.7701 },
     },
     {
       organizationId: org._id,
@@ -694,6 +662,7 @@ async function seed() {
       location: 'Homa Bay',
       participants: 210,
       quantity: 38,
+      geoPoint: { latitude: -0.5273, longitude: 34.4571 },
     },
     {
       organizationId: org._id,
@@ -704,8 +673,19 @@ async function seed() {
       location: 'Kisumu Central',
       participants: 48,
       quantity: 3,
+      geoPoint: { latitude: -0.1022, longitude: 34.7617 },
     },
   ]);
+
+  // lastAchievedValue reflects the sum of recorded activity quantities
+  // above for each indicator — kept in sync here since this app's normal
+  // workflow (calculateResults(), run against real reporting periods)
+  // isn't executed by this seed script. Several dashboards/the network
+  // rollup read this field directly, so leaving it unset would show 0
+  // even though real activity data exists for these indicators.
+  await Indicator.updateOne({ _id: washIndicators[0]._id }, { $set: { lastAchievedValue: 185 } }); // 120 (Ward A) + 65 (Ward B) borehole activities
+  await Indicator.updateOne({ _id: washIndicators[1]._id }, { $set: { lastAchievedValue: 38 } }); // CLTS triggering workshop
+  await Indicator.updateOne({ _id: washIndicators[2]._id }, { $set: { lastAchievedValue: 3 } }); // School hygiene club training
 
   // Attach a partner and beneficiaries to a sample activity (if present)
   try {
@@ -717,6 +697,96 @@ async function seed() {
     // ignore if update fails in older seed runs
   }
 
+  // ─── Stakeholder Feedback ───────────────────────────────────────────────────
+  await StakeholderFeedback.insertMany([
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      indicatorId: washIndicators[0]._id,
+      title: 'Borehole water tastes much better since the upgrade',
+      content: 'Since the borehole was rehabilitated, the water quality has improved a lot. My family no longer gets stomach issues like before. Thank you for fixing it quickly.',
+      channel: 'interview',
+      sentiment: 'positive',
+      sentimentScore: 82,
+      thematicTags: ['water quality', 'health impact'],
+      respondentName: 'Grace Atieno',
+      respondentSex: 'female',
+      respondentAge: 41,
+      respondentLocation: 'Kisumu, Ward A',
+      isAnonymous: false,
+      status: 'reviewed',
+      consentToPublish: true,
+      collectedAt: new Date('2025-02-20'),
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      indicatorId: washIndicators[1]._id,
+      title: 'Latrine construction taking too long',
+      content: 'It has been three months since the CLTS training and we still have not received the promised construction materials for the household latrines. Several families are getting frustrated.',
+      channel: 'complaint',
+      sentiment: 'negative',
+      sentimentScore: 22,
+      thematicTags: ['delays', 'sanitation', 'materials'],
+      isAnonymous: true,
+      respondentLocation: 'Homa Bay',
+      status: 'actioned',
+      actionsLog: [
+        {
+          action: 'Followed up with supply chain team; materials dispatched',
+          takenAt: new Date('2025-04-20'),
+          byUserId: user._id,
+          notes: 'Confirmed delivery scheduled for first week of May.',
+        },
+      ],
+      responseNotes: 'Escalated to logistics; resolved within two weeks.',
+      consentToPublish: false,
+      collectedAt: new Date('2025-04-08'),
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      title: 'Suggestion: add a second water collection point',
+      content: 'The queue at the water point gets very long in the mornings before school. It would help a lot if a second collection point could be added on the other side of the village.',
+      channel: 'suggestion',
+      sentiment: 'neutral',
+      sentimentScore: 55,
+      thematicTags: ['access', 'infrastructure'],
+      respondentName: 'Samuel Otieno',
+      respondentSex: 'male',
+      respondentAge: 34,
+      respondentLocation: 'Kisumu, Ward B',
+      isAnonymous: false,
+      status: 'received',
+      consentToPublish: true,
+      collectedAt: new Date('2025-03-28'),
+    },
+    {
+      organizationId: org._id,
+      projectId: wash._id,
+      indicatorId: washIndicators[2]._id,
+      title: 'Hygiene club is genuinely changing habits at school',
+      content: 'The pupils in the hygiene club now remind each other to wash hands before meals without being told by teachers. The handwashing stations are used every single day.',
+      channel: 'focus_group_discussion',
+      sentiment: 'very_positive',
+      sentimentScore: 91,
+      thematicTags: ['behaviour change', 'schools', 'hygiene'],
+      respondentLocation: 'Kisumu Central',
+      isAnonymous: false,
+      respondentName: 'Teacher Focus Group',
+      status: 'closed',
+      actionsLog: [
+        {
+          action: 'Shared success story with donor in quarterly update',
+          takenAt: new Date('2025-04-25'),
+          byUserId: user._id,
+        },
+      ],
+      consentToPublish: true,
+      collectedAt: new Date('2025-04-19'),
+    },
+  ]);
+
   const maternal = await Project.create({
     organizationId: org._id,
     name: 'Maternal Health Outreach',
@@ -725,6 +795,7 @@ async function seed() {
     startDate: new Date('2024-07-01'),
     endDate: new Date('2025-06-30'),
     status: 'active',
+    geoPoint: { latitude: 0.0607, longitude: 34.2881 },
   });
 
   // ─── Maternal Health Workplan ───────────────────────────────────────────────
@@ -900,6 +971,7 @@ async function seed() {
       participants: 156,
       quantity: 94,
       notes: '94 women registered for follow-up ANC.',
+      geoPoint: { latitude: 0.0607, longitude: 34.2881 },
     },
     {
       organizationId: org._id,
@@ -910,6 +982,7 @@ async function seed() {
       location: 'Siaya County',
       participants: 12,
       quantity: 12,
+      geoPoint: { latitude: 0.0512, longitude: 34.3015 },
     },
     {
       organizationId: org._id,
@@ -920,6 +993,7 @@ async function seed() {
       location: 'Siaya County',
       participants: 24,
       quantity: 0,
+      geoPoint: { latitude: 0.0689, longitude: 34.2756 },
     },
   ]);
 
@@ -931,6 +1005,7 @@ async function seed() {
     startDate: new Date('2025-02-01'),
     endDate: new Date('2025-12-31'),
     status: 'active',
+    geoPoint: { latitude: -0.0917, longitude: 34.7522 },
   });
 
   const schoolIndicators = await Indicator.insertMany([
@@ -967,6 +1042,7 @@ async function seed() {
       participants: 1200,
       quantity: 1200,
       notes: 'Program reached all registered pupils on day one.',
+      geoPoint: { latitude: -0.0951, longitude: 34.7553 },
     },
     {
       organizationId: org._id,
@@ -978,6 +1054,7 @@ async function seed() {
       participants: 3,
       quantity: 1,
       notes: 'First growth monitoring session completed for 400 pupils.',
+      geoPoint: { latitude: -0.0884, longitude: 34.7498 },
     },
   ]);
 
@@ -1978,303 +2055,120 @@ async function seed() {
     ],
   });
 
-  // ─── Add GPS coordinates to activities ───────────────────────────────────
-  // Kisumu area coordinates (real locations in Western Kenya)
-  const activityGps: Record<string, { latitude: number; longitude: number }> = {
-    'Borehole commissioning — Ward A':   { latitude: -0.0917, longitude: 34.7680 },
-    'Water point rehabilitation':         { latitude: -0.1120, longitude: 34.7820 },
-    'CLTS triggering workshop':           { latitude: -0.5273, longitude: 34.4571 },
-    'School hygiene club training':       { latitude: -0.0917, longitude: 34.7600 },
-    'Mobile clinic — ANC day':            { latitude: 0.0610,  longitude: 34.2422 },
-    'Referral transport facilitation':    { latitude: 0.0500,  longitude: 34.2300 },
-    'CHW mentorship session':             { latitude: 0.0650,  longitude: 34.2500 },
-    'School meal distribution launch':    { latitude: -0.1020, longitude: 34.7540 },
-    'Growth monitoring clinic':           { latitude: -0.0980, longitude: 34.7510 },
-  };
-
-  for (const [title, geoPoint] of Object.entries(activityGps)) {
-    await Activity.updateOne(
-      { title, organizationId: org._id },
-      { $set: { geoPoint } },
-    );
-  }
-
-  // ─── Add GPS coordinates to individual beneficiaries ─────────────────────
-  const [ben1, ben2] = beneficiaries as any[];
-  if (ben1) await Beneficiary.updateOne({ _id: ben1._id }, { $set: { geoPoint: { latitude: -0.0917, longitude: 34.7680 } } });
-  if (ben2) await Beneficiary.updateOne({ _id: ben2._id }, { $set: { geoPoint: { latitude: 0.0610, longitude: 34.2422 } } });
-
-  // ─── Stakeholder Feedback ─────────────────────────────────────────────────
-  await StakeholderFeedback.insertMany([
-    {
-      organizationId: org._id,
-      projectId: wash._id,
-      collectedByUserId: meOfficerUser._id,
-      respondentName: 'Mary Atieno',
-      respondentSex: 'female',
-      respondentAge: 34,
-      respondentLocation: 'Kisumu, Ward A',
-      isAnonymous: false,
-      title: 'Water access has transformed our household',
-      content: 'Before the borehole was rehabilitated, I walked 4 kilometres every morning to collect water from the river. My children were frequently sick with diarrhoea. Now we have clean water within 200 metres and my children\'s health has improved tremendously. Thank you for this project.',
-      channel: 'interview',
-      sentiment: 'very_positive',
-      sentimentScore: 92,
-      thematicTags: ['water access', 'health improvement', 'women empowerment'],
-      status: 'actioned',
-      consentToPublish: true,
-      collectedAt: new Date('2025-05-10'),
-      actionsLog: [{
-        action: 'Story shared with donor in quarterly report',
-        takenAt: new Date('2025-05-15'),
-        byUserId: adminUser._id,
-        notes: 'Included in Global Fund Q1 narrative report as a case study.',
-      }],
-    },
-    {
-      organizationId: org._id,
-      projectId: wash._id,
-      collectedByUserId: meOfficerUser._id,
-      respondentName: 'James Ochieng',
-      respondentSex: 'male',
-      respondentAge: 52,
-      respondentLocation: 'Homa Bay',
-      isAnonymous: false,
-      title: 'CLTS training needs practical follow-up',
-      content: 'The triggering session was informative but we need more follow-up support. Some households have reverted to open defecation after two months. We need community monitors to be paid or at least given some incentive to continue the work. The committee is doing its best but lacks resources.',
-      channel: 'focus_group_discussion',
-      sentiment: 'neutral',
-      sentimentScore: 48,
-      thematicTags: ['CLTS', 'sustainability', 'community ownership', 'follow-up'],
-      status: 'reviewed',
-      consentToPublish: false,
-      collectedAt: new Date('2025-05-20'),
-      responseNotes: 'Flagged for adaptive management — review community incentive structure in next programme review.',
-    },
-    {
-      organizationId: org._id,
-      projectId: maternal._id,
-      collectedByUserId: meOfficerUser._id,
-      respondentName: 'Grace Nyamollo',
-      respondentSex: 'female',
-      respondentAge: 24,
-      respondentLocation: 'Siaya County',
-      isAnonymous: false,
-      title: 'Mobile clinic saved my life',
-      content: 'I am a first-time mother and I was scared during my pregnancy. The mobile clinic came to our village every two weeks and the midwives were very kind. They found that my blood pressure was high at 32 weeks and referred me to hospital quickly. I delivered safely at Siaya County Hospital. I do not think I would have survived without this outreach.',
-      channel: 'interview',
-      sentiment: 'very_positive',
-      sentimentScore: 98,
-      thematicTags: ['ANC', 'referral', 'maternal mortality', 'mobile clinic'],
-      status: 'actioned',
-      consentToPublish: true,
-      collectedAt: new Date('2025-04-25'),
-      actionsLog: [{
-        action: 'Case study documented for USAID end-of-project report',
-        takenAt: new Date('2025-05-01'),
-        byUserId: adminUser._id,
-        notes: 'Written consent obtained. Story anonymised slightly to protect privacy.',
-      }],
-    },
-    {
-      organizationId: org._id,
-      projectId: maternal._id,
-      collectedByUserId: meOfficerUser._id,
-      isAnonymous: true,
-      title: 'Complaint: Long waiting times at clinic',
-      content: 'The mobile clinic is very good but we wait for 3-4 hours every time. There is only one nurse who handles everything. Women who come from far away give up and go home without being seen. Please send more staff or organise appointment times so we do not waste the whole day.',
-      channel: 'complaint',
-      sentiment: 'negative',
-      sentimentScore: 25,
-      thematicTags: ['waiting times', 'staffing', 'service quality'],
-      status: 'received',
-      consentToPublish: false,
-      collectedAt: new Date('2025-06-01'),
-    },
-    {
-      organizationId: org._id,
-      projectId: school._id,
-      collectedByUserId: meOfficerUser._id,
-      respondentName: 'Mrs. Esther Wambua',
-      respondentSex: 'female',
-      respondentAge: 44,
-      respondentLocation: 'Kisumu Central',
-      isAnonymous: false,
-      title: 'School meals have improved attendance',
-      content: 'As a teacher, I have noticed a clear improvement in class attendance since the school meal programme started. Children come to school on time and are more attentive in afternoon lessons. Parents who previously kept children home to help with household chores are now sending them to school because they know the child will eat. We also have fewer cases of children fainting in class.',
-      channel: 'interview',
-      sentiment: 'positive',
-      sentimentScore: 82,
-      thematicTags: ['school attendance', 'nutrition', 'learning outcomes'],
-      status: 'reviewed',
-      consentToPublish: true,
-      collectedAt: new Date('2025-05-28'),
-    },
-    {
-      organizationId: org._id,
-      projectId: wash._id,
-      collectedByUserId: meOfficerUser._id,
-      respondentName: 'Peter Onyango',
-      respondentSex: 'male',
-      respondentAge: 61,
-      respondentLocation: 'Kisumu, Ward B',
-      isAnonymous: false,
-      title: 'Suggestion: Include livestock watering points',
-      content: 'The water point is excellent for our household use. I would suggest that in the next phase, we also include a trough for livestock watering. Right now farmers still take their animals to the polluted river because the borehole platform is not suitable for animals. This causes contamination risk when children play near the river.',
-      channel: 'suggestion',
-      sentiment: 'positive',
-      sentimentScore: 70,
-      thematicTags: ['livestock', 'water safety', 'suggestion', 'next phase'],
-      status: 'closed',
-      consentToPublish: true,
-      collectedAt: new Date('2025-06-10'),
-      responseNotes: 'Submitted as a recommendation in the midterm review. Programme team will consider livestock troughs in Phase 2 design.',
-      actionsLog: [{
-        action: 'Recommendation logged in programme adaptive management register',
-        takenAt: new Date('2025-06-12'),
-        byUserId: adminUser._id,
-      }],
-    },
-  ]);
-
-  // ─── Impact Stories ───────────────────────────────────────────────────────
-  await ImpactStory.insertMany([
-    {
-      organizationId: org._id,
-      projectId: maternal._id,
-      authorUserId: user._id,
-      title: 'A Safe Delivery in Siaya: How Mobile Clinics Reached Grace',
-      narrative: `Grace Nyamollo, 24, was seven months pregnant when the mobile clinic arrived in her village for the first time. Like many women in rural Siaya County, Grace had not received any antenatal care — the nearest health facility was a two-hour walk away, and her husband's income could not cover transport costs.
-
-"I was scared," Grace recalls. "My mother told me everything would be fine, but she also lost her first child during delivery. That fear stayed with me."
-
-The Lakeside Community Development Trust mobile clinic, deployed under the USAID-supported Maternal Health Outreach Programme, visited Grace's village every two weeks. At her second visit, the attending midwife detected elevated blood pressure — a warning sign for preeclampsia. Grace was immediately referred to Siaya County Hospital, where she was admitted and monitored closely.
-
-Three weeks later, Grace delivered a healthy baby girl, Amara, by emergency caesarean section. Both mother and child survived.
-
-"The midwife saved our lives," Grace says. "If she had not found the problem, I would not have known. I would have stayed home and tried to deliver with the traditional birth attendant."
-
-Grace's story is not unique. Across the programme's 12 target villages, the mobile clinics have reached 520 women with four or more antenatal visits — exceeding the Q1 target of 312 by 67%. Early detection and timely referrals have prevented an estimated 14 maternal complications that could have resulted in death or permanent disability.
-
-The programme's success lies in its community-based model. Community Health Promoters — 80 trained and deployed across all wards — identify pregnant women, schedule clinic visits, and follow up with women who miss appointments. Transport vouchers ensure that referred women reach facilities without financial barriers.
-
-For Grace, the impact is simple and profound: "My daughter will grow up knowing her mother. That is everything."`,
-      pullQuote: 'The midwife saved our lives. If she had not found the problem, I would not have known.',
-      subjectName: 'Grace Nyamollo',
-      subjectAge: 24,
-      subjectSex: 'female',
-      subjectLocation: 'Siaya County',
-      consentObtained: true,
-      isAnonymised: false,
-      tags: ['maternal health', 'ANC', 'mobile clinic', 'referral', 'USAID'],
-      thematicArea: 'Maternal & Newborn Health',
-      sdgGoals: [3, 5],
-      status: 'published',
-      publishedAt: new Date('2025-05-20'),
-      publishedByUserId: adminUser._id,
-      isPubliclyVisible: true,
-      viewCount: 47,
-    },
-    {
-      organizationId: org._id,
-      projectId: wash._id,
-      authorUserId: meOfficerUser._id,
-      title: 'Ward A Transforms: From a 4-km Walk to 200 Metres of Clean Water',
-      narrative: `For Mary Atieno, the daily water collection walk defined her mornings. Every day, before dawn, Mary would wake her eldest daughter and begin the four-kilometre journey to the Nyamasaria river — a journey that took two hours return and exposed them both to risk.
-
-"The river water made us sick regularly," Mary explains. "My youngest child was hospitalised twice for waterborne diarrhoea in one year. Every time, it cost us money we did not have."
-
-The Lakeside Community Development Trust's WASH Programme, funded by Global Fund, identified Ward A in Kisumu County as a priority area in its baseline survey. Of the 1,200 households in the ward, fewer than 8% had access to a safely managed water source within 200 metres.
-
-In February 2025, the programme commissioned the first rehabilitated borehole in Ward A, alongside a community water committee trained in governance, maintenance, and chlorination. Twelve boreholes were rehabilitated across Kisumu County in Phase 1, connecting over 6,000 households to clean water.
-
-The change has been immediate and measurable. Within three months of commissioning, the health facility in Ward A reported a 34% reduction in diarrhoeal disease cases compared to the same period the previous year.
-
-For Mary, the change is visible in her daughter's face. "She sleeps an extra two hours now. She comes to school alert and ready to learn. I can use those two hours to tend to my garden instead of walking to the river."
-
-The Water User Committee, chaired by a local woman named Faith Achieng, collects a small fee from connected households each month — enough to maintain the pump and fund minor repairs. The model is designed for sustainability beyond the project period.
-
-"This is not a project that will end when the NGO leaves," Faith says. "We own this water point. We will maintain it for our children."`,
-      pullQuote: 'She sleeps an extra two hours now. She comes to school alert and ready to learn.',
-      subjectName: 'Mary Atieno',
-      subjectAge: 34,
-      subjectSex: 'female',
-      subjectLocation: 'Kisumu, Ward A',
-      consentObtained: true,
-      isAnonymised: false,
-      tags: ['WASH', 'water access', 'women', 'health outcomes', 'Global Fund'],
-      thematicArea: 'Water, Sanitation & Hygiene',
-      sdgGoals: [3, 6, 5],
-      status: 'published',
-      publishedAt: new Date('2025-06-01'),
-      publishedByUserId: adminUser._id,
-      isPubliclyVisible: true,
-      viewCount: 83,
-    },
-    {
-      organizationId: org._id,
-      projectId: school._id,
-      authorUserId: adminUser._id,
-      title: 'Empty Chairs Filling Up: School Meals and the Return of Absent Pupils',
-      narrative: `When the School Nutrition Initiative launched at Kisumu Central Primary School in March 2025, headteacher Mrs. Esther Wambua had a simple hope: that fewer children would sit in class too hungry to learn.
-
-What she did not expect was the phone call from a parent in week two of the programme.
-
-"A father called me to say thank you," Mrs. Wambua recounts. "He said he had been keeping his daughter home to help with household work because he could not afford to send her to school on an empty stomach. But now that the school provides a meal, he sends her every day. He was crying on the phone."
-
-That child — whose name is withheld — is one of dozens of previously irregular attenders who now come to school daily. The school's attendance register shows a 22% improvement in average daily attendance since the programme started, with the largest gains among girls aged 10-14.
-
-The meals themselves — a plate of githeri (maize and beans) with leafy vegetables sourced from local farmers — are simple but nutritious. Growth monitoring sessions, held monthly by a programme nutritionist, track weight and height for all 1,200 enrolled pupils. In the first monitoring round, 47 children were identified as moderately malnourished and referred for therapeutic support.
-
-"The data tells the story," says Joseph Mwangi, the programme's M&E officer. "When you track attendance, learning outcomes, and growth in one system, you can see the connections. A fed child attends school. An attending child learns. A learning child has a future."
-
-The programme works with a network of 12 smallholder farmers within a 20-kilometre radius of the school, providing a stable market for their produce. This dual impact — nutrition for children and income for farmers — reflects the Trust's integrated development approach.
-
-Mrs. Wambua's empty chairs are filling up. One meal at a time.`,
-      pullQuote: 'A fed child attends school. An attending child learns. A learning child has a future.',
-      subjectName: 'Esther Wambua',
-      subjectAge: 44,
-      subjectSex: 'female',
-      subjectLocation: 'Kisumu Central',
-      consentObtained: true,
-      isAnonymised: false,
-      tags: ['nutrition', 'school meals', 'attendance', 'girls education', 'UNICEF'],
-      thematicArea: 'Nutrition & Education',
-      sdgGoals: [2, 4],
-      status: 'review',
-      isPubliclyVisible: false,
-      viewCount: 12,
-    },
-  ]);
-
-  // ─── Add GPS to individual beneficiaries in seed ──────────────────────────
-  // Update WASH activities with realistic GPS around Kisumu for maps feature
-  const allActivities = await Activity.find({ organizationId: org._id }).lean() as any[];
-  for (const act of allActivities) {
-    if (!act.geoPoint && act.location) {
-      // Assign approximate GPS based on location strings already in the activity
-      const locationGps: Record<string, { latitude: number; longitude: number }> = {
-        'Kisumu, Ward A':   { latitude: -0.0917 + (Math.random() - 0.5) * 0.02, longitude: 34.7680 + (Math.random() - 0.5) * 0.02 },
-        'Kisumu, Ward B':   { latitude: -0.1120 + (Math.random() - 0.5) * 0.02, longitude: 34.7820 + (Math.random() - 0.5) * 0.02 },
-        'Kisumu Central':   { latitude: -0.1022 + (Math.random() - 0.5) * 0.01, longitude: 34.7617 + (Math.random() - 0.5) * 0.01 },
-        'Homa Bay':         { latitude: -0.5273 + (Math.random() - 0.5) * 0.03, longitude: 34.4571 + (Math.random() - 0.5) * 0.03 },
-        'Siaya County':     { latitude:  0.0610 + (Math.random() - 0.5) * 0.04, longitude: 34.2422 + (Math.random() - 0.5) * 0.04 },
-      };
-      const geoPoint = locationGps[act.location];
-      if (geoPoint) {
-        await Activity.updateOne({ _id: act._id }, { $set: { geoPoint } });
-      }
-    }
-  }
-
   // --- End demo data ---
+
+  // ─── Partner Network (multi-org consortium demo) ───────────────────────────
+  // A second, lightweight partner org with its own project + indicators that
+  // share codes (O1, O2) with the WASH project above, so the network rollup
+  // (networks.service.ts#rollup) actually has something real to aggregate
+  // across organizations, not just one.
+  //
+  // This org has no login of its own, so it isn't found/cleared by the
+  // SEED_EMAIL lookup clearDemoData() uses for the primary org — instead we
+  // look it up by its distinctive name and wipe its own child records the
+  // same way, so re-running `npm run seed` doesn't create a second (third,
+  // fourth...) duplicate partner org and orphaned project/indicator data
+  // every time.
+  const PARTNER_ORG_NAME = 'Nyanza Water Alliance';
+  const existingPartnerOrg = await Organization.findOne({ name: PARTNER_ORG_NAME }).lean();
+  if (existingPartnerOrg) {
+    const oldPartnerOrgId = (existingPartnerOrg as any)._id;
+    await Activity.deleteMany({ organizationId: oldPartnerOrgId });
+    await Indicator.deleteMany({ organizationId: oldPartnerOrgId });
+    await Project.deleteMany({ organizationId: oldPartnerOrgId });
+    await OrgNetwork.deleteMany({
+      $or: [{ hubOrganizationId: oldPartnerOrgId }, { 'members.organizationId': oldPartnerOrgId }],
+    });
+    await Organization.deleteOne({ _id: oldPartnerOrgId });
+  }
+
+  const partnerOrg = await Organization.create({
+    name: PARTNER_ORG_NAME,
+    country: 'Kenya',
+    sector: 'WASH',
+    planId: 'professional',
+    subscriptionStatus: 'active',
+    currentPeriodEnd: periodEnd,
+  });
+
+  const partnerProject = await Project.create({
+    organizationId: partnerOrg._id,
+    name: 'Borehole Expansion — Migori',
+    donor: 'Global Fund',
+    description: 'Sister WASH programme run by a consortium partner in a neighbouring county.',
+    startDate: new Date('2025-01-01'),
+    endDate: new Date('2026-12-31'),
+    status: 'active',
+    geoPoint: { latitude: -1.0634, longitude: 34.4731 }, // Migori, Kenya
+  });
+
+  const partnerIndicators = await Indicator.insertMany([
+    {
+      organizationId: partnerOrg._id,
+      projectId: partnerProject._id,
+      level: 'output',
+      code: 'O1',
+      title: 'Households with access to safe water',
+      unit: 'households',
+      baseline: 0,
+      target: 300,
+      frequency: 'quarterly',
+    },
+    {
+      organizationId: partnerOrg._id,
+      projectId: partnerProject._id,
+      level: 'output',
+      code: 'O2',
+      title: 'Households using improved latrines',
+      unit: 'households',
+      baseline: 20,
+      target: 150,
+      frequency: 'quarterly',
+    },
+  ]);
+
+  await Activity.insertMany([
+    {
+      organizationId: partnerOrg._id,
+      projectId: partnerProject._id,
+      indicatorId: partnerIndicators[0]._id,
+      title: 'Borehole drilling — Migori site 1',
+      activityDate: new Date('2025-03-05'),
+      location: 'Migori',
+      participants: 60,
+      quantity: 75,
+      geoPoint: { latitude: -1.0634, longitude: 34.4731 },
+    },
+  ]);
+  await Indicator.updateOne({ _id: partnerIndicators[0]._id }, { $set: { lastAchievedValue: 75 } });
+  await Indicator.updateOne({ _id: partnerIndicators[1]._id }, { $set: { lastAchievedValue: 38 } });
+
+  await OrgNetwork.create({
+    hubOrganizationId: org._id,
+    name: 'Lake Region WASH Consortium',
+    description: 'Coordinating water and sanitation programming across Lake Victoria counties.',
+    members: [
+      {
+        organizationId: partnerOrg._id,
+        role: 'implementing',
+        status: 'accepted',
+        invitedByUserId: user._id,
+        invitedAt: new Date('2025-01-10'),
+        acceptedAt: new Date('2025-01-12'),
+        label: 'Migori region',
+      },
+    ],
+  });
 
   console.log('\n✓ Seed complete\n');
   console.log('  Login at http://localhost:4200/login\n');
   console.log('  Email:    ', SEED_EMAIL);
   console.log('  Password: ', SEED_PASSWORD);
-  console.log('\n  Organisation: Lakeside Community Development Trust');
-  console.log('  Projects:     WASH & Sanitation Programme, Maternal Health Outreach');
+  console.log('\n  Organisation: Lakeside Community Development Trust (plan: scale)');
+  console.log('  Projects:     WASH & Sanitation Programme, Maternal Health Outreach, School Nutrition Initiative');
+  console.log('  Map:          GPS coordinates seeded on projects, activities, partners, and beneficiary groups (Kisumu/Homa Bay/Siaya, Kenya)');
+  console.log('  Feedback:     4 stakeholder feedback entries on the WASH project (Insights > Stakeholder Feedback)');
+  console.log('  Network:      "Lake Region WASH Consortium" — partner org "Nyanza Water Alliance" (Enterprise > Networks)');
   console.log('  (Re-run npm run seed to reset demo data)\n');
 
   await mongoose.disconnect();
