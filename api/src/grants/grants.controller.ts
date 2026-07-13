@@ -17,7 +17,7 @@ export class GrantsController {
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE)
   async create(@CurrentUser() user: any, @Body() createGrantDto: CreateGrantDto) {
-    return this.grantsService.create(user.organizationId, createGrantDto);
+    return this.grantsService.create(user.organizationId, createGrantDto, String(user.sub ?? user._id));
   }
 
   @Get()

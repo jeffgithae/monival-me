@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activity } from '../activities/schemas/activity.schema';
@@ -11,9 +11,10 @@ import { CreateReportingPeriodDto, UpdateReportingPeriodDto, UpsertIndicatorResu
 import { IndicatorResult } from './schemas/indicator-result.schema';
 import { IndicatorTarget } from './schemas/indicator-target.schema';
 import { ReportingPeriod } from './schemas/reporting-period.schema';
+import { WorkflowService } from '../workflows/workflows.service';
 
 @Injectable()
-export class ReportingService {
+export class ReportingService implements OnModuleInit {
   constructor(
     @InjectModel(ReportingPeriod.name) private readonly periodModel: Model<ReportingPeriod>,
     @InjectModel(IndicatorResult.name) private readonly resultModel: Model<IndicatorResult>,
@@ -23,7 +24,23 @@ export class ReportingService {
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly audit: AuditService,
+    private readonly workflowService: WorkflowService,
   ) {}
+
+  onModuleInit() {
+    // Route workflow decisions through transitionPeriod so approvedBy/At and
+    // result-status syncing behave exactly like a direct transition.
+    this.workflowService.registerOutcomeHandler('report', async (ctx) => {
+      await this.transitionPeriod(
+        ctx.organizationId,
+        ctx.entityId,
+        ctx.outcome === 'approved' ? 'approved' : 'open',
+        ctx.actorUserId,
+        ctx.comment,
+        { viaWorkflow: true },
+      );
+    });
+  }
 
   async createPeriod(organizationId: string, dto: CreateReportingPeriodDto) {
     await this.assertProject(organizationId, dto.projectId);
@@ -217,6 +234,16 @@ export class ReportingService {
 
       const periodTarget = targetMap.get(indicator._id.toString());
 
+      // Roll activity-level disaggregation (e.g. Sex/Female: 12) up to the
+      // period result so donor reports can show disaggregated achievement.
+      const disaggregations: Record<string, Record<string, number>> = {};
+      for (const a of linked) {
+        for (const d of (a as any).disaggregationData ?? []) {
+          const cat = (disaggregations[d.category] ??= {});
+          cat[d.value] = (cat[d.value] ?? 0) + (d.count ?? 0);
+        }
+      }
+
       const doc = {
         organizationId: orgId,
         projectId,
@@ -241,6 +268,7 @@ export class ReportingService {
         // result itself.
         activityCount: linked.length,
         sourceActivityIds: linked.map((a) => a._id),
+        disaggregations,
         status: 'draft',
       };
 
@@ -423,7 +451,13 @@ export class ReportingService {
     status: 'open' | 'submitted' | 'approved' | 'locked',
     userId: string,
     notes?: string,
+    opts?: { viaWorkflow?: boolean },
   ) {
+    // Approval must come through an active workflow when one governs this period.
+    if (status === 'approved' && !opts?.viaWorkflow) {
+      await this.workflowService.assertNoActiveWorkflow(organizationId, 'report', reportingPeriodId);
+    }
+
     const period = await this.periodModel.findOne({
       _id: reportingPeriodId,
       organizationId: new Types.ObjectId(organizationId),
@@ -486,6 +520,13 @@ export class ReportingService {
     const updated = await this.periodModel
       .findByIdAndUpdate(reportingPeriodId, update, { new: true })
       .lean();
+
+    // Submission kicks off the org's default report workflow, if configured.
+    if (status === 'submitted') {
+      this.workflowService.autoStartForEntity(
+        organizationId, 'report', reportingPeriodId, period.name, userId,
+      ).catch(() => {});
+    }
     await this.resultModel.updateMany(
       {
         organizationId: new Types.ObjectId(organizationId),

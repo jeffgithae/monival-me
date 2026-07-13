@@ -1,6 +1,6 @@
 import {
   Injectable, NotFoundException, BadRequestException,
-  ForbiddenException, Logger,
+  ForbiddenException, ConflictException, Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -20,6 +20,22 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { User } from '../users/schemas/user.schema';
+import {
+  WORKFLOW_ENTITY_REGISTRY, WORKFLOW_ENTITY_TYPES,
+} from './workflow-entity.registry';
+
+/**
+ * Feature services can register one of these to replace the generic
+ * status-field write-back with their own domain logic (linked-total syncing,
+ * webhooks, notifications). See ActivitiesService.onModuleInit.
+ */
+export type WorkflowOutcomeHandler = (ctx: {
+  organizationId: string;
+  entityId: string;
+  outcome: 'approved' | 'rejected';
+  actorUserId: string;
+  comment?: string;
+}) => Promise<void>;
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 // Re-exported alias for readability — JwtPayload already carries `_id` (added
@@ -47,6 +63,28 @@ export class WorkflowService {
     private readonly notifications: NotificationsService,
   ) {}
 
+  /** Domain-specific outcome appliers, keyed by entity type. */
+  private readonly outcomeHandlers = new Map<string, WorkflowOutcomeHandler>();
+
+  /**
+   * Let a feature service take over outcome application for its entity type
+   * (instead of the registry's generic status write-back). Registration is
+   * done by the feature module, so the dependency direction stays
+   * feature → workflows and no cycles are introduced.
+   */
+  registerOutcomeHandler(entityType: string, handler: WorkflowOutcomeHandler) {
+    this.outcomeHandlers.set(entityType, handler);
+  }
+
+  /** Entity types workflows can govern — consumed by the UI to build pickers. */
+  getEntityTypes() {
+    return WORKFLOW_ENTITY_TYPES.map((key) => ({
+      key,
+      label: WORKFLOW_ENTITY_REGISTRY[key].label,
+      hasOutcome: !!WORKFLOW_ENTITY_REGISTRY[key].outcome || this.outcomeHandlers.has(key),
+    }));
+  }
+
   /**
    * Resolve a display name for a user. The JWT payload only carries `email`,
    * never a `name` claim, so any audit/notification text that wants a human
@@ -55,6 +93,65 @@ export class WorkflowService {
   private async _resolveDisplayName(user: RequestUser): Promise<string> {
     const record = await this.userModel.findById(user.sub).select('name').lean();
     return record?.name ?? user.email;
+  }
+
+  /**
+   * Look up the governed entity through the registry. Returns null when the
+   * model isn't registered on this connection (shouldn't happen for registry
+   * entries, but degrade gracefully rather than 500).
+   */
+  private async _resolveEntity(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+  ): Promise<{ doc: Record<string, any>; title: string } | null> {
+    const cfg = WORKFLOW_ENTITY_REGISTRY[entityType];
+    if (!cfg) return null;
+    let model: Model<any>;
+    try {
+      model = this.instanceModel.db.model(cfg.modelName);
+    } catch {
+      this.logger.warn(`Workflow entity model not registered: ${cfg.modelName}`);
+      return null;
+    }
+    const doc = await model
+      .findOne({ _id: new Types.ObjectId(entityId), organizationId: new Types.ObjectId(organizationId) })
+      .lean() as Record<string, any> | null;
+    if (!doc) return null;
+    const title = cfg.titleFields.map((f) => doc[f]).find((v) => typeof v === 'string' && v.trim())
+      ?? `${cfg.label} ${entityId.slice(-6)}`;
+    return { doc, title };
+  }
+
+  /** True when a pending/in-review/escalated instance already governs the entity. */
+  async hasActiveWorkflow(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+  ): Promise<boolean> {
+    const count = await this.instanceModel.countDocuments({
+      organizationId: new Types.ObjectId(organizationId),
+      entityType,
+      entityId: new Types.ObjectId(entityId),
+      status: { $in: [WorkflowStatus.PENDING, WorkflowStatus.IN_REVIEW, WorkflowStatus.ESCALATED] },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Enforcement hook for direct-approval endpoints: while a workflow instance
+   * is active for an entity, its decision must come through the workflow.
+   */
+  async assertNoActiveWorkflow(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+  ): Promise<void> {
+    if (await this.hasActiveWorkflow(organizationId, entityType, entityId)) {
+      throw new ConflictException(
+        'This item is governed by an active approval workflow. Approve or reject it from the Workflows page instead.',
+      );
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -164,6 +261,22 @@ export class WorkflowService {
     if (!definition.isActive) {
       throw new BadRequestException('Workflow definition is inactive');
     }
+    if (definition.entityType !== dto.entityType) {
+      throw new BadRequestException(
+        `Definition "${definition.name}" is for ${definition.entityType} entities, not ${dto.entityType}`,
+      );
+    }
+
+    // The governed entity must actually exist in this organisation.
+    const entity = await this._resolveEntity(user.organizationId, dto.entityType, dto.entityId);
+    if (!entity) {
+      throw new NotFoundException(`No ${dto.entityType} found with id ${dto.entityId}`);
+    }
+
+    // One active workflow per entity — a second reviewer chain would race the first.
+    if (await this.hasActiveWorkflow(user.organizationId, dto.entityType, dto.entityId)) {
+      throw new ConflictException('This item already has an active workflow.');
+    }
 
     const sortedSteps = [...definition.steps].sort((a, b) => a.order - b.order);
     if (!sortedSteps.length) {
@@ -179,7 +292,7 @@ export class WorkflowService {
       definitionId: definition._id,
       entityType: dto.entityType,
       entityId: new Types.ObjectId(dto.entityId),
-      entityTitle: dto.entityTitle,
+      entityTitle: dto.entityTitle?.trim() || entity.title,
       initiatedBy: user._id,
       initiatedByName: displayName,
       status: WorkflowStatus.PENDING,
@@ -222,13 +335,12 @@ export class WorkflowService {
     if (!definition) return; // No default workflow configured — skip silently
 
     // Don't start a duplicate if one is already running for this entity
-    const existing = await this.instanceModel.findOne({
-      organizationId: new Types.ObjectId(organizationId),
-      entityId: new Types.ObjectId(entityId),
-      status: { $in: [WorkflowStatus.PENDING, WorkflowStatus.IN_REVIEW, WorkflowStatus.ESCALATED] },
-    }).lean() as WorkflowInstanceDocument | null;
+    if (await this.hasActiveWorkflow(organizationId, entityType, entityId)) return;
 
-    if (existing) return;
+    if (!entityTitle?.trim()) {
+      const entity = await this._resolveEntity(organizationId, entityType, entityId);
+      entityTitle = entity?.title ?? `${entityType} ${entityId.slice(-6)}`;
+    }
 
     const sortedSteps = [...definition.steps].sort((a, b) => a.order - b.order);
     if (!sortedSteps.length) return;
@@ -421,7 +533,59 @@ export class WorkflowService {
     }
 
     await instance.save();
+
+    // Terminal decision → write the outcome back to the governed entity so
+    // the workflow is actually followed, not just recorded.
+    if (instance.status === WorkflowStatus.APPROVED) {
+      await this._applyOutcome(instance, 'approved', user, dto.comment);
+    } else if (instance.status === WorkflowStatus.REJECTED) {
+      await this._applyOutcome(instance, 'rejected', user, dto.comment);
+    }
+
     return instance;
+  }
+
+  /**
+   * Propagate a finished workflow's decision to the underlying entity.
+   * A feature-registered handler wins; otherwise the registry's generic
+   * status write-back applies; types with neither just keep the instance as
+   * the record of decision. Failures are logged, never thrown — the workflow
+   * decision itself has already been persisted.
+   */
+  private async _applyOutcome(
+    instance: WorkflowInstanceDocument,
+    outcome: 'approved' | 'rejected',
+    user: RequestUser,
+    comment?: string,
+  ): Promise<void> {
+    try {
+      const handler = this.outcomeHandlers.get(instance.entityType);
+      if (handler) {
+        await handler({
+          organizationId: String(instance.organizationId),
+          entityId: String(instance.entityId),
+          outcome,
+          actorUserId: String(user._id ?? user.sub),
+          comment,
+        });
+        this.logger.log(`Workflow outcome applied via handler: ${instance.entityType}:${instance.entityId} → ${outcome}`);
+        return;
+      }
+
+      const cfg = WORKFLOW_ENTITY_REGISTRY[instance.entityType];
+      if (!cfg?.outcome) return;
+
+      const model = this.instanceModel.db.model(cfg.modelName);
+      await model.updateOne(
+        { _id: instance.entityId, organizationId: instance.organizationId },
+        { $set: { [cfg.outcome.statusField]: cfg.outcome[outcome] } },
+      );
+      this.logger.log(`Workflow outcome applied: ${instance.entityType}:${instance.entityId} → ${cfg.outcome[outcome]}`);
+    } catch (err) {
+      this.logger.error(
+        `Failed to apply workflow outcome for ${instance.entityType}:${instance.entityId}: ${err}`,
+      );
+    }
   }
 
   /** Returns pending tasks for the current user */
@@ -508,6 +672,7 @@ export class WorkflowService {
             organizationId: String(instance.organizationId),
             userId: String(escalateToUserId),
             type: 'workflow.escalated',
+            email: true,
             title: `Workflow Escalated: ${instance.entityTitle}`,
             message: `Step "${step.name}" has exceeded its ${step.escalateAfterHours}h SLA and requires your urgent attention.`,
             entityType: 'workflow',
@@ -569,6 +734,7 @@ export class WorkflowService {
       organizationId: String(instance.organizationId),
       userId: targetUserId,
       type: 'workflow.escalated',
+      email: true,
       title: `Escalated to you: ${instance.entityTitle}`,
       message: dto.comment ?? `${displayName} has escalated this for your review.`,
       entityType: 'workflow',
@@ -596,6 +762,7 @@ export class WorkflowService {
         entityType: 'workflow',
         entityId: String(instance._id),
         link,
+        email: true,
       });
     } else {
       await this._notifyRoleForStep(instance, step, title, message, organizationId);
@@ -619,6 +786,7 @@ export class WorkflowService {
         entityType: 'workflow',
         entityId: String(instance._id),
         link: `/workflows/${instance._id}`,
+        email: true,
       },
     );
   }
@@ -633,6 +801,7 @@ export class WorkflowService {
       organizationId: String(instance.organizationId),
       userId: String(instance.initiatedBy),
       type: `workflow.${outcome}`,
+      email: true,
       title: `${instance.entityTitle} ${isApproved ? 'Approved ✓' : 'Rejected ✗'}`,
       message: isApproved
         ? `Your submission has been fully approved through all ${instance.totalSteps} steps.`

@@ -8,8 +8,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { GrantsService } from './grants.service';
 import { GrantsController } from './grants.controller';
 
+import { WorkflowsModule } from '../workflows/workflows.module';
 @Module({
   imports: [
+    WorkflowsModule,
     AuditModule,
     NotificationsModule,
     MongooseModule.forFeature([

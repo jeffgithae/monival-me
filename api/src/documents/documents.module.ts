@@ -11,8 +11,10 @@ import { CloudStorageService } from './cloud-storage/cloud-storage.service';
 import { CloudStorageConnection, CloudStorageConnectionSchema } from './schemas/cloud-storage-connection.schema';
 import { OrgCloudCredentials, OrgCloudCredentialsSchema } from './schemas/org-cloud-credentials.schema';
 
+import { WorkflowsModule } from '../workflows/workflows.module';
 @Module({
   imports: [
+    WorkflowsModule,
     NotificationsModule,
     MongooseModule.forFeature([
       { name: Document.name,               schema: DocumentSchema },

@@ -5,6 +5,7 @@ import { AuditModule } from '../audit/audit.module';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { WorkflowsModule } from '../workflows/workflows.module';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { ReportingController } from './reporting.controller';
@@ -18,6 +19,7 @@ import { ReportingPeriod, ReportingPeriodSchema } from './schemas/reporting-peri
   imports: [
     OrganizationsModule,
     AuditModule,
+    WorkflowsModule,
     MongooseModule.forFeature([
       { name: ReportingPeriod.name, schema: ReportingPeriodSchema },
       { name: IndicatorResult.name, schema: IndicatorResultSchema },

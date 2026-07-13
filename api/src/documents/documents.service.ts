@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { OrgRole } from '../common/constants/roles';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WorkflowService } from '../workflows/workflows.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { CreateDocumentVersionDto } from './dto/create-document-version.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
@@ -18,6 +19,7 @@ export class DocumentsService {
     @InjectModel(DocumentVersion.name) private readonly versionModel: Model<DocumentVersion>,
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     private readonly notificationsService: NotificationsService,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   async findDocuments(
@@ -81,6 +83,11 @@ export class DocumentsService {
       },
       userId,
     );
+
+    // Uploads kick off the org's default document workflow, if configured.
+    this.workflowService.autoStartForEntity(
+      organizationId, 'document', document._id.toString(), dto.title, userId,
+    ).catch(() => {});
 
     return document;
   }

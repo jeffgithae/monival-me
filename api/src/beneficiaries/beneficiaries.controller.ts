@@ -68,7 +68,7 @@ export class BeneficiariesController {
   @Roles(...PERMISSIONS.MANAGE_BENEFICIARIES)
   @ApiOperation({ summary: 'Register a new beneficiary' })
   create(@CurrentUser() user: JwtPayload, @Body() body: CreateBeneficiaryDto) {
-    return this.svc.create(user.organizationId, body);
+    return this.svc.create(user.organizationId, body, user.sub);
   }
 
   @Patch(':id')

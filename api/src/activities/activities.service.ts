@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -34,7 +34,7 @@ export interface ActivityListQuery {
 }
 
 @Injectable()
-export class ActivitiesService {
+export class ActivitiesService implements OnModuleInit {
   constructor(
     @InjectModel(Activity.name)         private readonly activityModel: Model<Activity>,
     @InjectModel(ActivityTemplate.name) private readonly templateModel: Model<ActivityTemplate>,
@@ -48,6 +48,22 @@ export class ActivitiesService {
     private readonly webhooksService: WebhooksService,
     private readonly workflowService: WorkflowService,
   ) {}
+
+  onModuleInit() {
+    // When an activity workflow reaches a terminal decision, route it through
+    // review() so indicator/grant totals, webhooks, and notifications all fire
+    // exactly as they do for a direct review.
+    this.workflowService.registerOutcomeHandler('activity', async (ctx) => {
+      await this.review(
+        ctx.organizationId,
+        ctx.entityId,
+        ctx.actorUserId,
+        ctx.outcome,
+        ctx.outcome === 'rejected' ? ctx.comment : undefined,
+        { viaWorkflow: true },
+      );
+    });
+  }
 
   // ─── Validation ────────────────────────────────────────────────────────────
 
@@ -449,7 +465,14 @@ export class ActivitiesService {
     reviewerId: string,
     status: 'approved' | 'rejected',
     rejectionReason?: string,
+    opts?: { viaWorkflow?: boolean },
   ) {
+    // While an approval workflow governs this activity, the decision must be
+    // made there — a direct review would silently bypass the reviewer chain.
+    if (!opts?.viaWorkflow) {
+      await this.workflowService.assertNoActiveWorkflow(organizationId, 'activity', id);
+    }
+
     const activity = await this.activityModel
       .findOneAndUpdate(
         { _id: id, organizationId: new Types.ObjectId(organizationId) },

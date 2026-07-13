@@ -110,6 +110,13 @@ export class WorkflowsController {
     return this.svc.getSummary(user.organizationId);
   }
 
+  @Get('entity-types')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
+  @ApiOperation({ summary: 'Entity types workflows can govern (drives the UI pickers)' })
+  getEntityTypes() {
+    return this.svc.getEntityTypes();
+  }
+
   @Get('instances/:id')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Get a workflow instance with full approval history' })

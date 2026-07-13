@@ -5,8 +5,10 @@ import { Beneficiary, BeneficiarySchema } from './schemas/beneficiary.schema';
 import { BeneficiariesController } from './beneficiaries.controller';
 import { BeneficiariesService } from './beneficiaries.service';
 
+import { WorkflowsModule } from '../workflows/workflows.module';
 @Module({
   imports: [
+    WorkflowsModule,
     AuditModule,MongooseModule.forFeature([{ name: Beneficiary.name, schema: BeneficiarySchema }])],
   controllers: [BeneficiariesController],
   providers: [BeneficiariesService],

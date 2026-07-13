@@ -1,17 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, SchemaTypes } from 'mongoose';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export enum WorkflowEntityType {
-  ACTIVITY   = 'activity',
-  REPORT     = 'report',
-  GRANT      = 'grant',
-  BUDGET     = 'budget',
-  DOCUMENT   = 'document',
-  BENEFICIARY = 'beneficiary',
-  INDICATOR_RESULT = 'indicator_result',
-}
+// Entity types are governed by the registry (workflow-entity.registry.ts) —
+// stored as plain strings so new registry entries need no schema change.
+export type { WorkflowEntityType } from '../workflow-entity.registry';
+import type { WorkflowEntityType } from '../workflow-entity.registry';
 
 export enum ApprovalAction {
   APPROVE  = 'approve',
@@ -39,9 +34,9 @@ export class WorkflowStepDefinition {
   @Prop({ required: true }) name!: string;            // e.g. "Supervisor Review"
   @Prop() description?: string;
   @Prop({ required: true }) approverRole!: string;    // OrgRole value
-  @Prop({ type: Types.ObjectId }) approverUserId?: Types.ObjectId; // Specific user override
+  @Prop({ type: SchemaTypes.ObjectId }) approverUserId?: Types.ObjectId; // Specific user override
   @Prop({ default: 72 })       escalateAfterHours!: number; // Auto-escalate SLA
-  @Prop({ type: Types.ObjectId }) escalateTo?: Types.ObjectId;    // User to escalate to
+  @Prop({ type: SchemaTypes.ObjectId }) escalateTo?: Types.ObjectId;    // User to escalate to
   @Prop({ default: false })    requiresComment!: boolean;
   @Prop({ default: false })    isOptional!: boolean;
 }
@@ -51,12 +46,12 @@ export class ApprovalEvent {
   @Prop({ required: true })                                  stepOrder!: number;
   @Prop({ required: true })                                  stepName!: string;
   @Prop({ required: true, enum: ApprovalAction })            action!: ApprovalAction;
-  @Prop({ required: true, type: Types.ObjectId })            actorUserId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId })            actorUserId!: Types.ObjectId;
   @Prop({ required: true })                                  actorName!: string;
   @Prop({ required: true })                                  actorRole!: string;
   @Prop()                                                    comment?: string;
   @Prop({ required: true, default: () => new Date() })       createdAt!: Date;
-  @Prop({ type: Types.ObjectId })                            delegatedFrom?: Types.ObjectId; // if escalated
+  @Prop({ type: SchemaTypes.ObjectId })                            delegatedFrom?: Types.ObjectId; // if escalated
 }
 
 // ─── WorkflowDefinition ───────────────────────────────────────────────────────
@@ -66,15 +61,15 @@ export type WorkflowDefinitionDocument = WorkflowDefinition & Document;
 
 @Schema({ timestamps: true, collection: 'workflow_definitions' })
 export class WorkflowDefinition {
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
   @Prop({ required: true })                       name!: string;
   @Prop()                                         description?: string;
-  @Prop({ required: true, enum: WorkflowEntityType }) entityType!: WorkflowEntityType;
+  @Prop({ required: true, type: String })         entityType!: WorkflowEntityType;
   @Prop({ type: [WorkflowStepDefinition], default: [] }) steps!: WorkflowStepDefinition[];
   @Prop({ default: true })                        isActive!: boolean;
   @Prop({ default: false })                       isDefault!: boolean;  // auto-assign to new entities
-  @Prop({ type: Types.ObjectId })                 createdBy!: Types.ObjectId;
-  @Prop({ type: Types.ObjectId })                 lastModifiedBy?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId })                 createdBy!: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId })                 lastModifiedBy?: Types.ObjectId;
 }
 
 export const WorkflowDefinitionSchema = SchemaFactory.createForClass(WorkflowDefinition);
@@ -88,12 +83,12 @@ export type WorkflowInstanceDocument = WorkflowInstance & Document;
 
 @Schema({ timestamps: true, collection: 'workflow_instances' })
 export class WorkflowInstance {
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
-  @Prop({ required: true, type: Types.ObjectId }) definitionId!: Types.ObjectId;
-  @Prop({ required: true, enum: WorkflowEntityType }) entityType!: WorkflowEntityType;
-  @Prop({ required: true, type: Types.ObjectId }) entityId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) definitionId!: Types.ObjectId;
+  @Prop({ required: true, type: String })         entityType!: WorkflowEntityType;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) entityId!: Types.ObjectId;
   @Prop({ required: true })                       entityTitle!: string;
-  @Prop({ required: true, type: Types.ObjectId }) initiatedBy!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) initiatedBy!: Types.ObjectId;
   @Prop()                                         initiatedByName?: string;
 
   @Prop({ required: true, enum: WorkflowStatus, default: WorkflowStatus.PENDING })
@@ -110,7 +105,7 @@ export class WorkflowInstance {
 
   // Escalation tracking
   @Prop()                                          escalatedAt?: Date;
-  @Prop({ type: Types.ObjectId })                  escalatedTo?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId })                  escalatedTo?: Types.ObjectId;
   @Prop()                                          escalationReason?: string;
 
   // SLA deadline for current step

@@ -12,6 +12,7 @@ import { BudgetAllocation, BudgetAllocationSchema, BudgetLineItem, BudgetLineIte
 //   BudgetAuditEvent, BudgetAuditEventSchema,
 // } from './schemas/budget.schema';
 
+import { WorkflowsModule } from '../workflows/workflows.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -20,6 +21,7 @@ import { BudgetAllocation, BudgetAllocationSchema, BudgetLineItem, BudgetLineIte
       { name: BudgetVariance.name, schema: BudgetVarianceSchema },
       { name: BudgetAuditEvent.name, schema: BudgetAuditEventSchema },
     ]),
+    WorkflowsModule,
   ],
   controllers: [BudgetController],
   providers: [BudgetService],

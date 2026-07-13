@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { WorkflowService } from '../workflows/workflows.service';
 import { Beneficiary } from './schemas/beneficiary.schema';
 import { CreateBeneficiaryDto, ProgramEnrollmentDto, ServiceRecordDto } from './dto/create-beneficiary.dto';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
@@ -23,6 +24,7 @@ export interface BeneficiaryListQuery {
 export class BeneficiariesService {
   constructor(
     @InjectModel(Beneficiary.name) private readonly model: Model<Beneficiary>,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   // ─── List ──────────────────────────────────────────────────────────────────
@@ -146,7 +148,7 @@ export class BeneficiariesService {
 
   // ─── Create ────────────────────────────────────────────────────────────────
 
-  async create(organizationId: string, dto: CreateBeneficiaryDto) {
+  async create(organizationId: string, dto: CreateBeneficiaryDto, userId?: string) {
     // Auto-compute age group from DOB if not supplied
     let ageGroup = dto.ageGroup;
     if (!ageGroup && dto.dateOfBirth) {
@@ -159,7 +161,7 @@ export class BeneficiariesService {
     // Auto-generate caseId if not supplied
     const caseId = dto.caseId || `BEN-${Date.now().toString(36).toUpperCase()}`;
 
-    return this.model.create({
+    const beneficiary = await this.model.create({
       organizationId:           new Types.ObjectId(organizationId),
       registrationType:         dto.registrationType ?? 'individual',
       name:                     dto.name,
@@ -216,6 +218,15 @@ export class BeneficiariesService {
       customFields:     dto.customFields ?? {},
       tags:             dto.tags ?? [],
     });
+
+    // New registrations kick off the org's default beneficiary workflow, if configured.
+    if (userId) {
+      this.workflowService.autoStartForEntity(
+        organizationId, 'beneficiary', beneficiary._id.toString(), beneficiary.name ?? beneficiary.caseId, userId,
+      ).catch(() => {});
+    }
+
+    return beneficiary;
   }
 
   // ─── Update ────────────────────────────────────────────────────────────────

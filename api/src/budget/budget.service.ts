@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { WorkflowService } from '../workflows/workflows.service';
 
 import {
   BudgetAllocation, BudgetAllocationDocument,
@@ -72,6 +73,7 @@ export class BudgetService {
 
     @InjectModel(BudgetAuditEvent.name)
     private auditModel: Model<BudgetAuditEventDocument>,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -174,6 +176,13 @@ export class BudgetService {
     await allocation.save();
 
     await this._auditLog(user, 'UPDATE_ALLOCATION', 'BudgetAllocation', allocation._id as Types.ObjectId, before, allocation.toObject());
+
+    // Moving into 'submitted' kicks off the org's default budget workflow, if configured.
+    if (before.status !== BudgetStatus.SUBMITTED && allocation.status === BudgetStatus.SUBMITTED) {
+      this.workflowService.autoStartForEntity(
+        String(user.organizationId), 'budget', String(allocation._id), allocation.name, String(user._id),
+      ).catch(() => {});
+    }
     return allocation;
   }
 
@@ -187,6 +196,11 @@ export class BudgetService {
     if (allocation.status !== BudgetStatus.DRAFT && allocation.status !== BudgetStatus.SUBMITTED) {
       throw new BadRequestException(`Cannot approve a budget in status: ${allocation.status}`);
     }
+
+    // While a budget workflow is active, approval must come through it.
+    await this.workflowService.assertNoActiveWorkflow(
+      String(user.organizationId), 'budget', String(allocation._id),
+    );
 
     allocation.status = BudgetStatus.APPROVED;
     allocation.approvedBy = new Types.ObjectId(dto.approverUserId);

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { WorkflowService } from '../workflows/workflows.service';
 import { Grant, GrantDocument } from './schemas/grant.schema';
 import { CreateGrantDto } from './dto/create-grant.dto';
 import { UpdateGrantDto } from './dto/update-grant.dto';
@@ -18,6 +19,7 @@ export class GrantsService {
     @InjectModel(Project.name) private projectModel: Model<Project>,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   private async assertReferences(organizationId: string, donorId?: string, linkedProjects?: string[]) {
@@ -42,7 +44,7 @@ export class GrantsService {
     }
   }
 
-  async create(organizationId: string, createGrantDto: CreateGrantDto): Promise<GrantDocument> {
+  async create(organizationId: string, createGrantDto: CreateGrantDto, userId?: string): Promise<GrantDocument> {
     await this.assertReferences(organizationId, createGrantDto.donorId, createGrantDto.linkedProjects);
     const grant = new this.grantModel({
       ...createGrantDto,
@@ -64,6 +66,13 @@ export class GrantsService {
         link: `/grants/${saved._id}`,
       },
     );
+
+    // New grants kick off the org's default grant workflow, if configured.
+    if (userId) {
+      this.workflowService.autoStartForEntity(
+        organizationId, 'grant', saved._id.toString(), saved.name, userId,
+      ).catch(() => {});
+    }
 
     return saved;
   }

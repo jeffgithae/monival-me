@@ -1,7 +1,7 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested, IsMongoId, Min, Max } from 'class-validator';
+import { IsString, IsEnum, IsIn, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested, IsMongoId, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkflowEntityType } from '../schemas/workflow.schema';
+import { WORKFLOW_ENTITY_TYPES, WorkflowEntityType } from '../workflow-entity.registry';
 
 export class WorkflowStepDto {
   @ApiProperty({ description: '1-based step order', example: 1 })
@@ -59,8 +59,8 @@ export class CreateWorkflowDefinitionDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ enum: WorkflowEntityType })
-  @IsEnum(WorkflowEntityType)
+  @ApiProperty({ enum: WORKFLOW_ENTITY_TYPES })
+  @IsIn(WORKFLOW_ENTITY_TYPES)
   entityType!: WorkflowEntityType;
 
   @ApiProperty({ type: [WorkflowStepDto] })
@@ -109,17 +109,18 @@ export class StartWorkflowDto {
   @IsMongoId()
   definitionId!: string;
 
-  @ApiProperty({ enum: WorkflowEntityType })
-  @IsEnum(WorkflowEntityType)
+  @ApiProperty({ enum: WORKFLOW_ENTITY_TYPES })
+  @IsIn(WORKFLOW_ENTITY_TYPES)
   entityType!: WorkflowEntityType;
 
   @ApiProperty({ description: 'MongoDB ID of the entity being submitted' })
   @IsMongoId()
   entityId!: string;
 
-  @ApiProperty({ description: 'Human-readable title for notifications' })
+  @ApiPropertyOptional({ description: 'Human-readable title for notifications (auto-resolved from the entity when omitted)' })
+  @IsOptional()
   @IsString()
-  entityTitle!: string;
+  entityTitle?: string;
 }
 
 export class ActOnWorkflowDto {
@@ -139,9 +140,9 @@ export class ActOnWorkflowDto {
 }
 
 export class WorkflowQueryDto {
-  @ApiPropertyOptional({ enum: WorkflowEntityType })
+  @ApiPropertyOptional({ enum: WORKFLOW_ENTITY_TYPES })
   @IsOptional()
-  @IsEnum(WorkflowEntityType)
+  @IsIn(WORKFLOW_ENTITY_TYPES)
   entityType?: WorkflowEntityType;
 
   @ApiPropertyOptional()
