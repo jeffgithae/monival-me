@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -25,8 +25,10 @@ import { MailerService } from '../mailer/mailer.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-/** How long the short-lived access token lives */
-const ACCESS_TOKEN_TTL = '15m';
+/** Access-token lifetime fallback when JWT_EXPIRES_IN is unset — see buildAuthResponse. */
+const ACCESS_TOKEN_TTL = '8h';
+/** How long a rotated-out refresh token stays valid for racing tabs/reloads. */
+const REFRESH_ROTATION_GRACE_MS = 60_000;
 /** How long the opaque refresh token is valid (stored as bcrypt hash on user) */
 const REFRESH_TOKEN_TTL_DAYS = 30;
 
@@ -240,7 +242,7 @@ export class AuthService {
     );
 
     const appUrl = this.configService.get('FRONTEND_URL', 'http://localhost:4200');
-    const resetUrl = `${appUrl}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
     
     const body = this.mailer.passwordResetEmail({ name: user.name, resetUrl });
     await this.mailer.send({
@@ -273,6 +275,8 @@ export class AuthService {
     user.resetPasswordExpires = null;
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     user.refreshTokenHash = null; // invalidate all refresh sessions
+    user.prevRefreshTokenHash = null;
+    user.prevRefreshTokenGraceUntil = null;
     await user.save();
 
     const body = this.mailer.passwordResetSuccessEmail({ name: user.name });
@@ -362,13 +366,17 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token required.');
     }
 
-    // Hash the incoming token and look up the user
+    // Hash the incoming token and look up the user. Accept either the current
+    // token or the one rotated out within the grace window (racing tabs).
     const hash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
 
-    // We stored bcrypt of the raw token; compare against all candidates
-    // Instead, store a SHA-256 hex (fast, deterministic) — see buildAuthResponse
     const user = await this.userModel
-      .findOne({ refreshTokenHash: hash })
+      .findOne({
+        $or: [
+          { refreshTokenHash: hash },
+          { prevRefreshTokenHash: hash, prevRefreshTokenGraceUntil: { $gt: new Date() } },
+        ],
+      })
       .select('+refreshTokenHash');
 
     if (!user || !user.refreshTokenHash) {
@@ -404,7 +412,10 @@ export class AuthService {
   }
 
   async revokeRefreshToken(userId: string) {
-    await this.userModel.updateOne({ _id: userId }, { refreshTokenHash: null });
+    await this.userModel.updateOne(
+      { _id: userId },
+      { refreshTokenHash: null, prevRefreshTokenHash: null, prevRefreshTokenGraceUntil: null },
+    );
     return { success: true };
   }
 
@@ -415,22 +426,26 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-    const member = await this.memberModel
-      .findOne({
-        userId: user._id,
-        organizationId: user.organizationId,
-        status: 'active',
-      })
-      .lean();
-    const org = await this.orgModel.findById(user.organizationId).lean();
+    // A user between register step 1 and workspace creation has no org yet —
+    // return a partial profile instead of crashing on the missing fields.
+    const member = user.organizationId
+      ? await this.memberModel
+          .findOne({
+            userId: user._id,
+            organizationId: user.organizationId,
+            status: 'active',
+          })
+          .lean()
+      : null;
+    const org = user.organizationId ? await this.orgModel.findById(user.organizationId).lean() : null;
     const orgView = org ? await this.organizationsService.findById(org._id.toString()) : null;
 
     return {
       id: user._id.toString(),
       email: user.email,
       name: user.name,
-      organizationId: user.organizationId.toString(),
-      role: member?.role ?? OrgRole.OWNER,
+      organizationId: user.organizationId?.toString() ?? null,
+      role: member?.role ?? (user.organizationId ? OrgRole.OWNER : null),
       memberId: member?._id.toString(),
       organization: orgView,
     };
@@ -453,6 +468,8 @@ export class AuthService {
     user.passwordHash = await bcrypt.hash(newPassword, 10);
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     user.refreshTokenHash = null; // invalidate all refresh sessions
+    user.prevRefreshTokenHash = null;
+    user.prevRefreshTokenGraceUntil = null;
     await user.save();
     return { success: true };
   }
@@ -473,20 +490,34 @@ export class AuthService {
       tokenVersion: user.tokenVersion ?? 0,
     };
 
-    // Short-lived access token
     const accessToken = this.jwtService.sign(payload, {
       secret: jwtSecret,
-      expiresIn: ACCESS_TOKEN_TTL,
+      expiresIn: this.configService.get<string>(
+        'JWT_EXPIRES_IN',
+        ACCESS_TOKEN_TTL,
+      ) as JwtSignOptions['expiresIn'],
     });
 
     // Generate a cryptographically random opaque refresh token
     const rawRefreshToken = crypto.randomBytes(40).toString('hex');
     const refreshHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
 
-    // Store SHA-256 hash (not bcrypt — deterministic lookup needed)
+    // Store SHA-256 hash (not bcrypt — deterministic lookup needed). Keep the
+    // previous hash valid for a short grace window so a concurrent tab that
+    // raced this rotation can still refresh instead of being logged out.
+    const current = await this.userModel
+      .findById(user._id)
+      .select('+refreshTokenHash')
+      .lean();
     await this.userModel.updateOne(
       { _id: user._id },
-      { refreshTokenHash: refreshHash },
+      {
+        refreshTokenHash: refreshHash,
+        prevRefreshTokenHash: current?.refreshTokenHash ?? null,
+        prevRefreshTokenGraceUntil: current?.refreshTokenHash
+          ? new Date(Date.now() + REFRESH_ROTATION_GRACE_MS)
+          : null,
+      },
     );
 
     const expiresAt = new Date();

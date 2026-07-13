@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -22,7 +22,7 @@ export class User {
   @Prop({ required: true, trim: true })
   name!: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: false })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: false })
   organizationId!: Types.ObjectId;
 
   /**
@@ -33,9 +33,20 @@ export class User {
   @Prop({ default: 0 })
   tokenVersion!: number;
 
-  /** bcrypt hash of the most recent refresh token. Null = no active refresh session. */
+  /** SHA-256 hash of the most recent refresh token. Null = no active refresh session. */
   @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
+
+  /**
+   * Hash of the refresh token that was just rotated out. Honoured for a short
+   * grace window so a concurrent tab/reload that raced the rotation isn't
+   * logged out when it presents the previous token.
+   */
+  @Prop({ type: String, default: null, select: false })
+  prevRefreshTokenHash?: string | null;
+
+  @Prop({ type: Date, default: null, select: false })
+  prevRefreshTokenGraceUntil?: Date | null;
 
   // ── Password Reset ─────────────────────────────────────────────────────────
 
@@ -62,4 +73,3 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ organizationId: 1 });
-UserSchema.index({ email: 1 }, { unique: true });
