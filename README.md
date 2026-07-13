@@ -26,7 +26,7 @@ Multi-tenant M&E SaaS for nonprofits: logframe indicators, field activities, don
 ### Billing (self-service)
 
 - **14-day free trial** on signup (no card)
-- **Starter** ($99/mo), **Growth** ($299/mo), and **Organization** ($699/mo)
+- **Starter** ($79/mo), **Growth** ($199/mo), **Organization** ($499/mo), and **Scale** ($999/mo)
 - **Stripe Checkout** + Customer Portal (or **mock mode** when `BILLING_MOCK=true`)
 - Plan limits on projects, users, and indicators
 
@@ -49,7 +49,7 @@ cd web && npm install && npm start
 cd api && npm run seed
 ```
 
-| Email | `demo@evidara .test` |
+| Email | `demo@evidara.test` |
 | Password | `Demo1234!` |
 
 ## Stripe setup (production)
@@ -79,7 +79,7 @@ cd api && npm run seed
 ## Project layout
 
 ```
-evidara -me/
+evidara-me/
 ├── api/          NestJS + Mongoose + Stripe
 ├── web/          Angular 19
 └── docker-compose.yml

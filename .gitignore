@@ -8,3 +8,4 @@ coverage/
 .angular/
 tsconfig.build.tsbuildinfo
 tsconfig.tsbuildinfo
+.claude/

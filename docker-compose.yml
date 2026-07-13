@@ -4,7 +4,7 @@ services:
     ports:
       - '27017:27017'
     volumes:
-      - evidara _mongo_data:/data/db
+      - evidara_mongo_data:/data/db
 
 volumes:
-  evidara _mongo_data:
+  evidara_mongo_data:
