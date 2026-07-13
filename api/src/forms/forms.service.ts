@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { WorkflowService } from '../workflows/workflows.service';
 import { CreateFormResponseDto } from './dto/create-form-response.dto';
 import { CreateFormTemplateDto } from './dto/create-form-template.dto';
 import { UpdateFormTemplateDto } from './dto/update-form-template.dto';
@@ -18,6 +19,7 @@ export class FormsService {
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
+    private readonly workflowService: WorkflowService,
   ) {}
 
   findTemplates(organizationId: string, projectId?: string) {
@@ -123,7 +125,7 @@ export class FormsService {
 
     this.validateResponse(template, dto.answers ?? {});
 
-    return this.responseModel.create({
+    const response = await this.responseModel.create({
       organizationId: new Types.ObjectId(organizationId),
       projectId: new Types.ObjectId(dto.projectId),
       templateId: new Types.ObjectId(dto.templateId),
@@ -134,6 +136,19 @@ export class FormsService {
       answers: dto.answers ?? {},
       status: dto.status ?? 'submitted',
     });
+
+    // Submitted responses kick off the org's default form-response workflow, if configured.
+    if (submittedByUserId && (dto.status ?? 'submitted') === 'submitted') {
+      this.workflowService.autoStartForEntity(
+        organizationId,
+        'form_response',
+        String(response._id),
+        `${template.name ?? 'Form'} response`,
+        submittedByUserId,
+      ).catch(() => {});
+    }
+
+    return response;
   }
 
   // ─── Offline sync ───────────────────────────────────────────────────────────

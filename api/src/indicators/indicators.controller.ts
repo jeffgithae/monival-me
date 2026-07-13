@@ -52,6 +52,13 @@ export class IndicatorsController {
     return this.indicatorsService.findOne(user.organizationId, id);
   }
 
+  /** Full performance picture: totals, monthly + per-period trend, disaggregation, annual targets. */
+  @Get(':id/performance')
+  @Roles(...PERMISSIONS.VIEW_REPORTS)
+  performance(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.indicatorsService.performance(user.organizationId, id);
+  }
+
   @Post()
   @Roles(...PERMISSIONS.MANAGE_INDICATORS)
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateIndicatorDto) {

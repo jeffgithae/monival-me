@@ -98,12 +98,14 @@ export class NavService {
       items.push({ id: 'ai', label: 'AI Copilot', icon: '✨', route: '/ai' });
       items.push({ id: 'donor-reports', label: 'Donor Reports', icon: '📄', route: '/reports/donor' });
       items.push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' });
+      items.push({ id: 'stories', label: 'Impact Stories', icon: '📖', route: '/stories' });
       items.push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' });
     } else if (atLeast(OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
       if (!items.find(i => i.id === 'reporting')) {
         items.push({ id: 'reporting', label: 'Reporting Periods', icon: '📋', route: '/reporting', section: reportingSection });
       }
       items.push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' });
+      items.push({ id: 'stories', label: 'Impact Stories', icon: '📖', route: '/stories' });
       items.push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' });
     }
 

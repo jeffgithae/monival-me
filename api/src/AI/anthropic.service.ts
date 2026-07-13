@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -112,9 +112,9 @@ export class AnthropicService implements OnModuleInit {
 
   private assertConfigured() {
     if (this.backend === 'none') {
-      throw new Error(
-        'AI Copilot is not configured. Set GROQ_API_KEY in Railway variables. ' +
-        'Get a free key at https://console.groq.com',
+      throw new ServiceUnavailableException(
+        'AI Copilot is not configured on this server. Set ANTHROPIC_API_KEY or GROQ_API_KEY ' +
+        '(free key at https://console.groq.com).',
       );
     }
   }

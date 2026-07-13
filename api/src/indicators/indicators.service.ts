@@ -7,6 +7,7 @@ import { Activity } from '../activities/schemas/activity.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { IndicatorResult } from '../reporting/schemas/indicator-result.schema';
 import { IndicatorTarget } from '../reporting/schemas/indicator-target.schema';
+import { ReportingPeriod } from '../reporting/schemas/reporting-period.schema';
 import { CreateIndicatorDto } from './dto/create-indicator.dto';
 import { UpdateIndicatorDto } from './dto/update-indicator.dto';
 import { Indicator } from './schemas/indicator.schema';
@@ -32,6 +33,7 @@ export class IndicatorsService {
     @InjectModel(Activity.name)  private readonly activityModel: Model<Activity>,
     @InjectModel(IndicatorResult.name) private readonly resultModel: Model<IndicatorResult>,
     @InjectModel(IndicatorTarget.name) private readonly targetModel: Model<IndicatorTarget>,
+    @InjectModel(ReportingPeriod.name) private readonly periodModel: Model<ReportingPeriod>,
     private readonly entitlements: EntitlementsService,
     private readonly audit: AuditService,
   ) {}
@@ -133,6 +135,38 @@ export class IndicatorsService {
         pct: at.target > 0 ? Math.min(100, Math.round((yearAchieved / at.target) * 100)) : 0 };
     });
 
+    // Per-reporting-period series: achieved (from calculated/manual results)
+    // vs target for each period — the donor-facing progress trajectory.
+    const results = await this.resultModel
+      .find({ organizationId: orgId, indicatorId: new Types.ObjectId(id) })
+      .lean();
+    const targets = await this.targetModel
+      .find({ organizationId: orgId, indicatorId: new Types.ObjectId(id) })
+      .lean();
+    const targetByPeriod = new Map(targets.map((t) => [t.reportingPeriodId.toString(), t]));
+    const periodIds = [...new Set(results.map((r) => r.reportingPeriodId.toString()))];
+    const periods = await this.periodModel
+      .find({ _id: { $in: periodIds.map((pid) => new Types.ObjectId(pid)) } })
+      .lean();
+    const periodMap = new Map(periods.map((per) => [per._id.toString(), per]));
+    const periodSeries = results
+      .map((r) => {
+        const period = periodMap.get(r.reportingPeriodId.toString());
+        const periodTarget = targetByPeriod.get(r.reportingPeriodId.toString());
+        return period ? {
+          periodId: period._id.toString(),
+          periodName: period.name,
+          startDate: period.startDate,
+          endDate: period.endDate,
+          periodStatus: period.status,
+          achieved: r.achieved ?? 0,
+          target: periodTarget?.target ?? indicator.target,
+          source: (r as any).source,
+        } : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x)
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
     return {
       indicator,
       achieved,
@@ -142,6 +176,7 @@ export class IndicatorsService {
       activityCount: activities.length,
       trend,
       periodTrend,
+      periodSeries,
       disaggSummary,
       annualProgress,
       lastActivity: activities[activities.length - 1] ?? null,

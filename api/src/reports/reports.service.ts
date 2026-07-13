@@ -86,6 +86,20 @@ export class ReportsService {
         const lockedResult = periodResultMap.get(indicator._id.toString());
         const periodTarget = periodTargetMap.get(indicator._id.toString());
         const achieved = lockedResult?.achieved ?? linked.reduce((sum, a) => sum + (a.quantity ?? 0), 0);
+
+        // Disaggregated achievement: prefer the period result's stored
+        // breakdown, else aggregate straight from the linked activities.
+        let disaggregations = lockedResult?.disaggregations as Record<string, Record<string, number>> | undefined;
+        if (!disaggregations || Object.keys(disaggregations).length === 0) {
+          const agg: Record<string, Record<string, number>> = {};
+          for (const a of linked) {
+            for (const d of (a as any).disaggregationData ?? []) {
+              const cat = (agg[d.category] ??= {});
+              cat[d.value] = (cat[d.value] ?? 0) + (d.count ?? 0);
+            }
+          }
+          disaggregations = Object.keys(agg).length > 0 ? agg : undefined;
+        }
         const target = periodTarget?.target ?? indicator.target;
         const baseline = periodTarget?.baseline ?? indicator.baseline ?? 0;
         const percent =
@@ -107,7 +121,8 @@ export class ReportsService {
           activityCount: lockedResult?.activityCount ?? linked.length,
           status: lockedResult?.status ?? 'calculated',
           narrative: lockedResult?.narrative,
-          disaggregations: lockedResult?.disaggregations,
+          disaggregations,
+          meansOfVerification: (indicator as any).meansOfVerification,
         };
       }),
     );

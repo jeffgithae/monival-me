@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model, Types } from 'mongoose';
 import { ExternalIntegration, IntegrationPlatform } from './schemas/external-integration.schema';
 import { FormResponse } from './schemas/form-response.schema';
@@ -24,6 +25,42 @@ export class IntegrationsService {
     @InjectModel(FormTemplate.name)
     private readonly templateModel: Model<FormTemplate>,
   ) {}
+
+  // ── Scheduled auto-sync ─────────────────────────────────────────────────────
+  // Integrations declare a `syncIntervalMinutes`; until now nothing honoured
+  // it and every pull was manual. This cron sweeps due integrations and syncs
+  // them with the same code path as a manual trigger.
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async autoSyncDueIntegrations() {
+    const pullPlatforms = ['kobo', 'odk', 'ona', 'commcare'] as const;
+    const due = await this.integrationModel.find({
+      isActive: true,
+      platform: { $in: pullPlatforms },
+      syncIntervalMinutes: { $gt: 0 },
+      syncStatus: { $ne: 'syncing' },
+    }).lean();
+
+    const now = Date.now();
+    for (const integration of due) {
+      const intervalMs = (integration.syncIntervalMinutes ?? 0) * 60_000;
+      const last = integration.lastSyncAt ? new Date(integration.lastSyncAt).getTime() : 0;
+      if (now - last < intervalMs) continue;
+      try {
+        const result = await this.triggerSync(
+          integration.organizationId.toString(),
+          integration._id.toString(),
+          integration.createdBy?.toString() ?? integration.organizationId.toString(),
+        );
+        this.logger.log(
+          `Auto-synced ${integration.platform} integration ${integration._id}: ${result.synced} records`,
+        );
+      } catch (err) {
+        // triggerSync already records the failure on the integration
+        this.logger.warn(`Auto-sync failed for ${integration._id}: ${err}`);
+      }
+    }
+  }
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
 
