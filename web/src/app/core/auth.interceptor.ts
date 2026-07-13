@@ -8,13 +8,15 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError, BehaviorSubject, filter, take } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environment';
 import { ToastService } from './toast.service';
 const TOKEN_KEY         = 'evidara_token';
 const REFRESH_TOKEN_KEY = 'evidara_refresh_token';
 
 /** In-flight refresh gate — prevents parallel refresh calls */
 let isRefreshing = false;
+/** Emits the new access token, or REFRESH_FAILED so queued requests error out instead of hanging. */
+const REFRESH_FAILED = '__refresh_failed__';
 const refreshDone$ = new BehaviorSubject<string | null>(null);
 
 /** Messages that should NOT produce a generic toast (handled in-component) */
@@ -78,7 +80,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               }),
               catchError(refreshErr => {
                 isRefreshing = false;
-                refreshDone$.next(null);
+                refreshDone$.next(REFRESH_FAILED);
                 localStorage.removeItem(TOKEN_KEY);
                 localStorage.removeItem(REFRESH_TOKEN_KEY);
                 router.navigate(['/login']);
@@ -91,7 +93,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return refreshDone$.pipe(
           filter(token => token !== null),
           take(1),
-          switchMap(() => next(addAuth(req))),
+          switchMap(token =>
+            token === REFRESH_FAILED ? throwError(() => err) : next(addAuth(req)),
+          ),
         );
       }
 

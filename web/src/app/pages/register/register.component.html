@@ -52,10 +52,15 @@
           <div class="full">
             <label>Plan</label>
             <select [(ngModel)]="planId" name="planId">
-              <option value="trial">Free 14-day trial (no card)</option>
-              <option value="starter">Starter — $99/mo</option>
-              <option value="professional">Growth — $299/mo</option>
-              <option value="organization">Organization — $699/mo</option>
+              @if (plans().length) {
+                @for (p of plans(); track p.id) {
+                  <option [value]="p.id">
+                    {{ p.id === 'trial' ? 'Free 14-day trial (no card)' : p.name + ' — $' + p.monthlyPriceUsd + '/mo' }}
+                  </option>
+                }
+              } @else {
+                <option value="trial">Free 14-day trial (no card)</option>
+              }
             </select>
             <a routerLink="/pricing" class="plan-link">Compare plans</a>
           </div>

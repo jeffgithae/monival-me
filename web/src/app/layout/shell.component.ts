@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, signal, OnInit, DestroyRef, inject, computed } from '@angular/core';
+import { Component, signal, OnInit, DestroyRef, inject, computed, effect } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { ApiService } from '../core/api.service';
@@ -38,7 +38,17 @@ export class ShellComponent implements OnInit {
     readonly theme: ThemeService,
     private readonly api: ApiService,
     private readonly router: Router
-  ) {}
+  ) {
+    // A signed-in user with no organisation (abandoned mid-registration)
+    // can't use any org-scoped page — every call 403s. Send them back to
+    // finish workspace setup instead of showing a wall of errors.
+    effect(() => {
+      const user = this.auth.user();
+      if (user && !user.organizationId) {
+        this.router.navigate(['/register'], { queryParams: { setup: 'true' } });
+      }
+    });
+  }
 
   /** Group nav items by section for rendering dividers */
   readonly groupedNav = computed(() => {

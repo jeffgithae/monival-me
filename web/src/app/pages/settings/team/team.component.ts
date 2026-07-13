@@ -53,7 +53,7 @@ export class TeamComponent implements OnInit {
     this.api.inviteMember(this.inviteEmail, this.inviteRole).subscribe({
       next: (res) => {
         this.lastInviteLink.set(
-          `${window.location.origin}/register?invite=${res.token}`,
+          `${window.location.origin}/accept-invite?token=${res.token}`,
         );
         this.inviteEmail = '';
         this.reload();

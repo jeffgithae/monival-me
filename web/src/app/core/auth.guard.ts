@@ -26,5 +26,11 @@ export const guestGuard: CanActivateFn = (_route, state) => {
   if (state.url.startsWith('/accept-invite')) {
     return true;
   }
+  // A logged-in user may legitimately need /register: they created an
+  // account but never finished workspace setup. The register page checks
+  // the profile and bounces users who already have an organisation.
+  if (state.url.startsWith('/register')) {
+    return true;
+  }
   return router.createUrlTree(['/dashboard']);
 };

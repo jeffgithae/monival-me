@@ -2,7 +2,7 @@ import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment.prod';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
 import { LogoComponent } from '../../shared/logo.component';

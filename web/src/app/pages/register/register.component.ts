@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { formatHttpError } from '../../core/http-error';
@@ -28,6 +28,9 @@ export class RegisterComponent implements OnInit {
   sector = '';
   planId = 'trial';
 
+  /** Live plans from the billing API so prices never drift from the source of truth. */
+  plans = signal<Array<{ id: string; name: string; monthlyPriceUsd: number }>>([]);
+
   error = signal('');
   loading = signal(false);
 
@@ -35,9 +38,16 @@ export class RegisterComponent implements OnInit {
     private readonly auth: AuthService,
     private readonly api: ApiService,
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) { }
 
   ngOnInit() {
+    // Self-serve plans (enterprise is contract-only, so it stays out of the picker)
+    this.api.plans().subscribe({
+      next: (plans) => this.plans.set(plans.filter((p) => p.id !== 'enterprise')),
+      error: () => {},
+    });
+
     const plan = this.route.snapshot.queryParamMap.get('plan');
     const setup = this.route.snapshot.queryParamMap.get('setup');
 
@@ -45,6 +55,7 @@ export class RegisterComponent implements OnInit {
       plan === 'starter' ||
       plan === 'professional' ||
       plan === 'organization' ||
+      plan === 'scale' ||
       plan === 'trial'
     ) {
       this.planId = plan;
@@ -52,6 +63,22 @@ export class RegisterComponent implements OnInit {
 
     if (setup === 'true' || (this.auth.isLoggedIn && !this.auth.user()?.organizationId)) {
       this.step = 'workspace';
+    }
+
+    // Logged-in visitors: decide from the (possibly still-loading) profile —
+    // an org member has nothing to do here, an org-less account resumes
+    // workspace setup where they left off.
+    if (this.auth.isLoggedIn) {
+      this.auth.loadProfile().subscribe({
+        next: (profile: any) => {
+          if (profile?.organizationId) {
+            this.router.navigate(['/dashboard']);
+          } else {
+            this.step = 'workspace';
+          }
+        },
+        error: () => {},
+      });
     }
   }
 
