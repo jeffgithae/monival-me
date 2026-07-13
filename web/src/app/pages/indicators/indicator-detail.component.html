@@ -1,0 +1,189 @@
+<div class="ind-detail viz-root">
+  <a routerLink="/projects" class="back-link">← Projects</a>
+
+  @if (loading()) { <p class="muted">Loading indicator…</p> }
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  @if (perf(); as p) {
+    <header class="head">
+      <div class="head-text">
+        <span class="level-tag">{{ p.indicator.level || 'output' }}</span>
+        <h1><span class="code">{{ p.indicator.code }}</span> {{ p.indicator.title }}</h1>
+        <p class="muted">
+          @if (p.indicator.unit) { Unit: {{ p.indicator.unit }} · }
+          @if (p.indicator.meansOfVerification) { MoV: {{ p.indicator.meansOfVerification }} · }
+          {{ p.activityCount }} approved activities
+        </p>
+      </div>
+      <span class="status-chip" [class]="'status-chip ' + p.status">{{ statusLabel(p.status) }}</span>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><span class="label">Baseline</span><strong>{{ p.indicator.baseline ?? 0 | number }}</strong></div>
+      <div class="stat"><span class="label">Target</span><strong>{{ p.indicator.target | number }}</strong></div>
+      <div class="stat"><span class="label">Achieved</span><strong>{{ p.achieved | number }}</strong></div>
+      <div class="stat">
+        <span class="label">Progress</span><strong>{{ p.pct }}%</strong>
+        <div class="meter"><span [style.width.%]="p.pct"></span></div>
+      </div>
+    </section>
+
+    <!-- ── Achieved vs target across reporting periods ─────────────────── -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Progress across reporting periods</h2>
+        <div class="legend" role="list">
+          <span class="legend-item" role="listitem"><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" class="key-achieved"/></svg> Achieved</span>
+          <span class="legend-item" role="listitem"><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" class="key-target"/></svg> Target</span>
+        </div>
+      </div>
+
+      @if (p.periodSeries.length) {
+        <div class="chart-wrap">
+          <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="chart" role="img"
+               aria-label="Line chart of achieved versus target per reporting period"
+               (mousemove)="onLineMove($event)" (mouseleave)="hoverIdx.set(null)">
+            @for (t of yTicks(); track t.v) {
+              <line [attr.x1]="PAD.l" [attr.x2]="W - PAD.r" [attr.y1]="t.y" [attr.y2]="t.y" class="grid"/>
+              <text [attr.x]="PAD.l - 8" [attr.y]="t.y + 3" class="tick" text-anchor="end">{{ t.v | number }}</text>
+            }
+            @for (pt of p.periodSeries; track pt.periodId; let i = $index) {
+              <text [attr.x]="px(i)" [attr.y]="H - 8" class="tick" text-anchor="middle">{{ pt.periodName }}</text>
+            }
+
+            <polyline [attr.points]="polyline('target')" class="line-target"/>
+            <polyline [attr.points]="polyline('achieved')" class="line-achieved"/>
+
+            @if (hoverIdx() !== null) {
+              <line [attr.x1]="px(hoverIdx()!)" [attr.x2]="px(hoverIdx()!)"
+                    [attr.y1]="PAD.t" [attr.y2]="H - PAD.b" class="crosshair"/>
+            }
+            @for (pt of p.periodSeries; track pt.periodId; let i = $index) {
+              <rect [attr.x]="px(i) - 3" [attr.y]="py(pt.target) - 3" width="6" height="6" class="dot-target"/>
+              <circle [attr.cx]="px(i)" [attr.cy]="py(pt.achieved)"
+                      [attr.r]="hoverIdx() === i ? 5 : 4" class="dot-achieved"/>
+            }
+            @if (p.periodSeries.length > 0) {
+              <text [attr.x]="px(p.periodSeries.length - 1) + 10"
+                    [attr.y]="labelYs().achieved"
+                    class="direct-label achieved-label">Achieved</text>
+              <text [attr.x]="px(p.periodSeries.length - 1) + 10"
+                    [attr.y]="labelYs().target"
+                    class="direct-label target-label">Target</text>
+            }
+          </svg>
+
+          @if (hoverIdx() !== null) {
+            <div class="tooltip" [style.left.%]="tipLeftPct(hoverIdx()!)">
+              <div class="tip-title">{{ p.periodSeries[hoverIdx()!].periodName }}</div>
+              <div class="tip-row"><svg width="14" height="6"><line x1="0" y1="3" x2="14" y2="3" class="key-achieved"/></svg>
+                <strong>{{ p.periodSeries[hoverIdx()!].achieved | number }}</strong><span>achieved</span></div>
+              <div class="tip-row"><svg width="14" height="6"><line x1="0" y1="3" x2="14" y2="3" class="key-target"/></svg>
+                <strong>{{ p.periodSeries[hoverIdx()!].target | number }}</strong><span>target</span></div>
+            </div>
+          }
+        </div>
+
+        <details class="table-view">
+          <summary>Data table</summary>
+          <table>
+            <thead><tr><th>Period</th><th>Dates</th><th>Achieved</th><th>Target</th><th>Status</th></tr></thead>
+            <tbody>
+              @for (pt of p.periodSeries; track pt.periodId) {
+                <tr>
+                  <td>{{ pt.periodName }}</td>
+                  <td>{{ pt.startDate | date:'MMM y' }} – {{ pt.endDate | date:'MMM y' }}</td>
+                  <td>{{ pt.achieved | number }}</td>
+                  <td>{{ pt.target | number }}</td>
+                  <td>{{ pt.periodStatus }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </details>
+      } @else {
+        <p class="muted empty">No reporting-period results yet — run <em>Calculate Results</em> in a reporting period to build this trend.</p>
+      }
+    </section>
+
+    <!-- ── Monthly activity trend ──────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head"><h2>Monthly achievement (from approved activities)</h2></div>
+      @if (p.trend.length) {
+        <div class="chart-wrap">
+          <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="chart" role="img"
+               aria-label="Column chart of monthly achieved quantity">
+            @for (t of [0, 0.5, 1]; track t) {
+              <line [attr.x1]="PAD.l" [attr.x2]="W - PAD.r"
+                    [attr.y1]="H - PAD.b - t * (H - PAD.t - PAD.b)"
+                    [attr.y2]="H - PAD.b - t * (H - PAD.t - PAD.b)" class="grid"/>
+              <text [attr.x]="PAD.l - 8" [attr.y]="H - PAD.b - t * (H - PAD.t - PAD.b) + 3"
+                    class="tick" text-anchor="end">{{ t * monthMax() | number:'1.0-0' }}</text>
+            }
+            @for (m of p.trend; track m.month; let i = $index) {
+              <path [attr.d]="barPath(i)" class="bar" [class.hovered]="hoverBar() === i"
+                    (mouseenter)="hoverBar.set(i)" (mouseleave)="hoverBar.set(null)"/>
+              @if (showBarLabel(i)) {
+                <text [attr.x]="barGeom(i).x + barGeom(i).w / 2" [attr.y]="barGeom(i).y - 6"
+                      class="bar-label" text-anchor="middle">{{ m.value | number }}</text>
+              }
+              @if (showMonthTick(i)) {
+                <text [attr.x]="barGeom(i).x + barGeom(i).w / 2" [attr.y]="H - 8"
+                      class="tick" text-anchor="middle">{{ monthLabel(m.month) }}</text>
+              }
+            }
+          </svg>
+          @if (hoverBar() !== null) {
+            <div class="tooltip" [style.left.%]="(barGeom(hoverBar()!).x + barGeom(hoverBar()!).w / 2) / W * 100">
+              <div class="tip-title">{{ monthLabel(p.trend[hoverBar()!].month) }}</div>
+              <div class="tip-row"><strong>{{ p.trend[hoverBar()!].value | number }}</strong><span>{{ p.indicator.unit || 'achieved' }}</span></div>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="muted empty">No approved activities are linked to this indicator yet.</p>
+      }
+    </section>
+
+    <!-- ── Disaggregation ──────────────────────────────────────────────── -->
+    @if (disaggGroups().length) {
+      <section class="panel">
+        <div class="panel-head"><h2>Disaggregated reach</h2></div>
+        <div class="disagg-grid">
+          @for (g of disaggGroups(); track g.category) {
+            <div class="disagg-card">
+              <h3>{{ g.category }}</h3>
+              @for (r of g.rows; track r.label) {
+                <div class="hbar-row">
+                  <span class="hbar-label">{{ r.label }}</span>
+                  <div class="hbar-track"><span class="hbar-fill" [style.width.%]="(r.count / g.max) * 100"></span></div>
+                  <span class="hbar-value">{{ r.count | number }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ── Annual targets ──────────────────────────────────────────────── -->
+    @if (p.annualProgress.length) {
+      <section class="panel">
+        <div class="panel-head"><h2>Annual targets</h2></div>
+        <table class="annual-table">
+          <thead><tr><th>Year</th><th>Target</th><th>Achieved</th><th>Progress</th></tr></thead>
+          <tbody>
+            @for (a of p.annualProgress; track a.year) {
+              <tr>
+                <td>{{ a.year }}</td>
+                <td>{{ a.target | number }}</td>
+                <td>{{ a.achieved | number }}</td>
+                <td class="prog-cell"><div class="meter"><span [style.width.%]="a.pct"></span></div> {{ a.pct }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+</div>

@@ -1,0 +1,113 @@
+<main class="stories-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">QUALITATIVE EVIDENCE</p>
+      <h1>Impact Stories</h1>
+      <p class="sub">Human stories behind the numbers — collected with consent, tagged to projects, and publishable for donors.</p>
+    </div>
+    @if (canEdit()) {
+      <button class="btn-primary" (click)="openCreate()">+ New story</button>
+    }
+  </header>
+
+  @if (stats(); as st) {
+    <div class="stat-row">
+      <div class="stat"><span class="label">Total</span><strong>{{ st.total ?? 0 }}</strong></div>
+      <div class="stat"><span class="label">Published</span><strong>{{ st.published ?? 0 }}</strong></div>
+      <div class="stat"><span class="label">In review</span><strong>{{ st.review ?? 0 }}</strong></div>
+      <div class="stat"><span class="label">Drafts</span><strong>{{ st.draft ?? 0 }}</strong></div>
+    </div>
+  }
+
+  <div class="filters">
+    <select [(ngModel)]="filterStatus" (ngModelChange)="load()">
+      <option value="">All statuses</option>
+      @for (s of statuses; track s) { <option [value]="s">{{ s | titlecase }}</option> }
+    </select>
+    <select [(ngModel)]="filterProject" (ngModelChange)="load()">
+      <option value="">All projects</option>
+      @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
+    </select>
+    <input [(ngModel)]="search" (keyup.enter)="load()" placeholder="Search stories…" />
+  </div>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Loading stories…</p> }
+
+  <div class="story-grid">
+    @for (s of stories(); track s._id) {
+      <article class="story-card" [class.expanded]="expanded() === s._id">
+        <div class="card-top">
+          <span class="status-chip" [class]="'status-chip ' + s.status">{{ s.status | titlecase }}</span>
+          @if (!s.consentObtained) { <span class="consent-flag" title="No written consent on file">⚠ No consent</span> }
+        </div>
+        <h2 (click)="toggleExpand(s._id)">{{ s.title }}</h2>
+        @if (s.pullQuote) { <blockquote>“{{ s.pullQuote }}”</blockquote> }
+        <p class="meta muted">
+          @if (s.subjectName && !s.isAnonymised) { {{ s.subjectName }} · }
+          @if (s.isAnonymised) { Anonymised · }
+          @if (s.subjectLocation) { {{ s.subjectLocation }} · }
+          @if (projectName(s.projectId)) { {{ projectName(s.projectId) }} · }
+          {{ s.createdAt | date: 'd MMM y' }}
+        </p>
+        <p class="narrative" [class.clamped]="expanded() !== s._id">{{ s.narrative }}</p>
+        @if (s.tags.length) {
+          <div class="tags">@for (t of s.tags; track t) { <span class="tag">{{ t }}</span> }</div>
+        }
+        <div class="card-actions">
+          <button class="btn-ghost" (click)="toggleExpand(s._id)">{{ expanded() === s._id ? 'Collapse' : 'Read' }}</button>
+          @if (canEdit()) {
+            @if (nextStatus(s); as next) {
+              <button class="btn-ghost" (click)="setStatus(s, next.value)">{{ next.label }}</button>
+            }
+            <button class="btn-ghost" (click)="openEdit(s)">Edit</button>
+            <button class="btn-ghost danger" (click)="remove(s)">Delete</button>
+          }
+        </div>
+      </article>
+    } @empty {
+      @if (!loading()) {
+        <div class="empty-state">
+          <p>📖</p>
+          <p>No impact stories yet. Capture the first one — a beneficiary's own words often say more than a chart.</p>
+        </div>
+      }
+    }
+  </div>
+
+  @if (showForm()) {
+    <div class="modal-backdrop" (click)="showForm.set(false)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>{{ editing() ? 'Edit story' : 'New impact story' }}</h2>
+        <label>Title *<input [(ngModel)]="form.title" placeholder="A short, human headline" /></label>
+        <label>Narrative *<textarea [(ngModel)]="form.narrative" rows="6" placeholder="The story, in the subject's own words where possible…"></textarea></label>
+        <label>Pull quote<input [(ngModel)]="form.pullQuote" placeholder="One memorable sentence" /></label>
+        <div class="form-row">
+          <label>Project
+            <select [(ngModel)]="form.projectId">
+              <option value="">— None —</option>
+              @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
+            </select>
+          </label>
+          <label>Thematic area<input [(ngModel)]="form.thematicArea" placeholder="e.g. WASH, Maternal health" /></label>
+        </div>
+        <div class="form-row">
+          <label>Subject name<input [(ngModel)]="form.subjectName" /></label>
+          <label>Location<input [(ngModel)]="form.subjectLocation" /></label>
+        </div>
+        <label>Tags<input [(ngModel)]="form.tags" placeholder="comma, separated" /></label>
+        <div class="form-row checks">
+          <label class="check"><input type="checkbox" [(ngModel)]="form.consentObtained" /> Written consent obtained *</label>
+          <label class="check"><input type="checkbox" [(ngModel)]="form.isAnonymised" /> Anonymise subject</label>
+        </div>
+        @if (error()) { <p class="error">{{ error() }}</p> }
+        <div class="modal-actions">
+          <button class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Saving…' : (editing() ? 'Save changes' : 'Create story') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</main>
