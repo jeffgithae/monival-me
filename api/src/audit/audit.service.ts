@@ -25,10 +25,52 @@ export class AuditService {
     });
   }
 
-  list(organizationId: string, entityType?: string, entityId?: string) {
+  async list(
+    organizationId: string,
+    opts: {
+      entityType?: string;
+      entityId?: string;
+      action?: string;
+      userEmail?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) {
+    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const filter: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId) };
-    if (entityType) filter.entityType = entityType;
-    if (entityId) filter.entityId = entityId;
-    return this.auditModel.find(filter).sort({ createdAt: -1 }).limit(250).lean();
+    if (opts.entityType) filter.entityType = opts.entityType;
+    if (opts.entityId) filter.entityId = opts.entityId;
+    // Stored actions are snake_case like `create_project`; the UI filters send
+    // a bare verb (CREATE, APPROVE, …) so match it as a case-insensitive prefix.
+    if (opts.action) filter.action = new RegExp('^' + escape(opts.action), 'i');
+    if (opts.userEmail) {
+      const users = await this.auditModel.db
+        .model('User')
+        .find({ email: new RegExp(escape(opts.userEmail), 'i') }, { _id: 1 })
+        .lean();
+      filter.actorUserId = { $in: users.map((u) => u._id) };
+    }
+
+    const page = Math.max(1, Number(opts.page) || 1);
+    const limit = Math.min(200, Math.max(1, Number(opts.limit) || 50));
+
+    const [rows, total] = await Promise.all([
+      this.auditModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('actorUserId', 'email name')
+        .lean(),
+      this.auditModel.countDocuments(filter),
+    ]);
+
+    const data = rows.map((e: any) => ({
+      ...e,
+      entity: e.entityType,
+      userEmail: e.actorUserId?.email ?? '',
+      actorUserId: e.actorUserId?._id ?? e.actorUserId,
+    }));
+    return { data, total };
   }
 }

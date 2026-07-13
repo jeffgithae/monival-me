@@ -18,8 +18,20 @@ export class AuditController {
   list(
     @CurrentUser() user: JwtPayload,
     @Query('entityType') entityType?: string,
+    @Query('entity') entity?: string,
     @Query('entityId') entityId?: string,
+    @Query('action') action?: string,
+    @Query('userId') userEmail?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.auditService.list(user.organizationId, entityType, entityId);
+    return this.auditService.list(user.organizationId, {
+      entityType: entityType || entity,
+      entityId,
+      action,
+      userEmail,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 }

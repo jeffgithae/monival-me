@@ -10,10 +10,27 @@ import helmet from 'helmet';
 import compression from 'compression';
 import mongoSanitize from 'express-mongo-sanitize';
 import { AppModule } from './app.module';
+import { MongoErrorFilter } from './common/filters/mongo-error.filter';
 import { tenantResolver } from './common/middleware/tenant.middleware';
+
+const PLACEHOLDER_SECRETS = new Set(['', 'change-me-in-production', 'changeme', 'secret']);
+
+/** Refuse to boot in production with placeholder secrets — a silent weak
+ *  JWT secret means anyone can mint valid tokens for any organisation. */
+function assertProductionSecrets(logger: Logger) {
+  if (process.env.NODE_ENV !== 'production') return;
+  for (const key of ['JWT_SECRET', 'ENCRYPTION_KEY']) {
+    const value = (process.env[key] ?? '').trim();
+    if (PLACEHOLDER_SECRETS.has(value.toLowerCase()) || value.length < 16) {
+      logger.error(`${key} is unset or a placeholder. Generate one with: openssl rand -hex 32`);
+      throw new Error(`Refusing to start in production with a weak ${key}`);
+    }
+  }
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  assertProductionSecrets(logger);
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
 
@@ -66,6 +83,8 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
+  // Malformed ObjectIds → 400 instead of unhandled 500s
+  app.useGlobalFilters(new MongoErrorFilter());
 
   // ── Tenant resolver ───────────────────────────────────────────────────────
   app.use(tenantResolver as any);

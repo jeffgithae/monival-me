@@ -48,7 +48,10 @@ import { StakeholderFeedbackModule } from './stakeholder-feedback/stakeholder-fe
     ConfigModule.forRoot({ isGlobal: true }),
 
     // ── Rate limiting (C1) — tiered limits: burst / medium / sustained ───────
+    // The 'default' tier exists so per-route @Throttle({ default: … })
+    // overrides (e.g. 3/min on login) have a named throttler to target.
     ThrottlerModule.forRoot([
+      { name: 'default',   ttl: 60_000, limit: 300 }, // per-route overridable
       { name: 'burst',     ttl:  1_000, limit: 30  }, // 30 req/s  — prevents DDoS
       { name: 'medium',    ttl: 10_000, limit: 150 }, // 150/10s   — normal browsing
       { name: 'sustained', ttl: 60_000, limit: 500 }, // 500/min   — heavy users
@@ -137,6 +140,9 @@ import { StakeholderFeedbackModule } from './stakeholder-feedback/stakeholder-fe
   providers: [
     SubscriptionGuard,
     RolesGuard,
+    // Order matters: throttling runs first so brute-force attempts are cut
+    // off before any auth/tenant work happens.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
   ],
 })

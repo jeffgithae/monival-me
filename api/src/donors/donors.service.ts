@@ -500,8 +500,9 @@ export class DonorsService {
   }
 
   /** Audit trail for a specific donor */
-  getAuditLog(organizationId: string, donorId: string) {
-    return this.audit.list(organizationId, 'donor', donorId);
+  async getAuditLog(organizationId: string, donorId: string) {
+    const { data } = await this.audit.list(organizationId, { entityType: 'donor', entityId: donorId });
+    return data;
   }
 
   /** CSV-compatible flat export of all donors with grant totals */
