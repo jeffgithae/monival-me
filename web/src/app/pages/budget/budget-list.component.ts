@@ -71,12 +71,9 @@ export class BudgetListComponent implements OnInit {
 
   loadAll() {
     this.loadBudgets();
-    const orgId = this.auth.user()?.organizationId;
-    if (orgId) {
-      this.api.budgetSummary(orgId, {
-        fiscalYear: this.filterFiscalYear ?? undefined,
-      }).subscribe({ next: (s) => this.summary.set(s) });
-    }
+    this.api.budgetSummary({
+      fiscalYear: this.filterFiscalYear ?? undefined,
+    }).subscribe({ next: (s) => this.summary.set(s) });
   }
 
   loadBudgets() {

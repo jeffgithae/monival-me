@@ -769,6 +769,7 @@ export interface DonorReport {
     status?: string;
     narrative?: string;
     disaggregations?: Record<string, unknown>;
+    meansOfVerification?: string;
   }>;
   recentActivities: Array<{
     id: string;
@@ -1748,14 +1749,15 @@ export interface CreateBeneficiaryDto {
 }
 // ─── Workflows ────────────────────────────────────────────────────────────────
 
-export type WorkflowEntityType =
-  | 'activity'
-  | 'report'
-  | 'grant'
-  | 'budget'
-  | 'document'
-  | 'beneficiary'
-  | 'indicator_result';
+// Driven by the server registry (GET /workflows/entity-types) — kept as a
+// string so new server-side entity types need no frontend model change.
+export type WorkflowEntityType = string;
+
+export interface WorkflowEntityTypeInfo {
+  key: string;
+  label: string;
+  hasOutcome: boolean;
+}
 
 export type ApprovalAction = 'approve' | 'reject' | 'escalate' | 'recall' | 'comment';
 

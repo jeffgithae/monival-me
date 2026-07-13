@@ -8,7 +8,7 @@
       <div class="hero-badges">
         <span class="status-badge" [class]="'badge-' + p.status">{{ p.status }}</span>
         @if (p.evaluationStatus) {
-          <span class="eval-badge" [class]="'eval-' + p.evaluationStatus">{{ p.evaluationStatus | titlecase }}</span>
+          <span class="eval-badge" [class]="'eval-' + p.evaluationStatus">{{ (p.evaluationStatus || '').split('_').join(' ') | titlecase }}</span>
         }
       </div>
       <h1>{{ p.name }}</h1>
@@ -314,9 +314,9 @@
             @for (s of indicatorSummaries(); track s._id) {
               <tr>
                 <td><span class="level-tag level-{{ s.level || 'output' }}">{{ s.level || 'output' }}</span></td>
-                <td><strong>{{ s.code }}</strong></td>
+                <td><a class="ind-link" [routerLink]="['/indicators', s._id]"><strong>{{ s.code }}</strong></a></td>
                 <td>
-                  <span class="ind-title">{{ s.title }}</span>
+                  <a class="ind-link" [routerLink]="['/indicators', s._id]"><span class="ind-title">{{ s.title }}</span></a>
                   @if (s.unit) { <span class="muted"> ({{ s.unit }})</span> }
                   @if (s.disaggregation?.length) { <div class="muted small">Breakdown: {{ s.disaggregation?.join(', ') }}</div> }
                 </td>
@@ -464,6 +464,9 @@
           <label class="full-label">Notes
             <textarea [(ngModel)]="activityForm.notes" name="notes" rows="2" placeholder="Additional notes…"></textarea>
           </label>
+          @if (activityFormError()) {
+            <p class="error" role="alert">{{ activityFormError() }}</p>
+          }
           <div class="form-actions">
             <button type="submit" class="btn-primary">
               {{ queue.isOnline() ? 'Log activity' : '💾 Save on this device' }}

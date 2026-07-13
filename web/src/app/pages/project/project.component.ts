@@ -61,6 +61,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   readonly hasDraft = signal(false);
   readonly draftAge = signal<string | null>(null);
   readonly savedActivityOfflineFlash = signal(false);
+  readonly activityFormError = signal('');
   readonly queuedActivities = signal<QueuedItem[]>([]);
   readonly pendingQueuedActivities = computed(() =>
     this.queuedActivities().filter(q => q.syncStatus !== 'synced'),
@@ -534,6 +535,17 @@ export class ProjectComponent implements OnInit, OnDestroy {
   }
 
   addActivity() {
+    // Inline validation — don't round-trip an obviously incomplete form.
+    this.activityFormError.set('');
+    if (!this.activityForm.title.trim()) {
+      this.activityFormError.set('Give the activity a title before logging it.');
+      return;
+    }
+    if (!this.activityForm.activityDate) {
+      this.activityFormError.set('Pick the date the activity took place.');
+      return;
+    }
+
     const body = {
       projectId: this.projectId,
       title: this.activityForm.title,
@@ -587,9 +599,15 @@ export class ProjectComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.api.createActivity(body).subscribe(() => {
-      resetForm();
-      this.reload();
+    this.api.createActivity(body).subscribe({
+      next: () => {
+        resetForm();
+        this.reload();
+      },
+      error: (err) => {
+        const msg = err?.error?.message;
+        this.activityFormError.set(Array.isArray(msg) ? msg.join('. ') : (msg || 'Failed to log activity.'));
+      },
     });
   }
 

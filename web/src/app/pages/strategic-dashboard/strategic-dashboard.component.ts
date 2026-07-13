@@ -38,7 +38,7 @@ export class StrategicDashboardComponent implements OnInit {
 
     Promise.all([
       this.api.getFrameworkConfig().toPromise(),
-      this.api.budgetSummary(this.auth.organization()?.id ?? '').toPromise(),
+      this.api.budgetSummary().toPromise(),
       this.api.balancedScorecards().toPromise(),
       this.api.okrs().toPromise(),
     ]).then(([config, budget, bscs, okrs_data]) => {

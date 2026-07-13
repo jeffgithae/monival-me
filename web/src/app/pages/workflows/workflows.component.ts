@@ -5,7 +5,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import {
   WorkflowInstance, WorkflowDefinition, WorkflowSummary,
-  WorkflowEntityType, WorkflowStepDefinition,
+  WorkflowEntityType, WorkflowEntityTypeInfo, WorkflowStepDefinition,
 } from '../../core/models';
 
 type Tab = 'tasks' | 'instances' | 'definitions';
@@ -79,9 +79,20 @@ export class WorkflowsComponent implements OnInit {
     entityTitle: '',
   };
 
-  readonly entityTypes: WorkflowEntityType[] = [
-    'activity', 'report', 'grant', 'budget', 'document', 'beneficiary', 'indicator_result',
-  ];
+  /** Loaded from the server registry so every governable entity type appears. */
+  entityTypeInfos = signal<WorkflowEntityTypeInfo[]>([
+    { key: 'activity', label: 'Activity', hasOutcome: true },
+    { key: 'report', label: 'Reporting Period', hasOutcome: true },
+    { key: 'grant', label: 'Grant', hasOutcome: true },
+    { key: 'budget', label: 'Budget Allocation', hasOutcome: true },
+    { key: 'document', label: 'Document', hasOutcome: false },
+    { key: 'beneficiary', label: 'Beneficiary', hasOutcome: false },
+    { key: 'indicator_result', label: 'Indicator Result', hasOutcome: false },
+  ]);
+
+  get entityTypes(): WorkflowEntityType[] {
+    return this.entityTypeInfos().map(t => t.key);
+  }
 
   readonly roleOptions = [
     { value: 'owner',         label: 'Owner' },
@@ -124,6 +135,12 @@ export class WorkflowsComponent implements OnInit {
   loadAll() {
     this.loading.set(true);
     this.error.set('');
+
+    // Entity types the server can govern (drives filter + form pickers)
+    this.api.workflowEntityTypes().subscribe({
+      next: types => { if (types?.length) this.entityTypeInfos.set(types); },
+      error: () => {}, // keep the static fallback
+    });
 
     // Load summary
     this.api.workflowSummary().subscribe({
@@ -305,7 +322,7 @@ export class WorkflowsComponent implements OnInit {
     const fail = () => this.entitiesLoading.set(false);
 
     if (et === 'activity') {
-      this.api.activities({ limit: 200 } as any).subscribe({
+      this.api.activities().subscribe({
         next: (res: any) => { const d = res.data ?? res; set(d.map((a: any) => ({ id: a._id, name: a.title }))); },
         error: fail,
       });
@@ -337,6 +354,36 @@ export class WorkflowsComponent implements OnInit {
     } else if (et === 'document') {
       this.api.documents({ limit: 200 } as any).subscribe({
         next: (res: any) => { const d = res.data ?? res; set(d.map((doc: any) => ({ id: doc._id, name: doc.title ?? doc.name ?? doc.fileName }))); },
+        error: fail,
+      });
+    } else if (et === 'project') {
+      this.api.projects().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((p: any) => ({ id: p._id, name: p.name }))); },
+        error: fail,
+      });
+    } else if (et === 'okr') {
+      this.api.okrs().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((o: any) => ({ id: o._id, name: o.objective ?? o.title ?? o.name ?? o._id }))); },
+        error: fail,
+      });
+    } else if (et === 'feedback') {
+      this.api.feedbackList({ limit: 200 } as any).subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((f: any) => ({ id: f._id, name: f.title ?? f.summary ?? f._id }))); },
+        error: fail,
+      });
+    } else if (et === 'form_response') {
+      this.api.formResponses().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((r: any) => ({ id: r._id, name: r.templateName ?? `Response ${String(r._id).slice(-6)}` }))); },
+        error: fail,
+      });
+    } else if (et === 'donor') {
+      this.api.donors().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((dn: any) => ({ id: dn._id, name: dn.name }))); },
+        error: fail,
+      });
+    } else if (et === 'partner') {
+      this.api.partners().subscribe({
+        next: (res: any) => { const d = res.data ?? res; set(d.map((p: any) => ({ id: p._id, name: p.name }))); },
         error: fail,
       });
     } else {
@@ -445,12 +492,7 @@ export class WorkflowsComponent implements OnInit {
   }
 
   entityLabel(type: string): string {
-    const map: Record<string, string> = {
-      activity: 'Activity', report: 'Report', grant: 'Grant',
-      budget: 'Budget', document: 'Document', beneficiary: 'Beneficiary',
-      indicator_result: 'Indicator Result',
-    };
-    return map[type] ?? type;
+    return this.entityTypeInfos().find(t => t.key === type)?.label ?? type;
   }
 
   actionLabel(action: string): string {

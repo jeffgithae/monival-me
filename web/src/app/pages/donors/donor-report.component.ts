@@ -154,4 +154,23 @@ export class DonorReportComponent implements OnInit {
 
   isObject(v: unknown): boolean { return !!v && typeof v === 'object' && !Array.isArray(v); }
   objectEntries(o: Record<string, unknown>): [string, unknown][] { return Object.entries(o); }
+
+  /**
+   * Flatten { Sex: { Female: 12, Male: 8 } } into display chips
+   * ["Sex · Female: 12", "Sex · Male: 8"]. Tolerates the older flat
+   * { Female: 12 } shape from manually-entered results.
+   */
+  disaggChips(o: Record<string, unknown>): string[] {
+    const chips: string[] = [];
+    for (const [category, v] of Object.entries(o ?? {})) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        for (const [value, count] of Object.entries(v as Record<string, unknown>)) {
+          chips.push(`${category} · ${value}: ${count}`);
+        }
+      } else {
+        chips.push(`${category}: ${v}`);
+      }
+    }
+    return chips;
+  }
 }

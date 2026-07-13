@@ -160,7 +160,12 @@ export class AuditLogComponent implements OnInit {
     if (this.filterEmail)  params.userId = this.filterEmail; // backend can resolve by email
 
     this.api.auditLog(params).subscribe({
-      next: res => { this.events.set(res.data); this.total.set(res.total); this.loading.set(false); },
+      next: (res: any) => {
+        const data = Array.isArray(res) ? res : (res.data ?? []);
+        this.events.set(data);
+        this.total.set(Array.isArray(res) ? res.length : (res.total ?? data.length));
+        this.loading.set(false);
+      },
       error: err => { this.error.set(err.error?.message || 'Failed to load audit log'); this.loading.set(false); }
     });
   }

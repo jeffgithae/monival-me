@@ -459,7 +459,8 @@
             </div>
             <div class="alerts-list">
               @for (alert of qualityAlerts(); track alert.title) {
-                <div class="alert-row"
+                <a class="alert-row"
+                  [routerLink]="alert.projectId ? ['/projects', alert.projectId] : ['/beneficiaries']"
                   [class.critical]="alert.severity === 'critical'"
                   [class.warning]="alert.severity === 'warning'">
                   <div class="alert-stripe"></div>
@@ -467,7 +468,8 @@
                     <strong>{{ alert.title }}</strong>
                     <p>{{ alert.message }}</p>
                   </div>
-                </div>
+                  <span class="alert-go">→</span>
+                </a>
               }
             </div>
           </div>

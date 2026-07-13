@@ -1400,3 +1400,11 @@ h1 {
   .projects-grid { grid-template-columns: 1fr; }
   .health-grid { grid-template-columns: repeat(2, 1fr); }
 }
+a.alert-row {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  &:hover { background: rgba(99, 102, 241, 0.06); }
+  .alert-go { margin-left: auto; align-self: center; color: #9ca3af; font-size: 0.9rem; }
+}

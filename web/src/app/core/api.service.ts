@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map } from 'rxjs';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environment';
 import {
   WorkplanItem,
   OrgDocument,
@@ -318,6 +318,36 @@ export class ApiService {
   // ── Project Workplan (sub-resource) ────────────────────────────────────────
   // Note: addWorkplanItem / updateWorkplanItem / removeWorkplanItem already exist below
 
+  // ── Impact Stories ──────────────────────────────────────────────────────────
+
+  impactStories(params?: Record<string, string>) {
+    return this.http.get<any>(`${this.base}/impact-stories`, { params: params as any });
+  }
+
+  impactStoryStats() {
+    return this.http.get<any>(`${this.base}/impact-stories/stats`);
+  }
+
+  createImpactStory(body: any) {
+    return this.http.post<any>(`${this.base}/impact-stories`, body);
+  }
+
+  updateImpactStory(id: string, body: any) {
+    return this.http.patch<any>(`${this.base}/impact-stories/${id}`, body);
+  }
+
+  updateImpactStoryStatus(id: string, status: string) {
+    return this.http.patch<any>(`${this.base}/impact-stories/${id}/status`, { status });
+  }
+
+  deleteImpactStory(id: string) {
+    return this.http.delete(`${this.base}/impact-stories/${id}`);
+  }
+
+  indicatorPerformance(id: string) {
+    return this.http.get<any>(`${this.base}/indicators/${id}/performance`);
+  }
+
   indicators(projectId?: string) {
     let params = new HttpParams();
     if (projectId) {
@@ -620,12 +650,12 @@ export class ApiService {
     return this.http.post<BudgetVariance>(`${this.base}/budget/variance/${allocationId}`, { period, notes });
   }
 
-  /** Summary — GET /budget/summary/:organizationId */
-  budgetSummary(organizationId: string, query?: { fiscalYear?: number; grantId?: string }) {
+  /** Summary — GET /budget/summary (organisation comes from the JWT) */
+  budgetSummary(query?: { fiscalYear?: number; grantId?: string }) {
     let params = new HttpParams();
     if (query?.fiscalYear) params = params.set('fiscalYear', String(query.fiscalYear));
     if (query?.grantId)    params = params.set('grantId', query.grantId);
-    return this.http.get<BudgetSummary>(`${this.base}/budget/summary/${organizationId}`, { params });
+    return this.http.get<BudgetSummary>(`${this.base}/budget/summary`, { params });
   }
 
   budgetAuditLog(entityId: string) {
@@ -990,7 +1020,9 @@ export class ApiService {
   // ─── Documents ────────────────────────────────────────────────────────────
 
   documents(params?: { projectId?: string }) {
-    return this.http.get<OrgDocument[]>(`${this.base}/documents`, { params: params as any });
+    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: params as any }).pipe(
+      map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+    );
   }
 
   document(id: string) {
@@ -1067,7 +1099,7 @@ export class ApiService {
     return this.http.get<import('./models').WorkflowInstance>(`${this.base}/workflows/instances/${id}`);
   }
 
-  startWorkflow(dto: { definitionId: string; entityType: string; entityId: string; entityTitle: string }) {
+  startWorkflow(dto: { definitionId: string; entityType: string; entityId: string; entityTitle?: string }) {
     return this.http.post<import('./models').WorkflowInstance>(`${this.base}/workflows/instances`, dto);
   }
 
@@ -1082,6 +1114,12 @@ export class ApiService {
   workflowSummary() {
     return this.http.get<import('./models').WorkflowSummary>(
       `${this.base}/workflows/summary`
+    );
+  }
+
+  workflowEntityTypes() {
+    return this.http.get<import('./models').WorkflowEntityTypeInfo[]>(
+      `${this.base}/workflows/entity-types`
     );
   }
 

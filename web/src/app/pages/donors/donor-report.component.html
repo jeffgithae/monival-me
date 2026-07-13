@@ -203,10 +203,13 @@
                 }
                 @if (ind.disaggregations && isObject(ind.disaggregations)) {
                   <div class="disagg-block">
-                    @for (entry of objectEntries(ind.disaggregations); track entry[0]) {
-                      <span class="disagg-chip">{{ entry[0] }}: {{ entry[1] }}</span>
+                    @for (chip of disaggChips(ind.disaggregations); track chip) {
+                      <span class="disagg-chip">{{ chip }}</span>
                     }
                   </div>
+                }
+                @if (ind.meansOfVerification) {
+                  <p class="ind-mov"><strong>MoV:</strong> {{ ind.meansOfVerification }}</p>
                 }
               </div>
               <span class="col-num">{{ ind.baseline | number }}</span>
