@@ -1,15 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 import { OrgRole } from '../../common/constants/roles';
 
 export type OrganizationMemberDocument = HydratedDocument<OrganizationMember>;
 
 @Schema({ timestamps: true })
 export class OrganizationMember {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User', required: true, index: true })
   userId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
   @Prop({ type: String, enum: Object.values(OrgRole), required: true })
@@ -24,10 +24,10 @@ export class OrganizationMember {
   @Prop()
   joinedAt?: Date;
 
-  @Prop({ type: [Types.ObjectId], ref: 'Project', default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Project', default: [] })
   projectScopeIds!: Types.ObjectId[];
 
-  @Prop({ type: [Types.ObjectId], ref: 'Partner', default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Partner', default: [] })
   partnerScopeIds!: Types.ObjectId[];
 }
 

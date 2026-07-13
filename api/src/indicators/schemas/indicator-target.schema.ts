@@ -1,20 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type IndicatorTargetDocument = HydratedDocument<IndicatorTarget>;
 
 @Schema({ timestamps: true })
 export class IndicatorTarget {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'ReportingPeriod', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'ReportingPeriod', required: true, index: true })
   reportingPeriodId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator', required: true, index: true })
   indicatorId!: Types.ObjectId;
 
   @Prop({ type: Number, default: 0 })

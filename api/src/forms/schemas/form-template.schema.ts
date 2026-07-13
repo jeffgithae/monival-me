@@ -43,13 +43,13 @@ const FormSectionSchema = new MongooseSchema(
 
 @Schema({ timestamps: true })
 export class FormTemplate {
-    @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
     organizationId!: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Project', index: true })
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', index: true })
     projectId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Indicator', index: true })
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator', index: true })
     indicatorId?: Types.ObjectId;
 
     @Prop({ required: true, trim: true })

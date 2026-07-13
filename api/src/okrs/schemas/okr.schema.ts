@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type OKRDocument = HydratedDocument<OKR>;
 
 @Schema({ timestamps: true })
 export class OKR {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Organization' })
+  @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Organization' })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -23,13 +23,13 @@ export class OKR {
   @Prop({ type: String, enum: ['draft', 'active', 'completed', 'archived'], default: 'draft' })
   status!: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   ownerUserId?: Types.ObjectId;
 
   @Prop({
     type: [
       {
-        _id: { type: Types.ObjectId, auto: true },
+        _id: { type: SchemaTypes.ObjectId, auto: true },
         title: String,
         description: String,
         targetValue: Number,
@@ -38,7 +38,7 @@ export class OKR {
         confidence: { type: Number, min: 0, max: 100, default: 50 },
         status: { type: String, enum: ['not_started', 'in_progress', 'at_risk', 'completed'], default: 'not_started' },
         notes: String,
-        indicatorId: { type: Types.ObjectId, ref: 'Indicator', default: null },
+        indicatorId: { type: SchemaTypes.ObjectId, ref: 'Indicator', default: null },
       },
     ],
     default: [],
@@ -56,16 +56,16 @@ export class OKR {
     indicatorId?: Types.ObjectId | null;
   }>;
 
-  @Prop({ type: [Types.ObjectId], ref: 'Project', default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Project', default: [] })
   linkedProjects?: Types.ObjectId[];
 
   @Prop({ default: 0, type: Number, min: 0, max: 100 })
   progressPercentage!: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   reviewedBy?: Types.ObjectId;
 
   @Prop()

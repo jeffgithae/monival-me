@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 import type { CloudProvider } from './cloud-storage-connection.schema';
 import { isEncrypted, encryptField } from '../../common/utils/field-encryption';
 
@@ -19,7 +19,7 @@ export type OrgCloudCredentialsDocument = HydratedDocument<OrgCloudCredentials>;
  */
 @Schema({ timestamps: true, collection: 'org_cloud_credentials' })
 export class OrgCloudCredentials {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
   @Prop({
@@ -55,10 +55,10 @@ export class OrgCloudCredentials {
   @Prop({ default: true })
   isActive!: boolean;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   lastModifiedBy?: Types.ObjectId;
 }
 

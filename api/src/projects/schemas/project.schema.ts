@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ProjectDocument = HydratedDocument<Project>;
 
@@ -14,7 +14,7 @@ export class ProjectRisk {
   @Prop() mitigationPlan?: string;
   @Prop() contingencyPlan?: string;
   @Prop({ enum: ['open', 'mitigated', 'accepted', 'closed'], default: 'open' }) status!: string;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) ownerId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) ownerId?: Types.ObjectId;
   @Prop({ type: String }) ownerName?: string;
   @Prop() reviewDate?: Date;
   @Prop() closedDate?: Date;
@@ -28,9 +28,9 @@ export class ProjectMilestone {
   @Prop({ required: true }) dueDate!: Date;
   @Prop({ enum: ['not_started', 'in_progress', 'completed', 'overdue', 'cancelled'], default: 'not_started' }) status!: string;
   @Prop() completedDate?: Date;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) ownerId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) ownerId?: Types.ObjectId;
   @Prop({ type: String }) ownerName?: string;
-  @Prop({ type: [Types.ObjectId], ref: 'Indicator' }) linkedIndicatorIds?: Types.ObjectId[];
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Indicator' }) linkedIndicatorIds?: Types.ObjectId[];
   @Prop({ type: Number, default: 0, min: 0, max: 100 }) progressPct!: number;
   @Prop() completionNotes?: string;
 }
@@ -41,8 +41,8 @@ export class WorkplanItem {
   @Prop() description?: string;
   @Prop({ required: true }) startDate!: Date;
   @Prop({ required: true }) endDate!: Date;
-  @Prop({ type: [Types.ObjectId], ref: 'Indicator' }) linkedIndicatorIds?: Types.ObjectId[];
-  @Prop({ type: Types.ObjectId, ref: 'User' }) responsibleUserId?: Types.ObjectId;
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Indicator' }) linkedIndicatorIds?: Types.ObjectId[];
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) responsibleUserId?: Types.ObjectId;
   @Prop({ type: String }) responsibleName?: string;
   @Prop({ enum: ['planned', 'in_progress', 'completed', 'delayed', 'cancelled'], default: 'planned' }) status!: string;
   @Prop({ default: 0, min: 0, max: 100 }) progressPct!: number;
@@ -79,7 +79,7 @@ export class AnnualTarget {
 
 @Schema({ timestamps: true })
 export class Project {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
   // ── Identity ──────────────────────────────────────────────────────────────
@@ -130,8 +130,8 @@ export class Project {
 
   // ── Funding ───────────────────────────────────────────────────────────────
   @Prop({ trim: true }) donor?: string;
-  @Prop({ type: Types.ObjectId, ref: 'Donor', index: true }) donorId?: Types.ObjectId;
-  @Prop({ type: [Types.ObjectId], ref: 'Grant', default: [] }) grantIds!: Types.ObjectId[];
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Donor', index: true }) donorId?: Types.ObjectId;
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Grant', default: [] }) grantIds!: Types.ObjectId[];
   @Prop({ trim: true }) grantReference?: string;        // external grant number
   @Prop({ type: Number, min: 0, default: 0 }) totalBudget!: number;
   @Prop({ trim: true, default: 'USD' }) currency!: string;
@@ -160,12 +160,12 @@ export class Project {
 
   // ── Partnerships ──────────────────────────────────────────────────────────
   @Prop({ type: [String], default: [] }) implementationPartners!: string[];
-  @Prop({ type: [Types.ObjectId], ref: 'Partner', default: [] }) partnerIds!: Types.ObjectId[];
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Partner', default: [] }) partnerIds!: Types.ObjectId[];
 
   // ── Team ──────────────────────────────────────────────────────────────────
-  @Prop({ type: Types.ObjectId, ref: 'User' }) projectManagerId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) projectManagerId?: Types.ObjectId;
   @Prop({ type: String }) projectManagerName?: string;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) meOfficerId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) meOfficerId?: Types.ObjectId;
   @Prop({ type: String }) meOfficerName?: string;
 
   // ── Planning artifacts ────────────────────────────────────────────────────

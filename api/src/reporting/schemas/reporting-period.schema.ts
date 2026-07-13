@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ReportingPeriodDocument = HydratedDocument<ReportingPeriod>;
 
 @Schema({ timestamps: true })
 export class ReportingPeriod {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -39,9 +39,9 @@ export class ReportingPeriod {
   })
   status!: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' }) submittedByUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) submittedByUserId?: Types.ObjectId;
   @Prop() submittedAt?: Date;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) approvedByUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) approvedByUserId?: Types.ObjectId;
   @Prop() approvedAt?: Date;
   @Prop() lockedAt?: Date;
 

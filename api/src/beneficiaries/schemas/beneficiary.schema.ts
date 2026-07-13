@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type BeneficiaryDocument = HydratedDocument<Beneficiary>;
 
@@ -17,8 +17,8 @@ export class HouseholdMember {
 
 @Schema({ _id: true, timestamps: false })
 export class ServiceRecord {
-  @Prop({ type: Types.ObjectId, ref: 'Project' }) projectId?: Types.ObjectId;
-  @Prop({ type: Types.ObjectId, ref: 'Activity' }) activityId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project' }) projectId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Activity' }) activityId?: Types.ObjectId;
   @Prop({ required: true }) serviceType!: string;
   @Prop({ required: true }) serviceDate!: Date;
   @Prop() description?: string;
@@ -29,7 +29,7 @@ export class ServiceRecord {
 
 @Schema({ _id: true, timestamps: false })
 export class ProgramEnrollment {
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true }) projectId!: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true }) projectId!: Types.ObjectId;
   @Prop({ required: true }) enrolledAt!: Date;
   @Prop() exitedAt?: Date;
   @Prop({ enum: ['active', 'completed', 'transferred', 'dropped_out', 'deceased'], default: 'active' }) status!: string;
@@ -41,7 +41,7 @@ export class ProgramEnrollment {
 
 @Schema({ timestamps: true })
 export class Beneficiary {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
   // ── Registration type ─────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ export class Beneficiary {
   @Prop({ trim: true }) groupType?: string;   // backward compat + community type
   @Prop({ type: Number, default: 1 }) groupSize?: number;  // for group/community type
   @Prop({ trim: true }) caseWorker?: string;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) assignedUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) assignedUserId?: Types.ObjectId;
   @Prop() registrationDate?: Date;
   @Prop() lastContactDate?: Date;
 

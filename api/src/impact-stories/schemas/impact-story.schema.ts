@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ImpactStoryDocument = HydratedDocument<ImpactStory>;
 
@@ -7,19 +7,19 @@ export type StoryStatus = 'draft' | 'review' | 'published' | 'archived';
 
 @Schema({ timestamps: true })
 export class ImpactStory {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project' })
   projectId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Activity' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Activity' })
   activityId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator' })
   indicatorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'OrganizationMember', required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'OrganizationMember', required: true })
   authorUserId!: Types.ObjectId;
 
   // ── Content ────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export class ImpactStory {
   subjectLocation?: string;
 
   /** Link to beneficiary record if consent given */
-  @Prop({ type: Types.ObjectId, ref: 'Beneficiary' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Beneficiary' })
   beneficiaryId?: Types.ObjectId;
 
   // ── Media ──────────────────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ export class ImpactStory {
   @Prop()
   publishedAt?: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'OrganizationMember' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'OrganizationMember' })
   publishedByUserId?: Types.ObjectId;
 
   @Prop({ default: 0 })

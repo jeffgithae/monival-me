@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type BalancedScorecardDocument = HydratedDocument<BalancedScorecard>;
 
 @Schema({ timestamps: true })
 export class BalancedScorecard {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Organization' })
+  @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Organization' })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -31,7 +31,7 @@ export class BalancedScorecard {
         strategicTheme: String,
         objectives: [
           {
-            _id: { type: Types.ObjectId, auto: true },
+            _id: { type: SchemaTypes.ObjectId, auto: true },
             title: String,
             description: String,
             weight: Number,
@@ -58,10 +58,10 @@ export class BalancedScorecard {
     }>;
   }>;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   lastReviewedBy?: Types.ObjectId;
 
   @Prop()

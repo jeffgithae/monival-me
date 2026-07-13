@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, SchemaTypes } from 'mongoose';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ export enum RevisionReason {
 @Schema({ _id: false })
 export class BudgetRevision {
   @Prop({ required: true }) revisedAt!: Date;
-  @Prop({ required: true, type: Types.ObjectId }) revisedBy!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) revisedBy!: Types.ObjectId;
   @Prop({ required: true }) previousAmount!: number;
   @Prop({ required: true }) newAmount!: number;
   @Prop({ required: true, enum: RevisionReason }) reason!: RevisionReason;
@@ -92,11 +92,11 @@ export type BudgetAllocationDocument = BudgetAllocation & Document;
 
 @Schema({ timestamps: true, collection: 'budget_allocations' })
 export class BudgetAllocation {
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
   @Prop({ required: true }) name!: string;
   @Prop() description?: string;
-  @Prop({ type: Types.ObjectId }) projectId?: Types.ObjectId;
-  @Prop({ type: Types.ObjectId }) grantId?: Types.ObjectId;     // Link to grants module
+  @Prop({ type: SchemaTypes.ObjectId }) projectId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) grantId?: Types.ObjectId;     // Link to grants module
 
   // Amounts
   @Prop({ required: true, min: 0 }) allocatedAmount!: number;
@@ -119,10 +119,10 @@ export class BudgetAllocation {
   // Restriction & compliance
   @Prop({ type: [String], default: [] }) allowedExpenseTypes!: string[];
   @Prop({ default: false }) isRestricted!: boolean; // donor-restricted fund
-  @Prop({ type: Types.ObjectId }) donorId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) donorId?: Types.ObjectId;
 
   // Approval
-  @Prop({ type: Types.ObjectId }) approvedBy?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) approvedBy?: Types.ObjectId;
   @Prop() approvalDate?: Date;
   @Prop() approvalNotes?: string;
 
@@ -137,8 +137,8 @@ export class BudgetAllocation {
   @Prop({ type: [BurnRateSnapshot], default: [] }) burnRateHistory!: BurnRateSnapshot[];
 
   // Metadata
-  @Prop({ required: true, type: Types.ObjectId }) createdBy!: Types.ObjectId;
-  @Prop({ type: Types.ObjectId }) lastModifiedBy?: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) createdBy!: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) lastModifiedBy?: Types.ObjectId;
   @Prop() closedAt?: Date;
   @Prop() archivedAt?: Date;
   @Prop({ default: false }) isDeleted!: boolean;
@@ -159,8 +159,8 @@ export type BudgetLineItemDocument = BudgetLineItem & Document;
 
 @Schema({ timestamps: true, collection: 'budget_line_items' })
 export class BudgetLineItem {
-  @Prop({ required: true, type: Types.ObjectId }) budgetAllocationId!: Types.ObjectId;
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) budgetAllocationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
 
   @Prop({ required: true }) description!: string;
   @Prop({ required: true }) costCategory!: string;   // salaries, travel, supplies, etc.
@@ -175,12 +175,12 @@ export class BudgetLineItem {
   @Prop() notes?: string;
 
   // M&E linkage
-  @Prop({ type: Types.ObjectId }) linkedActivityId?: Types.ObjectId;
-  @Prop({ type: Types.ObjectId }) linkedIndicatorId?: Types.ObjectId;
-  @Prop({ type: Types.ObjectId }) linkedGrantId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) linkedActivityId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) linkedIndicatorId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) linkedGrantId?: Types.ObjectId;
 
   // Reporting period linkage
-  @Prop({ type: Types.ObjectId }) reportingPeriodId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) reportingPeriodId?: Types.ObjectId;
 
   // Expense evidence / attachment reference
   @Prop({ type: [String], default: [] }) attachmentUrls!: string[];
@@ -190,8 +190,8 @@ export class BudgetLineItem {
   // Donor cost category (e.g., USAID cost categories)
   @Prop() donorCostCategory?: string;
 
-  @Prop({ required: true, type: Types.ObjectId }) createdBy!: Types.ObjectId;
-  @Prop({ type: Types.ObjectId }) lastModifiedBy?: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) createdBy!: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId }) lastModifiedBy?: Types.ObjectId;
   @Prop({ default: false }) isDeleted!: boolean;
 }
 
@@ -207,8 +207,8 @@ export type BudgetVarianceDocument = BudgetVariance & Document;
 
 @Schema({ timestamps: true, collection: 'budget_variances' })
 export class BudgetVariance {
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
-  @Prop({ required: true, type: Types.ObjectId }) budgetAllocationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) budgetAllocationId!: Types.ObjectId;
   @Prop({ required: true }) period!: string;             // "2026-01"
   @Prop({ required: true }) budgetedAmount!: number;
   @Prop({ required: true }) actualAmount!: number;
@@ -220,7 +220,7 @@ export class BudgetVariance {
   @Prop() notes?: string;
   @Prop({ required: true, enum: AlertSeverity, default: AlertSeverity.INFO }) alertLevel!: AlertSeverity;
   @Prop({ default: false }) alertSent!: boolean;
-  @Prop({ required: true, type: Types.ObjectId }) calculatedBy!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) calculatedBy!: Types.ObjectId;
 }
 
 export const BudgetVarianceSchema = SchemaFactory.createForClass(BudgetVariance);
@@ -234,12 +234,12 @@ export type BudgetAuditEventDocument = BudgetAuditEvent & Document;
 
 @Schema({ timestamps: true, collection: 'budget_audit_events' })
 export class BudgetAuditEvent {
-  @Prop({ required: true, type: Types.ObjectId }) organizationId!: Types.ObjectId;
-  @Prop({ required: true, type: Types.ObjectId }) userId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) organizationId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) userId!: Types.ObjectId;
   @Prop({ required: true }) userEmail!: string;
   @Prop({ required: true }) action!: string; // CREATE_ALLOCATION | APPROVE | REVISE | CLOSE | etc.
   @Prop({ required: true }) entity!: string; // BudgetAllocation | BudgetLineItem | BudgetVariance
-  @Prop({ required: true, type: Types.ObjectId }) entityId!: Types.ObjectId;
+  @Prop({ required: true, type: SchemaTypes.ObjectId }) entityId!: Types.ObjectId;
   @Prop({ type: Object }) before?: Record<string, any>;
   @Prop({ type: Object }) after?: Record<string, any>;
   @Prop() ipAddress?: string;

@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type BrandingConfigDocument = HydratedDocument<BrandingConfig>;
 
 @Schema({ timestamps: true })
 export class BrandingConfig {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, unique: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, unique: true })
   organizationId!: Types.ObjectId;
 
   /** Display name shown in nav, emails, and reports — defaults to org name */
@@ -62,5 +62,4 @@ export class BrandingConfig {
 }
 
 export const BrandingConfigSchema = SchemaFactory.createForClass(BrandingConfig);
-BrandingConfigSchema.index({ organizationId: 1 }, { unique: true });
 BrandingConfigSchema.index({ customDomain: 1 }, { sparse: true });

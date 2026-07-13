@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ActivityDocument = HydratedDocument<Activity>;
 
@@ -21,13 +21,13 @@ export class ActivityAttachment {
 
 @Schema({ timestamps: true })
 export class Activity {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator', index: true })
   indicatorId?: Types.ObjectId;
 
   // ── Core ──────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export class Activity {
   // ── Financial ─────────────────────────────────────────────────────────────
   @Prop({ type: Number, min: 0 }) cost?: number;
   @Prop({ trim: true })           costCurrency?: string;
-  @Prop({ type: Types.ObjectId, ref: 'Grant' }) grantId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Grant' }) grantId?: Types.ObjectId;
   @Prop({ trim: true }) budgetLine?: string;    // Which budget line this activity charges to
 
   // ── Evidence & quality ────────────────────────────────────────────────────
@@ -94,9 +94,9 @@ export class Activity {
   @Prop({ trim: true }) followUpActions?: string;  // concrete next steps
 
   // ── Relationships ─────────────────────────────────────────────────────────
-  @Prop({ type: Types.ObjectId, ref: 'Partner' })  partnerId?: Types.ObjectId;
-  @Prop({ type: [Types.ObjectId], ref: 'Beneficiary' }) beneficiaryIds?: Types.ObjectId[];
-  @Prop({ type: Types.ObjectId, ref: 'ActivityTemplate' }) templateId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Partner' })  partnerId?: Types.ObjectId;
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Beneficiary' }) beneficiaryIds?: Types.ObjectId[];
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'ActivityTemplate' }) templateId?: Types.ObjectId;
 
   // ── Workflow ──────────────────────────────────────────────────────────────
   @Prop({
@@ -108,9 +108,9 @@ export class Activity {
 
   @Prop({ trim: true }) rejectionReason?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' }) submittedByUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) submittedByUserId?: Types.ObjectId;
   @Prop() submittedAt?: Date;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) reviewedByUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) reviewedByUserId?: Types.ObjectId;
   @Prop() reviewedAt?: Date;
 
   // ── Quality flags (computed) ───────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 import { isEncrypted, encryptField } from '../../common/utils/field-encryption';
 
 export type SsoConfigDocument = HydratedDocument<SsoConfig>;
@@ -8,7 +8,7 @@ export type SsoProtocol = 'saml' | 'oidc';
 
 @Schema({ timestamps: true })
 export class SsoConfig {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, unique: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, unique: true })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, enum: ['saml', 'oidc'] })
@@ -95,7 +95,6 @@ export class SsoConfig {
 }
 
 export const SsoConfigSchema = SchemaFactory.createForClass(SsoConfig);
-SsoConfigSchema.index({ organizationId: 1 }, { unique: true });
 
 // Encrypt oidcClientSecret at rest, same pattern as org cloud storage credentials.
 SsoConfigSchema.pre('save', async function (this: SsoConfigDocument) {

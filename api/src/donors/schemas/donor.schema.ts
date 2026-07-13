@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type DonorDocument = HydratedDocument<Donor>;
 
@@ -46,8 +46,8 @@ export class DonorEngagement {
   @Prop({ required: true }) date!: Date;
   @Prop({ required: true, trim: true }) summary!: string;
   @Prop({ trim: true }) outcome?: string;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) recordedBy?: Types.ObjectId;
-  @Prop({ type: Types.ObjectId, ref: 'Grant' }) relatedGrantId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) recordedBy?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Grant' }) relatedGrantId?: Types.ObjectId;
 }
 
 @Schema({ _id: true })
@@ -61,7 +61,7 @@ export class ComplianceCondition {
 
 @Schema({ timestamps: true })
 export class Donor {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })

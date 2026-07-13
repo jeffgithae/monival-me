@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ApiKeyDocument = HydratedDocument<ApiKey>;
 
 @Schema({ timestamps: true })
 export class ApiKey {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User', required: true })
   createdByUserId!: Types.ObjectId;
 
   /** Human-readable label, e.g. "DHIS2 integration" */
@@ -49,4 +49,3 @@ export class ApiKey {
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
 ApiKeySchema.index({ organizationId: 1, isActive: 1 });
-ApiKeySchema.index({ keyPrefix: 1 });

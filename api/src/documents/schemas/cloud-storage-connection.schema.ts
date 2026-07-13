@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document as MongooseDocument, Types } from 'mongoose';
+import { Document as MongooseDocument, Types, SchemaTypes } from 'mongoose';
 
 export type CloudProvider = 'google_drive' | 'dropbox' | 'sharepoint';
 
 @Schema({ timestamps: true })
 export class CloudStorageConnection {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Organization' })
+  @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Organization' })
   organizationId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'OrganizationMember', required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'OrganizationMember', required: true })
   connectedByUserId: Types.ObjectId;
 
   /** google_drive | dropbox | sharepoint */

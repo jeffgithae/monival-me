@@ -1,26 +1,26 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type FormResponseDocument = HydratedDocument<FormResponse>;
 
 @Schema({ timestamps: true })
 export class FormResponse {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'FormTemplate', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'FormTemplate', required: true, index: true })
   templateId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator', index: true })
   indicatorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Activity', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Activity', index: true })
   activityId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User', index: true })
   submittedByUserId?: Types.ObjectId;
 
   @Prop({ type: Date, default: Date.now })

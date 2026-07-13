@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ActivityTemplateDocument = HydratedDocument<ActivityTemplate>;
 
 @Schema({ timestamps: true })
 export class ActivityTemplate {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -17,7 +17,7 @@ export class ActivityTemplate {
   @Prop({ trim: true })
   description?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator' })
   indicatorId?: Types.ObjectId;
 
   @Prop({ trim: true })

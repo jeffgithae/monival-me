@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type StakeholderFeedbackDocument = HydratedDocument<StakeholderFeedback>;
 
@@ -40,29 +40,29 @@ export class FeedbackMedia {
 export class ActionTaken {
   @Prop({ required: true }) action!: string;
   @Prop({ required: true }) takenAt!: Date;
-  @Prop({ type: Types.ObjectId, ref: 'User' }) byUserId?: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' }) byUserId?: Types.ObjectId;
   @Prop() notes?: string;
 }
 
 @Schema({ timestamps: true })
 export class StakeholderFeedback {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', index: true })
   projectId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator' })
   indicatorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Activity' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Activity' })
   activityId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Beneficiary' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Beneficiary' })
   beneficiaryId?: Types.ObjectId;
 
   // ── Submitter (may be anonymous) ──────────────────────────────────────────
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   collectedByUserId?: Types.ObjectId;
 
   @Prop({ trim: true }) respondentName?: string;

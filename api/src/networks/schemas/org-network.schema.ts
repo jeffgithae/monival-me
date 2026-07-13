@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type OrgNetworkDocument = HydratedDocument<OrgNetwork>;
 
@@ -8,7 +8,7 @@ export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
 
 @Schema({ _id: true, timestamps: false })
 export class NetworkMember {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, enum: ['lead', 'implementing', 'observer'], default: 'implementing' })
@@ -17,7 +17,7 @@ export class NetworkMember {
   @Prop({ required: true, enum: ['pending', 'accepted', 'declined', 'revoked'], default: 'pending' })
   status!: InviteStatus;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   invitedByUserId?: Types.ObjectId;
 
   @Prop()
@@ -38,7 +38,7 @@ export class NetworkMember {
 @Schema({ timestamps: true })
 export class OrgNetwork {
   /** The hub / lead organisation that owns this network */
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   hubOrganizationId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -55,5 +55,4 @@ export class OrgNetwork {
 }
 
 export const OrgNetworkSchema = SchemaFactory.createForClass(OrgNetwork);
-OrgNetworkSchema.index({ hubOrganizationId: 1 });
 OrgNetworkSchema.index({ 'members.organizationId': 1 });

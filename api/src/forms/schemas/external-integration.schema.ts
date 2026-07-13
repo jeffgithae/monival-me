@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ExternalIntegrationDocument = HydratedDocument<ExternalIntegration>;
 
@@ -8,13 +8,13 @@ export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'disabled';
 
 @Schema({ timestamps: true })
 export class ExternalIntegration {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', index: true })
   projectId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'FormTemplate', index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'FormTemplate', index: true })
   templateId?: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -73,7 +73,7 @@ export class ExternalIntegration {
   @Prop({ type: Number })
   syncIntervalMinutes?: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 }
 

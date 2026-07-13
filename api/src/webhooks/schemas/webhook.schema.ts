@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type WebhookDocument = HydratedDocument<Webhook>;
 
@@ -23,10 +23,10 @@ export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 
 @Schema({ timestamps: true })
 export class Webhook {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'OrganizationMember', required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'OrganizationMember', required: true })
   createdByUserId!: Types.ObjectId;
 
   /** Human label */
@@ -49,7 +49,7 @@ export class Webhook {
   isActive!: boolean;
 
   /** Optional project filter — if set, only events for this project are sent */
-  @Prop({ type: Types.ObjectId, ref: 'Project' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project' })
   projectId?: Types.ObjectId;
 
   /** Last delivery result */

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type ScheduledReportDocument = HydratedDocument<ScheduledReport>;
 
@@ -7,14 +7,14 @@ export type ReportCadence = 'daily' | 'weekly' | 'monthly' | 'quarterly';
 
 @Schema({ timestamps: true })
 export class ScheduledReport {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
   /** Optional: pin to a specific reporting period; otherwise uses most recent approved. */
-  @Prop({ type: Types.ObjectId, ref: 'ReportingPeriod' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'ReportingPeriod' })
   reportingPeriodId?: Types.ObjectId;
 
   @Prop({ required: true })
@@ -44,7 +44,7 @@ export class ScheduledReport {
   @Prop({ type: Date })
   nextRunAt?: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 }
 

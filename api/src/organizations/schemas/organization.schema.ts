@@ -9,10 +9,10 @@ export class Organization {
   @Prop({ required: true, trim: true })
   name!: string;
 
-  @Prop({ required: true, trim: true, lowercase: true, unique: true })
+  @Prop({ required: true, trim: true, lowercase: true })
   slug!: string;
 
-  @Prop({ trim: true, lowercase: true, unique: true, sparse: true })
+  @Prop({ trim: true, lowercase: true })
   domain?: string;
 
   @Prop({ trim: true })

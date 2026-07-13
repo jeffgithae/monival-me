@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type IndicatorDocument = HydratedDocument<Indicator>;
 
@@ -19,13 +19,13 @@ export class AnnualTarget {
 
 @Schema({ timestamps: true })
 export class Indicator {
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', required: true, index: true })
   organizationId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Project', required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Project', required: true, index: true })
   projectId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Indicator' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Indicator' })
   parentId?: Types.ObjectId;
 
   // ── Logframe position ─────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ export class Indicator {
   @Prop({ trim: true })
   responsiblePerson?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   responsibleUserId?: Types.ObjectId;
 
   // ── Quality & validity ────────────────────────────────────────────────────

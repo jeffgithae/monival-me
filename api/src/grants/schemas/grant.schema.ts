@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, SchemaTypes } from 'mongoose';
 
 export type GrantDocument = HydratedDocument<Grant>;
 
 @Schema({ timestamps: true })
 export class Grant {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Organization' })
+  @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Organization' })
   organizationId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -14,7 +14,7 @@ export class Grant {
   @Prop({ trim: true })
   description?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Donor' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Donor' })
   donorId?: Types.ObjectId;
 
   @Prop({ required: true, type: Number, min: 0 })
@@ -39,7 +39,7 @@ export class Grant {
   @Prop({ required: true })
   endDate!: Date;
 
-  @Prop({ type: [Types.ObjectId], ref: 'Project', default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Project', default: [] })
   linkedProjects!: Types.ObjectId[];
 
   @Prop({ default: true })
@@ -51,10 +51,10 @@ export class Grant {
   @Prop({ trim: true })
   termsAndConditions?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   updatedBy?: Types.ObjectId;
 }
 
