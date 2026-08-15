@@ -20,7 +20,14 @@ function loadEnv() {
       if (!trimmed || trimmed.startsWith('#')) continue;
       const idx = trimmed.indexOf('=');
       if (idx > 0) {
-        process.env[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
+        const key = trimmed.slice(0, idx).trim();
+        // Do NOT clobber a value already in the environment. This script drops
+        // and rewrites demo data, so an explicit `MONGODB_URI=… npm run seed`
+        // must win over .env — silently overriding it points the seed at a
+        // different database than the operator asked for.
+        if (process.env[key] === undefined) {
+          process.env[key] = trimmed.slice(idx + 1).trim();
+        }
       }
     }
   } catch {

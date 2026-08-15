@@ -34,7 +34,7 @@ services:
       - ./api/.env
     environment:
       # Inside the compose network, Mongo is reachable by service name.
-      MONGODB_URI: mongodb://mongo:27017/evidara
+      MONGODB_URI: mongodb://mongo:27017/evidara-me
       NODE_ENV: production
       PORT: '3000'
     ports:
