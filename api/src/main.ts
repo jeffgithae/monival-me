@@ -3,7 +3,7 @@ if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
 }
 
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ForbiddenException, ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -107,7 +107,11 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('CORS origin not allowed'));
+      // A disallowed origin is the caller's problem, not a server fault. A bare
+      // Error surfaces as a 500, which both misleads the client and fills error
+      // tracking with entries that are not defects.
+      logger.warn(`Blocked CORS request from origin: ${origin}`);
+      return callback(new ForbiddenException('CORS origin not allowed'));
     },
     credentials: true,
   });

@@ -8,7 +8,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# The `docker` configuration builds with a relative apiUrl so the bundle talks
+# to nginx on its own origin, instead of the absolute hosted URL baked into the
+# production configuration.
+RUN npm run build -- --configuration docker
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 # The Angular app is a static bundle; nginx serves it and rewrites unknown paths

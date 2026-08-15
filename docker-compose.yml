@@ -37,6 +37,10 @@ services:
       MONGODB_URI: mongodb://mongo:27017/evidara-me
       NODE_ENV: production
       PORT: '3000'
+      # The web container proxies /api on its own origin, so the browser makes
+      # same-origin requests — but Chrome still sends an Origin header on POST,
+      # so the web origin must be allowed explicitly.
+      CORS_ORIGIN: http://localhost:8080
     ports:
       - '3000:3000'
 
