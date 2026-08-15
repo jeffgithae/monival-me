@@ -21,6 +21,14 @@ export class Organization {
   @Prop({ trim: true })
   sector?: string;
 
+  /**
+   * Reporting currency. Every cross-currency total (grant portfolio, donor
+   * summaries) is converted into this before being summed — without it,
+   * awards in different currencies were being added together as raw numbers.
+   */
+  @Prop({ type: String, default: 'USD', uppercase: true, trim: true })
+  baseCurrency!: string;
+
   @Prop({ type: String, default: 'trial' })
   planId!: PlanId;
 

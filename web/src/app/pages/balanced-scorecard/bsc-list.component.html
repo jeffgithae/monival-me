@@ -13,8 +13,8 @@
   <section class="panel">
     <h2>Create New Balanced Scorecard</h2>
     <form class="form-grid" (ngSubmit)="createScorecard()">
-      <label>Scorecard Name<input [(ngModel)]="newBSCForm.name" name="name" required /></label>
-      <label>Fiscal Year<input type="number" [(ngModel)]="newBSCForm.fiscalYear" name="year" /></label>
+      <label>Scorecard Name<input aria-label="Name" [(ngModel)]="newBSCForm.name" name="name" required /></label>
+      <label>Fiscal Year<input aria-label="Year" type="number" [(ngModel)]="newBSCForm.fiscalYear" name="year" /></label>
       <button type="submit" class="primary">Create Scorecard</button>
     </form>
   </section>

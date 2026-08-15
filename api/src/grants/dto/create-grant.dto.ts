@@ -1,4 +1,16 @@
-import { IsString, IsNumber, IsOptional, IsDateString, IsMongoId, IsArray, IsBoolean, IsEnum, Min } from 'class-validator';
+import {
+  IsString, IsNumber, IsOptional, IsDateString, IsMongoId, IsArray,
+  IsBoolean, IsEnum, Min, Max, Length, ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class MatchFundingDto {
+  @IsOptional() @IsBoolean() required?: boolean;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) requiredAmount?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) securedAmount?: number;
+  @IsOptional() @IsString() source?: string;
+  @IsOptional() @IsString() notes?: string;
+}
 
 export class CreateGrantDto {
   @IsString()
@@ -18,7 +30,14 @@ export class CreateGrantDto {
 
   @IsOptional()
   @IsString()
+  @Length(3, 3)
   currency?: string;
+
+  /** Rate to the org base currency, captured at award time. */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 8 })
+  @Min(0)
+  exchangeRate?: number;
 
   @IsDateString()
   startDate!: string;
@@ -30,6 +49,37 @@ export class CreateGrantDto {
   @IsArray()
   @IsMongoId({ each: true })
   linkedProjects?: string[];
+
+  // ─── Award hierarchy ────────────────────────────────────────────────────────
+
+  @IsOptional()
+  @IsMongoId()
+  parentGrantId?: string;
+
+  @IsOptional()
+  @IsString()
+  subRecipientName?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  subRecipientPartnerId?: string;
+
+  // ─── Financial classification ───────────────────────────────────────────────
+
+  @IsOptional()
+  @IsEnum(['restricted', 'unrestricted'])
+  fundClassification?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  indirectCostRate?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchFundingDto)
+  matchFunding?: MatchFundingDto;
 
   @IsOptional()
   @IsBoolean()

@@ -7,7 +7,7 @@
       <p class="page-subtitle">Track indicator results, narratives, and approvals for each donor reporting cycle.</p>
     </div>
     @if (canManage()) {
-      <button class="btn-new" (click)="toggleForm()">
+      <button type="button" class="btn-new" (click)="toggleForm()">
         {{ showForm() && !editingPeriod() ? '✕ Cancel' : '+ New period' }}
       </button>
     }
@@ -43,22 +43,22 @@
 
   <!-- Filters -->
   <div class="filters-row">
-    <select class="filter-select" [ngModel]="filterProjectId()" (ngModelChange)="setProjectFilter($event)">
+    <select class="filter-select" [ngModel]="filterProjectId()" (ngModelChange)="setProjectFilter($event)" aria-label="Filter by projects">
       <option value="">All projects</option>
       @for (proj of projects(); track proj._id) {
         <option [value]="proj._id">{{ proj.name }}</option>
       }
     </select>
     <div class="status-tabs">
-      <button class="status-tab" [class.active]="filterStatus() === ''" (click)="setStatusFilter('')">All</button>
+      <button type="button" class="status-tab" [class.active]="filterStatus() === ''" (click)="setStatusFilter('')">All</button>
       @for (s of statuses; track s) {
-        <button class="status-tab" [class.active]="filterStatus() === s" (click)="setStatusFilter(s)">
+        <button type="button" class="status-tab" [class.active]="filterStatus() === s" (click)="setStatusFilter(s)">
           {{ statusLabel(s) }}
         </button>
       }
     </div>
     <div class="search-box">
-      <input type="text" placeholder="Search periods…" [(ngModel)]="searchQuery" />
+      <input aria-label="Search periods" type="text" placeholder="Search periods…" [(ngModel)]="searchQuery" />
     </div>
   </div>
 
@@ -85,22 +85,22 @@
         </div>
         <div class="form-row">
           <label>Cadence <span class="req">*</span>
-            <select formControlName="cadence">
+            <select aria-label="Cadence" formControlName="cadence">
               @for (c of cadences; track c.id) {
                 <option [value]="c.id">{{ c.label }}</option>
               }
             </select>
           </label>
           <label>Due date <span class="hint">(optional)</span>
-            <input type="date" formControlName="dueDate" />
+            <input aria-label="Due date" type="date" formControlName="dueDate" />
           </label>
         </div>
         <div class="form-row">
           <label>Start date <span class="req">*</span>
-            <input type="date" formControlName="startDate" />
+            <input aria-label="Start date" type="date" formControlName="startDate" />
           </label>
           <label>End date <span class="req">*</span>
-            <input type="date" formControlName="endDate" />
+            <input aria-label="End date" type="date" formControlName="endDate" />
           </label>
         </div>
         <label>Notes <span class="hint">(optional)</span>
@@ -140,7 +140,7 @@
         </div>
       } @else {
         @for (p of filteredPeriods(); track p._id) {
-          <div class="period-card" [class.selected]="selected()?._id === p._id" [class.overdue]="isOverdue(p)" (click)="selectPeriod(p)">
+          <div class="period-card" [class.selected]="selected()?._id === p._id" [class.overdue]="isOverdue(p)" (click)="selectPeriod(p)" role="button" tabindex="0" (keydown.enter)="selectPeriod(p)" (keydown.space)="$event.preventDefault(); selectPeriod(p)">
             <div class="period-card-top">
               <span class="status-badge" [class]="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
               @if (isOverdue(p)) {
@@ -181,34 +181,34 @@
           </div>
           <div class="detail-header-actions">
             @if (canManage() && p.status !== 'locked') {
-              <button class="icon-btn" (click)="startEdit(p)" title="Edit period details">✎</button>
+              <button type="button" class="icon-btn" (click)="startEdit(p)" title="Edit period details">✎</button>
             }
-            <button class="icon-btn" (click)="closeDetail()" title="Close">✕</button>
+            <button type="button" class="icon-btn" (click)="closeDetail()" title="Close">✕</button>
           </div>
         </div>
 
         <!-- Workflow action bar -->
         <div class="action-bar">
           @if (canCalculate()) {
-            <button class="btn-secondary" (click)="calculate()" [disabled]="calculating()">
+            <button type="button" class="btn-secondary" (click)="calculate()" [disabled]="calculating()">
               {{ calculating() ? 'Calculating…' : '⟲ Calculate from activities' }}
             </button>
           }
           <div class="action-bar-spacer"></div>
           @if (canSubmit()) {
-            <button class="btn-primary" (click)="confirmStatusChange('submitted')">Submit for approval</button>
+            <button type="button" class="btn-primary" (click)="confirmStatusChange('submitted')">Submit for approval</button>
           }
           @if (canApproveSelected()) {
-            <button class="btn-primary" (click)="confirmStatusChange('approved')">Approve</button>
+            <button type="button" class="btn-primary" (click)="confirmStatusChange('approved')">Approve</button>
           }
           @if (canApproveSelected() || canLock()) {
-            <button class="btn-secondary" (click)="confirmStatusChange('open')">Send back to open</button>
+            <button type="button" class="btn-secondary" (click)="confirmStatusChange('open')">Send back to open</button>
           }
           @if (canLock()) {
-            <button class="btn-danger" (click)="confirmStatusChange('locked')">🔒 Lock period</button>
+            <button type="button" class="btn-danger" (click)="confirmStatusChange('locked')">🔒 Lock period</button>
           }
-          <button class="btn-ghost" (click)="export('excel')">⬇ Excel</button>
-          <button class="btn-ghost" (click)="export('pdf')">⬇ PDF</button>
+          <button type="button" class="btn-ghost" (click)="export('excel')">⬇ Excel</button>
+          <button type="button" class="btn-ghost" (click)="export('pdf')">⬇ PDF</button>
         </div>
 
         @if (isLocked()) {
@@ -217,13 +217,13 @@
 
         <!-- Tabs -->
         <div class="detail-tabs">
-          <button class="dp-tab" [class.active]="activeTab() === 'results'" (click)="switchTab('results')">
+          <button type="button" class="dp-tab" [class.active]="activeTab() === 'results'" (click)="switchTab('results')">
             Results
             @if (results().length) { <span class="tab-count">{{ results().length }}</span> }
           </button>
-          <button class="dp-tab" [class.active]="activeTab() === 'narrative'" (click)="switchTab('narrative')">Narrative</button>
-          <button class="dp-tab" [class.active]="activeTab() === 'dq'" (click)="switchTab('dq')">Data Quality</button>
-          <button class="dp-tab" [class.active]="activeTab() === 'history'" (click)="switchTab('history')">History</button>
+          <button type="button" class="dp-tab" [class.active]="activeTab() === 'narrative'" (click)="switchTab('narrative')">Narrative</button>
+          <button type="button" class="dp-tab" [class.active]="activeTab() === 'dq'" (click)="switchTab('dq')">Data Quality</button>
+          <button type="button" class="dp-tab" [class.active]="activeTab() === 'history'" (click)="switchTab('history')">History</button>
         </div>
 
         <!-- Results tab -->
@@ -278,6 +278,7 @@
                     <div class="result-achieved">
                       <input
                         type="number"
+                        [attr.aria-label]="'Achieved value for ' + (indicatorOf(r)?.code ?? 'this indicator')"
                         [value]="r.achieved"
                         [disabled]="isLocked() || !canManage()"
                         (change)="updateResult(r, 'achieved', $any($event.target).value)"
@@ -294,7 +295,7 @@
                       }
                     </div>
                     <div class="result-narrative">
-                      <input
+                      <input aria-label="Add a note"
                         type="text"
                         [value]="r.narrative ?? ''"
                         placeholder="Add a note…"
@@ -422,10 +423,10 @@
   <!-- Status change confirmation modal -->
   @if (showStatusConfirm(); as newStatus) {
     <div class="modal-overlay" (click)="cancelStatusChange()">
-      <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div appModal modalLabelledBy="reporting-period-dialog-0-title" (modalClose)="cancelStatusChange()" class="modal-panel" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h2>{{ newStatus === 'locked' ? 'Lock this period?' : 'Change status to ' + statusLabel(newStatus) + '?' }}</h2>
-          <button class="modal-close" (click)="cancelStatusChange()">✕</button>
+          <h2 id="reporting-period-dialog-0-title">{{ newStatus === 'locked' ? 'Lock this period?' : 'Change status to ' + statusLabel(newStatus) + '?' }}</h2>
+          <button type="button" class="modal-close" (click)="cancelStatusChange()">✕</button>
         </div>
         <div class="modal-body">
           @if (newStatus === 'locked') {

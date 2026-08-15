@@ -387,3 +387,9 @@ h1 {
   font-size: 0.78rem;
   margin-top: 1.75rem;
 }
+/* Numeric table columns read wrong left-aligned; these headers had no rules. */
+.th-code      { width: 6rem; }
+.th-unit-cost,
+.th-cost,
+.th-progress  { text-align: right; }
+.row-progress { text-align: right; font-variant-numeric: tabular-nums; }

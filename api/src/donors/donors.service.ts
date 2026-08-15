@@ -14,11 +14,13 @@ import { Grant, GrantDocument } from '../grants/schemas/grant.schema';
 import { BudgetAllocation } from '../budget/schemas/budget.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
+import { Organization } from '../organizations/schemas/organization.schema';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
 import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { FxService } from '../fx/fx.service';
 
 @Injectable()
 export class DonorsService {
@@ -28,8 +30,10 @@ export class DonorsService {
     @InjectModel(BudgetAllocation.name) private readonly budgetModel: Model<BudgetAllocation>,
     @InjectModel(Project.name)          private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name)        private readonly indicatorModel: Model<Indicator>,
+    @InjectModel(Organization.name)     private readonly orgModel: Model<Organization>,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly fx: FxService,
   ) {}
 
   // ─── Core CRUD ──────────────────────────────────────────────────────────────
@@ -58,7 +62,40 @@ export class DonorsService {
       this.donorModel.find(query).sort({ name: 1 }).skip(skip).limit(limit).lean(),
       this.donorModel.countDocuments(query),
     ]);
-    return toPaginatedResult(data, total, page, limit);
+
+    // The donor card renders `activeGrants` and `totalFunded`, which nothing
+    // was computing — both rendered blank on every row. Aggregated per page
+    // rather than per row so this stays one extra query.
+    const donorIds = data.map((d) => d._id);
+    const grants = donorIds.length
+      ? await this.grantModel
+          .find({ organizationId: new Types.ObjectId(organizationId), donorId: { $in: donorIds } })
+          .select('donorId status amount currency exchangeRate')
+          .lean()
+      : [];
+
+    const base = await this.baseCurrencyFor(organizationId);
+    const byDonor = new Map<string, any[]>();
+    for (const g of grants) {
+      const key = g.donorId?.toString();
+      if (!key) continue;
+      (byDonor.get(key) ?? byDonor.set(key, []).get(key)!).push(g);
+    }
+
+    const enriched = await Promise.all(
+      data.map(async (d) => {
+        const own = byDonor.get(d._id.toString()) ?? [];
+        const funded = await this.sumConverted(own, (g) => g.amount, base);
+        return {
+          ...d,
+          activeGrants: own.filter((g) => g.status === 'active').length,
+          totalFunded: funded.amount,
+          fundedCurrency: base,
+        };
+      }),
+    );
+
+    return toPaginatedResult(enriched, total, page, limit);
   }
 
   async findOne(organizationId: string, id: string) {
@@ -127,7 +164,8 @@ export class DonorsService {
       action: 'donor.updated',
       entityType: 'donor',
       entityId: id,
-      metadata: { before: existing, after: donor },
+      before: existing,
+      after: donor,
     });
 
     return donor;
@@ -334,20 +372,24 @@ export class DonorsService {
 
     return {
       reportsDue: grants
-        .filter(g => (g as any).nextReportDue && new Date((g as any).nextReportDue) <= in90)
+        .filter(g => g.nextReportDue && new Date(g.nextReportDue) <= in90)
         .map(g => ({
           grantId: g._id,
-          grantTitle: (g as any).title ?? (g as any).name,
-          nextReportDue: (g as any).nextReportDue,
-          daysUntilDue: (g as any).nextReportDue
-            ? Math.ceil((new Date((g as any).nextReportDue).getTime() - now.getTime()) / 86_400_000)
+          grantTitle: g.name,
+          nextReportDue: g.nextReportDue,
+          daysUntilDue: g.nextReportDue
+            ? Math.ceil((new Date(g.nextReportDue).getTime() - now.getTime()) / 86_400_000)
             : null,
+          isOverdue: g.nextReportDue ? new Date(g.nextReportDue) < now : false,
+          obligations: (g.reportingSchedule ?? []).filter(
+            o => o.status === 'pending' || o.status === 'overdue',
+          ),
         })),
       grantsExpiringSoon: grants
         .filter(g => g.endDate && new Date(g.endDate) <= in90)
         .map(g => ({
           grantId: g._id,
-          grantTitle: (g as any).title ?? (g as any).name,
+          grantTitle: g.name,
           endDate: g.endDate,
           daysRemaining: g.endDate
             ? Math.ceil((new Date(g.endDate).getTime() - now.getTime()) / 86_400_000)
@@ -435,9 +477,11 @@ export class DonorsService {
         : Promise.resolve([]),
     ]);
 
-    const totalAwarded = grants.reduce((s, g) => s + ((g as any).totalAmount ?? 0), 0);
-    const totalSpent   = grants.reduce((s, g) => s + ((g as any).spentAmount ?? 0), 0);
-    const activeGrants = grants.filter(g => (g as any).status === 'active').length;
+    const base = await this.baseCurrencyFor(organizationId);
+    const totalAwarded  = await this.sumConverted(grants, g => g.amount, base);
+    const totalSpent    = await this.sumConverted(grants, g => g.amountSpent, base);
+    const totalDisbursed = await this.sumConverted(grants, g => this.disbursedTotal(g), base);
+    const activeGrants  = grants.filter(g => g.status === 'active').length;
 
     return {
       donor,
@@ -445,11 +489,14 @@ export class DonorsService {
       projects,
       budgets,
       summary: {
+        baseCurrency: base,
         totalGrants: grants.length,
         activeGrants,
-        totalAwarded,
-        totalSpent,
-        remaining: totalAwarded - totalSpent,
+        totalAwarded: totalAwarded.amount,
+        totalSpent: totalSpent.amount,
+        totalDisbursed: totalDisbursed.amount,
+        remaining: Math.round((totalAwarded.amount - totalSpent.amount) * 100) / 100,
+        unconvertible: totalAwarded.unconvertible,
       },
     };
   }
@@ -465,37 +512,53 @@ export class DonorsService {
       this.grantModel.find({ organizationId: orgId }).lean(),
     ]);
 
-    const countByType:   Record<string, number> = {};
-    const countByStatus: Record<string, number> = {};
+    // These count DONORS, not grants — named explicitly because they sit
+    // beside `totalGrants`/`activeGrants` and were previously ambiguous.
+    const donorsByType:   Record<string, number> = {};
+    const donorsByStatus: Record<string, number> = {};
     donors.forEach(d => {
-      const t = (d as any).type   ?? 'other';   countByType[t]   = (countByType[t]   ?? 0) + 1;
-      const s = (d as any).status ?? 'active';  countByStatus[s] = (countByStatus[s] ?? 0) + 1;
+      const t = d.type   ?? 'other';   donorsByType[t]   = (donorsByType[t]   ?? 0) + 1;
+      const s = d.status ?? 'active';  donorsByStatus[s] = (donorsByStatus[s] ?? 0) + 1;
     });
 
     const expiringGrants = grants.filter(
       g => g.endDate && new Date(g.endDate) >= now && new Date(g.endDate) <= in30 && g.status !== 'closed',
     );
     const overdueReports = grants.filter(
-      g => (g as any).nextReportDue && new Date((g as any).nextReportDue) < now && g.status === 'active',
+      g => g.nextReportDue && new Date(g.nextReportDue) < now && g.status === 'active',
     );
     const overdueCompliance = await this.donorModel.countDocuments({
       organizationId: orgId,
       'complianceConditions.status': 'overdue',
     });
 
+    // Awards may be in different currencies; convert before summing. Prime
+    // awards only, so a sub-award isn't counted alongside its parent.
+    const base = await this.baseCurrencyFor(organizationId);
+    const primes = grants.filter(g => !g.parentGrantId);
+    const awarded   = await this.sumConverted(primes, g => g.amount, base);
+    const spent     = await this.sumConverted(primes, g => g.amountSpent, base);
+    const disbursed = await this.sumConverted(primes, g => this.disbursedTotal(g), base);
+
     return {
+      baseCurrency:     base,
       totalDonors:      donors.length,
       totalGrants:      grants.length,
+      primeAwards:      primes.length,
+      subAwards:        grants.length - primes.length,
       activeGrants:     grants.filter(g => g.status === 'active').length,
-      totalAwarded:     grants.reduce((s, g) => s + ((g as any).totalAmount   ?? g.amount  ?? 0), 0),
-      totalSpent:       grants.reduce((s, g) => s + ((g as any).spentAmount   ?? g.amountSpent ?? 0), 0),
-      totalDisbursed:   grants.reduce((s, g) => s + ((g as any).disbursedAmount ?? 0), 0),
-      remaining:        grants.reduce((s, g) => s + (((g as any).totalAmount ?? g.amount ?? 0) - ((g as any).spentAmount ?? g.amountSpent ?? 0)), 0),
-      countByType,
-      countByStatus,
+      overspentGrants:  grants.filter(g => g.isOverspent).length,
+      totalAwarded:     awarded.amount,
+      totalSpent:       spent.amount,
+      totalDisbursed:   disbursed.amount,
+      remaining:        Math.round((awarded.amount - spent.amount) * 100) / 100,
+      undisbursedBalance: Math.round((awarded.amount - disbursed.amount) * 100) / 100,
+      donorsByType,
+      donorsByStatus,
       expiringIn30Days: expiringGrants.length,
       overdueReports:   overdueReports.length,
       overdueCompliance,
+      unconvertible:    awarded.unconvertible,
     };
   }
 
@@ -520,33 +583,85 @@ export class DonorsService {
       grantsByDonor.get(key)!.push(g);
     });
 
-    return donors.map(d => {
-      const dGrants    = grantsByDonor.get(d._id.toString()) ?? [];
-      const awarded    = dGrants.reduce((s, g) => s + ((g as any).totalAmount  ?? g.amount       ?? 0), 0);
-      const spent      = dGrants.reduce((s, g) => s + ((g as any).spentAmount  ?? g.amountSpent ?? 0), 0);
-      const active     = dGrants.filter(g => g.status === 'active').length;
+    const base = await this.baseCurrencyFor(organizationId);
+
+    // `website` and `reportingCadence` were previously emitted here but are
+    // not on the Donor schema, so every row carried two permanently blank
+    // columns. Contact email comes from the primary contact instead.
+    return Promise.all(donors.map(async d => {
+      const dGrants   = grantsByDonor.get(d._id.toString()) ?? [];
+      const awarded   = await this.sumConverted(dGrants, g => g.amount, base);
+      const spent     = await this.sumConverted(dGrants, g => g.amountSpent, base);
+      const disbursed = await this.sumConverted(dGrants, g => this.disbursedTotal(g), base);
+      const active    = dGrants.filter(g => g.status === 'active').length;
+      const primary   = (d.contacts ?? []).find(c => c.isPrimary) ?? (d.contacts ?? [])[0];
+
       return {
         id:               d._id.toString(),
         name:             d.name,
-        shortName:        (d as any).shortName ?? '',
-        type:             (d as any).type ?? '',
-        status:           (d as any).status ?? '',
-        country:          (d as any).address?.country ?? (d as any).country ?? '',
-        contactEmail:     (d as any).contactEmail ?? '',
-        website:          (d as any).website ?? '',
-        reportingCadence: (d as any).reportingCadence ?? '',
+        shortName:        d.shortName ?? '',
+        type:             d.type ?? '',
+        status:           d.status ?? '',
+        country:          d.address?.country ?? '',
+        contactName:      primary?.name ?? '',
+        contactEmail:     primary?.email ?? '',
         requiresDisaggregation: (d as any).requiresDisaggregation ? 'Yes' : 'No',
         totalGrants:      dGrants.length,
         activeGrants:     active,
-        totalAwarded:     awarded,
-        totalSpent:       spent,
-        remaining:        awarded - spent,
-        tags:             ((d as any).tags ?? []).join('; '),
+        baseCurrency:     base,
+        totalAwarded:     awarded.amount,
+        totalSpent:       spent.amount,
+        totalDisbursed:   disbursed.amount,
+        remaining:        Math.round((awarded.amount - spent.amount) * 100) / 100,
+        tags:             (d.tags ?? []).join('; '),
       };
-    });
+    }));
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────────────
+
+  private async baseCurrencyFor(organizationId: string): Promise<string> {
+    const org = await this.orgModel.findById(organizationId).select('baseCurrency').lean();
+    return (org?.baseCurrency ?? 'USD').toUpperCase();
+  }
+
+  /** Received tranches only — scheduled money is not disbursed money. */
+  private disbursedTotal(grant: { disbursements?: Array<{ status: string; amount: number }> }): number {
+    return (grant.disbursements ?? [])
+      .filter(d => d.status === 'received')
+      .reduce((sum, d) => sum + (d.amount ?? 0), 0);
+  }
+
+  /**
+   * Sum a money field across grants that may be in different currencies.
+   * Unconvertible currencies are reported separately rather than added in
+   * at face value.
+   */
+  private async sumConverted(
+    grants: Array<{ amount?: number; amountSpent?: number; currency?: string; exchangeRate?: number | null; disbursements?: any[] }>,
+    pick: (g: any) => number,
+    baseCurrency: string,
+  ): Promise<{ amount: number; unconvertible: Array<{ currency: string; amount: number }> }> {
+    let total = 0;
+    const stuck = new Map<string, number>();
+
+    for (const g of grants) {
+      const value = pick(g) ?? 0;
+      if (!value) continue;
+      const currency = (g.currency ?? baseCurrency).toUpperCase();
+      const res = await this.fx.convert(value, currency, baseCurrency, g.exchangeRate);
+      if (res.source === 'unavailable') {
+        stuck.set(currency, (stuck.get(currency) ?? 0) + value);
+      } else {
+        total += res.amount;
+      }
+    }
+
+    return {
+      amount: Math.round(total * 100) / 100,
+      unconvertible: [...stuck.entries()].map(([currency, amount]) => ({ currency, amount })),
+    };
+  }
 
   private enrichGrant(g: any) {
     const now   = Date.now();

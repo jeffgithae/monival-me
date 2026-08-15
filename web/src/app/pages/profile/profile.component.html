@@ -35,13 +35,13 @@
 
   <!-- Tab nav -->
   <div class="tab-nav">
-    <button class="tab-btn" [class.active]="activeTab() === 'profile'"  (click)="activeTab.set('profile')">
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'profile'"  (click)="activeTab.set('profile')">
       👤 Profile
     </button>
-    <button class="tab-btn" [class.active]="activeTab() === 'password'" (click)="activeTab.set('password')">
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'password'" (click)="activeTab.set('password')">
       🔐 Password
     </button>
-    <button class="tab-btn" [class.active]="activeTab() === 'org'"      (click)="activeTab.set('org')">
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'org'"      (click)="activeTab.set('org')">
       🏢 Organisation
     </button>
   </div>
@@ -67,8 +67,8 @@
 
         <div class="form-grid">
           <div class="field">
-            <label>Full Name</label>
-            <input formControlName="name" placeholder="Your full name" [class.invalid]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" />
+        <label for="profile-name">Full Name</label>
+            <input id="profile-name" formControlName="name" placeholder="Your full name" [class.invalid]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" />
             @if (profileForm.get('name')?.invalid && profileForm.get('name')?.touched) {
               <span class="field-error">Name must be at least 2 characters</span>
             }
@@ -99,7 +99,7 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn-save" (click)="saveProfile()" [disabled]="profileForm.invalid || savingProfile()">
+          <button type="button" class="btn-save" (click)="saveProfile()" [disabled]="profileForm.invalid || savingProfile()">
             {{ savingProfile() ? 'Saving…' : 'Save Changes' }}
           </button>
         </div>
@@ -128,7 +128,7 @@
           <div class="field">
             <label>Current Password</label>
             <div class="password-wrap">
-              <input [type]="showCurrent() ? 'text' : 'password'"
+              <input aria-label="Enter current password" [type]="showCurrent() ? 'text' : 'password'"
                 formControlName="currentPassword"
                 placeholder="Enter current password"
                 [class.invalid]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched" />
@@ -142,7 +142,7 @@
           <div class="field">
             <label>New Password</label>
             <div class="password-wrap">
-              <input [type]="showNew() ? 'text' : 'password'"
+              <input aria-label="Min. 8 characters" [type]="showNew() ? 'text' : 'password'"
                 formControlName="newPassword"
                 placeholder="Min. 8 characters"
                 [class.invalid]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" />
@@ -176,7 +176,7 @@
           <div class="field">
             <label>Confirm New Password</label>
             <div class="password-wrap">
-              <input [type]="showConfirm() ? 'text' : 'password'"
+              <input aria-label="Repeat new password" [type]="showConfirm() ? 'text' : 'password'"
                 formControlName="confirmPassword"
                 placeholder="Repeat new password"
                 [class.invalid]="passwordForm.errors?.['mismatch'] && passwordForm.get('confirmPassword')?.touched" />
@@ -191,7 +191,7 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn-save" (click)="savePassword()"
+          <button type="button" class="btn-save" (click)="savePassword()"
             [disabled]="passwordForm.invalid || savingPassword()">
             {{ savingPassword() ? 'Changing…' : 'Change Password' }}
           </button>

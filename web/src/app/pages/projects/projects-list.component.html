@@ -41,7 +41,7 @@
 
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input
+    <input aria-label="Search projects or donors"
       type="search"
       class="search-input"
       placeholder="Search projects or donors…"
@@ -65,8 +65,8 @@
         <label>Donor<input [(ngModel)]="form.donor" name="donor" placeholder="Funding organisation" /></label>
       </div>
       <div class="form-row">
-        <label>Start date<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
-        <label>End date<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
+        <label>Start date<input aria-label="Start date" type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
+        <label>End date<input aria-label="End date" type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
       </div>
       <label class="full-label">Description
         <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Brief programme objectives and scope…"></textarea>
@@ -87,6 +87,15 @@
     @for (i of [1,2,3,4,5,6]; track i) { <div class="skeleton-card"></div> }
   </div>
 } @else if (filteredProjects().length === 0) {
+  @if (loadError()) {
+    <div class="load-error" role="alert">
+      <span class="load-error-icon">⚠️</span>
+      <div>
+        <strong>{{ loadError() }}</strong>
+        <button type="button" class="retry-btn" (click)="loadProjects()">Retry</button>
+      </div>
+    </div>
+  } @else {
   <div class="empty-state">
     <span class="empty-icon">📁</span>
     <h3>{{ projectCounts().total === 0 ? 'No projects yet' : 'No matches found' }}</h3>
@@ -95,6 +104,7 @@
       <button type="button" class="btn-new" (click)="toggleForm()">+ New project</button>
     }
   </div>
+  }
 } @else {
   <div class="projects-grid">
     @for (project of filteredProjects(); track project._id) {

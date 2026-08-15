@@ -3,9 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { BalancedScorecard, BalancedScorecardSchema } from './schemas/balanced-scorecard.schema';
 import { BalancedScorecardService } from './bsc.service';
 import { BalancedScorecardController } from './bsc.controller';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: BalancedScorecard.name, schema: BalancedScorecardSchema }])],
+  imports: [
+    AuditModule,MongooseModule.forFeature([{ name: BalancedScorecard.name, schema: BalancedScorecardSchema }])],
   controllers: [BalancedScorecardController],
   providers: [BalancedScorecardService],
   exports: [BalancedScorecardService],

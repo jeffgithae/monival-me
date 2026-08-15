@@ -941,3 +941,4 @@ h1 {
   .filter-bar     { flex-direction: column; align-items: stretch; }
   .section-head   { flex-direction: column; align-items: flex-start; }
 }
+.header-left { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }

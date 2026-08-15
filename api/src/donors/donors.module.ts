@@ -10,11 +10,13 @@ import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.sche
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { FxModule } from '../fx/fx.module';
 
 @Module({
   imports: [
     AuditModule,
     NotificationsModule,
+    FxModule,
     MongooseModule.forFeature([
       { name: Donor.name,            schema: DonorSchema },
       { name: Grant.name,            schema: GrantSchema },

@@ -30,10 +30,12 @@ Multi-tenant M&E SaaS for nonprofits: logframe indicators, field activities, don
 - **Stripe Checkout** + Customer Portal (or **mock mode** when `BILLING_MOCK=true`)
 - Plan limits on projects, users, and indicators
 
-## Quick start
+## Quick start (local development)
+
+Run only the database in Docker and both apps from source, so you get hot reload:
 
 ```bash
-docker compose up -d
+docker compose up -d mongo
 
 cd api && cp .env.example .env && npm install && npm run start:dev
 cd web && npm install && npm start
@@ -42,6 +44,25 @@ cd web && npm install && npm start
 - Web: http://localhost:4200  
 - API: http://localhost:3000/api  
 - Pricing: http://localhost:4200/pricing  
+
+### Running the whole stack in Docker
+
+`docker compose up --build` brings up Mongo, the API, and the web bundle behind
+nginx in the same shape they run in production — web on http://localhost:8080,
+API on http://localhost:3000/api. It reads secrets from `api/.env`, so create
+that first. See [DEPLOYMENT.md](DEPLOYMENT.md) for the deploy sequence,
+backup/restore, and error tracking.
+
+### Database migrations
+
+Schema changes go through a versioned, replayable runner rather than by hand —
+see [api/migrations/README.md](api/migrations/README.md).
+
+```bash
+cd api
+npm run migrate:status   # list applied / pending, change nothing
+npm run migrate          # apply everything outstanding
+```
 
 ### Demo account
 
@@ -80,7 +101,15 @@ cd api && npm run seed
 
 ```
 evidara-me/
-├── api/          NestJS + Mongoose + Stripe
-├── web/          Angular 19
+├── api/               NestJS + Mongoose + Stripe
+│   ├── migrations/    versioned schema migrations
+│   ├── scripts/       seed + migration runner
+│   └── Dockerfile
+├── web/               Angular 19
+│   ├── nginx.conf     static serving + SPA fallback
+│   └── Dockerfile
+├── marketing-site/    static marketing pages
+├── .github/workflows/ CI: lint, test, build, image build
+├── DEPLOYMENT.md      deploy sequence, backup/restore, observability
 └── docker-compose.yml
 ```

@@ -13,6 +13,9 @@ import {
   CloudProvider,
   CloudProvidersConfig,
 } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
+import { PagerComponent } from '../../shared/pager/pager.component';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 const CATEGORIES = ['Report', 'Evidence', 'Policy', 'Agreement', 'Financial', 'Training', 'Other'];
 const CATEGORY_ICONS: Record<string, string> = {
@@ -67,11 +70,12 @@ type Panel = 'none' | 'create' | 'edit' | 'versions' | 'cloud-manager' | 'cloud-
 @Component({
   selector: 'app-documents',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe],
+  imports: [ModalDirective, CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, PagerComponent],
   templateUrl: './documents.component.html',
   styleUrl: './documents.component.scss',
 })
 export class DocumentsComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api = inject(ApiService);
   auth        = inject(AuthService);
   private fb  = inject(FormBuilder);
@@ -184,13 +188,27 @@ export class DocumentsComponent implements OnInit {
   }
 
   // ── Document CRUD ──────────────────────────────────────────────────────────
+  // Server-side pagination state, surfaced through <app-pager>.
+  page = signal(1);
+  total = signal(0);
+  readonly pageSize = 50;
+
   load() {
     this.loading.set(true);
     this.error.set('');
-    this.api.documents().subscribe({
-      next: docs => { this.documents.set(docs); this.loading.set(false); },
+    this.api.documentsPage({ page: this.page(), limit: this.pageSize }).subscribe({
+      next: res => {
+        this.documents.set(res.data);
+        this.total.set(res.total);
+        this.loading.set(false);
+      },
       error: err  => { this.error.set(err.error?.message || 'Failed to load documents'); this.loading.set(false); },
     });
+  }
+
+  goToPage(page: number) {
+    this.page.set(page);
+    this.load();
   }
 
   create() {
@@ -245,8 +263,8 @@ export class DocumentsComponent implements OnInit {
     });
   }
 
-  deleteDoc(doc: OrgDocument) {
-    if (!confirm(`Delete "${doc.title}"? This will also delete all versions. This cannot be undone.`)) return;
+  async deleteDoc(doc: OrgDocument) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${doc.title}"?`, message: `This will also delete all versions. This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.deleting.set(doc._id);
     this.api.deleteDocument(doc._id).subscribe({
       next: () => { this.deleting.set(''); this.load(); },
@@ -374,8 +392,8 @@ export class DocumentsComponent implements OnInit {
     });
   }
 
-  disconnectProvider(conn: CloudStorageConnection) {
-    if (!confirm(`Disconnect "${conn.label}"? Documents already imported will remain, but you won't be able to browse this account's files.`)) return;
+  async disconnectProvider(conn: CloudStorageConnection) {
+    if (!(await this.confirmSvc.ask({ title: `Disconnect "${conn.label}"?`, message: `Documents already imported will remain, but you won't be able to browse this account's files.` }))) return;
     this.api.removeCloudConnection(conn._id).subscribe({
       next: () => this.loadConnections(),
       error: err => this.cloudError.set(err.error?.message || 'Disconnect failed'),

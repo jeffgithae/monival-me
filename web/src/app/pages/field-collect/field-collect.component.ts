@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { ApiService } from '../../core/api.service';
 import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import { Project, Indicator } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
 
 @Component({
   selector: 'app-field-collect',
@@ -13,6 +14,7 @@ import { Project, Indicator } from '../../core/models';
   styleUrl: './field-collect.component.scss',
 })
 export class FieldCollectComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api = inject(ApiService);
   private fb  = inject(FormBuilder);
   queue = inject(OfflineQueueService);
@@ -133,7 +135,7 @@ export class FieldCollectComponent implements OnInit {
   }
 
   async discardQueued(clientId: string) {
-    if (!confirm('Discard this unsynced activity? It has not been saved to the server.')) return;
+    if (!(await this.confirmSvc.ask({ title: `Discard this unsynced activity?`, message: `It has not been saved to the server.`, danger: true, confirmLabel: 'Delete' }))) return;
     await this.queue.remove(clientId);
     await this.refreshQueue();
   }

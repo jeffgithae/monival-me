@@ -190,7 +190,11 @@ export class WebhooksService {
 
       if (attempt < MAX_RETRIES - 1) {
         const delay = RETRY_DELAYS[attempt] ?? 120_000;
-        setTimeout(() => this.deliver(hook, payload, attempt + 1), delay);
+        // unref so a pending retry (up to two minutes out) cannot hold the
+        // event loop open — otherwise the process refuses to exit on shutdown,
+        // and Jest reports a worker that failed to exit gracefully.
+        const timer = setTimeout(() => this.deliver(hook, payload, attempt + 1), delay);
+        timer.unref?.();
       } else {
         await this.model.updateOne(
           { _id: hook._id },

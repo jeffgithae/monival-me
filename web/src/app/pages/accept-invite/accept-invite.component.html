@@ -64,17 +64,17 @@
         <div class="grid-2">
           <!-- Email — pre-filled, read-only -->
           <div class="full">
-            <label>
+        <label for="accept-invite-email-address-this-is-the-address-that-r">
               Email address
               <span class="field-note">This is the address that received the invite</span>
             </label>
-            <input type="email" [value]="inv.email" readonly class="readonly-field" />
+            <input id="accept-invite-email-address-this-is-the-address-that-r" type="email" [value]="inv.email" readonly class="readonly-field" />
           </div>
 
           <!-- Name -->
           <div>
-            <label>Your full name</label>
-            <input [(ngModel)]="name" name="name" required placeholder="First and last name" autofocus />
+        <label for="accept-invite-name">Your full name</label>
+            <input id="accept-invite-name" [(ngModel)]="name" name="name" required placeholder="First and last name" autofocus />
           </div>
 
           <!-- Empty col spacer on desktop -->
@@ -82,12 +82,12 @@
 
           <!-- Password -->
           <div>
-            <label>Password <span class="field-note">Min. 8 characters</span></label>
-            <input type="password" [(ngModel)]="password" name="password" required minlength="8" placeholder="Choose a strong password" />
+        <label for="accept-invite-password">Password <span class="field-note">Min. 8 characters</span></label>
+            <input id="accept-invite-password" type="password" [(ngModel)]="password" name="password" required minlength="8" placeholder="Choose a strong password" />
           </div>
           <div>
-            <label>Confirm password</label>
-            <input type="password" [(ngModel)]="confirm" name="confirm" required placeholder="Repeat password" />
+        <label for="accept-invite-confirm">Confirm password</label>
+            <input id="accept-invite-confirm" type="password" [(ngModel)]="confirm" name="confirm" required placeholder="Repeat password" />
           </div>
         </div>
 
@@ -102,7 +102,7 @@
 
       <p class="foot">
         Already have an account?
-        <button class="link-btn" (click)="view.set('login'); error.set('')">Sign in instead</button>
+        <button type="button" class="link-btn" (click)="view.set('login'); error.set('')">Sign in instead</button>
       </p>
     }
 
@@ -131,15 +131,15 @@
 
       <form (ngSubmit)="submitLogin()">
         <div>
-          <label>
+        <label for="accept-invite-email-address-this-is-the-address-that-r-2">
             Email address
             <span class="field-note">This is the address that received the invite</span>
           </label>
-          <input type="email" [value]="inv.email" readonly class="readonly-field" />
+          <input id="accept-invite-email-address-this-is-the-address-that-r-2" type="email" [value]="inv.email" readonly class="readonly-field" />
         </div>
         <div style="margin-top: 1rem;">
-          <label>Password</label>
-          <input type="password" [(ngModel)]="loginPassword" name="loginPassword" required placeholder="Your password" autofocus />
+        <label for="accept-invite-loginpassword">Password</label>
+          <input id="accept-invite-loginpassword" type="password" [(ngModel)]="loginPassword" name="loginPassword" required placeholder="Your password" autofocus />
         </div>
 
         @if (error()) {
@@ -153,7 +153,7 @@
 
       <p class="foot">
         <a routerLink="/forgot-password">Forgot your password?</a> ·
-        <button class="link-btn" (click)="view.set('register'); error.set('')">Create new account</button>
+        <button type="button" class="link-btn" (click)="view.set('register'); error.set('')">Create new account</button>
       </p>
     }
 

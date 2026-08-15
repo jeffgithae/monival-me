@@ -3,17 +3,30 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BalancedScorecard, BalancedScorecardDocument } from './schemas/balanced-scorecard.schema';
 import { CreateBalancedScorecardDto, UpdateBalancedScorecardDto, UpdateObjectiveDto } from './dto/balanced-scorecard.dto';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class BalancedScorecardService {
-  constructor(@InjectModel(BalancedScorecard.name) private bscModel: Model<BalancedScorecardDocument>) {}
+  constructor(@InjectModel(BalancedScorecard.name) private bscModel: Model<BalancedScorecardDocument>,
+    private readonly audit: AuditService,
+  ) {}
 
   async create(organizationId: string, createDto: CreateBalancedScorecardDto): Promise<BalancedScorecardDocument> {
     const bsc = new this.bscModel({
       ...createDto,
       organizationId: new Types.ObjectId(organizationId),
     });
-    return bsc.save();
+    const saved = await bsc.save();
+
+    await this.audit.record({
+      organizationId,
+      action: 'bsc.created',
+      entityType: 'BalancedScorecard',
+      entityId: saved._id.toString(),
+      after: { name: saved.name, fiscalYear: saved.fiscalYear },
+    });
+
+    return saved;
   }
 
   async findAll(organizationId: string, filters?: {
@@ -94,6 +107,13 @@ export class BalancedScorecardService {
 
     const deleted = await this.bscModel.findByIdAndDelete(id);
     if (!deleted) throw new NotFoundException('Balanced Scorecard not found');
+    await this.audit.record({
+      organizationId,
+      action: 'bsc.deleted',
+      entityType: 'BalancedScorecard',
+      entityId: id,
+    });
+
     return deleted;
   }
 

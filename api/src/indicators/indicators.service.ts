@@ -81,6 +81,125 @@ export class IndicatorsService {
     return indicator;
   }
 
+  // ─── Achievement (server-computed progress for a whole project) ───────────
+
+  /**
+   * Per-indicator achievement for every indicator on a project.
+   *
+   * This is the single source of truth for "how much has been achieved" and
+   * deliberately mirrors the donor report's semantics: unbounded (an
+   * aggregation, not a page of activities), restricted to `approved` and
+   * `submitted` activities so drafts and rejected entries never inflate a
+   * number, and preferring a locked IndicatorResult where one exists.
+   *
+   * The project page used to sum `quantity` over whatever the paginated
+   * activities endpoint returned — the first 50 records, every status included
+   * — so the same indicator reported two different numbers depending on which
+   * screen the user was on. Both screens now read from here.
+   */
+  async achievementForProject(organizationId: string, projectId: string) {
+    const orgId = new Types.ObjectId(organizationId);
+    const project = await this.projectModel
+      .findOne({ _id: projectId, organizationId: orgId })
+      .lean();
+    if (!project) throw new NotFoundException('Project not found');
+
+    const projectObjectId = new Types.ObjectId(projectId);
+
+    const indicators = await this.indicatorModel
+      .find({ projectId: projectObjectId, organizationId: orgId })
+      .sort({ code: 1 })
+      .lean();
+
+    if (indicators.length === 0) {
+      return { projectId, indicators: [] };
+    }
+
+    const indicatorIds = indicators.map((i) => i._id);
+
+    // Sum quantity per indicator across ALL matching activities, and carry the
+    // most recent activity date along for the staleness checks the UI renders.
+    const sums = await this.activityModel.aggregate<{
+      _id: Types.ObjectId;
+      approved: number;
+      submitted: number;
+      lastActivityDate: Date | null;
+      activityCount: number;
+    }>([
+      {
+        $match: {
+          organizationId: orgId,
+          projectId: projectObjectId,
+          indicatorId: { $in: indicatorIds },
+          status: { $in: ['approved', 'submitted'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$indicatorId',
+          approved: {
+            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, { $ifNull: ['$quantity', 0] }, 0] },
+          },
+          submitted: {
+            $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, { $ifNull: ['$quantity', 0] }, 0] },
+          },
+          lastActivityDate: { $max: '$activityDate' },
+          activityCount: { $sum: 1 },
+        },
+      },
+    ]);
+    const sumMap = new Map(sums.map((s) => [s._id.toString(), s]));
+
+    // A locked (approved) result for a closed reporting period is authoritative
+    // and outranks anything recomputed from activities.
+    const lockedResults = await this.resultModel
+      .find({
+        organizationId: orgId,
+        indicatorId: { $in: indicatorIds },
+        status: 'approved',
+      })
+      .sort({ updatedAt: -1 })
+      .lean();
+    const lockedMap = new Map<string, number>();
+    for (const r of lockedResults) {
+      const key = r.indicatorId.toString();
+      if (!lockedMap.has(key)) lockedMap.set(key, r.achieved);
+    }
+
+    return {
+      projectId,
+      indicators: indicators.map((indicator) => {
+        const key = indicator._id.toString();
+        const agg = sumMap.get(key);
+        // Approved-only where any approved data exists — matching the donor
+        // report — otherwise fall back to submitted-but-not-yet-approved so a
+        // project mid-approval-cycle doesn't read as zero.
+        const fromActivities = (agg?.approved ?? 0) > 0
+          ? (agg?.approved ?? 0)
+          : (agg?.approved ?? 0) + (agg?.submitted ?? 0);
+        const achieved = lockedMap.get(key) ?? fromActivities;
+
+        const target = indicator.target ?? 0;
+        const baseline = indicator.baseline ?? 0;
+        const percentComplete = target > baseline
+          ? Math.min(100, Math.max(0, Math.round(((achieved - baseline) / (target - baseline)) * 100)))
+          : achieved >= target && target > 0 ? 100 : 0;
+
+        return {
+          indicatorId: key,
+          achieved,
+          target: indicator.target ?? null,
+          baseline: indicator.baseline ?? 0,
+          percentComplete,
+          remaining: indicator.target ? Math.max(0, indicator.target - achieved) : null,
+          isLocked: lockedMap.has(key),
+          activityCount: agg?.activityCount ?? 0,
+          lastActivityDate: agg?.lastActivityDate ?? null,
+        };
+      }),
+    };
+  }
+
   // ─── Performance (current progress for one indicator) ─────────────────────
 
   async performance(organizationId: string, id: string) {

@@ -12,6 +12,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { ActivitiesController } from './activities.controller';
 import { ActivitiesService } from './activities.service';
 import { Activity, ActivitySchema } from './schemas/activity.schema';
+import { FormResponse, FormResponseSchema } from '../forms/schemas/form-response.schema';
 import { ActivityTemplate, ActivityTemplateSchema } from './schemas/activity-template.schema';
 
 @Module({
@@ -28,6 +29,7 @@ import { ActivityTemplate, ActivityTemplateSchema } from './schemas/activity-tem
       { name: Indicator.name,        schema: IndicatorSchema        },
       { name: Partner.name,          schema: PartnerSchema          },
       { name: Beneficiary.name,      schema: BeneficiarySchema      },
+      { name: FormResponse.name,     schema: FormResponseSchema     },
     ]),
   ],
   controllers: [ActivitiesController],

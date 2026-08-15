@@ -5,11 +5,12 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { GeoDataPoint, GeoDataReport, Project } from '../../core/models';
 import { LeafletMapComponent, MapPoint, MapEntityType } from '../../shared/map/leaflet-map.component';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule, LeafletMapComponent],
+  imports: [ModalDirective, CommonModule, FormsModule, LeafletMapComponent],
   templateUrl: './map.component.html',
   styleUrl: './map.component.scss',
 })

@@ -17,6 +17,7 @@ import {
   StartWorkflowDto, ActOnWorkflowDto, WorkflowQueryDto,
 } from './dto/workflow.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { User } from '../users/schemas/user.schema';
@@ -61,6 +62,7 @@ export class WorkflowService {
     private readonly userModel: Model<User>,
 
     private readonly notifications: NotificationsService,
+    private readonly webhooks: WebhooksService,
   ) {}
 
   /** Domain-specific outcome appliers, keyed by entity type. */
@@ -506,6 +508,7 @@ export class WorkflowService {
       }
       case ApprovalAction.REJECT: {
         instance.status = WorkflowStatus.REJECTED;
+        this._dispatchCompleted(instance, 'rejected');
         instance.rejectionReason = dto.comment;
         instance.completedAt = new Date();
         await this._notifyInitiator(instance, 'rejected', dto.comment);
@@ -709,6 +712,7 @@ export class WorkflowService {
       instance.status = WorkflowStatus.APPROVED;
       instance.completedAt = new Date();
       await this._notifyInitiator(instance, 'approved');
+      this._dispatchCompleted(instance, 'approved');
     }
   }
 
@@ -748,6 +752,7 @@ export class WorkflowService {
     step: any,
     organizationId: string,
   ) {
+    this._dispatchActionRequired(instance, step);
     const title = `Action required: ${instance.entityTitle}`;
     const message = `Step ${instance.currentStep}/${instance.totalSteps}: "${step.name}" awaits your approval.`;
     const link = `/workflows/${instance._id}`;
@@ -840,4 +845,39 @@ export class WorkflowService {
   private _calcDeadline(hours: number): Date {
     return new Date(Date.now() + hours * 60 * 60 * 1000);
   }
+
+  /**
+   * `workflow.completed` / `workflow.action_required` were declared webhook
+   * events with no dispatcher. Fire-and-forget: a webhook must never fail the
+   * approval it is reporting on.
+   */
+  private _dispatchCompleted(instance: any, outcome: 'approved' | 'rejected') {
+    this.webhooks.dispatch(
+      String(instance.organizationId),
+      'workflow.completed',
+      {
+        workflowInstanceId: String(instance._id),
+        entityType: instance.entityType,
+        entityId: String(instance.entityId),
+        outcome,
+        completedAt: instance.completedAt,
+      },
+    ).catch(() => {});
+  }
+
+  private _dispatchActionRequired(instance: any, step: any) {
+    this.webhooks.dispatch(
+      String(instance.organizationId),
+      'workflow.action_required',
+      {
+        workflowInstanceId: String(instance._id),
+        entityType: instance.entityType,
+        entityId: String(instance.entityId),
+        stepName: step?.name,
+        approverRole: step?.approverRole,
+        approverUserId: step?.approverUserId ? String(step.approverUserId) : undefined,
+      },
+    ).catch(() => {});
+  }
+
 }

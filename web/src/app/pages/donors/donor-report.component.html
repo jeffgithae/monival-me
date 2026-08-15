@@ -13,8 +13,8 @@
     <div class="config-form">
       <!-- Project -->
       <div class="config-field">
-        <label>Project *</label>
-        <select [(ngModel)]="selectedProject" (ngModelChange)="onProjectChange()">
+        <label for="donor-report-selectedproject">Project *</label>
+        <select id="donor-report-selectedproject" [(ngModel)]="selectedProject" (ngModelChange)="onProjectChange()">
           <option value="">— Select a project —</option>
           @for (p of projects(); track p._id) {
             <option [value]="p._id">{{ p.name }}</option>
@@ -27,10 +27,10 @@
         <div class="config-field">
           <label>Report Scope</label>
           <div class="toggle-group">
-            <button class="toggle-btn" [class.active]="filterMode() === 'period'" (click)="filterMode.set('period')">
+            <button type="button" class="toggle-btn" [class.active]="filterMode() === 'period'" (click)="filterMode.set('period')">
               📋 Reporting Period
             </button>
-            <button class="toggle-btn" [class.active]="filterMode() === 'range'" (click)="filterMode.set('range')">
+            <button type="button" class="toggle-btn" [class.active]="filterMode() === 'range'" (click)="filterMode.set('range')">
               📅 Date Range
             </button>
           </div>
@@ -38,8 +38,8 @@
 
         @if (filterMode() === 'period') {
           <div class="config-field">
-            <label>Reporting Period *</label>
-            <select [(ngModel)]="selectedPeriod">
+        <label for="donor-report-selectedperiod">Reporting Period *</label>
+            <select id="donor-report-selectedperiod" [(ngModel)]="selectedPeriod">
               <option value="">— Select a period —</option>
               @for (p of periods(); track p._id) {
                 <option [value]="p._id">{{ p.name }} · {{ p.status | titlecase }}</option>
@@ -52,12 +52,12 @@
         } @else {
           <div class="config-row">
             <div class="config-field">
-              <label>From Date *</label>
-              <input type="date" [(ngModel)]="fromDate" />
+        <label for="donor-report-fromdate">From Date *</label>
+              <input id="donor-report-fromdate" type="date" [(ngModel)]="fromDate" />
             </div>
             <div class="config-field">
-              <label>To Date *</label>
-              <input type="date" [(ngModel)]="toDate" />
+        <label for="donor-report-todate">To Date *</label>
+              <input id="donor-report-todate" type="date" [(ngModel)]="toDate" />
             </div>
           </div>
         }
@@ -65,7 +65,7 @@
 
       <!-- Actions -->
       <div class="config-actions">
-        <button class="btn-generate" [disabled]="!canGenerate() || loading()" (click)="generate()">
+        <button type="button" class="btn-generate" [disabled]="!canGenerate() || loading()" (click)="generate()">
           @if (loading()) {
             <span class="btn-spinner"></span> Generating…
           } @else {
@@ -73,10 +73,10 @@
           }
         </button>
         @if (generated()) {
-          <button class="btn-export" [disabled]="exporting()" (click)="exportCsv()">
+          <button type="button" class="btn-export" [disabled]="exporting()" (click)="exportCsv()">
             {{ exporting() ? 'Exporting…' : '⬇ CSV Export' }}
           </button>
-          <button class="btn-print" (click)="print()">🖨 Print / PDF</button>
+          <button type="button" class="btn-print" (click)="print()">🖨 Print / PDF</button>
         }
       </div>
 

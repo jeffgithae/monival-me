@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -10,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { Model } from 'mongoose';
+import * as speakeasy from 'speakeasy';
 import { PlanId } from '../common/constants/plans';
 import { OrgRole } from '../common/constants/roles';
 import { MembersService } from '../members/members.service';
@@ -158,21 +160,44 @@ export class AuthService {
       return { mfaRequired: true, challengeToken };
     }
 
-    let member = user.organizationId ? await this.memberModel.findOne({
+    const member = await this.resolveActiveMembership(user);
+
+    return this.buildAuthResponse(user, member);
+  }
+
+  /**
+   * Resolves the user's active membership at login time.
+   *
+   * This deliberately never creates a membership. A user whose `organizationId`
+   * points at an org they have no active member record in has been removed (or
+   * suspended); provisioning one here — as an earlier version did, at OWNER —
+   * handed removed members owner access on their next login.
+   */
+  private async resolveActiveMembership(user: UserDocument) {
+    if (!user.organizationId) {
+      return null;
+    }
+
+    const member = await this.memberModel.findOne({
       userId: user._id,
       organizationId: user.organizationId,
       status: 'active',
-    }) : null;
+    });
 
-    if (!member && user.organizationId) {
-      member = await this.membersService.ensureMemberRecord(
-        user._id,
-        user.organizationId,
-        OrgRole.OWNER,
+    if (!member) {
+      // Drop the dangling pointer so the account behaves like any other
+      // org-less user (it will be routed to onboarding) instead of retrying
+      // this lookup on every login.
+      await this.userModel.updateOne(
+        { _id: user._id },
+        { $unset: { organizationId: '' } },
+      );
+      throw new UnauthorizedException(
+        'Your access to this organization has been revoked. Contact an administrator.',
       );
     }
 
-    return this.buildAuthResponse(user, member);
+    return member;
   }
 
   async verifyMfaLogin(challengeToken: string, totpCode: string) {
@@ -194,7 +219,7 @@ export class AuthService {
       throw new UnauthorizedException('MFA not configured');
     }
 
-    const isValidTotp = require('speakeasy').totp.verify({
+    const isValidTotp = speakeasy.totp.verify({
       secret: user.mfaSecret,
       encoding: 'base32',
       token: totpCode,
@@ -203,7 +228,7 @@ export class AuthService {
 
     if (!isValidTotp) {
       // Check backup codes
-      const codeHash = require('crypto').createHash('sha256').update(totpCode).digest('hex');
+      const codeHash = crypto.createHash('sha256').update(totpCode).digest('hex');
       const idx = user.mfaBackupCodes.indexOf(codeHash);
       if (idx === -1) throw new UnauthorizedException('Invalid MFA code');
       // Consume the backup code
@@ -211,14 +236,7 @@ export class AuthService {
       await user.save();
     }
 
-    let member = await this.memberModel.findOne({
-      userId: user._id,
-      organizationId: user.organizationId,
-      status: 'active',
-    });
-    if (!member) {
-      member = await this.membersService.ensureMemberRecord(user._id, user.organizationId, OrgRole.OWNER);
-    }
+    const member = await this.resolveActiveMembership(user);
 
     return this.buildAuthResponse(user, member);
   }
@@ -267,7 +285,7 @@ export class AuthService {
     }
 
     if (newPassword.length < 8) {
-      throw new Error('Password must be at least 8 characters');
+      throw new BadRequestException('Password must be at least 8 characters');
     }
 
     user.passwordHash = await bcrypt.hash(newPassword, 10);
@@ -308,7 +326,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Google token payload');
     }
 
-    const { sub: googleId, email, name, picture } = payload;
+    const { sub: googleId, email, name, picture, email_verified: emailVerified } = payload;
+
+    // Google only asserts ownership of the address when email_verified is true.
+    // Without this check, an unverified Google account carrying someone else's
+    // address links straight into their existing password account.
+    if (!emailVerified) {
+      throw new UnauthorizedException(
+        'Your Google account email is not verified. Verify it with Google and try again.',
+      );
+    }
 
     // 1. Look up by googleId first (existing Google user)
     let user = await this.userModel.findOne({ googleId });
@@ -342,19 +369,7 @@ export class AuthService {
     }
 
     // Build auth response
-    let member = user.organizationId ? await this.memberModel.findOne({
-      userId: user._id,
-      organizationId: user.organizationId,
-      status: 'active',
-    }) : null;
-
-    if (!member && user.organizationId) {
-      member = await this.membersService.ensureMemberRecord(
-        user._id,
-        user.organizationId,
-        OrgRole.OWNER,
-      );
-    }
+    const member = await this.resolveActiveMembership(user);
 
     return this.buildAuthResponse(user, member);
   }
@@ -464,7 +479,9 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Current password is incorrect');
-    if (newPassword.length < 8) throw new Error('Password must be at least 8 characters');
+    if (newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
     user.passwordHash = await bcrypt.hash(newPassword, 10);
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     user.refreshTokenHash = null; // invalidate all refresh sessions

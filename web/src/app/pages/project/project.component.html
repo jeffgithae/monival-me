@@ -177,7 +177,7 @@
         <form class="eval-form">
           <div class="eval-row">
             <label>Evaluation status
-              <select [(ngModel)]="ep.evaluationStatus" name="evaluationStatus">
+              <select aria-label="Evaluation status" [(ngModel)]="ep.evaluationStatus" name="evaluationStatus">
                 <option value="not_started">Not started</option>
                 <option value="in_progress">In progress</option>
                 <option value="completed">Completed</option>
@@ -185,7 +185,7 @@
               </select>
             </label>
             <label>Next review date
-              <input type="date" [(ngModel)]="ep.nextReviewDate" name="nextReviewDate" />
+              <input aria-label="Next review date" type="date" [(ngModel)]="ep.nextReviewDate" name="nextReviewDate" />
             </label>
           </div>
           <label class="full-label">Summary
@@ -269,7 +269,7 @@
         <h3>Add indicator</h3>
         <form class="inline-form" (ngSubmit)="addIndicator()">
           <label class="inline-lbl">Level
-            <select [(ngModel)]="indicatorForm.level" name="level">
+            <select aria-label="Level" [(ngModel)]="indicatorForm.level" name="level">
               <option value="goal">Goal</option>
               <option value="outcome">Outcome</option>
               <option value="output">Output</option>
@@ -283,7 +283,7 @@
             <input [(ngModel)]="indicatorForm.title" name="title" placeholder="Indicator title" required />
           </label>
           <label class="inline-lbl">Unit
-            <input [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
+            <input aria-label="Unit" [(ngModel)]="indicatorForm.unit" name="unit" placeholder="Unit" />
           </label>
           <label class="inline-lbl">Baseline
             <input type="number" [(ngModel)]="indicatorForm.baseline" name="baseline" placeholder="0" />
@@ -387,14 +387,14 @@
           <div class="form-row">
             <label>Activity type<input [(ngModel)]="activityForm.activityType" name="activityType" placeholder="Survey, Training…" /></label>
             <label>Status
-              <select [(ngModel)]="activityForm.status" name="status">
+              <select aria-label="Status" [(ngModel)]="activityForm.status" name="status">
                 <option value="submitted">Submit for review</option>
                 <option value="draft">Save as draft</option>
               </select>
             </label>
           </div>
           <div class="form-row">
-            <label>Location<input [(ngModel)]="activityForm.location" name="location" placeholder="Location" /></label>
+            <label>Location<input aria-label="Location" [(ngModel)]="activityForm.location" name="location" placeholder="Location" /></label>
             <label>Evidence URL<input [(ngModel)]="activityForm.evidenceUrl" name="evidenceUrl" placeholder="https://…" /></label>
           </div>
           <div class="form-row">
@@ -406,7 +406,7 @@
             @if (partners().length === 0) {
               <p class="picker-empty">No partners registered for this project.</p>
             } @else {
-              <input
+              <input aria-label="Search partners"
                 type="text"
                 class="picker-search"
                 placeholder="Search partners…"
@@ -436,7 +436,7 @@
             @if (beneficiaries().length === 0) {
               <p class="picker-empty">No beneficiaries registered for this project yet.</p>
             } @else {
-              <input
+              <input aria-label="Search beneficiaries"
                 type="text"
                 class="picker-search"
                 placeholder="Search beneficiaries…"
@@ -481,7 +481,7 @@
           <div class="queue-header">
             <h3>Logged on this device <span class="queue-count">{{ pendingQueuedActivities().length }}</span></h3>
             @if (queue.isOnline()) {
-              <button class="btn-ghost btn-sm" (click)="retryQueuedActivitySync()" [disabled]="queue.isSyncing()">
+              <button type="button" class="btn-ghost btn-sm" (click)="retryQueuedActivitySync()" [disabled]="queue.isSyncing()">
                 {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
               </button>
             }
@@ -502,7 +502,7 @@
                 </div>
                 <div class="queue-item-status">
                   <span class="status-pill" [class]="item.syncStatus">{{ queuedActivityStatusLabel(item.syncStatus) }}</span>
-                  <button class="btn-discard" (click)="discardQueuedActivity(item.clientId, item.label)" title="Discard">✕</button>
+                  <button type="button" class="btn-discard" (click)="discardQueuedActivity(item.clientId, item.label)" title="Discard">✕</button>
                 </div>
                 @if (item.syncError) {
                   <p class="queue-item-error">{{ item.syncError }}</p>
@@ -639,6 +639,7 @@
                     @if (canManageIndicators) {
                       <input class="target-input"
                         type="number"
+                        [attr.aria-label]="'Period target for ' + indicator.code"
                         [value]="targetValueForIndicator(indicator)"
                         (change)="saveIndicatorTarget(indicator, $any($event.target).value)" />
                     } @else {

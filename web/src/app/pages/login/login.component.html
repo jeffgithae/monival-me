@@ -14,13 +14,13 @@
       <div class="divider"><span>or sign in with email</span></div>
 
       <form (ngSubmit)="submit()">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
           <label style="margin-bottom: 0;">Password</label>
           <a routerLink="/forgot-password" style="font-size: 0.85rem; font-weight: 500; color: #4338ca; text-decoration: none;">Forgot password?</a>
         </div>
-        <input type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
+        <input aria-label="Password" type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
         @if (error()) {
           <p class="error">{{ error() }}</p>
         }
@@ -52,8 +52,8 @@
         <p>Open your authenticator app and enter the 6-digit code for Evidara.</p>
       </div>
       <form (ngSubmit)="verifyMfa()">
-        <label>Authentication code</label>
-        <input type="text" [(ngModel)]="totpCode" name="totpCode"
+        <label for="login-totpcode">Authentication code</label>
+        <input id="login-totpcode" type="text" [(ngModel)]="totpCode" name="totpCode"
           inputmode="numeric" autocomplete="one-time-code"
           placeholder="000000" maxlength="6" autofocus
           style="letter-spacing: 0.3em; font-size: 1.5rem; text-align: center;" />
@@ -65,7 +65,7 @@
         </button>
       </form>
       <p class="foot">
-        <button class="link-btn" (click)="backToCredentials()">← Use a different account</button>
+        <button type="button" class="link-btn" (click)="backToCredentials()">← Use a different account</button>
       </p>
       <p class="foot" style="font-size:0.8rem; color:#9ca3af; margin-top:0.35rem;">
         Lost access to your authenticator? Enter a backup code above.

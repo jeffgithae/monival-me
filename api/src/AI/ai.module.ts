@@ -8,7 +8,12 @@ import { ReportingPeriod, ReportingPeriodSchema } from '../reporting/schemas/rep
 import { IndicatorResult, IndicatorResultSchema } from '../reporting/schemas/indicator-result.schema';
 import { Beneficiary, BeneficiarySchema } from '../beneficiaries/schemas/beneficiary.schema';
 import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
+import { BudgetAllocation, BudgetAllocationSchema } from '../budget/schemas/budget.schema';
+import { Donor, DonorSchema } from '../donors/schemas/donor.schema';
 import { StakeholderFeedback, StakeholderFeedbackSchema } from '../stakeholder-feedback/schemas/stakeholder-feedback.schema';
+import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
+import { AiUsage, AiUsageSchema } from './schemas/ai-usage.schema';
+import { AiUsageService } from './ai-usage.service';
 import { CopilotController } from './copilot/copilot.controller';
 import { CopilotService } from './copilot/copilot.service';
 import { AnthropicService } from './anthropic.service';
@@ -24,11 +29,15 @@ import { AnthropicService } from './anthropic.service';
       { name: IndicatorResult.name,     schema: IndicatorResultSchema },
       { name: Beneficiary.name,         schema: BeneficiarySchema },
       { name: Grant.name,               schema: GrantSchema },
+      { name: BudgetAllocation.name,    schema: BudgetAllocationSchema },
+      { name: Donor.name,               schema: DonorSchema },
       { name: StakeholderFeedback.name, schema: StakeholderFeedbackSchema },
+      { name: Organization.name,        schema: OrganizationSchema },
+      { name: AiUsage.name,             schema: AiUsageSchema },
     ]),
   ],
   controllers: [CopilotController],
-  providers: [AnthropicService, CopilotService],
-  exports: [AnthropicService, CopilotService],
+  providers: [AnthropicService, AiUsageService, CopilotService],
+  exports: [AnthropicService, AiUsageService, CopilotService],
 })
 export class AIModule {}

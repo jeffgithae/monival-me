@@ -7,15 +7,15 @@
     </div>
   </div>
 
-  @if (error()) { <div class="alert alert-error">⚠ {{ error() }} <button (click)="error.set('')">✕</button></div> }
+  @if (error()) { <div class="alert alert-error">⚠ {{ error() }} <button type="button" (click)="error.set('')">✕</button></div> }
   @if (success()) { <div class="alert alert-success">✓ {{ success() }}</div> }
 
   <!-- Tab bar -->
   <div class="tab-bar">
-    <button class="tab-btn" [class.active]="activeTab() === 'api-keys'" (click)="setTab('api-keys')">🔑 API Keys</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'sso'" (click)="setTab('sso')">🔐 SSO / SAML</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'branding'" (click)="setTab('branding')">🎨 White-Label</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'networks'" (click)="setTab('networks')">🌐 Partner Networks</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'api-keys'" (click)="setTab('api-keys')">🔑 API Keys</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'sso'" (click)="setTab('sso')">🔐 SSO</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'branding'" (click)="setTab('branding')">🎨 White-Label</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'networks'" (click)="setTab('networks')">🌐 Partner Networks</button>
   </div>
 
   <!-- ── API Keys ──────────────────────────────────────────────────────────── -->
@@ -39,9 +39,9 @@
           </div>
           <div class="key-value-row">
             <code class="key-value">{{ newKeyResult()!.key }}</code>
-            <button class="btn-copy" (click)="copyKey(newKeyResult()!.key)">Copy</button>
+            <button type="button" class="btn-copy" (click)="copyKey(newKeyResult()!.key)">Copy</button>
           </div>
-          <button class="btn-ghost sm" (click)="newKeyResult.set(null)">Dismiss</button>
+          <button type="button" class="btn-ghost sm" (click)="newKeyResult.set(null)">Dismiss</button>
         </div>
       }
 
@@ -50,23 +50,23 @@
         <h3 class="card-title">Create new key</h3>
         <div class="form-grid">
           <div class="ff">
-            <label>Key name *</label>
-            <input [ngModel]="newKeyName()" (ngModelChange)="newKeyName.set($event)" placeholder="e.g. DHIS2 sync, PowerBI dashboard" />
+        <label for="enterprise-newkeyname">Key name *</label>
+            <input id="enterprise-newkeyname" [ngModel]="newKeyName()" (ngModelChange)="newKeyName.set($event)" placeholder="e.g. DHIS2 sync, PowerBI dashboard" />
           </div>
           <div class="ff">
-            <label>Scopes <span class="hint">(comma-separated, blank = all)</span></label>
-            <input [ngModel]="newKeyScopes()" (ngModelChange)="newKeyScopes.set($event)" placeholder="indicators:read, activities:read" />
+        <label for="enterprise-newkeyscopes">Scopes <span class="hint">(comma-separated, blank = all)</span></label>
+            <input id="enterprise-newkeyscopes" [ngModel]="newKeyScopes()" (ngModelChange)="newKeyScopes.set($event)" placeholder="indicators:read, activities:read" />
           </div>
           <div class="ff">
-            <label>Allowed IPs <span class="hint">(comma-separated, blank = unrestricted)</span></label>
-            <input [ngModel]="newKeyIps()" (ngModelChange)="newKeyIps.set($event)" placeholder="203.0.113.5, 10.0.0.0/8" />
+        <label for="enterprise-newkeyips">Allowed IPs <span class="hint">(comma-separated, blank = unrestricted)</span></label>
+            <input id="enterprise-newkeyips" [ngModel]="newKeyIps()" (ngModelChange)="newKeyIps.set($event)" placeholder="203.0.113.5, 10.0.0.0/8" />
           </div>
           <div class="ff">
-            <label>Expires at <span class="hint">(optional)</span></label>
-            <input type="date" [ngModel]="newKeyExpiry()" (ngModelChange)="newKeyExpiry.set($event)" />
+        <label for="enterprise-newkeyexpiry">Expires at <span class="hint">(optional)</span></label>
+            <input id="enterprise-newkeyexpiry" type="date" [ngModel]="newKeyExpiry()" (ngModelChange)="newKeyExpiry.set($event)" />
           </div>
         </div>
-        <button class="btn-primary" [disabled]="!newKeyName().trim() || saving()" (click)="createApiKey()">
+        <button type="button" class="btn-primary" [disabled]="!newKeyName().trim() || saving()" (click)="createApiKey()">
           {{ saving() ? 'Creating…' : '＋ Create Key' }}
         </button>
       </div>
@@ -94,7 +94,7 @@
                     @if (key.lastUsedAt) { · Last used {{ key.lastUsedAt | date:'d MMM y' }} }
                   </div>
                 </div>
-                <button class="btn-danger-sm"
+                <button type="button" class="btn-danger-sm"
                   [disabled]="revokingKeyId() === key._id"
                   (click)="revokeKey(key._id)">
                   {{ revokingKeyId() === key._id ? 'Revoking…' : 'Revoke' }}
@@ -120,14 +120,14 @@
       <div class="section-intro">
         <h2>Single Sign-On</h2>
         <p>Connect your identity provider (IdP) so your team logs in with their corporate credentials.
-           Supports SAML 2.0 and OIDC. New users are automatically provisioned on first login.</p>
+           New users are automatically provisioned on first login.</p>
       </div>
 
       <!-- Protocol selector -->
       <div class="protocol-toggle">
-        <button class="proto-btn" [class.active]="ssoTab() === 'saml'"
-          (click)="ssoTab.set('saml'); updateSsoForm('protocol', 'saml')">SAML 2.0</button>
-        <button class="proto-btn" [class.active]="ssoTab() === 'oidc'"
+        <button type="button" class="proto-btn" [class.active]="ssoTab() === 'saml'"
+          (click)="ssoTab.set('saml'); updateSsoForm('protocol', 'saml')">SAML 2.0 (unavailable)</button>
+        <button type="button" class="proto-btn" [class.active]="ssoTab() === 'oidc'"
           (click)="ssoTab.set('oidc'); updateSsoForm('protocol', 'oidc')">OIDC</button>
       </div>
 
@@ -137,55 +137,66 @@
           <h3 class="card-title">{{ ssoTab() === 'saml' ? 'SAML 2.0 Configuration' : 'OIDC Configuration' }}</h3>
 
           @if (ssoTab() === 'saml') {
+            <!-- SAML login is disabled server-side pending assertion signature
+                 verification, so the config form is shown read-only rather than
+                 letting an administrator configure a login that cannot work. -->
+            <div class="callout callout-warn" role="status">
+              <strong>SAML login is not available yet.</strong>
+              Assertion signature verification is still being implemented, and we will not
+              accept unverified assertions. Use <button type="button" class="link-btn"
+              (click)="ssoTab.set('oidc'); updateSsoForm('protocol', 'oidc')">OpenID Connect</button>,
+              which is fully supported — most identity providers (Okta, Entra ID, Google
+              Workspace) offer both.
+            </div>
             <div class="ff">
               <label>IdP Metadata URL <span class="hint">(recommended — we fetch and parse it)</span></label>
-              <input [ngModel]="ssoForm().samlMetadataUrl"
+              <input aria-label="https://accounts.google.com/o/saml2/idp?idpid=" [ngModel]="ssoForm().samlMetadataUrl"
                 (ngModelChange)="updateSsoForm('samlMetadataUrl', $event)"
                 placeholder="https://accounts.google.com/o/saml2/idp?idpid=…" />
             </div>
             <p class="or-divider">— or configure manually —</p>
             <div class="ff">
-              <label>IdP Entry Point (SSO URL)</label>
-              <input [ngModel]="ssoForm().samlEntryPoint"
+        <label for="enterprise-ssoform-samlentrypoint">IdP Entry Point (SSO URL)</label>
+              <input id="enterprise-ssoform-samlentrypoint" [ngModel]="ssoForm().samlEntryPoint"
                 (ngModelChange)="updateSsoForm('samlEntryPoint', $event)"
                 placeholder="https://idp.example.com/sso/saml" />
             </div>
             <div class="ff">
-              <label>IdP Issuer / Entity ID</label>
-              <input [ngModel]="ssoForm().samlIssuer"
+        <label for="enterprise-ssoform-samlissuer">IdP Issuer / Entity ID</label>
+              <input id="enterprise-ssoform-samlissuer" [ngModel]="ssoForm().samlIssuer"
                 (ngModelChange)="updateSsoForm('samlIssuer', $event)" />
             </div>
           }
 
           @if (ssoTab() === 'oidc') {
             <div class="ff">
-              <label>Discovery URL <span class="hint">(.well-known/openid-configuration)</span></label>
-              <input [ngModel]="ssoForm().oidcDiscoveryUrl"
+        <label for="enterprise-ssoform-oidcdiscoveryurl">Discovery URL <span class="hint">(.well-known/openid-configuration)</span></label>
+              <input id="enterprise-ssoform-oidcdiscoveryurl" [ngModel]="ssoForm().oidcDiscoveryUrl"
                 (ngModelChange)="updateSsoForm('oidcDiscoveryUrl', $event)"
                 placeholder="https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration" />
             </div>
             <div class="ff">
-              <label>Client ID</label>
-              <input [ngModel]="ssoForm().oidcClientId"
+        <label for="enterprise-ssoform-oidcclientid">Client ID</label>
+              <input id="enterprise-ssoform-oidcclientid" [ngModel]="ssoForm().oidcClientId"
                 (ngModelChange)="updateSsoForm('oidcClientId', $event)" />
             </div>
             <div class="ff">
-              <label>Client Secret</label>
-              <input type="password" [ngModel]="ssoForm().oidcClientSecret"
+        <label for="enterprise-ssoform-oidcclientsecret">Client Secret</label>
+              <input id="enterprise-ssoform-oidcclientsecret" type="password" [ngModel]="ssoForm().oidcClientSecret"
                 (ngModelChange)="updateSsoForm('oidcClientSecret', $event)"
                 placeholder="Leave blank to keep existing" />
             </div>
           }
 
           <div class="ff">
-            <label>Allowed domains <span class="hint">(comma-separated — leave blank to allow all)</span></label>
-            <input [ngModel]="ssoForm().allowedDomains?.join(', ')"
+        <label for="enterprise-ssoform-alloweddomains-join">Allowed domains <span class="hint">(comma-separated — leave blank to allow all)</span></label>
+            <input id="enterprise-ssoform-alloweddomains-join" [ngModel]="ssoForm().allowedDomains?.join(', ')"
               (ngModelChange)="updateAllowedDomains($event)"
               placeholder="acme.org, acme.com" />
           </div>
           <div class="ff">
-            <label>Default role for new SSO users</label>
-            <select [ngModel]="ssoForm().defaultRole" (ngModelChange)="updateSsoForm('defaultRole', $event)">
+        <label for="enterprise-ssoform-defaultrole">Default role for new SSO users</label>
+            <select id="enterprise-ssoform-defaultrole" [ngModel]="ssoForm().defaultRole" (ngModelChange)="updateSsoForm('defaultRole', $event)">
               <option value="viewer">Viewer</option>
               <option value="field_officer">Field Officer</option>
               <option value="me_officer">M&amp;E Officer</option>
@@ -205,7 +216,7 @@
             </label>
           </div>
 
-          <button class="btn-primary" [disabled]="saving()" (click)="saveSso()">
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveSso()">
             {{ saving() ? 'Saving…' : 'Save SSO Configuration' }}
           </button>
         </div>
@@ -219,7 +230,7 @@
               <label>SP Metadata URL</label>
               <div class="sp-value-row">
                 <code>{{ samlMetadataUrl() }}</code>
-                <button class="btn-copy" (click)="copyKey(samlMetadataUrl())">Copy</button>
+                <button type="button" class="btn-copy" (click)="copyKey(samlMetadataUrl())">Copy</button>
               </div>
             </div>
             <div class="sp-field">
@@ -235,7 +246,7 @@
                  Only toggle this once you have tested SSO and confirmed it works.</p>
               <div class="toggle-row">
                 <strong>{{ ssoConfig()!.enforced ? '🔒 Enforced' : '🔓 Not enforced' }}</strong>
-                <button class="btn-danger-sm" (click)="toggleEnforcement(!ssoConfig()!.enforced)" [disabled]="saving()">
+                <button type="button" class="btn-danger-sm" (click)="toggleEnforcement(!ssoConfig()!.enforced)" [disabled]="saving()">
                   {{ ssoConfig()!.enforced ? 'Disable enforcement' : 'Enable enforcement' }}
                 </button>
               </div>
@@ -259,14 +270,14 @@
           <h3 class="card-title">Brand Identity</h3>
 
           <div class="ff">
-            <label>App name</label>
-            <input [ngModel]="brandingForm().appName"
+        <label for="enterprise-brandingform-appname">App name</label>
+            <input id="enterprise-brandingform-appname" [ngModel]="brandingForm().appName"
               (ngModelChange)="updateBrandingForm('appName', $event)"
               placeholder="My Org M&E Platform" />
           </div>
           <div class="ff">
-            <label>Logo URL <span class="hint">(square, min 64px)</span></label>
-            <input [ngModel]="brandingForm().logoUrl"
+        <label for="enterprise-brandingform-logourl">Logo URL <span class="hint">(square, min 64px)</span></label>
+            <input id="enterprise-brandingform-logourl" [ngModel]="brandingForm().logoUrl"
               (ngModelChange)="updateBrandingForm('logoUrl', $event)"
               placeholder="https://cdn.acme.org/logo.png" />
             @if (brandingForm().logoUrl) {
@@ -274,8 +285,8 @@
             }
           </div>
           <div class="ff">
-            <label>Favicon URL</label>
-            <input [ngModel]="brandingForm().faviconUrl"
+        <label for="enterprise-brandingform-faviconurl">Favicon URL</label>
+            <input id="enterprise-brandingform-faviconurl" [ngModel]="brandingForm().faviconUrl"
               (ngModelChange)="updateBrandingForm('faviconUrl', $event)" />
           </div>
 
@@ -283,9 +294,9 @@
             <div class="ff">
               <label>Primary colour</label>
               <div class="color-row">
-                <input type="color" [ngModel]="colorPreview()"
+                <input type="color" aria-label="Primary brand colour" [ngModel]="colorPreview()"
                   (ngModelChange)="updateBrandingForm('primaryColor', $event)" />
-                <input [ngModel]="brandingForm().primaryColor"
+                <input aria-label="#4f46e5" [ngModel]="brandingForm().primaryColor"
                   (ngModelChange)="updateBrandingForm('primaryColor', $event)"
                   placeholder="#4f46e5" />
               </div>
@@ -293,9 +304,9 @@
             <div class="ff">
               <label>Accent colour</label>
               <div class="color-row">
-                <input type="color" [ngModel]="brandingForm().accentColor || '#2dd4bf'"
+                <input type="color" aria-label="Accent colour" [ngModel]="brandingForm().accentColor || '#2dd4bf'"
                   (ngModelChange)="updateBrandingForm('accentColor', $event)" />
-                <input [ngModel]="brandingForm().accentColor"
+                <input aria-label="#2dd4bf" [ngModel]="brandingForm().accentColor"
                   (ngModelChange)="updateBrandingForm('accentColor', $event)"
                   placeholder="#2dd4bf" />
               </div>
@@ -303,8 +314,8 @@
           </div>
 
           <div class="ff">
-            <label>Default theme</label>
-            <select [ngModel]="brandingForm().defaultTheme"
+        <label for="enterprise-brandingform-defaulttheme">Default theme</label>
+            <select id="enterprise-brandingform-defaulttheme" [ngModel]="brandingForm().defaultTheme"
               (ngModelChange)="updateBrandingForm('defaultTheme', $event)">
               <option value="system">Follow system</option>
               <option value="light">Always light</option>
@@ -313,15 +324,15 @@
           </div>
 
           <div class="ff">
-            <label>Report footer text</label>
-            <input [ngModel]="brandingForm().reportFooterText"
+        <label for="enterprise-brandingform-reportfootertext">Report footer text</label>
+            <input id="enterprise-brandingform-reportfootertext" [ngModel]="brandingForm().reportFooterText"
               (ngModelChange)="updateBrandingForm('reportFooterText', $event)"
               placeholder="Confidential — prepared by ACME Organisation" />
           </div>
 
           <div class="ff">
-            <label>Support email</label>
-            <input type="email" [ngModel]="brandingForm().supportEmail"
+        <label for="enterprise-brandingform-supportemail">Support email</label>
+            <input id="enterprise-brandingform-supportemail" type="email" [ngModel]="brandingForm().supportEmail"
               (ngModelChange)="updateBrandingForm('supportEmail', $event)"
               placeholder="support@acme.org" />
           </div>
@@ -338,7 +349,7 @@
             </label>
           </div>
 
-          <button class="btn-primary" [disabled]="saving()" (click)="saveBranding()">
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveBranding()">
             {{ saving() ? 'Saving…' : 'Save Branding' }}
           </button>
         </div>
@@ -350,8 +361,8 @@
             <p>Serve the app from your own domain, e.g. <code>me.acme.org</code>.</p>
 
             <div class="ff">
-              <label>Domain</label>
-              <input [ngModel]="brandingForm().customDomain"
+        <label for="enterprise-brandingform-customdomain">Domain</label>
+              <input id="enterprise-brandingform-customdomain" [ngModel]="brandingForm().customDomain"
                 (ngModelChange)="updateBrandingForm('customDomain', $event)"
                 placeholder="me.acme.org" />
             </div>
@@ -360,7 +371,7 @@
               @if (branding()?.customDomainVerified) {
                 <div class="verified-badge">✓ Domain verified</div>
               } @else {
-                <button class="btn-ghost sm" [disabled]="saving()" (click)="initiateDomainVerification()">
+                <button type="button" class="btn-ghost sm" [disabled]="saving()" (click)="initiateDomainVerification()">
                   Get DNS verification record
                 </button>
 
@@ -369,9 +380,9 @@
                     <p>Add this TXT record to your DNS:</p>
                     <div class="dns-record-row">
                       <code>{{ domainVerInfo()!.txtRecord }}</code>
-                      <button class="btn-copy" (click)="copyTxtRecord()">Copy</button>
+                      <button type="button" class="btn-copy" (click)="copyTxtRecord()">Copy</button>
                     </div>
-                    <button class="btn-ghost sm" [disabled]="saving()" (click)="verifyDomain()">
+                    <button type="button" class="btn-ghost sm" [disabled]="saving()" (click)="verifyDomain()">
                       Check verification
                     </button>
                   </div>
@@ -406,16 +417,16 @@
           <div class="card">
             <h3 class="card-title">Create network</h3>
             <div class="ff">
-              <label>Network name *</label>
-              <input [ngModel]="newNetName()" (ngModelChange)="newNetName.set($event)"
+        <label for="enterprise-newnetname">Network name *</label>
+              <input id="enterprise-newnetname" [ngModel]="newNetName()" (ngModelChange)="newNetName.set($event)"
                 placeholder="East Africa WASH Consortium" />
             </div>
             <div class="ff">
-              <label>Description</label>
-              <input [ngModel]="newNetDesc()" (ngModelChange)="newNetDesc.set($event)"
+        <label for="enterprise-newnetdesc">Description</label>
+              <input id="enterprise-newnetdesc" [ngModel]="newNetDesc()" (ngModelChange)="newNetDesc.set($event)"
                 placeholder="USAID-funded water &amp; sanitation program" />
             </div>
-            <button class="btn-primary" [disabled]="!newNetName().trim() || saving()" (click)="createNetwork()">
+            <button type="button" class="btn-primary" [disabled]="!newNetName().trim() || saving()" (click)="createNetwork()">
               {{ saving() ? 'Creating…' : '＋ Create Network' }}
             </button>
           </div>
@@ -427,7 +438,7 @@
               <div class="empty-row">No networks yet.</div>
             } @else {
               @for (net of networks(); track net._id) {
-                <div class="net-row" (click)="openNetwork(net)">
+                <div class="net-row" (click)="openNetwork(net)" role="button" tabindex="0" (keydown.enter)="openNetwork(net)" (keydown.space)="$event.preventDefault(); openNetwork(net)">
                   <div class="net-info">
                     <strong>{{ net.name }}</strong>
                     <span class="net-meta">
@@ -444,7 +455,7 @@
 
       } @else {
         <!-- Network detail -->
-        <button class="btn-back" (click)="activeNetwork.set(null); rollup.set(null)">← Back to networks</button>
+        <button type="button" class="btn-back" (click)="activeNetwork.set(null); rollup.set(null)">← Back to networks</button>
 
         <div class="net-detail-header">
           <h2>{{ activeNetwork()!.name }}</h2>
@@ -459,26 +470,26 @@
             <!-- Invite form -->
             <div class="invite-form">
               <div class="ff">
-                <label>Organisation Slug</label>
-                <input [ngModel]="inviteOrgSlug()" (ngModelChange)="inviteOrgSlug.set($event)"
+        <label for="enterprise-inviteorgslug">Organisation Slug</label>
+                <input id="enterprise-inviteorgslug" [ngModel]="inviteOrgSlug()" (ngModelChange)="inviteOrgSlug.set($event)"
                   placeholder="Enter the partner organisation's unique slug" />
               </div>
               <div class="form-row-2">
                 <div class="ff">
-                  <label>Role</label>
-                  <select [(ngModel)]="inviteRole">
+        <label for="enterprise-inviterole">Role</label>
+                  <select id="enterprise-inviterole" [(ngModel)]="inviteRole">
                     <option value="implementing">Implementing</option>
                     <option value="lead">Lead</option>
                     <option value="observer">Observer</option>
                   </select>
                 </div>
                 <div class="ff">
-                  <label>Label <span class="hint">(optional)</span></label>
-                  <input [ngModel]="inviteLabel()" (ngModelChange)="inviteLabel.set($event)"
+        <label for="enterprise-invitelabel">Label <span class="hint">(optional)</span></label>
+                  <input id="enterprise-invitelabel" [ngModel]="inviteLabel()" (ngModelChange)="inviteLabel.set($event)"
                     placeholder="East region" />
                 </div>
               </div>
-              <button class="btn-primary sm" [disabled]="!inviteOrgSlug().trim() || saving()" (click)="inviteMember()">
+              <button type="button" class="btn-primary sm" [disabled]="!inviteOrgSlug().trim() || saving()" (click)="inviteMember()">
                 Send Invitation
               </button>
             </div>
@@ -498,7 +509,7 @@
                     </div>
                   </div>
                   @if (member.status !== 'revoked') {
-                    <button class="btn-danger-sm sm" (click)="removeMember(member.organizationId)">Remove</button>
+                    <button type="button" class="btn-danger-sm sm" (click)="removeMember(member.organizationId)">Remove</button>
                   }
                 </div>
               }
@@ -509,7 +520,7 @@
           <div class="card rollup-card">
             <div class="rollup-hd">
               <h3 class="card-title">Aggregated Results</h3>
-              <button class="btn-primary sm" [disabled]="loadingRollup()" (click)="loadRollup()">
+              <button type="button" class="btn-primary sm" [disabled]="loadingRollup()" (click)="loadRollup()">
                 {{ loadingRollup() ? 'Loading…' : '↻ Refresh Rollup' }}
               </button>
             </div>

@@ -1,1 +1,32 @@
 @use '../auth-shared';
+
+/* ─── Shared auth-form layout ───────────────────────────────────────────────
+   register / forgot-password / reset-password reuse this stylesheet and mark
+   up two-column rows and full-width fields, which had no rules — so every
+   field stacked at default width regardless of intent. */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+}
+.full,
+.wide { grid-column: 1 / -1; }
+
+.success-message {
+  margin: 0.75rem 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #a7f3d0;
+  border-radius: 0.5rem;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.88rem;
+}
+
+.legal-foot {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted, #6b7280);
+  text-align: center;
+}
+.plan-link { color: #4338ca; text-decoration: none; &:hover { text-decoration: underline; } }

@@ -11,6 +11,7 @@ import {
   FeedbackStatus,
 } from './schemas/stakeholder-feedback.schema';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { AuditService } from '../audit/audit.service';
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ export class StakeholderFeedbackService {
   constructor(
     @InjectModel(StakeholderFeedback.name)
     private readonly model: Model<StakeholderFeedbackDocument>,
+    private readonly audit: AuditService,
   ) {}
 
   // ── Create ─────────────────────────────────────────────────────────────────
@@ -180,11 +182,27 @@ export class StakeholderFeedbackService {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
-  async remove(organizationId: string, id: string): Promise<{ deleted: boolean }> {
+  async remove(organizationId: string, id: string, actorUserId?: string): Promise<{ deleted: boolean }> {
+    // Captured before deletion — feedback can carry respondent PII, so the
+    // trail has to show what was removed, not just that something was.
+    const before = await this.model
+      .findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) })
+      .lean();
+
     const result = await this.model.deleteOne({
       _id: id, organizationId: new Types.ObjectId(organizationId),
     });
     if (result.deletedCount === 0) throw new NotFoundException('Feedback not found.');
+
+    await this.audit.record({
+      organizationId,
+      actorUserId,
+      action: 'feedback.deleted',
+      entityType: 'StakeholderFeedback',
+      entityId: id,
+      before,
+    });
+
     return { deleted: true };
   }
 

@@ -8,9 +8,11 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Grant, GrantSchema } from '../grants/schemas/grant.schema';
 import { NetworksService } from './networks.service';
 import { NetworksController } from './networks.controller';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
+    AuditModule,
     MongooseModule.forFeature([
       { name: OrgNetwork.name, schema: OrgNetworkSchema },
       { name: Organization.name, schema: OrganizationSchema },

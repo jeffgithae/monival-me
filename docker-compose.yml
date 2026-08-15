@@ -1,10 +1,53 @@
+# Local/production-shaped stack: Mongo, the NestJS API, and the Angular bundle
+# behind nginx. `docker compose up --build` gives a running system; the API's
+# secrets come from api/.env (see api/.env.example).
 services:
   mongo:
     image: mongo:7
+    restart: unless-stopped
     ports:
-      - '27017:27017'
+      # Bound to loopback so the database is never reachable from the LAN, and
+      # the host port is overridable (MONGO_PORT) because 27017 is commonly
+      # already taken by another project's Mongo on a developer machine.
+      # Publishing at all is only for local inspection — the API reaches Mongo
+      # over the compose network, not through this mapping.
+      - '127.0.0.1:${MONGO_PORT:-27017}:27017'
     volumes:
       - evidara_mongo_data:/data/db
+    healthcheck:
+      # The API waits on this so it never starts against a Mongo that is still
+      # initialising and dies on its first connection attempt.
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - ./api/.env
+    environment:
+      # Inside the compose network, Mongo is reachable by service name.
+      MONGODB_URI: mongodb://mongo:27017/evidara
+      NODE_ENV: production
+      PORT: '3000'
+    ports:
+      - '3000:3000'
+
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
 
 volumes:
   evidara_mongo_data:

@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { WorkflowService } from '../workflows/workflows.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateFormResponseDto } from './dto/create-form-response.dto';
 import { CreateFormTemplateDto } from './dto/create-form-template.dto';
 import { UpdateFormTemplateDto } from './dto/update-form-template.dto';
@@ -12,7 +13,9 @@ import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Project } from '../projects/schemas/project.schema';
 
 @Injectable()
-export class FormsService {
+export class FormsService implements OnModuleInit {
+  private readonly logger = new Logger(FormsService.name);
+
   constructor(
     @InjectModel(FormTemplate.name) private readonly templateModel: Model<FormTemplate>,
     @InjectModel(FormResponse.name) private readonly responseModel: Model<FormResponse>,
@@ -20,7 +23,148 @@ export class FormsService {
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
     private readonly workflowService: WorkflowService,
+    private readonly audit: AuditService,
   ) {}
+
+  onModuleInit() {
+    // A workflow decision on a form response must re-sync the indicator, the
+    // same way an activity review does — the registry flips `approvalStatus`,
+    // but only this handler recomputes achievement from it.
+    this.workflowService.registerOutcomeHandler('form_response', async (ctx) => {
+      await this.review(
+        ctx.organizationId,
+        ctx.entityId,
+        ctx.actorUserId,
+        ctx.outcome === 'approved' ? 'approved' : 'rejected',
+        ctx.outcome === 'rejected' ? ctx.comment : undefined,
+        { viaWorkflow: true },
+      );
+    });
+  }
+
+  // ─── Review & indicator contribution ────────────────────────────────────────
+
+  /**
+   * Pull the numeric contribution out of a response's answers using the
+   * template's `indicatorValueKey`. Non-numeric or missing answers contribute
+   * nothing rather than throwing — a malformed submission should not block a
+   * reviewer.
+   */
+  private extractIndicatorValue(
+    template: { indicatorValueKey?: string } | null,
+    answers: Record<string, unknown> = {},
+  ): number {
+    const key = template?.indicatorValueKey;
+    if (!key) return 0;
+    const raw = answers[key];
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
+   * Approve or reject a submitted response. Approving is what makes it count
+   * toward the linked indicator.
+   */
+  async review(
+    organizationId: string,
+    id: string,
+    reviewerId: string,
+    approvalStatus: 'approved' | 'rejected',
+    rejectionReason?: string,
+    opts?: { viaWorkflow?: boolean },
+  ) {
+    if (!opts?.viaWorkflow) {
+      await this.workflowService.assertNoActiveWorkflow(organizationId, 'form_response', id);
+    }
+
+    const orgId = new Types.ObjectId(organizationId);
+    const existing = await this.responseModel.findOne({ _id: id, organizationId: orgId }).lean();
+    if (!existing) throw new NotFoundException('Form response not found');
+
+    const template = existing.templateId
+      ? await this.templateModel.findById(existing.templateId).select('indicatorValueKey name').lean()
+      : null;
+
+    // Resolve the indicator link from the response, falling back to the
+    // template's — integrations set it on the template only.
+    const indicatorId =
+      existing.indicatorId ??
+      (await this.templateModel.findById(existing.templateId).select('indicatorId').lean())?.indicatorId;
+
+    const indicatorValue =
+      approvalStatus === 'approved'
+        ? this.extractIndicatorValue(template, existing.answers as Record<string, unknown>)
+        : 0;
+
+    const updated = await this.responseModel
+      .findOneAndUpdate(
+        { _id: id, organizationId: orgId },
+        {
+          approvalStatus,
+          reviewedByUserId: new Types.ObjectId(reviewerId),
+          reviewedAt: new Date(),
+          indicatorValue,
+          ...(indicatorId ? { indicatorId } : {}),
+          ...(rejectionReason ? { rejectionReason } : {}),
+        },
+        { new: true },
+      )
+      .lean();
+
+    if (indicatorId) {
+      await this.syncIndicatorTotal(organizationId, new Types.ObjectId(indicatorId));
+    }
+
+    await this.audit.record({
+      organizationId,
+      actorUserId: reviewerId,
+      action: `form_response.${approvalStatus}`,
+      entityType: 'FormResponse',
+      entityId: id,
+      reason: rejectionReason,
+      before: { approvalStatus: existing.approvalStatus, indicatorValue: existing.indicatorValue ?? 0 },
+      after: { approvalStatus, indicatorValue },
+      metadata: { indicatorId: indicatorId?.toString() },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Recompute an indicator's achieved total from BOTH sources of evidence.
+   *
+   * Activities were previously the only input, so anything captured through a
+   * form — including every Kobo/ODK/CommCare sync — was invisible to the
+   * logframe, the reporting period, and the donor report.
+   */
+  async syncIndicatorTotal(organizationId: string, indicatorId: Types.ObjectId) {
+    const orgId = new Types.ObjectId(organizationId);
+    try {
+      const [actAgg, formAgg] = await Promise.all([
+        this.activityModel.aggregate([
+          { $match: { organizationId: orgId, indicatorId, status: 'approved' } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+        ]),
+        this.responseModel.aggregate([
+          { $match: { organizationId: orgId, indicatorId, approvalStatus: 'approved' } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$indicatorValue', 0] } } } },
+        ]),
+      ]);
+
+      const total = (actAgg[0]?.total ?? 0) + (formAgg[0]?.total ?? 0);
+      await this.indicatorModel.updateOne(
+        { _id: indicatorId, organizationId: orgId },
+        { $set: { lastAchievedValue: total, lastAchievedDate: new Date() } },
+      );
+      return total;
+    } catch (err) {
+      this.logger.error(
+        `Indicator sync failed for ${indicatorId.toString()} (org ${organizationId}): ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
 
   findTemplates(organizationId: string, projectId?: string) {
     const query: Record<string, unknown> = { organizationId: new Types.ObjectId(organizationId) };
@@ -55,6 +199,9 @@ export class FormsService {
       name: dto.name,
       description: dto.description,
       status: dto.status ?? 'draft',
+      // Without this the key never persists, so an approved response has no
+      // quantity to contribute and the indicator link is decorative.
+      indicatorValueKey: dto.indicatorValueKey,
       sections: (dto.sections ?? []) as unknown as Record<string, unknown>[],
     });
   }
@@ -308,8 +455,23 @@ export class FormsService {
           if (validation.max !== undefined && value > validation.max) errors.push(`${label} must be at most ${validation.max}`);
         }
         if (validation.pattern && typeof value === 'string') {
-          const regex = new RegExp(validation.pattern);
-          if (!regex.test(value)) errors.push(validation.patternMessage ?? `${label} has an invalid format`);
+          // The pattern is author-supplied and runs against every submission,
+          // so a careless (or malicious) template could hang the request
+          // thread through catastrophic backtracking. Bound both the pattern
+          // and the input, and treat a bad pattern as a validation error
+          // rather than a 500.
+          if (validation.pattern.length > 200 || value.length > 4096) {
+            errors.push(`${label} could not be validated (pattern or value too long)`);
+          } else {
+            try {
+              const regex = new RegExp(validation.pattern);
+              if (!regex.test(value)) {
+                errors.push(validation.patternMessage ?? `${label} has an invalid format`);
+              }
+            } catch {
+              errors.push(`${label} has a misconfigured validation pattern`);
+            }
+          }
         }
       }
     }

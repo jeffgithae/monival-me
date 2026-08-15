@@ -5,11 +5,12 @@ import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto, AddComplianceConditionDto } from '../../core/models';
+import { PagerComponent } from '../../shared/pager/pager.component';
 
 @Component({
   selector: 'app-donors',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DecimalPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DecimalPipe, PagerComponent],
   template: `
 <!-- ─── Header ───────────────────────────────────────────────────────── -->
 <div class="page-header">
@@ -54,7 +55,7 @@ import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto
 
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input
+    <input aria-label="Search donors or countries"
       type="search"
       class="search-input"
       placeholder="Search donors or countries…"
@@ -74,31 +75,31 @@ import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto
     </div>
     <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
       <div class="form-row">
-        <label>Donor name<input formControlName="name" required placeholder="e.g. USAID" /></label>
-        <label>Short name / Acronym<input formControlName="shortName" placeholder="USAID" /></label>
+        <label>Donor name<input aria-label="e.g. USAID" formControlName="name" required placeholder="e.g. USAID" /></label>
+        <label>Short name / Acronym<input aria-label="USAID" formControlName="shortName" placeholder="USAID" /></label>
       </div>
       <div class="form-row">
-        <label>Type<select formControlName="type">
+        <label>Type<select formControlName="type" aria-label="Select an option">
           @for (t of donorTypes; track t) { 
             <option [value]="t">{{ typeLabel(t) }}</option>
           }
         </select></label>
-        <label>Status<select formControlName="status">
+        <label>Status<select formControlName="status" aria-label="Select an option">
           @for (s of donorStatuses; track s) { 
             <option [value]="s">{{ statusLabel(s) }}</option>
           }
         </select></label>
       </div>
       <div class="form-row">
-        <label>Country<input formControlName="country" placeholder="e.g. United States" /></label>
-        <label>Website<input formControlName="website" placeholder="https://usaid.gov" /></label>
+        <label>Country<input aria-label="e.g. United States" formControlName="country" placeholder="e.g. United States" /></label>
+        <label>Website<input aria-label="https://usaid.gov" formControlName="website" placeholder="https://usaid.gov" /></label>
       </div>
       <div class="form-row">
         <label>Primary contact name<input formControlName="contactName" /></label>
         <label>Contact email<input formControlName="contactEmail" type="email" /></label>
       </div>
       <label class="full-label">Description
-        <textarea formControlName="description" rows="3" placeholder="Brief overview of the donor organisation and funding priorities…"></textarea>
+        <textarea aria-label="Brief overview of the donor organisation and funding priorities" formControlName="description" rows="3" placeholder="Brief overview of the donor organisation and funding priorities…"></textarea>
       </label>
       <label class="full-label checkbox">
         <input type="checkbox" formControlName="requiresDisaggregation" />
@@ -161,6 +162,14 @@ import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto
       </button>
     }
   </div>
+
+  <app-pager
+    [page]="page()"
+    [total]="total()"
+    [limit]="pageSize"
+    label="donors"
+    (pageChange)="goToPage($event)"
+  />
 }
 
 <!-- ─── Donor detail view ────────────────────────────────────────────── -->
@@ -301,10 +310,10 @@ import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto
             <div class="grants-list">
               @for (grant of donorGrants(); track grant._id) {
                 <div class="grant-item">
-                  <div class="grant-name">{{ grant.title || grant.name }}</div>
+                  <div class="grant-name">{{ grant.name }}</div>
                   <div class="grant-meta">
                     <span class="grant-status" [attr.data-status]="grant.status">{{ grant.status }}</span>
-                    <span class="grant-amount">{{ grant.currency }} {{ (grant.totalAmount ?? grant.amount) | number:'1.0-0' }}</span>
+                    <span class="grant-amount">{{ grant.currency }} {{ grant.amount | number:'1.0-0' }}</span>
                   </div>
                 </div>
               }
@@ -376,16 +385,28 @@ export class DonorsComponent implements OnInit {
 
   ngOnInit() { this.load(); }
 
+  // Donors are paginated server-side; the page and total drive <app-pager> so
+  // the list can't silently stop at page one.
+  page = signal(1);
+  total = signal(0);
+  readonly pageSize = 50;
+
   load() {
     this.loading.set(true);
-    this.api.donors().subscribe({
+    this.api.donors({ page: this.page(), limit: this.pageSize }).subscribe({
       next: res => {
         const donors = Array.isArray(res) ? res : (res as any).data ?? [];
         this.donors.set(donors);
+        this.total.set(Array.isArray(res) ? donors.length : ((res as any).total ?? donors.length));
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  goToPage(page: number) {
+    this.page.set(page);
+    this.load();
   }
 
   toggleForm() {

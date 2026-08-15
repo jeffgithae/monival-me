@@ -16,6 +16,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { DonorsModule } from './donors/donors.module';
 import { PartnersModule } from './partners/partners.module';
 import { BeneficiariesModule } from './beneficiaries/beneficiaries.module';
+import { FxModule } from './fx/fx.module';
 import { GrantsModule } from './grants/grants.module';
 import { HealthModule } from './health/health.module';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -119,6 +120,7 @@ import { StakeholderFeedbackModule } from './stakeholder-feedback/stakeholder-fe
     PartnersModule,
     BeneficiariesModule,
     GrantsModule,
+    FxModule,
     BudgetModule,
     BalancedScorecardModule,
     OKRsModule,

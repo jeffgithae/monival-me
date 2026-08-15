@@ -16,14 +16,14 @@ import { AuditEvent } from '../../core/models';
       <h1>Audit Log</h1>
       <p class="page-subtitle">Full immutable history of all changes across the system</p>
     </div>
-    <button class="btn btn-outline" (click)="exportCsv()">⬇ Export CSV</button>
+    <button type="button" class="btn btn-outline" (click)="exportCsv()">⬇ Export CSV</button>
   </div>
 
   <!-- Filters -->
   <div class="filter-row card filter-card">
     <div class="field-inline">
       <label>Entity</label>
-      <select [(ngModel)]="filterEntity" (ngModelChange)="load()">
+      <select [(ngModel)]="filterEntity" (ngModelChange)="load()" aria-label="Filter by Entities">
         <option value="">All Entities</option>
         <option value="BudgetAllocation">Budget Allocation</option>
         <option value="BudgetLineItem">Budget Line Item</option>
@@ -39,7 +39,7 @@ import { AuditEvent } from '../../core/models';
     </div>
     <div class="field-inline">
       <label>Action</label>
-      <select [(ngModel)]="filterAction" (ngModelChange)="load()">
+      <select [(ngModel)]="filterAction" (ngModelChange)="load()" aria-label="Filter by Actions">
         <option value="">All Actions</option>
         <option value="CREATE">Create</option>
         <option value="UPDATE">Update</option>
@@ -54,9 +54,9 @@ import { AuditEvent } from '../../core/models';
     </div>
     <div class="field-inline">
       <label>User Email</label>
-      <input [(ngModel)]="filterEmail" (ngModelChange)="onEmailChange()" placeholder="user@org.org" />
+      <input aria-label="user@org.org" [(ngModel)]="filterEmail" (ngModelChange)="onEmailChange()" placeholder="user@org.org" />
     </div>
-    <button class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear</button>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear</button>
   </div>
 
   @if (loading()) { <div class="loading">Loading audit events…</div> }
@@ -94,7 +94,7 @@ import { AuditEvent } from '../../core/models';
               <td class="audit-detail">
                 @if (e.reason) { <div class="audit-reason">{{ e.reason }}</div> }
                 @if (e.before || e.after) {
-                  <button class="btn btn-xs btn-ghost" (click)="toggleDiff(e._id)">
+                  <button type="button" class="btn btn-xs btn-ghost" (click)="toggleDiff(e._id)">
                     {{ expandedId() === e._id ? 'Hide diff' : 'View diff' }}
                   </button>
                   @if (expandedId() === e._id) {
@@ -124,9 +124,9 @@ import { AuditEvent } from '../../core/models';
     <!-- Pagination -->
     @if (totalPages > 1) {
       <div class="pagination">
-        <button [disabled]="page() <= 1" (click)="prevPage()" class="btn btn-sm btn-ghost">← Prev</button>
+        <button type="button" [disabled]="page() <= 1" (click)="prevPage()" class="btn btn-sm btn-ghost">← Prev</button>
         <span>{{ page() }} / {{ totalPages }}</span>
-        <button [disabled]="page() >= totalPages" (click)="nextPage()" class="btn btn-sm btn-ghost">Next →</button>
+        <button type="button" [disabled]="page() >= totalPages" (click)="nextPage()" class="btn btn-sm btn-ghost">Next →</button>
       </div>
     }
   }

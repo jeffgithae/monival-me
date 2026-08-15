@@ -10,13 +10,13 @@
     </div>
     <div class="header-actions">
       @if (activeTab() === 'forms') {
-        <button class="btn-primary" (click)="openCreateForm()">+ New Form</button>
+        <button type="button" class="btn-primary" (click)="openCreateForm()">+ New Form</button>
       }
       @if (activeTab() === 'integrations') {
-        <button class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
+        <button type="button" class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
       }
       @if (activeTab() === 'responses') {
-        <button class="btn-ghost" (click)="exportResponsesCsv()">⬇ Export CSV</button>
+        <button type="button" class="btn-ghost" (click)="exportResponsesCsv()">⬇ Export CSV</button>
       }
     </div>
   </header>
@@ -55,18 +55,18 @@
 
   <!-- ── Error ──────────────────────────────────────────────────────────── -->
   @if (error()) {
-    <div class="error-bar">{{ error() }} <button (click)="error.set('')">✕</button></div>
+    <div class="error-bar">{{ error() }} <button type="button" (click)="error.set('')">✕</button></div>
   }
 
   <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
   <div class="tabs">
-    <button [class.active]="activeTab()==='forms'" (click)="setTab('forms')">
+    <button type="button" [class.active]="activeTab()==='forms'" (click)="setTab('forms')">
       📋 Form Templates <span class="tab-count">{{ forms().length }}</span>
     </button>
-    <button [class.active]="activeTab()==='integrations'" (click)="setTab('integrations')">
+    <button type="button" [class.active]="activeTab()==='integrations'" (click)="setTab('integrations')">
       🔌 Integrations <span class="tab-count">{{ integrations().length }}</span>
     </button>
-    <button [class.active]="activeTab()==='responses'" (click)="setTab('responses')">
+    <button type="button" [class.active]="activeTab()==='responses'" (click)="setTab('responses')">
       📊 Responses <span class="tab-count">{{ responses().length }}</span>
     </button>
   </div>
@@ -76,13 +76,13 @@
   ════════════════════════════════════════════════════════════════════════ -->
   @if (activeTab() === 'forms') {
     <div class="filter-bar">
-      <select [(ngModel)]="filterProject">
+      <select [(ngModel)]="filterProject" aria-label="Filter by projects">
         <option value="">All projects</option>
         @for (p of projects(); track p._id) {
           <option [value]="p._id">{{ p.name }}</option>
         }
       </select>
-      <select [(ngModel)]="filterStatus">
+      <select [(ngModel)]="filterStatus" aria-label="Filter by statuses">
         <option value="">All statuses</option>
         <option value="draft">Draft</option>
         <option value="active">Active</option>
@@ -96,7 +96,7 @@
         <div class="empty-icon">📋</div>
         <h3>No forms yet</h3>
         <p>Create a form template to collect structured field data.</p>
-        <button class="btn-primary" (click)="openCreateForm()">+ Create Form</button>
+        <button type="button" class="btn-primary" (click)="openCreateForm()">+ Create Form</button>
       </div>
     } @else {
       <div class="cards-grid">
@@ -118,13 +118,13 @@
               <span>{{ f.updatedAt | date:'mediumDate' }}</span>
             </div>
             <div class="card-actions">
-              <button class="act-btn btn-primary" (click)="openCollectForm(f)">Collect Data</button>
-              <button class="act-btn" (click)="openViewForm(f)">Preview</button>
-              <button class="act-btn" (click)="openEditForm(f)">Edit</button>
-              <button class="act-btn" (click)="toggleFormStatus(f)">
+              <button type="button" class="act-btn btn-primary" (click)="openCollectForm(f)">Collect Data</button>
+              <button type="button" class="act-btn" (click)="openViewForm(f)">Preview</button>
+              <button type="button" class="act-btn" (click)="openEditForm(f)">Edit</button>
+              <button type="button" class="act-btn" (click)="toggleFormStatus(f)">
                 {{ f.status === 'active' ? 'Deactivate' : 'Activate' }}
               </button>
-              <button class="act-btn danger" (click)="deleteForm(f)">Delete</button>
+              <button type="button" class="act-btn danger" (click)="deleteForm(f)">Delete</button>
             </div>
           </div>
         }
@@ -138,9 +138,9 @@
   @if (activeTab() === 'integrations') {
     <!-- Platform filter pills -->
     <div class="platform-pills">
-      <button [class.active-pill]="filterPlatform===''" (click)="filterPlatform=''">All</button>
+      <button type="button" [class.active-pill]="filterPlatform===''" (click)="filterPlatform=''">All</button>
       @for (p of platforms; track p.id) {
-        <button [class.active-pill]="filterPlatform===p.id" (click)="filterPlatform=p.id">
+        <button type="button" [class.active-pill]="filterPlatform===p.id" (click)="filterPlatform=p.id">
           {{ p.icon }} {{ p.label }}
         </button>
       }
@@ -173,7 +173,7 @@
         <div class="empty-icon">🔌</div>
         <h3>No integrations yet</h3>
         <p>Connect KoboToolbox, ODK Central, Ona, CommCare, a webhook, or import CSV data.</p>
-        <button class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
+        <button type="button" class="btn-primary" (click)="openCreateIntegration()">+ Connect Source</button>
       </div>
     } @else {
       <div class="integrations-list">
@@ -212,21 +212,21 @@
             </div>
             <div class="int-actions">
               @if (['kobo','odk','ona','commcare'].includes(i.platform) && i.isActive) {
-                <button class="act-btn sync-btn" [disabled]="syncing() === i._id" (click)="triggerSync(i)">
+                <button type="button" class="act-btn sync-btn" [disabled]="syncing() === i._id" (click)="triggerSync(i)">
                   {{ syncing() === i._id ? '⟳ Syncing…' : '⟳ Sync' }}
                 </button>
               }
               @if (i.platform === 'csv') {
-                <button class="act-btn" (click)="openCsvUpload(i)">⬆ Upload</button>
+                <button type="button" class="act-btn" (click)="openCsvUpload(i)">⬆ Upload</button>
               }
               @if (i.templateId) {
-                <button class="act-btn" (click)="openFieldMap(i)">🗺 Map</button>
+                <button type="button" class="act-btn" (click)="openFieldMap(i)">🗺 Map</button>
               }
-              <button class="act-btn" (click)="openEditIntegration(i)">Edit</button>
-              <button class="act-btn" (click)="toggleIntegration(i)">
+              <button type="button" class="act-btn" (click)="openEditIntegration(i)">Edit</button>
+              <button type="button" class="act-btn" (click)="toggleIntegration(i)">
                 {{ i.isActive ? 'Disable' : 'Enable' }}
               </button>
-              <button class="act-btn danger" (click)="deleteIntegration(i)">Delete</button>
+              <button type="button" class="act-btn danger" (click)="deleteIntegration(i)">Delete</button>
             </div>
           </div>
         }
@@ -248,7 +248,7 @@
         <div class="queue-header">
           <h3>Saved on this device <span class="queue-count">{{ pendingQueuedResponses().length }}</span></h3>
           @if (queue.isOnline()) {
-            <button class="btn-ghost btn-sm" (click)="retryQueuedResponseSync()" [disabled]="queue.isSyncing()">
+            <button type="button" class="btn-ghost btn-sm" (click)="retryQueuedResponseSync()" [disabled]="queue.isSyncing()">
               {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
             </button>
           }
@@ -269,7 +269,7 @@
               </div>
               <div class="queue-item-status">
                 <span class="status-pill" [class]="item.syncStatus">{{ queuedResponseStatusLabel(item.syncStatus) }}</span>
-                <button class="btn-discard" (click)="discardQueuedResponse(item.clientId, item.label)" title="Discard">✕</button>
+                <button type="button" class="btn-discard" (click)="discardQueuedResponse(item.clientId, item.label)" title="Discard">✕</button>
               </div>
               @if (item.syncError) {
                 <p class="queue-item-error">{{ item.syncError }}</p>
@@ -281,13 +281,13 @@
     }
 
     <div class="filter-bar">
-      <select [(ngModel)]="filterProject">
+      <select [(ngModel)]="filterProject" aria-label="Filter by projects">
         <option value="">All projects</option>
         @for (p of projects(); track p._id) {
           <option [value]="p._id">{{ p.name }}</option>
         }
       </select>
-      <input [(ngModel)]="responseFilter" placeholder="Search responses…" class="search-input" />
+      <input aria-label="Search responses" [(ngModel)]="responseFilter" placeholder="Search responses…" class="search-input" />
       <span class="filter-count">{{ filteredResponses().length }} records</span>
     </div>
 
@@ -311,8 +311,17 @@
           </thead>
           <tbody>
             @for (r of filteredResponses(); track r._id) {
+              <!-- Row click is a mouse convenience only. The row itself is not
+                   given a button role: it contains its own controls, and nesting
+                   interactive elements inside a role="button" is invalid ARIA.
+                   The date cell carries a real button as the keyboard path. -->
               <tr (click)="viewResponse(r)">
-                <td class="td-date">{{ r.collectedAt | date:'mediumDate' }}</td>
+                <td class="td-date">
+                  <button type="button" class="row-open" (click)="$event.stopPropagation(); viewResponse(r)">
+                    {{ r.collectedAt | date:'mediumDate' }}
+                    <span class="sr-only">— open this response</span>
+                  </button>
+                </td>
                 <td class="td-form">{{ formName(r.templateId) }}</td>
                 <td>
                   <span class="resp-status" [class.submitted]="r.status==='submitted'">{{ r.status }}</span>
@@ -325,7 +334,7 @@
                     <span class="more-chip">+{{ responseKeys(r).length - 3 }}</span>
                   }
                 </td>
-                <td><button class="act-btn" (click)="viewResponse(r); $event.stopPropagation()">View</button></td>
+                <td><button type="button" class="act-btn" (click)="viewResponse(r); $event.stopPropagation()">View</button></td>
               </tr>
             }
           </tbody>
@@ -344,47 +353,47 @@
     <div class="modal xl" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>{{ modalMode() === 'create-form' ? 'New Form Template' : 'Edit Form' }}</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         @if (error()) { <div class="field-error">{{ error() }}</div> }
 
         <div class="form-row-2">
-          <div class="ff"><label>Name *</label>
-            <input [(ngModel)]="formDraft.name" placeholder="e.g. Household Survey" /></div>
-          <div class="ff"><label>Status</label>
-            <select [(ngModel)]="formDraft.status">
+          <div class="ff"><label for="data-collection-formdraft-name">Name *</label>
+<input id="data-collection-formdraft-name" [(ngModel)]="formDraft.name" placeholder="e.g. Household Survey" /></div>
+          <div class="ff"><label for="data-collection-formdraft-status">Status</label>
+<select id="data-collection-formdraft-status" [(ngModel)]="formDraft.status">
               <option value="draft">Draft</option>
               <option value="active">Active</option>
             </select>
           </div>
         </div>
         <div class="form-row-2">
-          <div class="ff"><label>Project</label>
-            <select [(ngModel)]="formDraft.projectId">
+          <div class="ff"><label for="data-collection-formdraft-projectid">Project</label>
+<select id="data-collection-formdraft-projectid" [(ngModel)]="formDraft.projectId">
               <option value="">None</option>
               @for (p of projects(); track p._id) {
                 <option [value]="p._id">{{ p.name }}</option>
               }
             </select>
           </div>
-          <div class="ff"><label>Description</label>
-            <input [(ngModel)]="formDraft.description" placeholder="Optional description" /></div>
+          <div class="ff"><label for="data-collection-formdraft-description">Description</label>
+<input id="data-collection-formdraft-description" [(ngModel)]="formDraft.description" placeholder="Optional description" /></div>
         </div>
 
         <!-- Sections -->
         <div class="sections-editor">
           <div class="sections-hd">
             <h3>Sections</h3>
-            <button class="btn-ghost sm" (click)="addSection()">+ Add section</button>
+            <button type="button" class="btn-ghost sm" (click)="addSection()">+ Add section</button>
           </div>
 
           @for (sec of formDraft.sections; track $index; let si = $index) {
             <div class="section-block">
               <div class="section-hd-row">
-                <input class="section-title-input" [(ngModel)]="sec.title" placeholder="Section title" />
-                <input class="section-desc-input" [(ngModel)]="sec.description" placeholder="Description (optional)" />
-                <button class="icon-btn danger" (click)="removeSection(si)" title="Remove section">✕</button>
+                <input aria-label="Section title" class="section-title-input" [(ngModel)]="sec.title" placeholder="Section title" />
+                <input aria-label="Description (optional)" class="section-desc-input" [(ngModel)]="sec.description" placeholder="Description (optional)" />
+                <button type="button" class="icon-btn danger" (click)="removeSection(si)" title="Remove section">✕</button>
               </div>
 
               @for (q of sec.questions; track $index; let qi = $index) {
@@ -392,12 +401,12 @@
                   <div class="q-order">{{ qi + 1 }}</div>
                   <div class="q-fields">
                     <div class="form-row-3">
-                      <div class="ff"><label>Label *</label>
-                        <input [(ngModel)]="q.label" placeholder="Question label" /></div>
-                      <div class="ff"><label>Key *</label>
-                        <input [(ngModel)]="q.key" placeholder="field_key" /></div>
-                      <div class="ff"><label>Type</label>
-                        <select [(ngModel)]="q.type">
+                      <div class="ff"><label for="data-collection-q-label">Label *</label>
+<input id="data-collection-q-label" [(ngModel)]="q.label" placeholder="Question label" /></div>
+                      <div class="ff"><label for="data-collection-q-key">Key *</label>
+<input id="data-collection-q-key" [(ngModel)]="q.key" placeholder="field_key" /></div>
+                      <div class="ff"><label for="data-collection-q-type">Type</label>
+<select id="data-collection-q-type" [(ngModel)]="q.type">
                           @for (t of questionTypes; track t) {
                             <option [value]="t">{{ t }}</option>
                           }
@@ -405,8 +414,8 @@
                       </div>
                     </div>
                     <div class="form-row-2">
-                      <div class="ff"><label>Description</label>
-                        <input [(ngModel)]="q.description" placeholder="Help text" /></div>
+                      <div class="ff"><label for="data-collection-q-description">Description</label>
+<input id="data-collection-q-description" [(ngModel)]="q.description" placeholder="Help text" /></div>
                       <div class="ff inline-check">
                         <label class="chk-label">
                           <input type="checkbox" [(ngModel)]="q.required" /> Required
@@ -414,32 +423,32 @@
                       </div>
                     </div>
                     @if (needsOptions(q.type)) {
-                      <div class="ff"><label>Options (one per line)</label>
-                        <textarea [(ngModel)]="q.options" rows="3" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+                      <div class="ff"><label for="data-collection-q-options">Options (one per line)</label>
+<textarea id="data-collection-q-options" [(ngModel)]="q.options" rows="3" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
                       </div>
                     }
                     @if (needsValidation(q.type)) {
                       <div class="form-row-3">
-                        <div class="ff"><label>Min</label>
-                          <input type="number" [(ngModel)]="q.validation.min" placeholder="—" /></div>
-                        <div class="ff"><label>Max</label>
-                          <input type="number" [(ngModel)]="q.validation.max" placeholder="—" /></div>
-                        <div class="ff"><label>Regex pattern</label>
-                          <input [(ngModel)]="q.validation.pattern" placeholder="e.g. ^\d+$" /></div>
+                        <div class="ff"><label for="data-collection-q-validation-min">Min</label>
+<input id="data-collection-q-validation-min" type="number" [(ngModel)]="q.validation.min" placeholder="—" /></div>
+                        <div class="ff"><label for="data-collection-q-validation-max">Max</label>
+<input id="data-collection-q-validation-max" type="number" [(ngModel)]="q.validation.max" placeholder="—" /></div>
+                        <div class="ff"><label for="data-collection-q-validation-pattern">Regex pattern</label>
+<input id="data-collection-q-validation-pattern" [(ngModel)]="q.validation.pattern" placeholder="e.g. ^\d+$" /></div>
                       </div>
                     }
                   </div>
-                  <button class="icon-btn danger" (click)="removeQuestion(si, qi)" title="Remove question">✕</button>
+                  <button type="button" class="icon-btn danger" (click)="removeQuestion(si, qi)" title="Remove question">✕</button>
                 </div>
               }
-              <button class="btn-ghost sm add-q-btn" (click)="addQuestion(si)">+ Add question</button>
+              <button type="button" class="btn-ghost sm add-q-btn" (click)="addQuestion(si)">+ Add question</button>
             </div>
           }
         </div>
 
         <div class="modal-footer">
-          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="saveForm()">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveForm()">
             {{ saving() ? 'Saving…' : (modalMode() === 'create-form' ? 'Create Form' : 'Save Changes') }}
           </button>
         </div>
@@ -456,7 +465,7 @@
     <div class="modal lg" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>{{ f.name }}</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         @if (f.description) { <p class="preview-desc">{{ f.description }}</p> }
@@ -472,10 +481,10 @@
                 </label>
                 @if (q.description) { <p class="pq-desc">{{ q.description }}</p> }
                 @switch (q.type) {
-                  @case ('text') { <input class="preview-input" disabled placeholder="{{ q.type }}" /> }
-                  @case ('textarea') { <textarea class="preview-input" disabled rows="3" placeholder="Long text…"></textarea> }
-                  @case ('number') { <input class="preview-input" type="number" disabled placeholder="0" /> }
-                  @case ('date') { <input class="preview-input" type="date" disabled /> }
+                  @case ('text') { <input [attr.aria-label]="q.type" class="preview-input" disabled placeholder="{{ q.type }}" /> }
+                  @case ('textarea') { <textarea aria-label="Long text" class="preview-input" disabled rows="3" placeholder="Long text…"></textarea> }
+                  @case ('number') { <input aria-label="0" class="preview-input" type="number" disabled placeholder="0" /> }
+                  @case ('date') { <input class="preview-input" type="date" disabled aria-label="Date answer (preview)" /> }
                   @case ('boolean') {
                     <div class="preview-radio-group">
                       <label><input type="radio" disabled /> Yes</label>
@@ -483,7 +492,7 @@
                     </div>
                   }
                   @case ('select') {
-                    <select class="preview-input" disabled>
+                    <select class="preview-input" disabled aria-label="Choice answer (preview)">
                       @for (o of q.options; track o) { <option>{{ o }}</option> }
                     </select>
                   }
@@ -524,7 +533,7 @@
             <span class="dot"></span>{{ queue.isOnline() ? 'Online' : 'Offline — saving to this device' }}
           </span>
         </div>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         @if (error()) { <div class="field-error">{{ error() }}</div> }
@@ -541,10 +550,10 @@
                 </label>
                 @if (q.description) { <p class="pq-desc">{{ q.description }}</p> }
                 @switch (q.type) {
-                  @case ('text') { <input class="preview-input" [(ngModel)]="formResponseDraft[q.key]" placeholder="Type answer..." /> }
-                  @case ('textarea') { <textarea class="preview-input" [(ngModel)]="formResponseDraft[q.key]" rows="3" placeholder="Long text..."></textarea> }
-                  @case ('number') { <input class="preview-input" type="number" [(ngModel)]="formResponseDraft[q.key]" placeholder="0" /> }
-                  @case ('date') { <input class="preview-input" type="date" [(ngModel)]="formResponseDraft[q.key]" /> }
+                  @case ('text') { <input aria-label="Type answer" class="preview-input" [(ngModel)]="formResponseDraft[q.key]" placeholder="Type answer..." /> }
+                  @case ('textarea') { <textarea aria-label="Long text" class="preview-input" [(ngModel)]="formResponseDraft[q.key]" rows="3" placeholder="Long text..."></textarea> }
+                  @case ('number') { <input aria-label="0" class="preview-input" type="number" [(ngModel)]="formResponseDraft[q.key]" placeholder="0" /> }
+                  @case ('date') { <input class="preview-input" type="date" [(ngModel)]="formResponseDraft[q.key]" [attr.aria-label]="q.label || q.key" /> }
                   @case ('boolean') {
                     <div class="preview-radio-group">
                       <label><input type="radio" name="{{q.key}}" [value]="true" [(ngModel)]="formResponseDraft[q.key]" /> Yes</label>
@@ -552,7 +561,7 @@
                     </div>
                   }
                   @case ('select') {
-                    <select class="preview-input" [(ngModel)]="formResponseDraft[q.key]">
+                    <select class="preview-input" [(ngModel)]="formResponseDraft[q.key]" aria-label="Select select an option">
                       <option value="">Select an option</option>
                       @for (o of q.options; track o) { <option [value]="o">{{ o }}</option> }
                     </select>
@@ -577,8 +586,8 @@
           </div>
         }
         <div class="modal-footer">
-          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="submitResponse()">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="submitResponse()">
             @if (saving()) {
               {{ queue.isOnline() ? 'Submitting...' : 'Saving...' }}
             } @else if (queue.isOnline()) {
@@ -601,7 +610,7 @@
     <div class="modal lg" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>{{ modalMode() === 'create-integration' ? 'Connect Data Source' : 'Edit Integration' }}</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         @if (error()) { <div class="field-error">{{ error() }}</div> }
@@ -610,7 +619,7 @@
         @if (modalMode() === 'create-integration') {
           <div class="platform-picker">
             @for (p of platforms; track p.id) {
-              <button class="plat-opt" [class.selected-plat]="intDraft.platform === p.id"
+              <button type="button" class="plat-opt" [class.selected-plat]="intDraft.platform === p.id"
                 [style.--c]="p.color" (click)="intDraft.platform = p.id">
                 <span class="plat-icon">{{ p.icon }}</span>
                 <span>{{ p.label }}</span>
@@ -620,10 +629,10 @@
         }
 
         <div class="form-row-2">
-          <div class="ff"><label>Name *</label>
-            <input [(ngModel)]="intDraft.name" placeholder="e.g. Household Survey – KoboToolbox" /></div>
-          <div class="ff"><label>Project</label>
-            <select [(ngModel)]="intDraft.projectId">
+          <div class="ff"><label for="data-collection-intdraft-name">Name *</label>
+<input id="data-collection-intdraft-name" [(ngModel)]="intDraft.name" placeholder="e.g. Household Survey – KoboToolbox" /></div>
+          <div class="ff"><label for="data-collection-intdraft-projectid">Project</label>
+<select id="data-collection-intdraft-projectid" [(ngModel)]="intDraft.projectId">
               <option value="">None</option>
               @for (p of projects(); track p._id) {
                 <option [value]="p._id">{{ p.name }}</option>
@@ -632,67 +641,67 @@
           </div>
         </div>
         <div class="form-row-2">
-          <div class="ff"><label>Link to Form Template</label>
-            <select [(ngModel)]="intDraft.templateId">
+          <div class="ff"><label for="data-collection-intdraft-templateid">Link to Form Template</label>
+<select id="data-collection-intdraft-templateid" [(ngModel)]="intDraft.templateId">
               <option value="">None</option>
               @for (f of forms(); track f._id) {
                 <option [value]="f._id">{{ f.name }}</option>
               }
             </select>
           </div>
-          <div class="ff"><label>Auto-sync every (minutes)</label>
-            <input type="number" [(ngModel)]="intDraft.syncIntervalMinutes" placeholder="e.g. 60" min="5" /></div>
+          <div class="ff"><label for="data-collection-intdraft-syncintervalminutes">Auto-sync every (minutes)</label>
+<input id="data-collection-intdraft-syncintervalminutes" type="number" [(ngModel)]="intDraft.syncIntervalMinutes" placeholder="e.g. 60" min="5" /></div>
         </div>
-        <div class="ff"><label>Description</label>
-          <input [(ngModel)]="intDraft.description" placeholder="Optional" /></div>
+        <div class="ff"><label for="data-collection-intdraft-description">Description</label>
+<input id="data-collection-intdraft-description" [(ngModel)]="intDraft.description" placeholder="Optional" /></div>
 
         <!-- Platform-specific config -->
         <div class="platform-config-block">
           @switch (intDraft.platform) {
             @case ('kobo') {
               <div class="config-title">🟦 KoboToolbox Configuration</div>
-              <div class="ff"><label>Server URL</label>
-                <input [(ngModel)]="intDraft.koboServer" placeholder="https://kf.kobotoolbox.org" /></div>
-              <div class="ff"><label>API Token *</label>
-                <input [(ngModel)]="intDraft.koboToken" placeholder="Your KoboToolbox API token" /></div>
-              <div class="ff"><label>Asset UID *</label>
-                <input [(ngModel)]="intDraft.koboAssetUid" placeholder="aXXXXXXXXXXXXXXXXXXXX" /></div>
+              <div class="ff"><label for="data-collection-intdraft-koboserver">Server URL</label>
+<input id="data-collection-intdraft-koboserver" [(ngModel)]="intDraft.koboServer" placeholder="https://kf.kobotoolbox.org" /></div>
+              <div class="ff"><label for="data-collection-intdraft-kobotoken">API Token *</label>
+<input id="data-collection-intdraft-kobotoken" [(ngModel)]="intDraft.koboToken" placeholder="Your KoboToolbox API token" /></div>
+              <div class="ff"><label for="data-collection-intdraft-koboassetuid">Asset UID *</label>
+<input id="data-collection-intdraft-koboassetuid" [(ngModel)]="intDraft.koboAssetUid" placeholder="aXXXXXXXXXXXXXXXXXXXX" /></div>
               <p class="config-hint">Find your API token at <code>Account Settings → API Token</code>. The Asset UID is in the form URL.</p>
             }
             @case ('odk') {
               <div class="config-title">🟩 ODK Central Configuration</div>
-              <div class="ff"><label>Server URL *</label>
-                <input [(ngModel)]="intDraft.odkServer" placeholder="https://your-odk-central.example.com" /></div>
+              <div class="ff"><label for="data-collection-intdraft-odkserver">Server URL *</label>
+<input id="data-collection-intdraft-odkserver" [(ngModel)]="intDraft.odkServer" placeholder="https://your-odk-central.example.com" /></div>
               <div class="form-row-2">
-                <div class="ff"><label>Project ID *</label>
-                  <input [(ngModel)]="intDraft.odkProject" placeholder="1" /></div>
-                <div class="ff"><label>Form ID *</label>
-                  <input [(ngModel)]="intDraft.odkForm" placeholder="household_survey" /></div>
+                <div class="ff"><label for="data-collection-intdraft-odkproject">Project ID *</label>
+<input id="data-collection-intdraft-odkproject" [(ngModel)]="intDraft.odkProject" placeholder="1" /></div>
+                <div class="ff"><label for="data-collection-intdraft-odkform">Form ID *</label>
+<input id="data-collection-intdraft-odkform" [(ngModel)]="intDraft.odkForm" placeholder="household_survey" /></div>
               </div>
               <div class="form-row-2">
-                <div class="ff"><label>Email *</label>
-                  <input [(ngModel)]="intDraft.odkEmail" placeholder="admin@example.com" /></div>
-                <div class="ff"><label>Password *</label>
-                  <input type="password" [(ngModel)]="intDraft.odkPassword" placeholder="••••••••" /></div>
+                <div class="ff"><label for="data-collection-intdraft-odkemail">Email *</label>
+<input id="data-collection-intdraft-odkemail" [(ngModel)]="intDraft.odkEmail" placeholder="admin@example.com" /></div>
+                <div class="ff"><label for="data-collection-intdraft-odkpassword">Password *</label>
+<input id="data-collection-intdraft-odkpassword" type="password" [(ngModel)]="intDraft.odkPassword" placeholder="••••••••" /></div>
               </div>
             }
             @case ('ona') {
               <div class="config-title">🟧 Ona Configuration</div>
-              <div class="ff"><label>Server URL</label>
-                <input [(ngModel)]="intDraft.onaServer" placeholder="https://api.ona.io" /></div>
-              <div class="ff"><label>API Token *</label>
-                <input [(ngModel)]="intDraft.onaToken" placeholder="Your Ona API token" /></div>
-              <div class="ff"><label>Form ID *</label>
-                <input [(ngModel)]="intDraft.onaFormId" placeholder="12345" /></div>
+              <div class="ff"><label for="data-collection-intdraft-onaserver">Server URL</label>
+<input id="data-collection-intdraft-onaserver" [(ngModel)]="intDraft.onaServer" placeholder="https://api.ona.io" /></div>
+              <div class="ff"><label for="data-collection-intdraft-onatoken">API Token *</label>
+<input id="data-collection-intdraft-onatoken" [(ngModel)]="intDraft.onaToken" placeholder="Your Ona API token" /></div>
+              <div class="ff"><label for="data-collection-intdraft-onaformid">Form ID *</label>
+<input id="data-collection-intdraft-onaformid" [(ngModel)]="intDraft.onaFormId" placeholder="12345" /></div>
             }
             @case ('commcare') {
               <div class="config-title">🟪 CommCare HQ Configuration</div>
-              <div class="ff"><label>Project Space *</label>
-                <input [(ngModel)]="intDraft.ccProjectSpace" placeholder="your-project-space" /></div>
-              <div class="ff"><label>API Key *</label>
-                <input [(ngModel)]="intDraft.ccApiKey" placeholder="Your CommCare API key" /></div>
-              <div class="ff"><label>Form XMLNS (optional filter)</label>
-                <input [(ngModel)]="intDraft.ccFormId" placeholder="http://openrosa.org/formdesigner/..." /></div>
+              <div class="ff"><label for="data-collection-intdraft-ccprojectspace">Project Space *</label>
+<input id="data-collection-intdraft-ccprojectspace" [(ngModel)]="intDraft.ccProjectSpace" placeholder="your-project-space" /></div>
+              <div class="ff"><label for="data-collection-intdraft-ccapikey">API Key *</label>
+<input id="data-collection-intdraft-ccapikey" [(ngModel)]="intDraft.ccApiKey" placeholder="Your CommCare API key" /></div>
+              <div class="ff"><label for="data-collection-intdraft-ccformid">Form XMLNS (optional filter)</label>
+<input id="data-collection-intdraft-ccformid" [(ngModel)]="intDraft.ccFormId" placeholder="http://openrosa.org/formdesigner/..." /></div>
             }
             @case ('webhook') {
               <div class="config-title">🔗 Webhook Configuration</div>
@@ -719,8 +728,8 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="saveIntegration()">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveIntegration()">
             {{ saving() ? 'Saving…' : (modalMode() === 'create-integration' ? 'Connect' : 'Save Changes') }}
           </button>
         </div>
@@ -737,7 +746,7 @@
     <div class="modal md" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>Field Mapping — {{ i.name }}</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         <p class="mapping-hint">Map <strong>external field names</strong> (from {{ platformMeta(i.platform).label }}) to <strong>local form question keys</strong>.</p>
@@ -751,23 +760,23 @@
 
         @for (key of fieldMapKeys(); track key) {
           <div class="map-row">
-            <input [ngModel]="key" (ngModelChange)="updateMapKey(key, $event)" placeholder="e.g. _submission_time" />
+            <input aria-label="e.g. _submission_time" [ngModel]="key" (ngModelChange)="updateMapKey(key, $event)" placeholder="e.g. _submission_time" />
             <span class="map-arrow">→</span>
-            <select [ngModel]="fieldMappingDraft[key]" (ngModelChange)="updateMapVal(key, $event)">
+            <select [ngModel]="fieldMappingDraft[key]" (ngModelChange)="updateMapVal(key, $event)" aria-label="Select select local field">
               <option value="">Select local field</option>
               @for (f of externalFields; track f) {
                 <option [value]="f">{{ f }}</option>
               }
             </select>
-            <button class="icon-btn danger" (click)="removeMapRow(key)">✕</button>
+            <button type="button" class="icon-btn danger" (click)="removeMapRow(key)">✕</button>
           </div>
         }
 
-        <button class="btn-ghost sm" (click)="addFieldMapRow()">+ Add mapping</button>
+        <button type="button" class="btn-ghost sm" (click)="addFieldMapRow()">+ Add mapping</button>
 
         <div class="modal-footer">
-          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="saveFieldMap()">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveFieldMap()">
             {{ saving() ? 'Saving…' : 'Save Mapping' }}
           </button>
         </div>
@@ -784,14 +793,14 @@
     <div class="modal md" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>Upload CSV</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         @if (error()) { <div class="field-error">{{ error() }}</div> }
         <div class="ff">
           <label>CSV File *</label>
           <div class="file-drop" [class.has-file]="csvFile">
-            <input type="file" accept=".csv,text/csv" (change)="onCsvFileChange($event)" />
+            <input type="file" accept=".csv,text/csv" (change)="onCsvFileChange($event)" aria-label="Choose a CSV file to import" />
             @if (csvFile) {
               <span>📄 {{ csvFile.name }} ({{ (csvFile.size / 1024).toFixed(1) }} KB)</span>
             } @else {
@@ -799,8 +808,8 @@
             }
           </div>
         </div>
-        <div class="ff"><label>Delimiter</label>
-          <select [(ngModel)]="csvDelimiter">
+        <div class="ff"><label for="data-collection-csvdelimiter">Delimiter</label>
+<select id="data-collection-csvdelimiter" [(ngModel)]="csvDelimiter">
             <option value=",">Comma (,)</option>
             <option value=";">Semicolon (;)</option>
             <option value="&#9;">Tab</option>
@@ -809,8 +818,8 @@
         </div>
         <p class="config-hint">First row must be a header. Duplicate rows (matched by row index) will be skipped.</p>
         <div class="modal-footer">
-          <button class="btn-ghost" (click)="closeModal()">Cancel</button>
-          <button class="btn-primary" [disabled]="!csvFile || saving()" (click)="uploadCsv()">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="!csvFile || saving()" (click)="uploadCsv()">
             {{ saving() ? 'Uploading…' : 'Import CSV' }}
           </button>
         </div>
@@ -827,7 +836,7 @@
     <div class="modal sm" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>Sync Complete</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         <div class="sync-result-grid">
@@ -844,7 +853,7 @@
           </div>
         }
         <div class="modal-footer">
-          <button class="btn-primary" (click)="closeModal()">Done</button>
+          <button type="button" class="btn-primary" (click)="closeModal()">Done</button>
         </div>
       </div>
     </div>
@@ -859,7 +868,7 @@
     <div class="modal md" (click)="$event.stopPropagation()">
       <div class="modal-hd">
         <h2>Response Detail</h2>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button type="button" class="close-btn" (click)="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         <div class="resp-meta">

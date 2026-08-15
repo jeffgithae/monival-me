@@ -3,7 +3,7 @@ import {
   Patch, Post, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiKeyOrJwtAuthGuard } from '../auth/api-key-or-jwt.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
@@ -13,10 +13,15 @@ import type { JwtPayload } from '../common/types/jwt-payload';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
+import {
+  ProjectRiskDto, ProjectMilestoneDto, ProjectWorkplanItemDto, ProjectStakeholderDto,
+} from './dto/project-subdocs.dto';
 
 @ApiTags('Projects')
 @Controller('projects')
-@UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
+// Authenticates a session JWT or an Enterprise API key. API keys resolve to the
+// `viewer` role, so RolesGuard confines them to the read routes below.
+@UseGuards(ApiKeyOrJwtAuthGuard, SubscriptionGuard, RolesGuard)
 export class ProjectsController {
   constructor(private readonly svc: ProjectsService) {}
 
@@ -146,7 +151,7 @@ export class ProjectsController {
   @Post(':id/milestones')
   @Roles(...PERMISSIONS.MANAGE_PROJECTS)
   @ApiOperation({ summary: 'Add a milestone' })
-  addMilestone(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: any) {
+  addMilestone(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ProjectMilestoneDto) {
     return this.svc.addMilestone(user.organizationId, id, dto, user.sub);
   }
 
@@ -157,7 +162,7 @@ export class ProjectsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('milestoneId') milestoneId: string,
-    @Body() dto: any,
+    @Body() dto: ProjectMilestoneDto,
   ) {
     return this.svc.updateMilestone(user.organizationId, id, milestoneId, dto, user.sub);
   }
@@ -178,7 +183,7 @@ export class ProjectsController {
   @Post(':id/risks')
   @Roles(...PERMISSIONS.MANAGE_PROJECTS)
   @ApiOperation({ summary: 'Add a risk' })
-  addRisk(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: any) {
+  addRisk(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ProjectRiskDto) {
     return this.svc.addRisk(user.organizationId, id, dto, user.sub);
   }
 
@@ -189,7 +194,7 @@ export class ProjectsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('riskId') riskId: string,
-    @Body() dto: any,
+    @Body() dto: ProjectRiskDto,
   ) {
     return this.svc.updateRisk(user.organizationId, id, riskId, dto, user.sub);
   }
@@ -210,7 +215,7 @@ export class ProjectsController {
   @Post(':id/workplan')
   @Roles(...PERMISSIONS.MANAGE_PROJECTS)
   @ApiOperation({ summary: 'Add a workplan item' })
-  addWorkplanItem(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: any) {
+  addWorkplanItem(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ProjectWorkplanItemDto) {
     return this.svc.addWorkplanItem(user.organizationId, id, dto, user.sub);
   }
 
@@ -221,7 +226,7 @@ export class ProjectsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('itemId') itemId: string,
-    @Body() dto: any,
+    @Body() dto: ProjectWorkplanItemDto,
   ) {
     return this.svc.updateWorkplanItem(user.organizationId, id, itemId, dto, user.sub);
   }
@@ -242,7 +247,7 @@ export class ProjectsController {
   @Post(':id/stakeholders')
   @Roles(...PERMISSIONS.MANAGE_PROJECTS)
   @ApiOperation({ summary: 'Add a stakeholder' })
-  addStakeholder(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: any) {
+  addStakeholder(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ProjectStakeholderDto) {
     return this.svc.addStakeholder(user.organizationId, id, dto);
   }
 
@@ -253,7 +258,7 @@ export class ProjectsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('stakeholderId') stakeholderId: string,
-    @Body() dto: any,
+    @Body() dto: ProjectStakeholderDto,
   ) {
     return this.svc.updateStakeholder(user.organizationId, id, stakeholderId, dto);
   }

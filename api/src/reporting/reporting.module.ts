@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Activity, ActivitySchema } from '../activities/schemas/activity.schema';
+import { FormResponse, FormResponseSchema } from '../forms/schemas/form-response.schema';
 import { AuditModule } from '../audit/audit.module';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
@@ -14,9 +15,11 @@ import { ReportingService } from './reporting.service';
 import { IndicatorResult, IndicatorResultSchema } from './schemas/indicator-result.schema';
 import { IndicatorTarget, IndicatorTargetSchema } from './schemas/indicator-target.schema';
 import { ReportingPeriod, ReportingPeriodSchema } from './schemas/reporting-period.schema';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
   imports: [
+    WebhooksModule,
     OrganizationsModule,
     AuditModule,
     WorkflowsModule,
@@ -27,6 +30,7 @@ import { ReportingPeriod, ReportingPeriodSchema } from './schemas/reporting-peri
       { name: Project.name, schema: ProjectSchema },
       { name: Indicator.name, schema: IndicatorSchema },
       { name: Activity.name, schema: ActivitySchema },
+      { name: FormResponse.name, schema: FormResponseSchema },
       { name: Organization.name, schema: OrganizationSchema },
       { name: User.name, schema: UserSchema },
     ]),

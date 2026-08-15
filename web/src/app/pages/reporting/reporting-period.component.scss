@@ -872,3 +872,5 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   gap: 0.6rem;
   margin-top: 0.3rem;
 }
+.detail-title-group { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.activity-count     { color: var(--muted, #6b7280); font-size: 0.8rem; }

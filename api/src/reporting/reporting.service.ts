@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException,
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activity } from '../activities/schemas/activity.schema';
+import { FormResponse } from '../forms/schemas/form-response.schema';
 import { AuditService } from '../audit/audit.service';
 import { calculateProgressPct } from '../common/utils/progress';
 import { Indicator } from '../indicators/schemas/indicator.schema';
@@ -12,6 +13,7 @@ import { IndicatorResult } from './schemas/indicator-result.schema';
 import { IndicatorTarget } from './schemas/indicator-target.schema';
 import { ReportingPeriod } from './schemas/reporting-period.schema';
 import { WorkflowService } from '../workflows/workflows.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 @Injectable()
 export class ReportingService implements OnModuleInit {
@@ -22,9 +24,11 @@ export class ReportingService implements OnModuleInit {
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Indicator.name) private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Activity.name) private readonly activityModel: Model<Activity>,
+    @InjectModel(FormResponse.name) private readonly formResponseModel: Model<FormResponse>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly audit: AuditService,
     private readonly workflowService: WorkflowService,
+    private readonly webhooks: WebhooksService,
   ) {}
 
   onModuleInit() {
@@ -181,6 +185,46 @@ export class ReportingService implements OnModuleInit {
         activityDate: { $gte: period.startDate, $lte: period.endDate },
       })
       .lean();
+
+    // Form responses are the second source of evidence. Omitting them meant a
+    // period calculated from field data collected via forms (including every
+    // Kobo/ODK/CommCare sync) reported zero achievement.
+    const formResponses = await this.formResponseModel
+      .find({
+        organizationId: orgId,
+        projectId,
+        approvalStatus: 'approved',
+        collectedAt: { $gte: period.startDate, $lte: period.endDate },
+      })
+      .lean();
+
+    /**
+     * Both sources normalised to one shape so cumulative summing and
+     * snapshot "most recent wins" behave identically regardless of origin.
+     */
+    const evidence = [
+      ...activities.map((a: any) => ({
+        _id: a._id,
+        indicatorId: a.indicatorId,
+        value: a.quantity ?? 0,
+        date: a.activityDate,
+        createdAt: a.createdAt,
+        disaggregationData: a.disaggregationData as any[] | undefined,
+        hasEvidence: !!a.evidenceUrl || !!a.evidenceNotes,
+        source: 'activity' as 'activity' | 'form',
+      })),
+      ...formResponses.map((r: any) => ({
+        _id: r._id,
+        indicatorId: r.indicatorId,
+        value: r.indicatorValue ?? 0,
+        date: r.collectedAt,
+        createdAt: r.createdAt,
+        disaggregationData: undefined as any[] | undefined,
+        // The submitted answers are themselves the evidence record.
+        hasEvidence: true,
+        source: 'form' as 'activity' | 'form',
+      })),
+    ];
     const targets = await this.targetModel
       .find({
         organizationId: orgId,
@@ -205,8 +249,8 @@ export class ReportingService implements OnModuleInit {
     const bulkOps = indicators
       .filter((indicator) => !manualIndicatorIds.has(indicator._id.toString()))
       .map((indicator) => {
-      const linked = activities.filter(
-        (a) => a.indicatorId?.toString() === indicator._id.toString(),
+      const linked = evidence.filter(
+        (e) => e.indicatorId?.toString() === indicator._id.toString(),
       );
 
       // cumulative defaults to true (additive — most indicators are, e.g.
@@ -219,15 +263,15 @@ export class ReportingService implements OnModuleInit {
       const isCumulative = (indicator as any).cumulative !== false;
       let achieved: number;
       if (isCumulative) {
-        achieved = linked.reduce((sum, a) => sum + (a.quantity ?? 0), 0);
+        achieved = linked.reduce((sum, e) => sum + (e.value ?? 0), 0);
       } else if (linked.length > 0) {
         const mostRecent = [...linked].sort((a, b) => {
-          const dateDiff = new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime();
+          const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
           if (dateDiff !== 0) return dateDiff;
           // Same-day tiebreaker: most recently created record wins.
-          return new Date((b as any).createdAt).getTime() - new Date((a as any).createdAt).getTime();
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         })[0];
-        achieved = mostRecent.quantity ?? 0;
+        achieved = mostRecent.value ?? 0;
       } else {
         achieved = 0;
       }
@@ -257,9 +301,7 @@ export class ReportingService implements OnModuleInit {
           baseline: periodTarget?.baseline ?? indicator.baseline,
           direction: indicator.direction,
           activityCount: linked.length,
-          evidenceMissing: linked.filter(
-            (a) => !a.evidenceUrl && !a.evidenceNotes,
-          ).length,
+          evidenceMissing: linked.filter((e) => !e.hasEvidence).length,
         }),
         // Kept as ALL linked activities (not just the one snapshot reading
         // used for `achieved` on non-cumulative indicators) — this is the
@@ -267,7 +309,8 @@ export class ReportingService implements OnModuleInit {
         // for review even when only the latest reading counts toward the
         // result itself.
         activityCount: linked.length,
-        sourceActivityIds: linked.map((a) => a._id),
+        sourceActivityIds: linked.filter((e) => e.source === 'activity').map((e) => e._id),
+        sourceFormResponseIds: linked.filter((e) => e.source === 'form').map((e) => e._id),
         disaggregations,
         status: 'draft',
       };
@@ -540,7 +583,34 @@ export class ReportingService implements OnModuleInit {
       action: `reporting_period.${status}`,
       entityType: 'ReportingPeriod',
       entityId: reportingPeriodId,
+      reason: notes,
+      before: { status: period.status },
+      after: { status },
     });
+
+    // `report.submitted` / `report.approved` were declared as webhook events
+    // but nothing ever dispatched them.
+    if (status === 'submitted' || status === 'approved') {
+      this.webhooks.dispatch(
+        organizationId,
+        status === 'submitted' ? 'report.submitted' : 'report.approved',
+        {
+          reportingPeriodId,
+          name: period.name,
+          projectId: period.projectId?.toString(),
+          status,
+        },
+        period.projectId?.toString(),
+      ).catch(() => {});
+    }
+
+    // A period reaching approval is the point at which under-performance is
+    // confirmed, so that is when a target-missed signal is meaningful.
+    if (status === 'approved') {
+      this.dispatchMissedTargets(organizationId, reportingPeriodId, period.projectId?.toString())
+        .catch(() => {});
+    }
+
     return this.enrichPeriod(updated!);
   }
 
@@ -562,6 +632,46 @@ export class ReportingService implements OnModuleInit {
       { new: true },
     ).lean();
     return updated;
+  }
+
+  /**
+   * Fire `indicator.target_missed` for every approved result that fell short
+   * of its target. Never throws — a webhook must not fail an approval.
+   */
+  private async dispatchMissedTargets(
+    organizationId: string,
+    reportingPeriodId: string,
+    projectId?: string,
+  ) {
+    const results = await this.resultModel
+      .find({
+        organizationId: new Types.ObjectId(organizationId),
+        reportingPeriodId: new Types.ObjectId(reportingPeriodId),
+        status: { $in: ['approved', 'locked'] },
+      })
+      .lean();
+
+    for (const r of results as any[]) {
+      const target = r.target ?? 0;
+      if (target <= 0) continue;
+      // `direction` decides what "missed" means: for a decrease indicator,
+      // overshooting the target is the failure.
+      const missed = r.direction === 'decrease' ? r.achieved > target : r.achieved < target;
+      if (!missed) continue;
+
+      await this.webhooks.dispatch(
+        organizationId,
+        'indicator.target_missed',
+        {
+          reportingPeriodId,
+          indicatorId: r.indicatorId?.toString(),
+          achieved: r.achieved,
+          target,
+          direction: r.direction ?? 'increase',
+        },
+        projectId,
+      ).catch(() => {});
+    }
   }
 
   async approvedResultsForPeriod(organizationId: string, reportingPeriodId: string) {

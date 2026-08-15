@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, 
 import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiKeyOrJwtAuthGuard } from '../auth/api-key-or-jwt.guard';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -14,7 +14,9 @@ import { ReportingService } from './reporting.service';
 import { ReportingExportService } from './reporting-export.service';
 
 @Controller('reporting')
-@UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
+// Authenticates a session JWT or an Enterprise API key. API keys resolve to the
+// `viewer` role, so RolesGuard confines them to the read routes below.
+@UseGuards(ApiKeyOrJwtAuthGuard, SubscriptionGuard, RolesGuard)
 export class ReportingController {
   constructor(
     private readonly reportingService: ReportingService,

@@ -7,7 +7,10 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ImpactStory, ImpactStoryDocument, StoryStatus } from './schemas/impact-story.schema';
+import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { AuditService } from '../audit/audit.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 export interface CreateImpactStoryDto {
   title: string;
@@ -46,6 +49,8 @@ export class ImpactStoriesService {
   constructor(
     @InjectModel(ImpactStory.name)
     private readonly model: Model<ImpactStoryDocument>,
+    private readonly audit: AuditService,
+    private readonly webhooks: WebhooksService,
   ) {}
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
@@ -105,16 +110,17 @@ export class ImpactStoriesService {
       ];
     }
 
-    const page  = query.page  ?? 1;
-    const limit = query.limit ?? 20;
-    const skip  = (page - 1) * limit;
+    // Use the shared helper so this endpoint gets the same hard cap as every
+    // other list route — an uncapped `limit` here let a caller ask for the
+    // whole collection in one query.
+    const { page, limit, skip } = paginate(query.page, query.limit ?? 20);
 
     const [data, total] = await Promise.all([
       this.model.find(filter).sort({ publishedAt: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
       this.model.countDocuments(filter),
     ]);
 
-    return { data, total, page, limit };
+    return toPaginatedResult(data, total, page, limit);
   }
 
   async findOne(organizationId: string, id: string): Promise<ImpactStoryDocument> {
@@ -177,8 +183,36 @@ export class ImpactStoriesService {
       }
     }
 
+    const previousStatus = story.status;
     story.status = status;
-    return story.save();
+    const saved = await story.save();
+
+    await this.audit.record({
+      organizationId,
+      actorUserId: publishedByUserId,
+      action: `impact_story.${status}`,
+      entityType: 'ImpactStory',
+      entityId: id,
+      before: { status: previousStatus },
+      after: { status, publishedAt: saved.publishedAt },
+      metadata: { title: saved.title },
+    });
+
+    if (status === 'published' && previousStatus !== 'published') {
+      this.webhooks.dispatch(
+        organizationId,
+        'impact_story.published',
+        {
+          storyId: id,
+          title: saved.title,
+          projectId: saved.projectId?.toString(),
+          publishedAt: saved.publishedAt,
+        },
+        saved.projectId?.toString(),
+      ).catch(() => {});
+    }
+
+    return saved;
   }
 
   async remove(organizationId: string, id: string): Promise<{ deleted: boolean }> {

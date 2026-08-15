@@ -103,7 +103,10 @@ $border:   rgba(15, 23, 42, 0.08);
 // ─── Grid ─────────────────────────────────────────────────────────────────────
 .docs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  // `auto-fill` leaves empty phantom tracks when there are few documents, so a
+  // single card sat narrow against a wide blank gutter. `auto-fit` collapses
+  // the empties and lets the real cards take the space.
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.1rem;
 }
 
@@ -158,11 +161,14 @@ $border:   rgba(15, 23, 42, 0.08);
 .card-footer {
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 0.9rem; border-top: 1px solid $border; gap: 0.5rem;
+  // The action row wraps on narrow cards; keep the date pinned to the first
+  // line instead of floating against two rows of buttons.
+  flex-wrap: wrap;
 }
 
-.doc-date { font-size: 0.75rem; color: $muted; white-space: nowrap; }
+.doc-date { font-size: 0.75rem; color: $muted; white-space: nowrap; align-self: flex-start; padding-top: 0.35rem; }
 
-.card-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.card-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 
 .btn-action {
   padding: 0.35rem 0.75rem; border-radius: 8px; border: 1px solid $border; background: $surface;
@@ -616,4 +622,45 @@ $border:   rgba(15, 23, 42, 0.08);
   font-size: 0.78rem;
   color: var(--muted);
   font-style: italic;
+}
+/* ─── Card metadata ─────────────────────────────────────────────────────────
+   The template drifted from this stylesheet: it rendered `.doc-grid`,
+   `.card-meta` and `.cat-chip` (renamed above to the names defined here) and
+   used `.tag-row` / `.tag` / `.doc-project`, which had no rules at all — so
+   the category and tags stacked as unstyled text above each document title. */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  white-space: nowrap;
+}
+
+.doc-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted, #6b7280);
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
 }

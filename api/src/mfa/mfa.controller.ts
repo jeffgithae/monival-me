@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
@@ -33,6 +34,7 @@ export class MfaController {
    * Confirm the first TOTP code and activate MFA.
    * Returns one-time backup codes — the user must store these immediately.
    */
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('enroll/verify')
   enrollVerify(
     @CurrentUser() user: JwtPayload,
@@ -45,6 +47,7 @@ export class MfaController {
    * POST /mfa/disable
    * Disable MFA after confirming with a valid TOTP code.
    */
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('disable')
   disable(
     @CurrentUser() user: JwtPayload,

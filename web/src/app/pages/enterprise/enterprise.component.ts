@@ -8,6 +8,7 @@ import {
   OrgNetwork, NetworkRollupResult, UpsertSsoConfigDto, UpdateBrandingDto,
 } from '../../core/models';
 import { NetworkAcceptedPipe } from '../../shared/network-accepted.pipe';
+import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'api-keys' | 'sso' | 'branding' | 'networks';
 
@@ -19,6 +20,7 @@ type Tab = 'api-keys' | 'sso' | 'branding' | 'networks';
   styleUrl: './enterprise.component.scss',
 })
 export class EnterpriseComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api = inject(ApiService);
   auth = inject(AuthService);
 
@@ -115,8 +117,8 @@ export class EnterpriseComponent implements OnInit {
     });
   }
 
-  revokeKey(id: string) {
-    if (!confirm('Revoke this API key? Any integrations using it will immediately stop working.')) return;
+  async revokeKey(id: string) {
+    if (!(await this.confirmSvc.ask({ title: `Revoke this API key?`, message: `Any integrations using it will immediately stop working.` }))) return;
     this.revokingKeyId.set(id);
     this.api.revokeApiKey(id).subscribe({
       next: () => {
@@ -320,10 +322,10 @@ export class EnterpriseComponent implements OnInit {
     });
   }
 
-  removeMember(orgId: string) {
+  async removeMember(orgId: string) {
     const net = this.activeNetwork();
     if (!net) return;
-    if (!confirm('Remove this member from the network?')) return;
+    if (!(await this.confirmSvc.ask({ title: `Remove this member from the network?`, message: `This action cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.removeNetworkMember(net._id, orgId).subscribe({
       next: updated => this.activeNetwork.set(updated),
       error: err => this.error.set(err.error?.message || 'Remove failed'),

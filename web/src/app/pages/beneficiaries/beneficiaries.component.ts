@@ -14,6 +14,8 @@ import {
   ProgramEnrollment, ServiceRecord, Activity,
 } from '../../core/models';
 import { LeafletMapComponent, MapPoint } from '../../shared/map/leaflet-map.component';
+import { ConfirmService } from '../../shared/confirm.service';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 type DetailTab = 'profile' | 'household' | 'enrollment' | 'services' | 'activities' | 'dedup';
 type ViewMode  = 'list' | 'card';
@@ -49,11 +51,12 @@ interface DupGroup {
   selector: 'app-beneficiaries',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, TitleCasePipe, LeafletMapComponent],
+  imports: [ModalDirective, CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, TitleCasePipe, LeafletMapComponent],
   templateUrl: './beneficiaries.component.html',
   styleUrls: ['./beneficiaries.component.scss'],
 })
 export class BeneficiariesComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api  = inject(ApiService);
   private auth = inject(AuthService);
   private fb   = inject(FormBuilder);
@@ -281,7 +284,7 @@ export class BeneficiariesComponent implements OnInit {
   }
 
   async discardQueuedRegistration(clientId: string, name: string): Promise<void> {
-    if (!confirm(`Discard the queued registration for "${name}"? It has not been saved to the server.`)) return;
+    if (!(await this.confirmSvc.ask({ title: `Discard the queued registration for "${name}"?`, message: `It has not been saved to the server.`, danger: true, confirmLabel: 'Delete' }))) return;
     await this.queue.remove(clientId);
     await this.refreshQueuedRegistrations();
   }
@@ -638,9 +641,9 @@ export class BeneficiariesComponent implements OnInit {
   }
 
   // ─── Delete ────────────────────────────────────────────────────────────────
-  confirmDelete(): void {
+  async confirmDelete(): Promise<void> {
     const b = this.selected();
-    if (!b || !confirm(`Permanently delete "${b.name}" and all their records? This cannot be undone.`)) return;
+    if (!b || !(await this.confirmSvc.ask({ title: `Permanently delete "${b.name}" and all their records?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.deleting.set(true);
     this.api.deleteBeneficiary(b._id).subscribe({
       next: () => {
@@ -752,8 +755,8 @@ export class BeneficiariesComponent implements OnInit {
     );
   }
 
-  mergeDuplicate(primaryId: string, duplicateId: string): void {
-    if (!confirm('Merge the duplicate into the primary record? This permanently removes the duplicate.')) return;
+  async mergeDuplicate(primaryId: string, duplicateId: string): Promise<void> {
+    if (!(await this.confirmSvc.ask({ title: `Merge the duplicate into the primary record?`, message: `This permanently removes the duplicate.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.merging.set(duplicateId);
     this.api.mergeBeneficiaries(primaryId, duplicateId).subscribe({
       next: () => {

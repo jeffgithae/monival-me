@@ -11,7 +11,7 @@
   </header>
 
   @if (error()) {
-    <div class="err-bar">⚠ {{ error() }} <button (click)="error.set('')">✕</button></div>
+    <div class="err-bar">⚠ {{ error() }} <button type="button" (click)="error.set('')">✕</button></div>
   }
   @if (success()) {
     <div class="ok-bar">✓ {{ success() }}</div>
@@ -19,14 +19,14 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button [class.active]="activeTab()==='scheduled'" (click)="activeTab.set('scheduled')">
+    <button type="button" [class.active]="activeTab()==='scheduled'" (click)="activeTab.set('scheduled')">
       🕐 Scheduled Reports
       @if (scheduledReports().length) { <span class="tab-n">{{ scheduledReports().length }}</span> }
     </button>
-    <button [class.active]="activeTab()==='import'" (click)="activeTab.set('import')">
+    <button type="button" [class.active]="activeTab()==='import'" (click)="activeTab.set('import')">
       ⬆ Bulk Import
     </button>
-    <button [class.active]="activeTab()==='export'" (click)="activeTab.set('export')">
+    <button type="button" [class.active]="activeTab()==='export'" (click)="activeTab.set('export')">
       ⬇ Export / Offline
     </button>
   </div>
@@ -40,7 +40,7 @@
           <p>Automatically email formatted reports to donors or team members on a set cadence. Attach a CSV export for offline review.</p>
         </div>
         @if (canManage()) {
-          <button class="btn-primary" (click)="openCreateSchedule()">+ New schedule</button>
+          <button type="button" class="btn-primary" (click)="openCreateSchedule()">+ New schedule</button>
         }
       </div>
 
@@ -71,7 +71,7 @@
 
           <div class="cadence-grid">
             @for (opt of cadenceOptions; track opt.value) {
-              <button class="cadence-opt" [class.selected]="schedForm.cadence === opt.value"
+              <button type="button" class="cadence-opt" [class.selected]="schedForm.cadence === opt.value"
                 (click)="schedForm.cadence = opt.value">
                 <strong>{{ opt.label }}</strong>
                 <span>{{ opt.desc }}</span>
@@ -94,8 +94,8 @@
           </div>
 
           <div class="form-actions">
-            <button class="btn-ghost" (click)="cancelScheduleForm()">Cancel</button>
-            <button class="btn-primary" [disabled]="saving() || !schedForm.name || !schedForm.projectId || !schedForm.recipients" (click)="saveSchedule()">
+            <button type="button" class="btn-ghost" (click)="cancelScheduleForm()">Cancel</button>
+            <button type="button" class="btn-primary" [disabled]="saving() || !schedForm.name || !schedForm.projectId || !schedForm.recipients" (click)="saveSchedule()">
               {{ saving() ? 'Saving…' : (editingId() ? 'Save changes' : 'Create schedule') }}
             </button>
           </div>
@@ -137,12 +137,12 @@
               </div>
               @if (canManage()) {
                 <div class="sr-actions">
-                  <button class="act-btn send-btn" [disabled]="triggeringId() === r._id" (click)="triggerNow(r)">
+                  <button type="button" class="act-btn send-btn" [disabled]="triggeringId() === r._id" (click)="triggerNow(r)">
                     {{ triggeringId() === r._id ? '⟳ Sending…' : '▶ Send now' }}
                   </button>
-                  <button class="act-btn" (click)="openEditSchedule(r)">Edit</button>
-                  <button class="act-btn" (click)="toggleActive(r)">{{ r.isActive ? 'Pause' : 'Resume' }}</button>
-                  <button class="act-btn danger" (click)="deleteSchedule(r)">Delete</button>
+                  <button type="button" class="act-btn" (click)="openEditSchedule(r)">Edit</button>
+                  <button type="button" class="act-btn" (click)="toggleActive(r)">{{ r.isActive ? 'Pause' : 'Resume' }}</button>
+                  <button type="button" class="act-btn danger" (click)="deleteSchedule(r)">Delete</button>
                 </div>
               }
             </div>
@@ -165,7 +165,7 @@
       <!-- Kind selector -->
       <div class="kind-grid">
         @for (k of importKinds; track k.id) {
-          <button class="kind-card" [class.selected-kind]="importKind === k.id" (click)="importKind = k.id">
+          <button type="button" class="kind-card" [class.selected-kind]="importKind === k.id" (click)="importKind = k.id">
             <span class="kind-icon">{{ k.icon }}</span>
             <div>
               <strong>{{ k.label }}</strong>
@@ -186,7 +186,7 @@
             }
           </div>
         </div>
-        <button class="btn-ghost" (click)="downloadTemplate(importKind)">⬇ Download template</button>
+        <button type="button" class="btn-ghost" (click)="downloadTemplate(importKind)">⬇ Download template</button>
       </div>
 
       <!-- File upload -->
@@ -214,7 +214,7 @@
             </div>
           </label>
         </div>
-        <button class="btn-primary" [disabled]="!importFile || importing()" (click)="runImport()">
+        <button type="button" class="btn-primary" [disabled]="!importFile || importing()" (click)="runImport()">
           {{ importing() ? '⟳ Importing…' : ('⬆ Import ' + (importKindMeta(importKind)?.label ?? '')) }}
         </button>
       </div>
@@ -279,7 +279,7 @@
                 </select>
               </label>
             </div>
-            <button class="btn-primary" style="margin-top:.75rem" [disabled]="!exportProjectId" (click)="exportDonorReport()">
+            <button type="button" class="btn-primary" style="margin-top:.75rem" [disabled]="!exportProjectId" (click)="exportDonorReport()">
               ⬇ Download CSV
             </button>
           </div>
@@ -320,7 +320,7 @@
             <p>Download blank CSV templates to fill in offline, then import back when connected.</p>
             <div class="template-dl-list">
               @for (k of importKinds; track k.id) {
-                <button class="template-dl-btn" (click)="downloadTemplate(k.id)">
+                <button type="button" class="template-dl-btn" (click)="downloadTemplate(k.id)">
                   {{ k.icon }} Download {{ k.label }} template
                 </button>
               }

@@ -8,14 +8,14 @@
       <p class="subtitle">Plan, track and manage project activities across all your programmes</p>
     </div>
     @if (canManage() && selectedProjectId()) {
-      <button class="btn-new" (click)="openCreate()">＋ Add Activity</button>
+      <button type="button" class="btn-new" (click)="openCreate()">＋ Add Activity</button>
     }
   </div>
 
   <!-- ── Project selector ──────────────────────────────────────────────────── -->
   <div class="project-selector">
     @for (p of projects(); track p._id) {
-      <button class="proj-tab"
+      <button type="button" class="proj-tab"
         [class.active]="selectedProjectId() === p._id"
         (click)="selectProject(p._id)">
         {{ p.name }}
@@ -80,12 +80,12 @@
     <div class="toolbar">
       <!-- Status filter -->
       <div class="tab-group">
-        <button class="tab" [class.active]="statusFilter() === ''" (click)="statusFilter.set('')">
+        <button type="button" class="tab" [class.active]="statusFilter() === ''" (click)="statusFilter.set('')">
           All <span class="badge">{{ statusCounts()[''] }}</span>
         </button>
         @for (s of statuses; track s.value) {
           @if (statusCounts()[s.value] > 0) {
-            <button class="tab" [class.active]="statusFilter() === s.value"
+            <button type="button" class="tab" [class.active]="statusFilter() === s.value"
               (click)="statusFilter.set(s.value)">
               {{ s.icon }} {{ s.label }}
               <span class="badge">{{ statusCounts()[s.value] }}</span>
@@ -97,17 +97,17 @@
       <!-- Search -->
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input type="text" placeholder="Search activities…" [(ngModel)]="searchQuery" />
+        <input aria-label="Search activities" type="text" placeholder="Search activities…" [(ngModel)]="searchQuery" />
         @if (searchQuery()) {
-          <button class="clear-btn" (click)="searchQuery.set('')">✕</button>
+          <button type="button" class="clear-btn" (click)="searchQuery.set('')">✕</button>
         }
       </div>
 
       <!-- View toggle -->
       <div class="view-toggle">
-        <button [class.active]="viewMode() === 'board'"    (click)="viewMode.set('board')">📊 Board</button>
-        <button [class.active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">📅 Timeline</button>
-        <button [class.active]="viewMode() === 'table'"    (click)="viewMode.set('table')">📋 Table</button>
+        <button type="button" [class.active]="viewMode() === 'board'"    (click)="viewMode.set('board')">📊 Board</button>
+        <button type="button" [class.active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">📅 Timeline</button>
+        <button type="button" [class.active]="viewMode() === 'table'"    (click)="viewMode.set('table')">📋 Table</button>
       </div>
     </div>
 
@@ -138,8 +138,8 @@
                         <h4 class="ac-title">{{ item.title }}</h4>
                         @if (canManage()) {
                           <div class="ac-menu">
-                            <button class="ac-btn" (click)="openEdit(item)">✏️</button>
-                            <button class="ac-btn danger" [disabled]="deleting() === item._id"
+                            <button type="button" class="ac-btn" (click)="openEdit(item)">✏️</button>
+                            <button type="button" class="ac-btn danger" [disabled]="deleting() === item._id"
                               (click)="deleteItem(item)">{{ deleting() === item._id ? '…' : '🗑' }}</button>
                           </div>
                         }
@@ -171,11 +171,11 @@
                       @if (canManage() && item.status !== 'completed' && item.status !== 'cancelled') {
                         <div class="ac-quick-actions">
                           @if (item.status !== 'in_progress') {
-                            <button class="qa-btn" (click)="quickStatus(item, 'in_progress')">▶ Start</button>
+                            <button type="button" class="qa-btn" (click)="quickStatus(item, 'in_progress')">▶ Start</button>
                           }
-                          <button class="qa-btn success" (click)="quickStatus(item, 'completed')">✓ Complete</button>
+                          <button type="button" class="qa-btn success" (click)="quickStatus(item, 'completed')">✓ Complete</button>
                           @if (item.status !== 'delayed') {
-                            <button class="qa-btn warn" (click)="quickStatus(item, 'delayed')">⚠ Delay</button>
+                            <button type="button" class="qa-btn warn" (click)="quickStatus(item, 'delayed')">⚠ Delay</button>
                           }
                         </div>
                       }
@@ -232,8 +232,8 @@
                     </span>
                     @if (canManage()) {
                       <div class="tl-actions">
-                        <button class="ac-btn" (click)="openEdit(item)">✏️</button>
-                        <button class="ac-btn danger" (click)="deleteItem(item)">🗑</button>
+                        <button type="button" class="ac-btn" (click)="openEdit(item)">✏️</button>
+                        <button type="button" class="ac-btn danger" (click)="deleteItem(item)">🗑</button>
                       </div>
                     }
                   </div>
@@ -299,8 +299,8 @@
                   <td class="td-cost">{{ item.estimatedCost ? (item.estimatedCost | number:'1.0-0') : '—' }}</td>
                   @if (canManage()) {
                     <td class="td-actions">
-                      <button class="ac-btn" (click)="openEdit(item)">✏️</button>
-                      <button class="ac-btn danger" [disabled]="deleting() === item._id"
+                      <button type="button" class="ac-btn" (click)="openEdit(item)">✏️</button>
+                      <button type="button" class="ac-btn danger" [disabled]="deleting() === item._id"
                         (click)="deleteItem(item)">{{ deleting() === item._id ? '…' : '🗑' }}</button>
                     </td>
                   }
@@ -317,45 +317,45 @@
 <!-- ── Create / Edit Panel ───────────────────────────────────────────────── -->
 @if (showCreatePanel()) {
   <div class="modal-backdrop" (click)="closePanel()">
-    <div class="slide-panel" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="workplan-dialog-0-title" (modalClose)="closePanel()" class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2>{{ editingItem() ? 'Edit Activity' : 'New Activity' }}</h2>
-        <button class="close-btn" (click)="closePanel()">✕</button>
+        <h2 id="workplan-dialog-0-title">{{ editingItem() ? 'Edit Activity' : 'New Activity' }}</h2>
+        <button type="button" class="close-btn" (click)="closePanel()">✕</button>
       </div>
 
       <form [formGroup]="form" class="panel-body">
         <div class="field full">
-          <label>Title *</label>
-          <input formControlName="title" placeholder="e.g. Baseline data collection" />
+        <label for="workplan-title">Title *</label>
+          <input id="workplan-title" formControlName="title" placeholder="e.g. Baseline data collection" />
         </div>
         <div class="field full">
-          <label>Description</label>
-          <textarea formControlName="description" placeholder="What will this activity achieve?"></textarea>
+        <label for="workplan-description">Description</label>
+          <textarea id="workplan-description" formControlName="description" placeholder="What will this activity achieve?"></textarea>
         </div>
 
         <div class="form-row">
           <div class="field">
-            <label>Start Date *</label>
-            <input type="date" formControlName="startDate" />
+        <label for="workplan-startdate">Start Date *</label>
+            <input id="workplan-startdate" type="date" formControlName="startDate" />
           </div>
           <div class="field">
-            <label>End Date *</label>
-            <input type="date" formControlName="endDate" />
+        <label for="workplan-enddate">End Date *</label>
+            <input id="workplan-enddate" type="date" formControlName="endDate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="field">
-            <label>Status</label>
-            <select formControlName="status">
+        <label for="workplan-status">Status</label>
+            <select id="workplan-status" formControlName="status">
               @for (s of statuses; track s.value) {
                 <option [value]="s.value">{{ s.icon }} {{ s.label }}</option>
               }
             </select>
           </div>
           <div class="field">
-            <label>Quarter</label>
-            <select formControlName="quarter">
+        <label for="workplan-quarter">Quarter</label>
+            <select id="workplan-quarter" formControlName="quarter">
               <option value="">— None —</option>
               @for (q of quarters; track q) {
                 <option [value]="q">{{ q }}</option>
@@ -365,30 +365,30 @@
         </div>
 
         <div class="field full">
-          <label>Progress ({{ form.get('progressPct')?.value }}%)</label>
-          <input type="range" formControlName="progressPct" min="0" max="100" step="5" class="range-input" />
+        <label for="workplan-progresspct">Progress ({{ form.get('progressPct')?.value }}%)</label>
+          <input id="workplan-progresspct" type="range" formControlName="progressPct" min="0" max="100" step="5" class="range-input" />
           <div class="range-labels"><span>0%</span><span>50%</span><span>100%</span></div>
         </div>
 
         <div class="field full">
-          <label>Responsible Person</label>
-          <input formControlName="responsibleName" placeholder="Name of responsible team member" />
+        <label for="workplan-responsiblename">Responsible Person</label>
+          <input id="workplan-responsiblename" formControlName="responsibleName" placeholder="Name of responsible team member" />
         </div>
 
         <div class="form-row">
           <div class="field">
-            <label>Estimated Cost</label>
-            <input type="number" formControlName="estimatedCost" min="0" placeholder="0" />
+        <label for="workplan-estimatedcost">Estimated Cost</label>
+            <input id="workplan-estimatedcost" type="number" formControlName="estimatedCost" min="0" placeholder="0" />
           </div>
           <div class="field">
-            <label>Actual Cost</label>
-            <input type="number" formControlName="actualCost" min="0" placeholder="0" />
+        <label for="workplan-actualcost">Actual Cost</label>
+            <input id="workplan-actualcost" type="number" formControlName="actualCost" min="0" placeholder="0" />
           </div>
         </div>
 
         <div class="field full">
-          <label>Expected Output</label>
-          <textarea formControlName="outputDescription" placeholder="Describe the expected deliverable or output…"></textarea>
+        <label for="workplan-outputdescription">Expected Output</label>
+          <textarea id="workplan-outputdescription" formControlName="outputDescription" placeholder="Describe the expected deliverable or output…"></textarea>
         </div>
 
         @if (indicators().length > 0) {
@@ -409,8 +409,8 @@
       </form>
 
       <div class="panel-footer">
-        <button class="btn-cancel" (click)="closePanel()">Cancel</button>
-        <button class="btn-submit" [disabled]="form.invalid || saving()" (click)="saveItem()">
+        <button type="button" class="btn-cancel" (click)="closePanel()">Cancel</button>
+        <button type="button" class="btn-submit" [disabled]="form.invalid || saving()" (click)="saveItem()">
           {{ saving() ? 'Saving…' : (editingItem() ? 'Save Changes' : 'Add Activity') }}
         </button>
       </div>

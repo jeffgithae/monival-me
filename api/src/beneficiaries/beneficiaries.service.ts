@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { WorkflowService } from '../workflows/workflows.service';
+import { AuditService } from '../audit/audit.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import { Beneficiary } from './schemas/beneficiary.schema';
 import { CreateBeneficiaryDto, ProgramEnrollmentDto, ServiceRecordDto } from './dto/create-beneficiary.dto';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
@@ -25,6 +27,8 @@ export class BeneficiariesService {
   constructor(
     @InjectModel(Beneficiary.name) private readonly model: Model<Beneficiary>,
     private readonly workflowService: WorkflowService,
+    private readonly audit: AuditService,
+    private readonly webhooks: WebhooksService,
   ) {}
 
   // ─── List ──────────────────────────────────────────────────────────────────
@@ -261,7 +265,7 @@ export class BeneficiariesService {
 
   // ─── Program enrollment ───────────────────────────────────────────────────
 
-  async enroll(organizationId: string, id: string, dto: ProgramEnrollmentDto) {
+  async enroll(organizationId: string, id: string, dto: ProgramEnrollmentDto, actorUserId?: string) {
     const b = await this.model.findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) });
     if (!b) throw new NotFoundException('Beneficiary not found');
 
@@ -278,7 +282,27 @@ export class BeneficiariesService {
       notes: dto.notes,
     } as any);
 
-    return (await b.save()).toObject();
+    const saved = (await b.save()).toObject();
+
+    // Beneficiary records are PII under Kenya's DPA and GDPR alike, so every
+    // enrolment is recorded — this module previously wrote no audit at all.
+    await this.audit.record({
+      organizationId, actorUserId,
+      action: 'beneficiary.enrolled',
+      entityType: 'Beneficiary',
+      entityId: id,
+      after: { projectId: dto.projectId, status: dto.status ?? 'active' },
+      metadata: { projectId: dto.projectId },
+    });
+
+    this.webhooks.dispatch(
+      organizationId,
+      'beneficiary.enrolled',
+      { beneficiaryId: id, projectId: dto.projectId, enrolledAt: dto.enrolledAt },
+      dto.projectId,
+    ).catch(() => {});
+
+    return saved;
   }
 
   async exitProgram(
@@ -286,6 +310,7 @@ export class BeneficiariesService {
     id: string,
     projectId: string,
     exitReason?: string,
+    actorUserId?: string,
   ) {
     const b = await this.model.findOne({ _id: id, organizationId: new Types.ObjectId(organizationId) });
     if (!b) throw new NotFoundException('Beneficiary not found');
@@ -300,7 +325,26 @@ export class BeneficiariesService {
     enrollment.exitReason = exitReason as any;
     b.lastContactDate = new Date();
 
-    return (await b.save()).toObject();
+    const saved = (await b.save()).toObject();
+
+    await this.audit.record({
+      organizationId, actorUserId,
+      action: 'beneficiary.exited',
+      entityType: 'Beneficiary',
+      entityId: id,
+      reason: exitReason,
+      after: { projectId, status: 'completed', exitedAt: enrollment.exitedAt },
+      metadata: { projectId },
+    });
+
+    this.webhooks.dispatch(
+      organizationId,
+      'beneficiary.exited',
+      { beneficiaryId: id, projectId, exitReason },
+      projectId,
+    ).catch(() => {});
+
+    return saved;
   }
 
   // ─── Service record ───────────────────────────────────────────────────────

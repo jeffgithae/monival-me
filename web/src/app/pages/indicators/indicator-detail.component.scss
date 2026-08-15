@@ -96,3 +96,5 @@
 .hbar-value { font-size: .8rem; font-weight: 600; text-align: right; }
 
 .dot-target { fill: var(--viz-context); stroke: var(--viz-surface); stroke-width: 2; }
+
+.head-text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }

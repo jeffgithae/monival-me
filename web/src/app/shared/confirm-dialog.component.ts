@@ -28,10 +28,10 @@ import { ConfirmService } from './confirm.service';
           </div>
 
           <div class="cd-footer">
-            <button class="cd-cancel" (click)="confirm.cancel()">
+            <button type="button" class="cd-cancel" (click)="confirm.cancel()">
               {{ confirm.options().cancelLabel ?? 'Cancel' }}
             </button>
-            <button class="cd-confirm"
+            <button type="button" class="cd-confirm"
               [class.cd-confirm-danger]="confirm.options().danger"
               (click)="confirm.confirm()">
               {{ confirm.options().confirmLabel ?? 'Confirm' }}

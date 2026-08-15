@@ -1389,3 +1389,9 @@ p.error {
   color: #b91c1c;
   font-size: 0.85rem;
 }
+
+.hero-left        { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.framework-panel  { margin-top: 1rem; }
+.ind-link         { color: #4338ca; text-decoration: none; &:hover { text-decoration: underline; } }
+/* Controls that should not appear on a printed donor report. */
+@media print { .no-print-controls { display: none !important; } }

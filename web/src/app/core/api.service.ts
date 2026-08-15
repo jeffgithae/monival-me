@@ -45,6 +45,12 @@ import {
   AddComplianceConditionDto,
   Grant,
   GrantSummary,
+  GrantFinancialRollup,
+  GrantAwardTree,
+  GrantReportDue,
+  GrantDisbursement,
+  GrantReportingObligation,
+  GrantAmendment,
   PeriodTarget,
   ReportingPeriodStatus,
   CopilotResponse,
@@ -72,6 +78,7 @@ import {
   FeedbackStatus,
   FeedbackAnalytics,
   PaginatedResult,
+  IndicatorAchievementResponse,
 } from './models';
 import { OrgRole } from './roles';
 
@@ -355,6 +362,19 @@ export class ApiService {
     }
     return this.http.get<PaginatedResult<Indicator> | Indicator[]>(`${this.base}/indicators`, { params }).pipe(
       map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+    );
+  }
+
+  /**
+   * Server-computed achievement per indicator for a project.
+   *
+   * Always use this instead of summing `activity.quantity` on the client: the
+   * activities endpoint is paginated and returns every status, so a client-side
+   * sum under-reports past the first page and counts drafts and rejected entries.
+   */
+  indicatorAchievement(projectId: string) {
+    return this.http.get<IndicatorAchievementResponse>(
+      `${this.base}/indicators/project/${projectId}/achievement`,
     );
   }
 
@@ -764,7 +784,11 @@ export class ApiService {
 
 // ─── Grants ───────────────────────────────────────────────────────────────────
 
-  grants(params?: { status?: string; donorId?: string; search?: string; page?: number; limit?: number }) {
+  grants(params?: {
+    status?: string; donorId?: string; search?: string;
+    parentGrantId?: string; primeOnly?: boolean;
+    page?: number; limit?: number;
+  }) {
     return this.http
       .get<Grant[] | { data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any })
       .pipe(
@@ -794,11 +818,45 @@ export class ApiService {
   grantsByProject(projectId: string) {
     return this.http.get<Grant[]>(`${this.base}/grants/by-project/${projectId}`);
   }
-  updateGrantSpend(id: string, spentAmount: number) {
-    return this.http.patch<Grant>(`${this.base}/grants/${id}/spending`, { spentAmount });
+  /** The API field is `amountSpent`; sending `spentAmount` was silently ignored. */
+  updateGrantSpend(id: string, amountSpent: number) {
+    return this.http.patch<Grant>(`${this.base}/grants/${id}/spending`, { amountSpent });
   }
-  linkGrantToProject(grantId: string, projectId: string) {
-    return this.http.post(`${this.base}/grants/${grantId}/link-project`, { projectId });
+
+  // ─── Grant detail: disbursements, obligations, amendments ──────────────────
+
+  grantFinancials(id: string) {
+    return this.http.get<GrantFinancialRollup>(`${this.base}/grants/${id}/financials`);
+  }
+  grantAwardTree(id: string) {
+    return this.http.get<GrantAwardTree>(`${this.base}/grants/${id}/award-tree`);
+  }
+  grantReportsDue(days = 90) {
+    return this.http.get<GrantReportDue[]>(`${this.base}/grants/reports-due?days=${days}`);
+  }
+
+  addGrantDisbursement(id: string, body: Partial<GrantDisbursement>) {
+    return this.http.post<Grant>(`${this.base}/grants/${id}/disbursements`, body);
+  }
+  updateGrantDisbursement(id: string, disbursementId: string, body: Partial<GrantDisbursement>) {
+    return this.http.patch<Grant>(`${this.base}/grants/${id}/disbursements/${disbursementId}`, body);
+  }
+  removeGrantDisbursement(id: string, disbursementId: string) {
+    return this.http.delete<Grant>(`${this.base}/grants/${id}/disbursements/${disbursementId}`);
+  }
+
+  addGrantObligation(id: string, body: Partial<GrantReportingObligation>) {
+    return this.http.post<Grant>(`${this.base}/grants/${id}/obligations`, body);
+  }
+  updateGrantObligation(id: string, obligationId: string, body: Partial<GrantReportingObligation>) {
+    return this.http.patch<Grant>(`${this.base}/grants/${id}/obligations/${obligationId}`, body);
+  }
+  removeGrantObligation(id: string, obligationId: string) {
+    return this.http.delete<Grant>(`${this.base}/grants/${id}/obligations/${obligationId}`);
+  }
+
+  recordGrantAmendment(id: string, body: Partial<GrantAmendment>) {
+    return this.http.post<Grant>(`${this.base}/grants/${id}/amendments`, body);
   }
 
 // ─── Donors ───────────────────────────────────────────────────────────────────
@@ -920,16 +978,10 @@ export class ApiService {
   }
 
 // ─── Period Targets ───────────────────────────────────────────────────────────
-
-  setPeriodTarget(indicatorId: string, target: PeriodTarget) {
-    return this.http.post(`${this.base}/indicators/${indicatorId}/targets`, target);
-  }
-  getPeriodTargets(indicatorId: string) {
-    return this.http.get<PeriodTarget[]>(`${this.base}/indicators/${indicatorId}/targets`);
-  }
-  deletePeriodTarget(indicatorId: string, period: string) {
-    return this.http.delete(`${this.base}/indicators/${indicatorId}/targets/${period}`);
-  }
+// Removed: setPeriodTarget / getPeriodTargets / deletePeriodTarget called
+// `/indicators/:id/targets`, which has no backend route and was unused by the
+// UI. Period targets live under `/reporting/targets` — see indicatorTargets()
+// and upsertIndicatorTarget() above.
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
@@ -1022,6 +1074,18 @@ export class ApiService {
   documents(params?: { projectId?: string }) {
     return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: params as any }).pipe(
       map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+    );
+  }
+
+  /**
+   * Paginated form of {@link documents} — keeps the `total`/`page` envelope so a
+   * list view can render a pager instead of silently showing only page one.
+   */
+  documentsPage(params?: { projectId?: string; page?: number; limit?: number }) {
+    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: params as any }).pipe(
+      map((r: any): PaginatedResult<OrgDocument> => Array.isArray(r)
+        ? { data: r, total: r.length, page: 1, limit: r.length || 1, pages: 1, hasMore: false }
+        : r),
     );
   }
 

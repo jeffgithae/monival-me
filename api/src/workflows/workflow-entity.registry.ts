@@ -82,6 +82,9 @@ export const WORKFLOW_ENTITY_REGISTRY: Record<string, WorkflowEntityConfig> = {
     label: 'Form Response',
     modelName: 'FormResponse',
     titleFields: [],
+    // Without this the workflow decision updated nothing on the response, so
+    // an approved submission still never counted toward its indicator.
+    outcome: { statusField: 'approvalStatus', approved: 'approved', rejected: 'rejected' },
   },
   feedback: {
     label: 'Stakeholder Feedback',

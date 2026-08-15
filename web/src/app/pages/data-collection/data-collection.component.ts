@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
@@ -9,6 +9,7 @@ import {
   ExternalIntegration, IntegrationPlatform, FormTemplate,
   FormResponse, SyncResult, IntegrationStats, Project,
 } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'forms' | 'integrations' | 'responses';
 type Modal =
@@ -32,6 +33,7 @@ type Modal =
   styleUrl: './data-collection.component.scss',
 })
 export class DataCollectionComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
 
   // ── Permissions ──────────────────────────────────────────────────────────
   // Mirrors PERMISSIONS.MANAGE_DATA_COLLECTION on the backend — viewers and
@@ -181,7 +183,7 @@ export class DataCollectionComponent implements OnInit {
   }
 
   async discardQueuedResponse(clientId: string, label: string): Promise<void> {
-    if (!confirm(`Discard the queued response "${label}"? It has not been saved to the server.`)) return;
+    if (!(await this.confirmSvc.ask({ title: `Discard the queued response "${label}"?`, message: `It has not been saved to the server.`, danger: true, confirmLabel: 'Delete' }))) return;
     await this.queue.remove(clientId);
     await this.refreshQueuedResponses();
   }
@@ -396,8 +398,8 @@ export class DataCollectionComponent implements OnInit {
       .subscribe({ next: () => this.loadAll(), error: (e: any) => this.error.set(e?.error?.message) });
   }
 
-  deleteForm(f: FormTemplate) {
-    if (!confirm(`Delete form "${f.name}"?`)) return;
+  async deleteForm(f: FormTemplate) {
+    if (!(await this.confirmSvc.ask({ title: `Delete form "${f.name}"?`, message: `This action cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteFormTemplateById(f._id).subscribe({
       next: () => this.loadAll(),
       error: (e: any) => this.error.set(e?.error?.message),
@@ -467,8 +469,8 @@ export class DataCollectionComponent implements OnInit {
     });
   }
 
-  deleteIntegration(i: ExternalIntegration) {
-    if (!confirm(`Delete integration "${i.name}"?`)) return;
+  async deleteIntegration(i: ExternalIntegration) {
+    if (!(await this.confirmSvc.ask({ title: `Delete integration "${i.name}"?`, message: `This action cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteIntegration(i._id).subscribe({
       next: () => this.loadAll(),
       error: (e: any) => this.error.set(e?.error?.message),

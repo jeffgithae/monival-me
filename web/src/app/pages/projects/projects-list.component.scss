@@ -420,3 +420,39 @@ h1 {
 
   .projects-grid { grid-template-columns: 1fr; }
 }
+/* ─── Load failure ──────────────────────────────────────────────────────────
+   A swallowed error previously rendered the same "No projects yet" empty
+   state as a genuinely empty workspace. This distinguishes them and offers
+   a retry. */
+.load-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  max-width: 34rem;
+  margin: 1.5rem auto;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  background: #fef2f2;
+  color: #991b1b;
+  text-align: left;
+}
+.load-error-icon { font-size: 1.15rem; line-height: 1.4; }
+.retry-btn {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid #b91c1c;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { background: #b91c1c; color: #fff; }
+}
+
+/* Status filter tabs referenced by the template but never styled. */
+.active-tab.is-on    { border-color: #059669; color: #047857; }
+.completed-tab.is-on { border-color: #4338ca; color: #4338ca; }
+.paused-tab.is-on    { border-color: #b45309; color: #b45309; }

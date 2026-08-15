@@ -118,6 +118,9 @@ html[data-theme="dark"] { color-scheme: dark; }
 body {
   margin: 0;
   min-height: 100vh;
+  // Off-canvas drawers translate beyond the viewport; never let that turn
+  // into a horizontal scrollbar.
+  overflow-x: clip;
   color: var(--text);
   background: var(--bg);
   font-size: 16px;
@@ -672,4 +675,66 @@ input:focus, select:focus, textarea:focus {
 .map-popup-subtitle {
   font-size: 0.78rem;
   color: #64748b;
+}
+/* ─── Touch targets ─────────────────────────────────────────────────────────
+   WCAG 2.5.8 asks for a 24×24 minimum; phones want ~44×44. Icon-only and
+   compact buttons across the app rendered as small as 17×20, which is hard
+   to hit for a field officer on a phone. This raises the hit area without
+   changing visual size — padding, not font-size. */
+@media (pointer: coarse) {
+  button,
+  a[role='button'],
+  .icon-btn,
+  .btn-sm,
+  .link {
+    min-height: 44px;
+  }
+  .icon-btn,
+  .btn-discard,
+  .modal-close,
+  .close-btn {
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ── Accessibility utilities ──────────────────────────────────────────────── */
+
+/* Content exposed to assistive technology but not painted on screen. Used to
+   give an icon-only or terse control a full accessible name. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A real <button> used as the keyboard path for a row/card whose whole surface
+   is also mouse-clickable. It must inherit the surrounding text style so the
+   change is invisible sighted-side. */
+.row-open,
+.file-name-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row-open:hover,
+.file-name-btn:hover { text-decoration: underline; }
+.row-open:focus-visible,
+.file-name-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
 }

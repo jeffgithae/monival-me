@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -15,6 +15,7 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { Activity } from './schemas/activity.schema';
+import { FormResponse } from '../forms/schemas/form-response.schema';
 import { ActivityTemplate } from './schemas/activity-template.schema';
 import { escapeRegex } from '../common/utils/escape-regex';
 
@@ -35,6 +36,8 @@ export interface ActivityListQuery {
 
 @Injectable()
 export class ActivitiesService implements OnModuleInit {
+  private readonly logger = new Logger(ActivitiesService.name);
+
   constructor(
     @InjectModel(Activity.name)         private readonly activityModel: Model<Activity>,
     @InjectModel(ActivityTemplate.name) private readonly templateModel: Model<ActivityTemplate>,
@@ -42,6 +45,7 @@ export class ActivitiesService implements OnModuleInit {
     @InjectModel(Indicator.name)        private readonly indicatorModel: Model<Indicator>,
     @InjectModel(Partner.name)          private readonly partnerModel: Model<Partner>,
     @InjectModel(Beneficiary.name)      private readonly beneficiaryModel: Model<Beneficiary>,
+    @InjectModel(FormResponse.name)     private readonly formResponseModel: Model<FormResponse>,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly grantsService: GrantsService,
@@ -347,8 +351,19 @@ export class ActivitiesService implements OnModuleInit {
       organizationId, actorUserId: userId,
       action: 'activity.created', entityType: 'Activity',
       entityId: activity._id.toString(),
+      after: { title: activity.title, status, projectId: dto.projectId },
       metadata: { title: activity.title, status, projectId: dto.projectId },
     });
+
+    // `activity.submitted` was a declared webhook event that nothing fired.
+    if (status === 'submitted') {
+      this.webhooksService.dispatch(
+        organizationId,
+        'activity.submitted',
+        { activityId: activity._id.toString(), title: activity.title, status },
+        dto.projectId,
+      ).catch(() => {});
+    }
 
     return activity;
   }
@@ -526,7 +541,9 @@ export class ActivitiesService implements OnModuleInit {
     await this.audit.record({
       organizationId, actorUserId: reviewerId,
       action: `activity.${status}`, entityType: 'Activity', entityId: id,
-      metadata: { status, rejectionReason },
+      reason: rejectionReason,
+      after: { status, reviewedAt: activity.reviewedAt },
+      metadata: { status },
     });
 
     return activity;
@@ -661,17 +678,44 @@ export class ActivitiesService implements OnModuleInit {
 
   // ─── Sync Helpers ──────────────────────────────────────────────────────────
 
+  /**
+   * Recompute an indicator's achieved total from every approved source.
+   *
+   * Form responses count alongside activities — anything captured through a
+   * form (including Kobo/ODK/CommCare syncs) used to be invisible here, so
+   * field data never reached the logframe. Kept in step with
+   * `FormsService.syncIndicatorTotal`, which performs the same union from the
+   * other side.
+   */
   private async syncIndicatorTotal(organizationId: string, indicatorId: Types.ObjectId) {
+    const orgId = new Types.ObjectId(organizationId);
     try {
-      const agg = await this.activityModel.aggregate([
-        { $match: { organizationId: new Types.ObjectId(organizationId), indicatorId, status: 'approved' } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+      const [actAgg, formAgg] = await Promise.all([
+        this.activityModel.aggregate([
+          { $match: { organizationId: orgId, indicatorId, status: 'approved' } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
+        ]),
+        this.formResponseModel.aggregate([
+          { $match: { organizationId: orgId, indicatorId, approvalStatus: 'approved' } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$indicatorValue', 0] } } } },
+        ]),
       ]);
+
       await this.indicatorModel.updateOne(
-        { _id: indicatorId, organizationId: new Types.ObjectId(organizationId) },
-        { $set: { lastAchievedValue: agg[0]?.total ?? 0, lastAchievedDate: new Date() } },
+        { _id: indicatorId, organizationId: orgId },
+        {
+          $set: {
+            lastAchievedValue: (actAgg[0]?.total ?? 0) + (formAgg[0]?.total ?? 0),
+            lastAchievedDate: new Date(),
+          },
+        },
       );
-    } catch { /* non-blocking */ }
+    } catch (err) {
+      this.logger.error(
+        `Indicator sync failed for ${indicatorId.toString()} (org ${organizationId}): ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   private async syncGrantTotal(organizationId: string, grantId: Types.ObjectId) {
@@ -681,7 +725,17 @@ export class ActivitiesService implements OnModuleInit {
         { $group: { _id: null, total: { $sum: { $ifNull: ['$cost', 0] } } } },
       ]);
       await this.grantsService.updateGrantSpending(grantId.toString(), organizationId, agg[0]?.total ?? 0);
-    } catch { /* non-blocking */ }
+    } catch (err) {
+      // Never fail the review over a bookkeeping sync — but do not discard the
+      // error either. This used to swallow the overspend rejection, which left
+      // the grant's spend frozen at its last good value and showed it as under
+      // budget at the moment it went over. Overspend is now recorded rather
+      // than rejected, so anything reaching here is a genuine fault.
+      this.logger.error(
+        `Grant spend sync failed for grant ${grantId.toString()} (org ${organizationId}): ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────

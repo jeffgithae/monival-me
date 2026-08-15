@@ -16,6 +16,7 @@ import { AuthService } from '../../core/auth.service';
 export class ProjectsListComponent implements OnInit {
   projects = signal<Project[]>([]);
   loading = signal(true);
+  loadError = signal('');
   showForm = signal(false);
   saving = signal(false);
   search = signal('');
@@ -64,12 +65,18 @@ export class ProjectsListComponent implements OnInit {
 
   loadProjects() {
     this.loading.set(true);
+    this.loadError.set('');
     this.api.projects().subscribe({
       next: (res: any) => {
         this.projects.set(Array.isArray(res) ? res : (res.data ?? []));
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      // A swallowed error rendered the same empty state as "no projects",
+      // so a failed request was indistinguishable from an empty workspace.
+      error: (err) => {
+        this.loadError.set(err?.error?.message || 'Could not load projects. Check your connection and try again.');
+        this.loading.set(false);
+      },
     });
   }
 

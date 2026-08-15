@@ -26,6 +26,10 @@ export class IndicatorResult {
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'Activity', default: [] })
   sourceActivityIds!: Types.ObjectId[];
 
+  /** Approved form responses that contributed to this result. */
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'FormResponse', default: [] })
+  sourceFormResponseIds!: Types.ObjectId[];
+
   @Prop({ type: Object, default: {} })
   disaggregations!: Record<string, unknown>;
 

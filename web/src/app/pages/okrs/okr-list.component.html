@@ -12,12 +12,12 @@
 <section class="panel">
   <h2>Quarter Selection</h2>
   <div class="quarter-selector">
-    <label>Year<input type="number" [(ngModel)]="selectedYear" name="year" (change)="loadOKRs()" /></label>
+    <label>Year<input aria-label="Year" type="number" [(ngModel)]="selectedYear" name="year" (change)="loadOKRs()" /></label>
     <div class="quarter-buttons">
-      <button [class.active]="selectedQuarter() === 1" (click)="setQuarter(1)">Q1</button>
-      <button [class.active]="selectedQuarter() === 2" (click)="setQuarter(2)">Q2</button>
-      <button [class.active]="selectedQuarter() === 3" (click)="setQuarter(3)">Q3</button>
-      <button [class.active]="selectedQuarter() === 4" (click)="setQuarter(4)">Q4</button>
+      <button type="button" [class.active]="selectedQuarter() === 1" (click)="setQuarter(1)">Q1</button>
+      <button type="button" [class.active]="selectedQuarter() === 2" (click)="setQuarter(2)">Q2</button>
+      <button type="button" [class.active]="selectedQuarter() === 3" (click)="setQuarter(3)">Q3</button>
+      <button type="button" [class.active]="selectedQuarter() === 4" (click)="setQuarter(4)">Q4</button>
     </div>
   </div>
 </section>
@@ -26,7 +26,7 @@
   <section class="panel">
     <h2>Create New OKR</h2>
     <form class="form-grid" (ngSubmit)="createOKR()">
-      <label>Objective Title<input [(ngModel)]="newOKRForm.title" name="title" required /></label>
+      <label>Objective Title<input aria-label="Title" [(ngModel)]="newOKRForm.title" name="title" required /></label>
       <button type="submit" class="primary">Create OKR</button>
     </form>
   </section>

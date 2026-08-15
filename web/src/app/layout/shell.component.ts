@@ -9,6 +9,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeService } from '../core/theme.service';
 import { CommandPaletteService } from '../shared/command-palette.service';
 import { LogoComponent } from '../shared/logo.component';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { OfflineQueueService } from '../core/offline-queue.service';
 
 @Component({
@@ -16,7 +17,8 @@ import { OfflineQueueService } from '../core/offline-queue.service';
   standalone: true,
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive, DatePipe,
-    LogoComponent
+    LogoComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
@@ -25,6 +27,7 @@ export class ShellComponent implements OnInit {
   readonly roleLabel = roleLabel;
   readonly sidebarOpen = signal(false);
   readonly notificationsOpen = signal(false);
+  private pollTimer?: ReturnType<typeof setInterval>;
 
   readonly notifications = signal<AppNotification[]>([]);
   readonly unreadCount = signal(0);
@@ -76,7 +79,12 @@ export class ShellComponent implements OnInit {
 
   ngOnInit() {
     this.loadNotifications();
-    setInterval(() => this.loadNotifications(), 60000);
+    // Cleared on destroy — an uncleared interval keeps polling the API after
+    // the shell is gone, and stacks another timer on every re-mount.
+    this.pollTimer = setInterval(() => this.loadNotifications(), 60_000);
+    this.destroyRef.onDestroy(() => {
+      if (this.pollTimer !== undefined) clearInterval(this.pollTimer);
+    });
   }
 
   loadNotifications() {

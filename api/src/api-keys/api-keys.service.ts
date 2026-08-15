@@ -123,6 +123,11 @@ export class ApiKeysService {
         }
       }
 
+      // Re-check the plan on every request, not just at issue time: an org that
+      // downgrades off an API-access plan must stop authenticating immediately
+      // rather than keeping working until someone revokes the key by hand.
+      await this.assertApiAccessEnabled(candidate.organizationId.toString());
+
       // Update usage stats asynchronously (non-blocking)
       this.keyModel
         .updateOne(

@@ -19,6 +19,7 @@ import { OrganizationMember } from '../members/schemas/organization-member.schem
 import { planHasFeature } from '../common/constants/plans';
 import { OrgRole } from '../common/constants/roles';
 import { decryptField } from '../common/utils/field-encryption';
+import { assertSafeOutboundUrl } from '../common/utils/safe-outbound-url';
 
 export interface UpsertSsoConfigDto {
   protocol: 'saml' | 'oidc';
@@ -77,8 +78,12 @@ export class SsoService {
 
     // If metadata URL provided, fetch and parse it
     if (dto.samlMetadataUrl && !dto.samlMetadataXml) {
+      const metadataUrl = await assertSafeOutboundUrl(dto.samlMetadataUrl, 'SAML metadata URL');
       try {
-        const resp = await axios.get<string>(dto.samlMetadataUrl, { timeout: 8000 });
+        const resp = await axios.get<string>(metadataUrl, {
+          timeout: 8000,
+          maxRedirects: 0, // a redirect would bypass the pre-flight address check
+        });
         dto.samlMetadataXml = resp.data;
         // Extract entry point and cert from XML (basic parsing)
         const entryPointMatch = dto.samlMetadataXml.match(/Location="([^"]+)"/);
@@ -94,8 +99,12 @@ export class SsoService {
 
     // If OIDC discovery URL provided, fetch well-known config
     if (dto.oidcDiscoveryUrl && !dto.oidcIssuer) {
+      const discoveryUrl = await assertSafeOutboundUrl(dto.oidcDiscoveryUrl, 'OIDC discovery URL');
       try {
-        const resp = await axios.get<{ issuer: string }>(dto.oidcDiscoveryUrl, { timeout: 8000 });
+        const resp = await axios.get<{ issuer: string }>(discoveryUrl, {
+          timeout: 8000,
+          maxRedirects: 0,
+        });
         dto.oidcIssuer = resp.data.issuer;
       } catch {
         throw new BadRequestException('Could not fetch OIDC discovery document from the provided URL.');
@@ -209,13 +218,22 @@ export class SsoService {
     }
 
     // 1. Discover the token + jwks endpoints from the issuer
-    const discoveryUrl = sso.oidcDiscoveryUrl
-      ?? `${sso.oidcIssuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
+    const discoveryUrl = await assertSafeOutboundUrl(
+      sso.oidcDiscoveryUrl ?? `${sso.oidcIssuer.replace(/\/$/, '')}/.well-known/openid-configuration`,
+      'OIDC discovery URL',
+    );
     const discovery = await axios.get<{ token_endpoint: string; jwks_uri: string; issuer: string }>(
-      discoveryUrl, { timeout: 8000 },
+      discoveryUrl, { timeout: 8000, maxRedirects: 0 },
     ).catch(() => {
       throw new BadRequestException('Could not reach the identity provider discovery endpoint.');
     });
+
+    // The token and JWKS endpoints are read out of a remote document, so they
+    // are untrusted for the same reason the discovery URL was.
+    const tokenEndpoint = await assertSafeOutboundUrl(
+      discovery.data.token_endpoint, 'OIDC token endpoint',
+    );
+    const jwksUri = await assertSafeOutboundUrl(discovery.data.jwks_uri, 'OIDC JWKS URL');
 
     const clientSecret = decryptField(sso.oidcClientSecret);
 
@@ -224,7 +242,7 @@ export class SsoService {
     let idToken: string;
     try {
       const tokenResp = await axios.post<{ id_token: string }>(
-        discovery.data.token_endpoint,
+        tokenEndpoint,
         new URLSearchParams({
           grant_type: 'authorization_code',
           code,
@@ -246,7 +264,7 @@ export class SsoService {
     //    previously missing entirely — without it, claims cannot be trusted.
     let claims: Record<string, unknown>;
     try {
-      const jwks = jose.createRemoteJWKSet(new URL(discovery.data.jwks_uri));
+      const jwks = jose.createRemoteJWKSet(new URL(jwksUri));
       const { payload } = await jose.jwtVerify(idToken, jwks, {
         issuer: discovery.data.issuer,
         audience: sso.oidcClientId,

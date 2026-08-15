@@ -69,7 +69,11 @@ export class SsoController {
 
   /**
    * GET /sso/:orgId/saml/metadata
-   * SAML SP metadata XML — paste this into your IdP.
+   *
+   * SAML SP metadata XML. Kept reachable so an administrator who already
+   * configured an IdP can still fetch the SP descriptor, but note that the ACS
+   * endpoint below is disabled — see SsoService.handleSamlCallback. SAML is not
+   * an advertised capability until signature verification ships.
    */
   @Get(':orgId/saml/metadata')
   getSamlMetadata(@Param('orgId') orgId: string, @Res() res: Response) {
@@ -80,9 +84,12 @@ export class SsoController {
 
   /**
    * POST /sso/:orgId/saml/acs
-   * SAML Assertion Consumer Service — IdP posts the assertion here.
-   * In production this should use passport-saml to verify the signature.
-   * Here we accept pre-parsed attributes from the SAML middleware layer.
+   *
+   * SAML Assertion Consumer Service. Currently always rejects: the service
+   * refuses to mint a token from unverified assertions, because the previous
+   * implementation trusted request-body attributes with no signature check —
+   * an unauthenticated account-takeover hole. Use OIDC, which is fully
+   * implemented with JWKS signature verification.
    */
   @Post(':orgId/saml/acs')
   async samlAcs(

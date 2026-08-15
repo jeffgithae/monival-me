@@ -15,16 +15,16 @@
       <form (ngSubmit)="submitAccount()">
         <div class="grid-2">
           <div class="full">
-            <label>Your name</label>
-            <input [(ngModel)]="name" name="name" required />
+        <label for="register-name">Your name</label>
+            <input id="register-name" [(ngModel)]="name" name="name" required />
           </div>
           <div class="full">
-            <label>Email</label>
-            <input type="email" [(ngModel)]="email" name="email" required />
+        <label for="register-email">Email</label>
+            <input id="register-email" type="email" [(ngModel)]="email" name="email" required />
           </div>
           <div class="full">
-            <label>Password</label>
-            <input type="password" [(ngModel)]="password" name="password" required minlength="8" />
+        <label for="register-password">Password</label>
+            <input id="register-password" type="password" [(ngModel)]="password" name="password" required minlength="8" />
           </div>
         </div>
         @if (error()) {
@@ -38,20 +38,20 @@
       <form (ngSubmit)="submitWorkspace()">
         <div class="grid-2">
           <div class="full">
-            <label>Organisation name</label>
-            <input [(ngModel)]="organizationName" name="organizationName" required />
+        <label for="register-organizationname">Organisation name</label>
+            <input id="register-organizationname" [(ngModel)]="organizationName" name="organizationName" required />
           </div>
           <div>
-            <label>Country</label>
-            <input [(ngModel)]="country" name="country" />
+        <label for="register-country">Country</label>
+            <input id="register-country" [(ngModel)]="country" name="country" />
           </div>
           <div>
-            <label>Sector</label>
-            <input [(ngModel)]="sector" name="sector" placeholder="e.g. Health, Education" />
+        <label for="register-sector">Sector</label>
+            <input id="register-sector" [(ngModel)]="sector" name="sector" placeholder="e.g. Health, Education" />
           </div>
           <div class="full">
-            <label>Plan</label>
-            <select [(ngModel)]="planId" name="planId">
+        <label for="register-planid">Plan</label>
+            <select id="register-planid" [(ngModel)]="planId" name="planId">
               @if (plans().length) {
                 @for (p of plans(); track p.id) {
                   <option [value]="p.id">

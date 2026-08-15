@@ -5,6 +5,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { WorkflowService } from '../workflows/workflows.service';
+import { AuditService } from '../audit/audit.service';
 
 import {
   BudgetAllocation, BudgetAllocationDocument,
@@ -74,6 +75,7 @@ export class BudgetService {
     @InjectModel(BudgetAuditEvent.name)
     private auditModel: Model<BudgetAuditEventDocument>,
     private readonly workflowService: WorkflowService,
+    private readonly audit: AuditService,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -610,6 +612,15 @@ export class BudgetService {
   // PRIVATE HELPERS
   // ══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Budget changes are written to two places on purpose.
+   *
+   * `BudgetAuditEvent` is the module-local trail behind
+   * `GET /budget/audit/:id`. The organisation-wide Audit Log reads a
+   * different collection entirely, so budget approvals, revisions and
+   * closures — decisions about money — were invisible there. The second
+   * write fixes that without breaking the existing endpoint.
+   */
   private async _auditLog(
     user: RequestUser,
     action: string,
@@ -632,7 +643,22 @@ export class BudgetService {
         reason,
       });
     } catch (err) {
-      this.logger.error(`Failed to write audit log: ${err}`);
+      this.logger.error(`Failed to write budget audit log: ${err}`);
+    }
+
+    try {
+      await this.audit.record({
+        organizationId: String(user.organizationId),
+        actorUserId: user._id ? String(user._id) : undefined,
+        action: action.includes('.') ? action : `budget.${action}`,
+        entityType: entity || 'BudgetAllocation',
+        entityId: String(entityId),
+        before,
+        after,
+        reason,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to write org audit log: ${err}`);
     }
   }
 

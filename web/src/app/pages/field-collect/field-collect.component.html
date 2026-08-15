@@ -53,7 +53,7 @@
 
     <div class="form-row">
       <label>District
-        <input type="text" formControlName="district" placeholder="District" />
+        <input aria-label="District" type="text" formControlName="district" placeholder="District" />
       </label>
       <label>Village / site
         <input type="text" formControlName="village" placeholder="Village or site" />
@@ -104,7 +104,7 @@
       <div class="queue-header">
         <h3>On this device <span class="queue-count">{{ pendingQueued().length }}</span></h3>
         @if (queue.isOnline()) {
-          <button class="btn-retry" (click)="retrySync()" [disabled]="queue.isSyncing()">
+          <button type="button" class="btn-retry" (click)="retrySync()" [disabled]="queue.isSyncing()">
             {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
           </button>
         }
@@ -125,7 +125,7 @@
             </div>
             <div class="queue-item-status">
               <span class="status-pill" [class]="item.syncStatus">{{ statusLabel(item.syncStatus) }}</span>
-              <button class="btn-discard" (click)="discardQueued(item.clientId)" title="Discard">✕</button>
+              <button type="button" class="btn-discard" (click)="discardQueued(item.clientId)" title="Discard">✕</button>
             </div>
             @if (item.syncError) {
               <p class="queue-item-error">{{ item.syncError }}</p>

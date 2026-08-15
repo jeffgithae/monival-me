@@ -11,6 +11,7 @@ import type { JwtPayload } from '../common/types/jwt-payload';
 import { CreateFormTemplateDto } from './dto/create-form-template.dto';
 import { UpdateFormTemplateDto } from './dto/update-form-template.dto';
 import { CreateFormResponseDto } from './dto/create-form-response.dto';
+import { ReviewFormResponseDto } from './dto/review-form-response.dto';
 
 @Controller('forms')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
@@ -63,6 +64,22 @@ export class FormsController {
   @Roles(...PERMISSIONS.MANAGE_DATA_COLLECTION)
   createResponse(@CurrentUser() user: JwtPayload, @Body() dto: CreateFormResponseDto) {
     return this.formsService.createResponse(user.organizationId, dto, user.sub);
+  }
+
+  /**
+   * Approve or reject a submitted response. Approval is what makes it count
+   * toward the linked indicator, mirroring activity review.
+   */
+  @Patch('responses/:id/review')
+  @Roles(...PERMISSIONS.APPROVE_ACTIVITIES)
+  reviewResponse(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: ReviewFormResponseDto,
+  ) {
+    return this.formsService.review(
+      user.organizationId, id, user.sub, body.approvalStatus, body.rejectionReason,
+    );
   }
 
   /**

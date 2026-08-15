@@ -6,7 +6,7 @@
       <p class="sub">Human stories behind the numbers — collected with consent, tagged to projects, and publishable for donors.</p>
     </div>
     @if (canEdit()) {
-      <button class="btn-primary" (click)="openCreate()">+ New story</button>
+      <button type="button" class="btn-primary" (click)="openCreate()">+ New story</button>
     }
   </header>
 
@@ -20,15 +20,15 @@
   }
 
   <div class="filters">
-    <select [(ngModel)]="filterStatus" (ngModelChange)="load()">
+    <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()" aria-label="Filter by statuses">
       <option value="">All statuses</option>
       @for (s of statuses; track s) { <option [value]="s">{{ s | titlecase }}</option> }
     </select>
-    <select [(ngModel)]="filterProject" (ngModelChange)="load()">
+    <select [(ngModel)]="filterProject" (ngModelChange)="applyFilters()" aria-label="Filter by projects">
       <option value="">All projects</option>
       @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
     </select>
-    <input [(ngModel)]="search" (keyup.enter)="load()" placeholder="Search stories…" />
+    <input aria-label="Search stories" [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Search stories…" />
   </div>
 
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
@@ -55,13 +55,13 @@
           <div class="tags">@for (t of s.tags; track t) { <span class="tag">{{ t }}</span> }</div>
         }
         <div class="card-actions">
-          <button class="btn-ghost" (click)="toggleExpand(s._id)">{{ expanded() === s._id ? 'Collapse' : 'Read' }}</button>
+          <button type="button" class="btn-ghost" (click)="toggleExpand(s._id)">{{ expanded() === s._id ? 'Collapse' : 'Read' }}</button>
           @if (canEdit()) {
             @if (nextStatus(s); as next) {
-              <button class="btn-ghost" (click)="setStatus(s, next.value)">{{ next.label }}</button>
+              <button type="button" class="btn-ghost" (click)="setStatus(s, next.value)">{{ next.label }}</button>
             }
-            <button class="btn-ghost" (click)="openEdit(s)">Edit</button>
-            <button class="btn-ghost danger" (click)="remove(s)">Delete</button>
+            <button type="button" class="btn-ghost" (click)="openEdit(s)">Edit</button>
+            <button type="button" class="btn-ghost danger" (click)="remove(s)">Delete</button>
           }
         </div>
       </article>
@@ -75,9 +75,18 @@
     }
   </div>
 
+  <app-pager
+    [page]="page()"
+    [total]="total()"
+    [limit]="pageSize"
+    label="stories"
+    (pageChange)="goToPage($event)"
+  />
+
   @if (showForm()) {
     <div class="modal-backdrop" (click)="showForm.set(false)">
-      <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal" appModal [modalLabel]="editing() ? 'Edit impact story' : 'New impact story'"
+           (modalClose)="showForm.set(false)" (click)="$event.stopPropagation()">
         <h2>{{ editing() ? 'Edit story' : 'New impact story' }}</h2>
         <label>Title *<input [(ngModel)]="form.title" placeholder="A short, human headline" /></label>
         <label>Narrative *<textarea [(ngModel)]="form.narrative" rows="6" placeholder="The story, in the subject's own words where possible…"></textarea></label>
@@ -102,8 +111,8 @@
         </div>
         @if (error()) { <p class="error">{{ error() }}</p> }
         <div class="modal-actions">
-          <button class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="save()">
+          <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
             {{ saving() ? 'Saving…' : (editing() ? 'Save changes' : 'Create story') }}
           </button>
         </div>

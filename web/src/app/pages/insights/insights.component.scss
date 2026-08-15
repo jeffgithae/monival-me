@@ -331,3 +331,5 @@ h1 {
   font-size: 0.78rem;
   margin-top: 1.75rem;
 }
+.insight-link { color: #4338ca; text-decoration: none; font-size: 0.82rem;
+                &:hover { text-decoration: underline; } }

@@ -3,6 +3,9 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { ConfirmService } from '../../shared/confirm.service';
+import { PagerComponent } from '../../shared/pager/pager.component';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 interface ImpactStory {
   _id: string;
@@ -25,11 +28,12 @@ interface ImpactStory {
 @Component({
   selector: 'app-impact-stories',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [ModalDirective, CommonModule, FormsModule, DatePipe, PagerComponent],
   templateUrl: './impact-stories.component.html',
   styleUrl: './impact-stories.component.scss',
 })
 export class ImpactStoriesComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api = inject(ApiService);
   readonly auth = inject(AuthService);
 
@@ -73,16 +77,26 @@ export class ImpactStoriesComponent implements OnInit {
     };
   }
 
+  // Server-side pagination state, surfaced through <app-pager>.
+  page = signal(1);
+  total = signal(0);
+  readonly pageSize = 20;
+
   load() {
     this.loading.set(true);
-    const params: Record<string, string> = {};
+    const params: Record<string, string> = {
+      page: String(this.page()),
+      limit: String(this.pageSize),
+    };
     if (this.filterStatus) params['status'] = this.filterStatus;
     if (this.filterProject) params['projectId'] = this.filterProject;
     if (this.search.trim()) params['search'] = this.search.trim();
 
     this.api.impactStories(params).subscribe({
       next: (res: any) => {
-        this.stories.set(Array.isArray(res) ? res : (res.data ?? []));
+        const stories = Array.isArray(res) ? res : (res.data ?? []);
+        this.stories.set(stories);
+        this.total.set(Array.isArray(res) ? stories.length : (res.total ?? stories.length));
         this.loading.set(false);
       },
       error: (err) => {
@@ -91,6 +105,17 @@ export class ImpactStoriesComponent implements OnInit {
       },
     });
     this.api.impactStoryStats().subscribe({ next: (s) => this.stats.set(s), error: () => {} });
+  }
+
+  goToPage(page: number) {
+    this.page.set(page);
+    this.load();
+  }
+
+  /** Filters change the result set, so any page other than the first is meaningless. */
+  applyFilters() {
+    this.page.set(1);
+    this.load();
   }
 
   projectName(id?: string): string {
@@ -151,8 +176,8 @@ export class ImpactStoriesComponent implements OnInit {
     });
   }
 
-  remove(story: ImpactStory) {
-    if (!confirm(`Delete "${story.title}"? This cannot be undone.`)) return;
+  async remove(story: ImpactStory) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${story.title}"?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteImpactStory(story._id).subscribe({
       next: () => this.load(),
       error: (err) => this.error.set(err?.error?.message || 'Failed to delete'),

@@ -19,13 +19,13 @@
         <div class="header-actions">
           <span class="status-pill {{ getStatusClass(b.status) }}">{{ b.status | titlecase }}</span>
           @if (canApprove) {
-            <button class="btn-primary" (click)="approveBudget()">✓ Approve</button>
+            <button type="button" class="btn-primary" (click)="approveBudget()">✓ Approve</button>
           }
           @if (canRevise) {
-            <button class="btn-secondary" (click)="showReviseForm.set(!showReviseForm())">✏️ Revise</button>
+            <button type="button" class="btn-secondary" (click)="showReviseForm.set(!showReviseForm())">✏️ Revise</button>
           }
           @if (canClose) {
-            <button class="btn-danger" (click)="closeBudget()">Close budget</button>
+            <button type="button" class="btn-danger" (click)="closeBudget()">Close budget</button>
           }
         </div>
       </div>
@@ -42,7 +42,7 @@
             <input type="number" [(ngModel)]="reviseForm.newAllocatedAmount" name="newAmount" min="1" required />
           </label>
           <label>Reason *
-            <select [(ngModel)]="reviseForm.reason" name="reason">
+            <select aria-label="Reason" [(ngModel)]="reviseForm.reason" name="reason">
               @for (r of revisionReasons; track r.value) {
                 <option [value]="r.value">{{ r.label }}</option>
               }
@@ -157,7 +157,7 @@
         <div class="panel">
           <div class="panel-toolbar">
             <h3>Add line item</h3>
-            <button class="btn-ghost btn-sm" (click)="showLineItemForm.set(!showLineItemForm())">
+            <button type="button" class="btn-ghost btn-sm" (click)="showLineItemForm.set(!showLineItemForm())">
               {{ showLineItemForm() ? '✕ Cancel' : '+ Add line item' }}
             </button>
           </div>
@@ -177,10 +177,10 @@
                   <input [(ngModel)]="lineItemForm.unitDescription" name="unitDesc" required placeholder="person-month, trip, unit" />
                 </label>
                 <label>Quantity *
-                  <input type="number" [(ngModel)]="lineItemForm.quantity" name="quantity" min="0.01" step="0.01" required />
+                  <input aria-label="Quantity" type="number" [(ngModel)]="lineItemForm.quantity" name="quantity" min="0.01" step="0.01" required />
                 </label>
                 <label>Unit cost *
-                  <input type="number" [(ngModel)]="lineItemForm.unitCost" name="unitCost" min="0.01" step="0.01" required />
+                  <input aria-label="Unit cost" type="number" [(ngModel)]="lineItemForm.unitCost" name="unitCost" min="0.01" step="0.01" required />
                 </label>
               </div>
               <div class="form-row">
@@ -188,14 +188,14 @@
                   <input [(ngModel)]="lineItemForm.invoiceReference" name="invoiceRef" placeholder="INV-2026-001" />
                 </label>
                 <label>Payment date
-                  <input type="date" [(ngModel)]="lineItemForm.paymentDate" name="paymentDate" />
+                  <input aria-label="Payment date" type="date" [(ngModel)]="lineItemForm.paymentDate" name="paymentDate" />
                 </label>
                 <label>Donor cost category
                   <input [(ngModel)]="lineItemForm.donorCostCategory" name="donorCostCat" placeholder="USAID Direct Costs" />
                 </label>
               </div>
               <label class="full-label">Notes
-                <textarea [(ngModel)]="lineItemForm.notes" name="notes" rows="2"></textarea>
+                <textarea aria-label="Notes" [(ngModel)]="lineItemForm.notes" name="notes" rows="2"></textarea>
               </label>
               <!-- Computed total preview -->
               <div class="total-preview">
@@ -255,7 +255,7 @@
                     <td class="num-col spent-col">{{ item.spent | number:'1.0-0' }}</td>
                     <td>
                       @if (isFinance()) {
-                        <select class="status-select" [(ngModel)]="item.status" (change)="updateLineItemStatus(item, item.status)">
+                        <select class="status-select" [(ngModel)]="item.status" (change)="updateLineItemStatus(item, item.status)" aria-label="Select planned">
                           <option value="planned">Planned</option>
                           <option value="committed">Committed</option>
                           <option value="spent">Spent</option>
@@ -267,7 +267,7 @@
                     </td>
                     @if (isFinance()) {
                       <td>
-                        <button class="btn-icon-del" (click)="deleteLineItem(item._id)" title="Delete">🗑</button>
+                        <button type="button" class="btn-icon-del" (click)="deleteLineItem(item._id)" title="Delete">🗑</button>
                       </td>
                     }
                   </tr>
@@ -302,7 +302,7 @@
         <div class="panel">
           <div class="panel-toolbar">
             <h3>Calculate variance</h3>
-            <button class="btn-ghost btn-sm" (click)="showVarianceCalc.set(!showVarianceCalc())">
+            <button type="button" class="btn-ghost btn-sm" (click)="showVarianceCalc.set(!showVarianceCalc())">
               {{ showVarianceCalc() ? '✕ Cancel' : '+ Calculate period' }}
             </button>
           </div>

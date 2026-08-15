@@ -39,6 +39,9 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  // A 6-digit TOTP with a ±1 step window is brute-forceable at the global tier,
+  // so this route gets a tight limit of its own.
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('mfa/verify')
   verifyMfa(@Body() dto: { challengeToken: string; totpCode: string }) {
     return this.authService.verifyMfaLogin(dto.challengeToken, dto.totpCode);

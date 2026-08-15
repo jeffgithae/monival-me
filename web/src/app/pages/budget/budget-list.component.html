@@ -6,7 +6,7 @@
     <p class="subtitle">Allocate, track, and analyse grant budgets with real-time variance.</p>
   </div>
   @if (isFinance()) {
-    <button class="btn-new" (click)="showForm.set(!showForm())">
+    <button type="button" class="btn-new" (click)="showForm.set(!showForm())">
       {{ showForm() ? '✕ Cancel' : '+ New Budget' }}
     </button>
   }
@@ -84,20 +84,20 @@
         <textarea [(ngModel)]="newBudgetForm.description" name="description" rows="2" placeholder="Optional description"></textarea>
       </label>
       <div class="form-row">
-        <label>Allocated amount *<input type="number" [(ngModel)]="newBudgetForm.allocatedAmount" name="amount" min="1" required /></label>
+        <label>Allocated amount *<input aria-label="Amount" type="number" [(ngModel)]="newBudgetForm.allocatedAmount" name="amount" min="1" required /></label>
         <label>Currency<input [(ngModel)]="newBudgetForm.currency" name="currency" placeholder="USD" maxlength="3" /></label>
         <label>Category
-          <select [(ngModel)]="newBudgetForm.category" name="category">
+          <select aria-label="Category" [(ngModel)]="newBudgetForm.category" name="category">
             @for (cat of categories; track cat.value) {
               <option [value]="cat.value">{{ cat.label }}</option>
             }
           </select>
         </label>
-        <label>Fiscal year<input type="number" [(ngModel)]="newBudgetForm.fiscalYear" name="year" /></label>
+        <label>Fiscal year<input aria-label="Year" type="number" [(ngModel)]="newBudgetForm.fiscalYear" name="year" /></label>
       </div>
       <div class="form-row">
-        <label>Start date *<input type="date" [(ngModel)]="newBudgetForm.startDate" name="startDate" required /></label>
-        <label>End date *<input type="date" [(ngModel)]="newBudgetForm.endDate" name="endDate" required /></label>
+        <label>Start date *<input aria-label="Start date" type="date" [(ngModel)]="newBudgetForm.startDate" name="startDate" required /></label>
+        <label>End date *<input aria-label="End date" type="date" [(ngModel)]="newBudgetForm.endDate" name="endDate" required /></label>
         <label class="checkbox-row">
           <input type="checkbox" [(ngModel)]="newBudgetForm.isRestricted" name="isRestricted" />
           Donor-restricted fund
@@ -115,7 +115,7 @@
 <div class="section-head">
   <h2>Budget Allocations <span class="count-chip">{{ budgets().length }}</span></h2>
   <div class="filter-bar">
-    <select [(ngModel)]="filterStatus" (change)="loadBudgets()">
+    <select [(ngModel)]="filterStatus" (change)="loadBudgets()" aria-label="Filter by statuses">
       <option value="">All statuses</option>
       <option value="draft">Draft</option>
       <option value="submitted">Submitted</option>
@@ -125,7 +125,7 @@
       <option value="closed">Closed</option>
       <option value="archived">Archived</option>
     </select>
-    <select [(ngModel)]="filterCategory" (change)="loadBudgets()">
+    <select [(ngModel)]="filterCategory" (change)="loadBudgets()" aria-label="Filter by categories">
       <option value="">All categories</option>
       @for (cat of categories; track cat.value) {
         <option [value]="cat.value">{{ cat.label }}</option>

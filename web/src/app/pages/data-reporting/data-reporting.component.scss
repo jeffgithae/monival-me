@@ -314,3 +314,4 @@ code {
   .export-grid  { grid-template-columns:1fr; }
   .et-header, .et-row { grid-template-columns:50px 90px 1fr; }
 }
+.tbox-left { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }

@@ -8,13 +8,14 @@ import {
   ReportingPeriod, ReportingPeriodStatus, CreateReportingPeriodDto,
   IndicatorResult, DataQualityReport, Project, Indicator,
 } from '../../core/models';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 type DetailTab = 'results' | 'narrative' | 'dq' | 'history';
 
 @Component({
   selector: 'app-reporting-periods',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DatePipe],
+  imports: [ModalDirective, CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DatePipe],
   templateUrl: './reporting-period.component.html',
   styleUrl: './reporting-period.component.scss',
 })

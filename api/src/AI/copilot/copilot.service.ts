@@ -8,6 +8,8 @@ import { ReportingPeriod } from '../../reporting/schemas/reporting-period.schema
 import { IndicatorResult } from '../../reporting/schemas/indicator-result.schema';
 import { Beneficiary } from '../../beneficiaries/schemas/beneficiary.schema';
 import { Grant } from '../../grants/schemas/grant.schema';
+import { BudgetAllocation } from '../../budget/schemas/budget.schema';
+import { Donor } from '../../donors/schemas/donor.schema';
 import { StakeholderFeedback } from '../../stakeholder-feedback/schemas/stakeholder-feedback.schema';
 import { CopilotMessageDto } from './dto/copilot-message.dto';
 import { AnthropicService } from '../anthropic.service';
@@ -63,6 +65,8 @@ export class CopilotService {
     @InjectModel(IndicatorResult.name)     private readonly resultModel: Model<IndicatorResult>,
     @InjectModel(Beneficiary.name)         private readonly beneficiaryModel: Model<Beneficiary>,
     @InjectModel(Grant.name)               private readonly grantModel: Model<Grant>,
+    @InjectModel(BudgetAllocation.name)    private readonly budgetModel: Model<BudgetAllocation>,
+    @InjectModel(Donor.name)               private readonly donorModel: Model<Donor>,
     @InjectModel(StakeholderFeedback.name) private readonly feedbackModel: Model<StakeholderFeedback>,
     private readonly anthropic: AnthropicService,
   ) {}
@@ -77,7 +81,7 @@ export class CopilotService {
     if (dto.projectId) projectFilter.projectId = new Types.ObjectId(dto.projectId);
 
     // ── Gather portfolio context ───────────────────────────────────────────
-    const [projects, indicators, activities, periods, benStats, grantSummary] = await Promise.all([
+    const [projects, indicators, activities, periods, benStats, grantSummary, budgetSummary, donorCount] = await Promise.all([
       this.projectModel
         .find(dto.projectId ? { organizationId: orgId, _id: new Types.ObjectId(dto.projectId) } : { organizationId: orgId })
         .sort({ createdAt: -1 }).limit(10).lean(),
@@ -113,9 +117,26 @@ export class CopilotService {
           currency: { $first: '$currency' },
         }},
       ]),
+
+      // The copilot's own prompt promises to "review grant utilisation and
+      // flag financial-programmatic misalignment", which it could not do
+      // without sight of the budget.
+      this.budgetModel.aggregate([
+        { $match: { organizationId: orgId, isDeleted: false } },
+        { $group: {
+          _id: null,
+          allocated: { $sum: '$allocatedAmount' },
+          spent: { $sum: '$spentAmount' },
+          committed: { $sum: '$committedAmount' },
+          count: { $sum: 1 },
+        }},
+      ]),
+
+      this.donorModel.countDocuments({ organizationId: orgId }),
     ]);
 
     const grants  = grantSummary[0] ?? { totalAmount: 0, totalSpent: 0, count: 0, currency: 'USD' };
+    const budgets = budgetSummary[0] ?? { allocated: 0, spent: 0, committed: 0, count: 0 };
     const burnRate = grants.totalAmount > 0
       ? Math.round((grants.totalSpent / grants.totalAmount) * 100) : 0;
 
@@ -169,9 +190,14 @@ ${periods.map(p => `- ${p.name} [${p.status}] ${new Date(p.startDate).toLocaleDa
 Open periods: ${openPeriods.length}
 Overdue open periods: ${openPeriods.filter(p => new Date(p.endDate) < new Date()).length}
 
-### Grants
+### Funding
+Donors on record: ${donorCount}
 Active/pending grants: ${grants.count}
 Portfolio: ${grants.currency} ${grants.totalAmount.toLocaleString()} | Spent: ${grants.currency} ${grants.totalSpent.toLocaleString()} (${burnRate}% burn rate)
+
+### Budget
+Allocations: ${budgets.count} | Allocated: ${budgets.allocated.toLocaleString()} | Spent: ${budgets.spent.toLocaleString()} | Committed: ${budgets.committed.toLocaleString()}
+Unallocated against grant portfolio: ${(grants.totalAmount - budgets.allocated).toLocaleString()}
 
 ### Beneficiaries
 Total registered: ${benStats[0]?.total ?? 0} | Active: ${benStats[0]?.active ?? 0} | Vulnerable: ${benStats[0]?.vulnerable ?? 0}
@@ -187,7 +213,12 @@ Total registered: ${benStats[0]?.total ?? 0} | Active: ${benStats[0]?.active ?? 
       },
     ];
 
-    const reply = await this.anthropic.chat(EVIDARA_SYSTEM_PROMPT, messages, 1500);
+    const reply = await this.anthropic.chat(
+      { organizationId, feature: 'copilot.message' },
+      EVIDARA_SYSTEM_PROMPT,
+      messages,
+      1500,
+    );
 
     return {
       answer: reply,
@@ -318,7 +349,16 @@ Total registered: ${benStats[0]?.total ?? 0} | Active: ${benStats[0]?.active ?? 
       const totalSpent  = grants.reduce((s, g) => s + ((g as any).amountSpent ?? 0), 0);
       const burnPct     = totalAmount > 0 ? Math.round((totalSpent / totalAmount) * 100) : 0;
       const currency    = (grants[0] as any)?.currency ?? 'USD';
-      financialContext  = `\nFinancial summary:\n- Portfolio: ${currency} ${totalAmount.toLocaleString()}\n- Disbursed: ${currency} ${totalSpent.toLocaleString()} (${burnPct}% burn rate)\n- Active grants: ${grants.length}`;
+      const totalDisbursed = grants.reduce(
+        (sum, g) => sum + ((g as any).disbursements ?? [])
+          .filter((d: any) => d.status === 'received')
+          .reduce((t: number, d: any) => t + (d.amount ?? 0), 0),
+        0,
+      );
+      // "Spent" and "disbursed" are different figures: expenditure vs cash
+      // actually received from the donor. This line reported spend as
+      // disbursement, which is exactly the misalignment it exists to flag.
+      financialContext  = `\nFinancial summary:\n- Portfolio: ${currency} ${totalAmount.toLocaleString()}\n- Received from donors: ${currency} ${totalDisbursed.toLocaleString()}\n- Expenditure: ${currency} ${totalSpent.toLocaleString()} (${burnPct}% burn rate)\n- Active grants: ${grants.length}`;
     }
 
     let feedbackContext = '';
@@ -378,7 +418,12 @@ Use [DATA NEEDED] for any section where data is genuinely missing. Output ONLY v
 ${dataBlock}
 `.trim();
 
-    const raw = await this.anthropic.complete(REPORT_DRAFTER_SYSTEM_PROMPT, prompt, 3000);
+    const raw = await this.anthropic.complete(
+      { organizationId, feature: 'copilot.draft-report' },
+      REPORT_DRAFTER_SYSTEM_PROMPT,
+      prompt,
+      3000,
+    );
 
     let report: Record<string, string | null>;
     try {
@@ -455,7 +500,12 @@ Write a structured Theory of Change with these sections:
 Keep it concise and grounded in the project data above. Use [TO COMPLETE] for sections where data is insufficient.
 `.trim();
 
-    const text = await this.anthropic.complete(EVIDARA_SYSTEM_PROMPT, prompt, 2000);
+    const text = await this.anthropic.complete(
+      { organizationId, feature: 'copilot.theory-of-change' },
+      EVIDARA_SYSTEM_PROMPT,
+      prompt,
+      2000,
+    );
     return { projectId, generatedAt: new Date().toISOString(), theoryOfChange: text };
   }
 
@@ -490,7 +540,12 @@ Output as JSON with keys: refinedTitle, definition, unit, numerator, denominator
 Output ONLY valid JSON, no markdown fences.
 `.trim();
 
-    const raw = await this.anthropic.complete(EVIDARA_SYSTEM_PROMPT, prompt, 1500);
+    const raw = await this.anthropic.complete(
+      { organizationId, feature: 'copilot.indicator-definition' },
+      EVIDARA_SYSTEM_PROMPT,
+      prompt,
+      1500,
+    );
     try {
       return { generatedAt: new Date().toISOString(), definition: JSON.parse(raw) };
     } catch {
@@ -549,7 +604,12 @@ GRANTS:
 ${grantSummary || '[None active]'}
 `.trim();
 
-    const raw = await this.anthropic.complete(EVIDARA_SYSTEM_PROMPT, prompt, 1200);
+    const raw = await this.anthropic.complete(
+      { organizationId, feature: 'copilot.suggest-actions' },
+      EVIDARA_SYSTEM_PROMPT,
+      prompt,
+      1200,
+    );
     let actions: unknown[];
     try {
       actions = JSON.parse(raw);

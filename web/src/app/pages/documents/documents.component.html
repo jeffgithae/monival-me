@@ -5,17 +5,17 @@
     <div>
       <span class="eyebrow">Evidence &amp; Records</span>
       <h1>Documents</h1>
-      <p class="subtitle">Upload, organise and version-control your project evidence and reports</p>
+      <p class="subtitle">Link, organise and version-control your project evidence and reports from your connected cloud drive</p>
     </div>
     <div class="header-actions">
-      <button class="btn-cloud" (click)="openCloudManager()" title="Connect Google Drive, Dropbox or SharePoint">
+      <button type="button" class="btn-cloud" (click)="openCloudManager()" title="Connect Google Drive, Dropbox or SharePoint">
         ☁️ Cloud Storage
         @if (cloudConnections().length > 0) {
           <span class="cloud-badge">{{ cloudConnections().length }}</span>
         }
       </button>
       @if (canManage()) {
-        <button class="btn-new" (click)="activePanel.set('create')">＋ Upload Document</button>
+        <button type="button" class="btn-new" (click)="activePanel.set('create')">＋ Link Document</button>
       }
     </div>
   </div>
@@ -28,12 +28,12 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="tab-group">
-      <button class="tab" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
+      <button type="button" class="tab" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
         All <span class="badge">{{ categoryCounts()['All'] }}</span>
       </button>
       @for (cat of categories; track cat) {
         @if (categoryCounts()[cat] > 0) {
-          <button class="tab" [class.active]="filterCategory() === cat" (click)="filterCategory.set(cat)">
+          <button type="button" class="tab" [class.active]="filterCategory() === cat" (click)="filterCategory.set(cat)">
             {{ categoryIcons[cat] }} {{ cat }}
             <span class="badge">{{ categoryCounts()[cat] }}</span>
           </button>
@@ -42,7 +42,7 @@
     </div>
 
     @if (projects().length > 0) {
-      <select class="proj-filter" [(ngModel)]="filterProject">
+      <select class="proj-filter" [(ngModel)]="filterProject" aria-label="Filter by projects">
         <option value="">All projects</option>
         @for (p of projects(); track p._id) {
           <option [value]="p._id">{{ p.name }}</option>
@@ -52,9 +52,9 @@
 
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" placeholder="Search documents…" [(ngModel)]="searchQuery" />
+      <input aria-label="Search documents" type="text" placeholder="Search documents…" [(ngModel)]="searchQuery" />
       @if (searchQuery()) {
-        <button class="clear-btn" (click)="searchQuery.set('')">✕</button>
+        <button type="button" class="clear-btn" (click)="searchQuery.set('')">✕</button>
       }
     </div>
   </div>
@@ -70,12 +70,12 @@
       <div class="empty-icon">📂</div>
       @if (documents().length === 0) {
         <h3>No documents yet</h3>
-        <p>Upload your first document or import files from Google Drive, Dropbox or SharePoint.</p>
+        <p>Link your first document from Google Drive, Dropbox or SharePoint, or paste a URL to a file you already host.</p>
         <div class="empty-actions">
           @if (canManage()) {
-            <button class="btn-new" (click)="activePanel.set('create')">＋ Upload Document</button>
+            <button type="button" class="btn-new" (click)="activePanel.set('create')">＋ Link Document</button>
           }
-          <button class="btn-cloud" (click)="openCloudManager()">☁️ Connect Cloud Storage</button>
+          <button type="button" class="btn-cloud" (click)="openCloudManager()">☁️ Connect Cloud Storage</button>
         </div>
       } @else {
         <h3>No documents match your filters</h3>
@@ -86,14 +86,14 @@
 
   <!-- Document Grid -->
   @else {
-    <div class="doc-grid">
+    <div class="docs-grid">
       @for (doc of filteredDocs(); track doc._id) {
         <div class="doc-card">
           <div class="card-top">
             <span class="cat-icon">{{ categoryIcon(doc.category) }}</span>
-            <div class="card-meta">
+            <div class="doc-meta">
               @if (doc.category) {
-                <span class="cat-chip">{{ doc.category }}</span>
+                <span class="chip chip-cat">{{ doc.category }}</span>
               }
               @if (doc.tags?.length) {
                 <div class="tag-row">
@@ -121,10 +121,10 @@
               @if (doc.fileUrl) {
                 <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">↗ Open</a>
               }
-              <button class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
+              <button type="button" class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
               @if (canManage()) {
-                <button class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
-                <button class="btn-action danger" [disabled]="deleting() === doc._id" (click)="deleteDoc(doc)">
+                <button type="button" class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
+                <button type="button" class="btn-action danger" [disabled]="deleting() === doc._id" (click)="deleteDoc(doc)">
                   {{ deleting() === doc._id ? '…' : '🗑' }}
                 </button>
               }
@@ -133,38 +133,46 @@
         </div>
       }
     </div>
+
+    <app-pager
+      [page]="page()"
+      [total]="total()"
+      [limit]="pageSize"
+      label="documents"
+      (pageChange)="goToPage($event)"
+    />
   }
 </div>
 
 <!-- ── Create Document Panel ──────────────────────────────────────────────── -->
 @if (activePanel() === 'create') {
   <div class="modal-backdrop" (click)="closeAll()">
-    <div class="slide-panel" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="documents-dialog-0-title" (modalClose)="closeAll()" class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2>Upload Document</h2>
-        <button class="close-btn" (click)="closeAll()">✕</button>
+        <h2 id="documents-dialog-0-title">Link Document</h2>
+        <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
       <form [formGroup]="createForm" class="panel-body">
         <div class="field full">
-          <label>Title *</label>
-          <input formControlName="title" placeholder="e.g. Q2 Field Report" />
+        <label for="documents-title">Title *</label>
+          <input id="documents-title" formControlName="title" placeholder="e.g. Q2 Field Report" />
         </div>
         <div class="field full">
-          <label>Description</label>
-          <textarea formControlName="description" placeholder="Brief description…"></textarea>
+        <label for="documents-description">Description</label>
+          <textarea id="documents-description" formControlName="description" placeholder="Brief description…"></textarea>
         </div>
         <div class="form-row">
           <div class="field">
-            <label>Category</label>
-            <select formControlName="category">
+        <label for="documents-category">Category</label>
+            <select id="documents-category" formControlName="category">
               @for (cat of categories; track cat) {
                 <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
               }
             </select>
           </div>
           <div class="field">
-            <label>Project</label>
-            <select formControlName="projectId">
+        <label for="documents-projectid">Project</label>
+            <select id="documents-projectid" formControlName="projectId">
               <option value="">— None —</option>
               @for (p of projects(); track p._id) {
                 <option [value]="p._id">{{ p.name }}</option>
@@ -173,19 +181,19 @@
           </div>
         </div>
         <div class="field full">
-          <label>File URL</label>
-          <input formControlName="fileUrl" placeholder="https://drive.google.com/…" />
+        <label for="documents-fileurl">File URL</label>
+          <input id="documents-fileurl" formControlName="fileUrl" placeholder="https://drive.google.com/…" />
           <span class="field-hint">Paste a link (Google Drive, Dropbox, SharePoint, etc.)</span>
         </div>
         <div class="field full">
-          <label>Tags</label>
-          <input formControlName="tags" placeholder="q2, field-report, nairobi (comma-separated)" />
+        <label for="documents-tags">Tags</label>
+          <input id="documents-tags" formControlName="tags" placeholder="q2, field-report, nairobi (comma-separated)" />
         </div>
       </form>
       <div class="panel-footer">
-        <button class="btn-cancel" (click)="closeAll()">Cancel</button>
-        <button class="btn-submit" [disabled]="createForm.invalid || saving()" (click)="create()">
-          {{ saving() ? 'Uploading…' : 'Upload Document' }}
+        <button type="button" class="btn-cancel" (click)="closeAll()">Cancel</button>
+        <button type="button" class="btn-submit" [disabled]="createForm.invalid || saving()" (click)="create()">
+          {{ saving() ? 'Linking…' : 'Link Document' }}
         </button>
       </div>
     </div>
@@ -195,40 +203,40 @@
 <!-- ── Edit Document Panel ────────────────────────────────────────────────── -->
 @if (activePanel() === 'edit' && selectedDoc()) {
   <div class="modal-backdrop" (click)="closeAll()">
-    <div class="slide-panel" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="documents-dialog-1-title" (modalClose)="closeAll()" class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2>Edit Document</h2>
-        <button class="close-btn" (click)="closeAll()">✕</button>
+        <h2 id="documents-dialog-1-title">Edit Document</h2>
+        <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
       <form [formGroup]="editForm" class="panel-body">
         <div class="field full">
-          <label>Title *</label>
-          <input formControlName="title" />
+        <label for="documents-title-2">Title *</label>
+          <input id="documents-title-2" formControlName="title" />
         </div>
         <div class="field full">
-          <label>Description</label>
-          <textarea formControlName="description"></textarea>
+        <label for="documents-description-2">Description</label>
+          <textarea id="documents-description-2" formControlName="description"></textarea>
         </div>
         <div class="field full">
-          <label>Category</label>
-          <select formControlName="category">
+        <label for="documents-category-2">Category</label>
+          <select id="documents-category-2" formControlName="category">
             @for (cat of categories; track cat) {
               <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
             }
           </select>
         </div>
         <div class="field full">
-          <label>File URL</label>
-          <input formControlName="fileUrl" placeholder="https://…" />
+        <label for="documents-fileurl-2">File URL</label>
+          <input id="documents-fileurl-2" formControlName="fileUrl" placeholder="https://…" />
         </div>
         <div class="field full">
-          <label>Tags</label>
-          <input formControlName="tags" placeholder="comma-separated" />
+        <label for="documents-tags-2">Tags</label>
+          <input id="documents-tags-2" formControlName="tags" placeholder="comma-separated" />
         </div>
       </form>
       <div class="panel-footer">
-        <button class="btn-cancel" (click)="closeAll()">Cancel</button>
-        <button class="btn-submit" [disabled]="editForm.invalid || saving()" (click)="saveEdit()">
+        <button type="button" class="btn-cancel" (click)="closeAll()">Cancel</button>
+        <button type="button" class="btn-submit" [disabled]="editForm.invalid || saving()" (click)="saveEdit()">
           {{ saving() ? 'Saving…' : 'Save Changes' }}
         </button>
       </div>
@@ -239,28 +247,28 @@
 <!-- ── Version History Panel ──────────────────────────────────────────────── -->
 @if (activePanel() === 'versions' && selectedDoc()) {
   <div class="modal-backdrop" (click)="closeAll()">
-    <div class="slide-panel wide" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="documents-dialog-2-title" (modalClose)="closeAll()" class="slide-panel wide" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <div>
-          <h2>Version History</h2>
+          <h2 id="documents-dialog-2-title">Version History</h2>
           <p class="panel-sub">{{ selectedDoc()!.title }}</p>
         </div>
-        <button class="close-btn" (click)="closeAll()">✕</button>
+        <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
       <div class="panel-body">
         @if (canManage()) {
           <div class="version-upload-box" [formGroup]="versionForm">
             <h4>Add New Version</h4>
             <div class="field full">
-              <label>File URL *</label>
-              <input formControlName="fileUrl" placeholder="https://drive.google.com/…" />
+        <label for="documents-fileurl-3">File URL *</label>
+              <input id="documents-fileurl-3" formControlName="fileUrl" placeholder="https://drive.google.com/…" />
             </div>
             <div class="field full">
-              <label>Release Notes</label>
-              <textarea formControlName="releaseNotes" placeholder="What changed in this version?"></textarea>
+        <label for="documents-releasenotes">Release Notes</label>
+              <textarea id="documents-releasenotes" formControlName="releaseNotes" placeholder="What changed in this version?"></textarea>
             </div>
-            <button class="btn-submit sm" [disabled]="versionForm.invalid || saving()" (click)="addVersion()">
-              {{ saving() ? 'Uploading…' : '↑ Upload New Version' }}
+            <button type="button" class="btn-submit sm" [disabled]="versionForm.invalid || saving()" (click)="addVersion()">
+              {{ saving() ? 'Linking…' : '↑ Link New Version' }}
             </button>
           </div>
         }
@@ -302,13 +310,13 @@
 <!-- ── Cloud Storage Manager ──────────────────────────────────────────────── -->
 @if (activePanel() === 'cloud-manager') {
   <div class="modal-backdrop" (click)="closeAll()">
-    <div class="slide-panel wide" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="documents-dialog-3-title" (modalClose)="closeAll()" class="slide-panel wide" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <div>
-          <h2>☁️ Cloud Storage</h2>
+          <h2 id="documents-dialog-3-title">☁️ Cloud Storage</h2>
           <p class="panel-sub">Connect your cloud accounts to browse and import files directly</p>
         </div>
-        <button class="close-btn" (click)="closeAll()">✕</button>
+        <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
 
       <div class="panel-body">
@@ -350,19 +358,19 @@
 
               <div class="provider-actions">
                 @if (isConnected(provider)) {
-                  <button class="btn-browse" (click)="openBrowser(getConnection(provider)!)">
+                  <button type="button" class="btn-browse" (click)="openBrowser(getConnection(provider)!)">
                     🗂 Browse Files
                   </button>
-                  <button class="btn-disconnect"
+                  <button type="button" class="btn-disconnect"
                     (click)="disconnectProvider(getConnection(provider)!)">
                     Disconnect
                   </button>
                 } @else if (!isConfigured(provider)) {
-                  <button class="btn-setup" (click)="setupProvider.set(provider)">
+                  <button type="button" class="btn-setup" (click)="setupProvider.set(provider)">
                     📋 View Setup Guide
                   </button>
                 } @else {
-                  <button class="btn-connect"
+                  <button type="button" class="btn-connect"
                     [disabled]="connectingProvider() === provider"
                     [style.background]="providerColor(provider)"
                     (click)="connectProvider(provider)">
@@ -386,7 +394,7 @@
                 <h4>🔧 Setting up {{ providerLabel(setupProvider()!) }}</h4>
                 <p class="setup-sub">Ask your system administrator to complete these steps in Railway:</p>
               </div>
-              <button class="close-btn" (click)="setupProvider.set(null)">✕</button>
+              <button type="button" class="close-btn" (click)="setupProvider.set(null)">✕</button>
             </div>
             <ol class="setup-steps">
               @for (step of providerSetup[setupProvider()!].steps; track step) {
@@ -414,8 +422,8 @@
                   <span class="conn-provider">{{ providerLabel(conn.provider) }}</span>
                 </div>
                 <div class="conn-row-actions">
-                  <button class="btn-action" (click)="openBrowser(conn)">🗂 Browse</button>
-                  <button class="btn-action danger" (click)="disconnectProvider(conn)">Disconnect</button>
+                  <button type="button" class="btn-action" (click)="openBrowser(conn)">🗂 Browse</button>
+                  <button type="button" class="btn-action danger" (click)="disconnectProvider(conn)">Disconnect</button>
                 </div>
               </div>
             }
@@ -433,16 +441,16 @@
 <!-- ── Cloud File Browser ─────────────────────────────────────────────────── -->
 @if (activePanel() === 'cloud-browser' && activeBrowserConn()) {
   <div class="modal-backdrop" (click)="closeAll()">
-    <div class="slide-panel x-wide" (click)="$event.stopPropagation()">
+    <div appModal modalLabelledBy="documents-dialog-4-title" (modalClose)="closeAll()" class="slide-panel x-wide" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <div>
-          <h2>
+          <h2 id="documents-dialog-4-title">
             <span class="provider-dot" [style.background]="providerColor(activeBrowserConn()!.provider)"></span>
             {{ activeBrowserConn()!.label }}
           </h2>
           <p class="panel-sub">Select files to import into your document library</p>
         </div>
-        <button class="close-btn" (click)="closeAll()">✕</button>
+        <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
 
       <div class="browser-body">
@@ -455,12 +463,12 @@
         <div class="browser-toolbar">
           <!-- Breadcrumb -->
           <div class="breadcrumb">
-            <button class="crumb root" (click)="navigateToRoot()">
+            <button type="button" class="crumb root" (click)="navigateToRoot()">
               {{ providerLabel(activeBrowserConn()!.provider) }}
             </button>
             @for (crumb of cloudFolderStack(); track crumb.id; let i = $index) {
               <span class="crumb-sep">›</span>
-              <button class="crumb" (click)="cloudFolderStack.set(cloudFolderStack().slice(0, i + 1)); fetchCloudFiles()">
+              <button type="button" class="crumb" (click)="cloudFolderStack.set(cloudFolderStack().slice(0, i + 1)); fetchCloudFiles()">
                 {{ crumb.name }}
               </button>
             }
@@ -468,28 +476,28 @@
 
           <!-- Search -->
           <div class="browser-search">
-            <input
+            <input aria-label="Search files"
               type="text"
               placeholder="Search files…"
               [(ngModel)]="cloudSearch"
               (keyup.enter)="searchCloud()" />
             @if (cloudSearch()) {
-              <button class="clear-btn" (click)="clearSearch()">✕</button>
+              <button type="button" class="clear-btn" (click)="clearSearch()">✕</button>
             }
-            <button class="btn-search-go" (click)="searchCloud()">Search</button>
+            <button type="button" class="btn-search-go" (click)="searchCloud()">Search</button>
           </div>
         </div>
 
         <!-- Import settings bar -->
         <div class="import-settings">
           <span class="import-label">Import options:</span>
-          <select class="import-select" [(ngModel)]="importProjectId">
+          <select class="import-select" [(ngModel)]="importProjectId" aria-label="Select no project">
             <option value="">No project</option>
             @for (p of projects(); track p._id) {
               <option [value]="p._id">{{ p.name }}</option>
             }
           </select>
-          <select class="import-select" [(ngModel)]="importCategory">
+          <select class="import-select" [(ngModel)]="importCategory" aria-label="Category for imported documents">
             @for (cat of categories; track cat) {
               <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
             }
@@ -498,7 +506,7 @@
 
         <!-- Back button -->
         @if (cloudFolderStack().length > 0) {
-          <button class="btn-back" (click)="navigateUp()">← Back</button>
+          <button type="button" class="btn-back" (click)="navigateUp()">← Back</button>
         }
 
         <!-- File list -->
@@ -512,12 +520,23 @@
         } @else {
           <div class="file-list">
             @for (file of cloudFiles(); track file.id) {
+              <!-- The row holds a Preview link and an Import button, so it must
+                   not itself be role="button" — nested interactive controls are
+                   invalid ARIA. Only folders navigate, so the folder name is the
+                   real control; files keep a plain, non-focusable row. -->
               <div class="file-row" [class.folder]="file.isFolder" (click)="file.isFolder ? enterFolder(file) : null">
-                <span class="file-icon">
+                <span class="file-icon" aria-hidden="true">
                   {{ file.isFolder ? '📁' : getFileIcon(file.mimeType) }}
                 </span>
                 <div class="file-info">
-                  <span class="file-name">{{ file.name }}</span>
+                  @if (file.isFolder) {
+                    <button type="button" class="file-name file-name-btn"
+                      (click)="$event.stopPropagation(); enterFolder(file)">
+                      {{ file.name }}<span class="sr-only"> — open folder</span>
+                    </button>
+                  } @else {
+                    <span class="file-name">{{ file.name }}</span>
+                  }
                   <div class="file-meta">
                     @if (file.size) { <span>{{ formatFileSize(file.size) }}</span> }
                     @if (file.modifiedAt) { <span>{{ file.modifiedAt | date:'d MMM y' }}</span> }
@@ -531,7 +550,7 @@
                     </a>
                   }
                   @if (!file.isFolder) {
-                    <button
+                    <button type="button"
                       class="btn-import"
                       [disabled]="importingFileId() === file.id"
                       (click)="$event.stopPropagation(); importFile(file)">

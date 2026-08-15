@@ -14,6 +14,7 @@ import { Activity } from '../activities/schemas/activity.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { Grant } from '../grants/schemas/grant.schema';
 import { planHasFeature } from '../common/constants/plans';
+import { AuditService } from '../audit/audit.service';
 
 export interface CreateNetworkDto {
   name: string;
@@ -92,6 +93,7 @@ export class NetworksService {
     private readonly projectModel: Model<Project>,
     @InjectModel(Grant.name)
     private readonly grantModel: Model<Grant>,
+    private readonly audit: AuditService,
   ) {}
 
   // ── Network CRUD ───────────────────────────────────────────────────────────
@@ -220,6 +222,16 @@ export class NetworksService {
     network.members = network.members.filter(
       m => m.organizationId.toString() !== memberOrgId,
     ) as any;
+
+    // Removing a member org revokes cross-org data sharing — a decision that
+    // belongs in the audit trail.
+    await this.audit.record({
+      organizationId: hubOrgId,
+      action: 'network.member_removed',
+      entityType: 'Network',
+      entityId: networkId,
+      metadata: { memberOrgId },
+    });
 
     return network.save();
   }

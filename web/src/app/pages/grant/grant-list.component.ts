@@ -5,15 +5,18 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Grant, GrantSummary, CreateGrantDto, GrantStatus, Donor } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 @Component({
   selector: 'app-grants-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DecimalPipe, DatePipe],
+  imports: [ModalDirective, CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DecimalPipe, DatePipe],
   templateUrl: './grant-list.component.html',
   styleUrl: './grant-list.component.scss',
 })
 export class GrantsListComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api    = inject(ApiService);
   private auth   = inject(AuthService);
   private router = inject(Router);
@@ -39,20 +42,25 @@ export class GrantsListComponent implements OnInit {
   readonly statuses: GrantStatus[] = ['prospect','applied','awarded','active','completed','closed','rejected'];
   readonly currencies = ['USD','KES','EUR','GBP','UGX','TZS','ZAR','NGN'];
 
+  // Field names mirror CreateGrantDto exactly — the API rejects unknown keys
+  // (forbidNonWhitelisted), so `referenceNumber`/`objectives`/`isRestricted`
+  // are gone rather than silently dropped.
   form = this.fb.group({
     name:                 ['', Validators.required],
-    referenceNumber:      [''],
     donorId:              [''],
     status:               ['active' as GrantStatus],
     currency:             ['USD'],
     amount:               [0, [Validators.required, Validators.min(1)]],
+    exchangeRate:         [null as number | null],
     startDate:            ['', Validators.required],
     endDate:              ['', Validators.required],
     description:          [''],
-    objectives:           [''],
+    parentGrantId:        [''],
+    subRecipientName:     [''],
+    fundClassification:   ['restricted'],
+    indirectCostRate:     [0, [Validators.min(0), Validators.max(100)]],
     requiresMonthlyReporting: [false],
     requiresFinalReport:  [true],
-    isRestricted:         [false],
   });
 
   // Edit state
@@ -66,7 +74,8 @@ export class GrantsListComponent implements OnInit {
     startDate:   [''],
     endDate:     [''],
     description: [''],
-    objectives:  [''],
+    fundClassification: ['restricted'],
+    indirectCostRate:   [0, [Validators.min(0), Validators.max(100)]],
   });
 
   ngOnInit() {
@@ -104,9 +113,18 @@ export class GrantsListComponent implements OnInit {
   submit() {
     if (this.form.invalid) return;
     this.saving.set(true);
-    this.api.createGrant(this.form.value as CreateGrantDto).subscribe({
+    // Strip empty optionals — the API validates types, and '' is not a MongoId.
+    const raw = this.form.value as Record<string, any>;
+    const body: Record<string, any> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== '' && v !== null && v !== undefined) body[k] = v;
+    }
+    this.api.createGrant(body as CreateGrantDto).subscribe({
       next: () => {
-        this.form.reset({ status: 'active', currency: 'USD', isRestricted: false, requiresFinalReport: true });
+        this.form.reset({
+          status: 'active', currency: 'USD',
+          fundClassification: 'restricted', indirectCostRate: 0, requiresFinalReport: true,
+        });
         this.showForm.set(false);
         this.saving.set(false);
         this.page.set(1);
@@ -130,7 +148,8 @@ export class GrantsListComponent implements OnInit {
       startDate:   g.startDate?.slice(0, 10) ?? '',
       endDate:     g.endDate?.slice(0, 10) ?? '',
       description: g.description ?? '',
-      objectives:  g.objectives ?? '',
+      fundClassification: g.fundClassification ?? 'restricted',
+      indirectCostRate:   g.indirectCostRate ?? 0,
     });
   }
 
@@ -144,8 +163,8 @@ export class GrantsListComponent implements OnInit {
     });
   }
 
-  deleteGrant(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  async deleteGrant(id: string, name: string) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${name}"?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.deleting.set(id);
     this.api.deleteGrant(id).subscribe({
       next: () => { this.deleting.set(''); this.load(); },
@@ -160,9 +179,18 @@ export class GrantsListComponent implements OnInit {
   prevPage()    { this.page.update(p => Math.max(1, p - 1)); this.load(); }
   openDetail(id: string) { this.router.navigate(['/grants', id]); }
 
-  grantTitle(g: Grant)  { return g.title || g.name || '—'; }
-  grantAmount(g: Grant) { return g.totalAmount ?? g.amount ?? 0; }
-  grantSpent(g: Grant)  { return g.spentAmount ?? g.amountSpent ?? 0; }
+  grantTitle(g: Grant)  { return g.name || '—'; }
+  grantAmount(g: Grant) { return g.amount ?? 0; }
+  grantSpent(g: Grant)  { return g.amountSpent ?? 0; }
+
+  /**
+   * Derived here rather than read off the record — the API never sent a
+   * `daysUntilExpiry` field, so every card rendered a dash.
+   */
+  daysToExpiry(g: Grant): number {
+    if (!g.endDate) return Number.NaN;
+    return Math.ceil((new Date(g.endDate).getTime() - Date.now()) / 86_400_000);
+  }
 
   burnRate(g: Grant): number {
     const total = this.grantAmount(g);
@@ -184,14 +212,16 @@ export class GrantsListComponent implements OnInit {
   }
 
   daysLabel(days: number | undefined): string {
-    if (days == null) return '—';
+    if (days == null || Number.isNaN(days)) return '—';
     if (days < 0)   return 'Expired';
     if (days === 0) return 'Today';
     if (days <= 30) return `${days}d ⚠️`;
     return `${days}d`;
   }
 
-  donorName(g: Grant): string { return g.donorId?.name ?? g.donorName ?? ''; }
+  donorName(g: Grant): string {
+    return typeof g.donorId === 'object' && g.donorId ? (g.donorId.name ?? '') : '';
+  }
 
   get totalPages() { return Math.ceil(this.total() / this.limit) || 1; }
   get hasNext()    { return this.page() < this.totalPages; }
@@ -202,7 +232,7 @@ export class GrantsListComponent implements OnInit {
     return {
       all:       this.total(),
       active:    gs.filter(g => g.status === 'active').length,
-      expiring:  gs.filter(g => (g.daysUntilExpiry ?? 999) <= 30 && (g.daysUntilExpiry ?? -1) >= 0).length,
+      expiring:  gs.filter(g => this.daysToExpiry(g) <= 30 && this.daysToExpiry(g) >= 0).length,
       overBudget: gs.filter(g => this.burnRate(g) >= 90).length,
     };
   }

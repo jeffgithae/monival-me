@@ -10,18 +10,18 @@
   <div class="header-right">
     <!-- Nav tabs -->
     <div class="view-tabs">
-      <button class="view-tab" [class.active]="mainView() === 'registry'" (click)="mainView.set('registry')">
+      <button type="button" class="view-tab" [class.active]="mainView() === 'registry'" (click)="mainView.set('registry')">
         <span class="tab-icon">☰</span> Registry
       </button>
-      <button class="view-tab" [class.active]="mainView() === 'analytics'" (click)="mainView.set('analytics')">
+      <button type="button" class="view-tab" [class.active]="mainView() === 'analytics'" (click)="mainView.set('analytics')">
         <span class="tab-icon">◉</span> Analytics
       </button>
-      <button class="view-tab" [class.active]="mainView() === 'dedup'" (click)="mainView.set('dedup'); scanDuplicates()">
+      <button type="button" class="view-tab" [class.active]="mainView() === 'dedup'" (click)="mainView.set('dedup'); scanDuplicates()">
         <span class="tab-icon">⊛</span> Deduplication
       </button>
     </div>
     @if (canManage() && mainView() === 'registry') {
-      <button class="btn-register" (click)="showForm.set(!showForm()); showEditForm.set(false)">
+      <button type="button" class="btn-register" (click)="showForm.set(!showForm()); showEditForm.set(false)">
         @if (showForm()) { <span>✕</span> Cancel } @else { <span>+</span> Register }
       </button>
     }
@@ -172,7 +172,7 @@
         <h2>Duplicate detection</h2>
         <p class="sub">Finds beneficiaries sharing the same national ID or phone number. Review each group and merge as needed.</p>
       </div>
-      <button class="btn-scan" (click)="scanDuplicates()" [disabled]="dupLoading()">
+      <button type="button" class="btn-scan" (click)="scanDuplicates()" [disabled]="dupLoading()">
         @if (dupLoading()) { Scanning… } @else { ↺ Rescan }
       </button>
     </div>
@@ -195,7 +195,7 @@
       <div class="dup-groups">
         @for (group of dupGroups(); track $index; let i = $index) {
           <div class="dup-group">
-            <div class="dup-group-head" (click)="toggleDupGroup(i)">
+            <div class="dup-group-head" (click)="toggleDupGroup(i)" role="button" tabindex="0" (keydown.enter)="toggleDupGroup(i)" (keydown.space)="$event.preventDefault(); toggleDupGroup(i)">
               <div class="dup-group-left">
                 <span class="dup-badge" [class.badge-exact]="group.confidence >= 1" [class.badge-high]="group.confidence >= 0.8 && group.confidence < 1">
                   {{ dupTypeLabel(group.type) }}
@@ -221,7 +221,7 @@
                     </div>
                     <div class="dup-rec-actions">
                       @if (ri > 0 && canAdmin()) {
-                        <button class="btn-merge" (click)="mergeDuplicate(group.records[0]._id, rec._id)"
+                        <button type="button" class="btn-merge" (click)="mergeDuplicate(group.records[0]._id, rec._id)"
                                 [disabled]="merging() === rec._id">
                           @if (merging() === rec._id) { Merging… } @else { ⊕ Merge into #1 }
                         </button>
@@ -247,23 +247,23 @@
   <!-- Stats ledger -->
   @if (stats(); as s) {
     <div class="stats-ledger">
-      <button class="ledger-cell" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all'); applyFilters()">
+      <button type="button" class="ledger-cell" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all'); applyFilters()">
         <span class="lc-val">{{ s.total | number }}</span>
         <span class="lc-lbl">Total</span>
       </button>
-      <button class="ledger-cell accent-green" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active'); applyFilters()">
+      <button type="button" class="ledger-cell accent-green" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active'); applyFilters()">
         <span class="lc-val">{{ s.byStatus['active'] || 0 | number }}</span>
         <span class="lc-lbl">Active</span>
       </button>
-      <button class="ledger-cell" (click)="sexFilter.set(sexFilter() === 'female' ? '' : 'female'); applyFilters()">
+      <button type="button" class="ledger-cell" (click)="sexFilter.set(sexFilter() === 'female' ? '' : 'female'); applyFilters()">
         <span class="lc-val">{{ s.bySex['female'] || 0 | number }}</span>
         <span class="lc-lbl">Female</span>
       </button>
-      <button class="ledger-cell accent-amber">
+      <button type="button" class="ledger-cell accent-amber">
         <span class="lc-val">{{ consentPct() }}%</span>
         <span class="lc-lbl">Consent</span>
       </button>
-      <button class="ledger-cell">
+      <button type="button" class="ledger-cell">
         <span class="lc-val">{{ s.vulnerable.totalHouseholdSize | number }}</span>
         <span class="lc-lbl">HH members</span>
       </button>
@@ -275,7 +275,7 @@
         <span class="vs-label">Vulnerability flags</span>
         <div class="vs-chips">
           @for (f of vulnFlags(); track f.key) {
-            <button class="vuln-chip"
+            <button type="button" class="vuln-chip"
               [class.is-active]="vulnFilter() === f.key"
               [class.chip-idp]="f.key === 'isIdp' || f.key === 'isRefugee'"
               [class.chip-disabled]="f.key === 'hasDisability'"
@@ -344,13 +344,13 @@
                 <input formControlName="caseId" placeholder="BEN-XXXXX" />
               </label>
               <label>National ID / Refugee card
-                <input formControlName="nationalId" />
+                <input aria-label="National id" formControlName="nationalId" />
               </label>
               <label>Phone
                 <input formControlName="phoneNumber" placeholder="+254 7…" />
               </label>
               <label>Email
-                <input formControlName="email" type="email" />
+                <input aria-label="Email" formControlName="email" type="email" />
               </label>
             </div>
           </div>
@@ -359,7 +359,7 @@
             <div class="section-head">Demographics</div>
             <div class="form-grid">
               <label>Sex
-                <select formControlName="sex">
+                <select aria-label="Sex" formControlName="sex">
                   <option value="">— Not specified —</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -368,13 +368,13 @@
                 </select>
               </label>
               <label>Date of birth
-                <input type="date" formControlName="dateOfBirth" />
+                <input aria-label="Date of birth" type="date" formControlName="dateOfBirth" />
               </label>
               <label>Age <span class="hint">if DOB unknown</span>
                 <input type="number" formControlName="age" min="0" max="120" placeholder="Years" />
               </label>
               <label>Age group <span class="hint">auto-computed</span>
-                <select formControlName="ageGroup">
+                <select aria-label="Age group" formControlName="ageGroup">
                   <option value="">— Auto from DOB/age —</option>
                   @for (ag of ageGroupOptions; track ag[0]) {
                     <option [value]="ag[0]">{{ ag[1] }}</option>
@@ -385,13 +385,13 @@
                 <input formControlName="nationality" placeholder="e.g. Kenyan, South Sudanese" />
               </label>
               <label>Ethnicity
-                <input formControlName="ethnicity" />
+                <input aria-label="Ethnicity" formControlName="ethnicity" />
               </label>
               <label>Primary language
                 <input formControlName="primaryLanguage" placeholder="e.g. Swahili, Somali" />
               </label>
               <label>Education
-                <select formControlName="education">
+                <select aria-label="Education" formControlName="education">
                   <option value="">— Not specified —</option>
                   @for (e of educationLevels; track e) { <option [value]="e">{{ e | titlecase }}</option> }
                 </select>
@@ -403,7 +403,7 @@
             <div class="section-head">Household composition</div>
             <div class="form-grid">
               <label>Household size
-                <input type="number" formControlName="householdSize" min="1" />
+                <input aria-label="Household size" type="number" formControlName="householdSize" min="1" />
               </label>
               <label>Children under 5
                 <input type="number" formControlName="childrenUnder5" min="0" />
@@ -460,7 +460,7 @@
 
             <div class="form-grid" style="margin-top:.75rem">
               <label>Vulnerability score <span class="hint">0–100</span>
-                <input type="number" formControlName="vulnerabilityScore" min="0" max="100" placeholder="0–100" />
+                <input aria-label="0–100" type="number" formControlName="vulnerabilityScore" min="0" max="100" placeholder="0–100" />
               </label>
             </div>
           </div>
@@ -473,12 +473,12 @@
                 Consent to data collection given
               </label>
               <label>Consent method
-                <select formControlName="consentMethod">
+                <select aria-label="Consent method" formControlName="consentMethod">
                   @for (m of consentMethods; track m) { <option [value]="m">{{ m | titlecase }}</option> }
                 </select>
               </label>
               <label>Consent date
-                <input type="date" formControlName="consentDate" />
+                <input aria-label="Consent date" type="date" formControlName="consentDate" />
               </label>
             </div>
           </div>
@@ -498,19 +498,19 @@
                 <input formControlName="country" placeholder="e.g. Kenya" />
               </label>
               <label>Region / County
-                <input formControlName="region" />
+                <input aria-label="Region" formControlName="region" />
               </label>
               <label>District / Sub-county
-                <input formControlName="district" />
+                <input aria-label="District" formControlName="district" />
               </label>
               <label>Village / Town
-                <input formControlName="village" />
+                <input aria-label="Village" formControlName="village" />
               </label>
               <label>Address / Camp name
                 <input formControlName="location" placeholder="Address or camp name" />
               </label>
               <label>Settlement type
-                <select formControlName="settlementType">
+                <select aria-label="Settlement type" formControlName="settlementType">
                   <option value="">— Not specified —</option>
                   @for (s of settleTypes; track s) { <option [value]="s">{{ s | titlecase }}</option> }
                 </select>
@@ -533,7 +533,7 @@
             <div class="section-head">Case management</div>
             <div class="form-grid">
               <label>Status
-                <select formControlName="status">
+                <select aria-label="Status" formControlName="status">
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="closed">Closed</option>
@@ -545,7 +545,7 @@
                 <input formControlName="caseWorker" placeholder="Name of assigned worker" />
               </label>
               <label>Registration date
-                <input type="date" formControlName="registrationDate" />
+                <input aria-label="Registration date" type="date" formControlName="registrationDate" />
               </label>
             </div>
           </div>
@@ -586,7 +586,7 @@
       <div class="queue-header">
         <h3>Registered on this device <span class="queue-count">{{ pendingQueuedRegistrations().length }}</span></h3>
         @if (queue.isOnline()) {
-          <button class="btn-retry" (click)="retryQueuedSync()" [disabled]="queue.isSyncing()">
+          <button type="button" class="btn-retry" (click)="retryQueuedSync()" [disabled]="queue.isSyncing()">
             {{ queue.isSyncing() ? 'Syncing…' : '↻ Sync now' }}
           </button>
         }
@@ -607,7 +607,7 @@
             </div>
             <div class="queue-item-status">
               <span class="status-pill" [class]="item.syncStatus">{{ queuedStatusLabel(item.syncStatus) }}</span>
-              <button class="btn-discard" (click)="discardQueuedRegistration(item.clientId, item.label)" title="Discard">✕</button>
+              <button type="button" class="btn-discard" (click)="discardQueuedRegistration(item.clientId, item.label)" title="Discard">✕</button>
             </div>
             @if (item.syncError) {
               <p class="queue-item-error">{{ item.syncError }}</p>
@@ -628,27 +628,27 @@
       <div class="filter-bar">
         <div class="search-wrap">
           <span class="search-icon">⌕</span>
-          <input class="search-input" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Search name, ID, location…" />
-          @if (search()) { <button class="search-clear" (click)="search.set(''); applyFilters()">✕</button> }
+          <input aria-label="Search name, ID, location" class="search-input" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Search name, ID, location…" />
+          @if (search()) { <button type="button" class="search-clear" (click)="search.set(''); applyFilters()">✕</button> }
         </div>
-        <select class="filter-select" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event); applyFilters()">
+        <select class="filter-select" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event); applyFilters()" aria-label="Filter by types">
           <option value="all">All types</option>
           @for (t of typeOptions.slice(1); track t) { <option [value]="t">{{ t | titlecase }}</option> }
         </select>
-        <select class="filter-select" [ngModel]="sexFilter()" (ngModelChange)="sexFilter.set($event); applyFilters()">
+        <select class="filter-select" [ngModel]="sexFilter()" (ngModelChange)="sexFilter.set($event); applyFilters()" aria-label="Filter by sexes">
           <option value="">All sexes</option>
           @for (s of sexOptions; track s) { <option [value]="s">{{ s | titlecase }}</option> }
         </select>
-        <select class="filter-select" [ngModel]="ageGroupFilter()" (ngModelChange)="ageGroupFilter.set($event); applyFilters()">
+        <select class="filter-select" [ngModel]="ageGroupFilter()" (ngModelChange)="ageGroupFilter.set($event); applyFilters()" aria-label="Filter by ages">
           <option value="">All ages</option>
           @for (ag of ageGroupOptions; track ag[0]) { <option [value]="ag[0]">{{ ag[1] }}</option> }
         </select>
-        <select class="filter-select" [ngModel]="projectFilter()" (ngModelChange)="projectFilter.set($event); applyFilters()">
+        <select class="filter-select" [ngModel]="projectFilter()" (ngModelChange)="projectFilter.set($event); applyFilters()" aria-label="Filter by projects">
           <option value="">All projects</option>
           @for (p of projects(); track p._id) { <option [value]="p._id">{{ p.name }}</option> }
         </select>
         @if (hasFilters()) {
-          <button class="btn-clear-filters" (click)="clearFilters()">Clear</button>
+          <button type="button" class="btn-clear-filters" (click)="clearFilters()">Clear</button>
         }
       </div>
 
@@ -657,11 +657,11 @@
         <span>{{ total() | number }} beneficiar{{ total() !== 1 ? 'ies' : 'y' }}</span>
         @if (hasFilters()) { <span class="filter-active-dot">● Filtered</span> }
         @if (mapPoints().length > 0) {
-          <button class="toggle-view" (click)="showMap.set(!showMap())">
+          <button type="button" class="toggle-view" (click)="showMap.set(!showMap())">
             {{ showMap() ? '✕ Hide map' : '🗺️ Map' }}
           </button>
         }
-        <button class="toggle-view" (click)="viewMode.set(viewMode() === 'list' ? 'card' : 'list')">
+        <button type="button" class="toggle-view" (click)="viewMode.set(viewMode() === 'list' ? 'card' : 'list')">
           {{ viewMode() === 'list' ? '⊞ Cards' : '☰ List' }}
         </button>
       </div>
@@ -689,12 +689,12 @@
             <div class="empty-state">
               <div class="empty-icon">👤</div>
               <p>No beneficiaries found.</p>
-              @if (hasFilters()) { <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button> }
-              @else if (canManage()) { <button class="btn-primary btn-sm" (click)="showForm.set(true)">Register first beneficiary</button> }
+              @if (hasFilters()) { <button type="button" class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button> }
+              @else if (canManage()) { <button type="button" class="btn-primary btn-sm" (click)="showForm.set(true)">Register first beneficiary</button> }
             </div>
           } @else {
             @for (b of beneficiaries(); track b._id) {
-              <div class="ben-row" [class.selected]="selected()?._id === b._id" (click)="select(b)">
+              <div class="ben-row" [class.selected]="selected()?._id === b._id" (click)="select(b)" role="button" tabindex="0" (keydown.enter)="select(b)" (keydown.space)="$event.preventDefault(); select(b)">
                 <div class="ben-av {{ avatarColorClass(b) }}">{{ avatarInitials(b) }}</div>
                 <div class="ben-info">
                   <div class="ben-name">{{ b.name }}
@@ -735,7 +735,7 @@
             }
           } @else {
             @for (b of beneficiaries(); track b._id) {
-              <div class="ben-card" [class.selected]="selected()?._id === b._id" (click)="select(b)">
+              <div class="ben-card" [class.selected]="selected()?._id === b._id" (click)="select(b)" role="button" tabindex="0" (keydown.enter)="select(b)" (keydown.space)="$event.preventDefault(); select(b)">
                 <div class="bc-top">
                   <div class="ben-av big {{ avatarColorClass(b) }}">{{ avatarInitials(b) }}</div>
                   <span class="status-dot {{ b.status }}"></span>
@@ -767,9 +767,9 @@
       <!-- Pagination -->
       @if (pages() > 1) {
         <div class="pagination">
-          <button class="pg-btn" (click)="prevPage()" [disabled]="currentPage() === 1">‹ Prev</button>
+          <button type="button" class="pg-btn" (click)="prevPage()" [disabled]="currentPage() === 1">‹ Prev</button>
           <span class="pg-info">Page {{ currentPage() }} of {{ pages() }}</span>
-          <button class="pg-btn" (click)="nextPage()" [disabled]="currentPage() === pages()">Next ›</button>
+          <button type="button" class="pg-btn" (click)="nextPage()" [disabled]="currentPage() === pages()">Next ›</button>
         </div>
       }
     </div><!-- /list-col -->
@@ -804,28 +804,28 @@
           </div>
           <div class="dp-head-actions">
             @if (canManage()) {
-              <button class="btn-icon" title="Edit" (click)="openEdit()">✎</button>
+              <button type="button" class="btn-icon" title="Edit" (click)="openEdit()">✎</button>
             }
             @if (canAdmin()) {
-              <button class="btn-icon danger" title="Delete" (click)="confirmDelete()" [disabled]="deleting()">🗑</button>
+              <button type="button" class="btn-icon danger" title="Delete" (click)="confirmDelete()" [disabled]="deleting()">🗑</button>
             }
-            <button class="btn-icon" title="Close" (click)="deselect()">✕</button>
+            <button type="button" class="btn-icon" title="Close" (click)="deselect()">✕</button>
           </div>
         </div>
 
         <!-- Tab bar -->
         <div class="dp-tabs">
-          <button class="dp-tab" [class.active]="detailTab() === 'profile'" (click)="switchTab('profile')">Profile</button>
-          <button class="dp-tab" [class.active]="detailTab() === 'household'" (click)="switchTab('household')">
+          <button type="button" class="dp-tab" [class.active]="detailTab() === 'profile'" (click)="switchTab('profile')">Profile</button>
+          <button type="button" class="dp-tab" [class.active]="detailTab() === 'household'" (click)="switchTab('household')">
             Household @if (b.householdSize > 1) { <span class="tab-badge">{{ b.householdSize }}</span> }
           </button>
-          <button class="dp-tab" [class.active]="detailTab() === 'enrollment'" (click)="switchTab('enrollment')">
+          <button type="button" class="dp-tab" [class.active]="detailTab() === 'enrollment'" (click)="switchTab('enrollment')">
             Programmes @if ((b.programEnrollments?.length ?? 0) > 0) { <span class="tab-badge">{{ b.programEnrollments?.length }}</span> }
           </button>
-          <button class="dp-tab" [class.active]="detailTab() === 'services'" (click)="switchTab('services')">
+          <button type="button" class="dp-tab" [class.active]="detailTab() === 'services'" (click)="switchTab('services')">
             Services @if ((b.serviceHistory?.length ?? 0) > 0) { <span class="tab-badge">{{ b.serviceHistory?.length }}</span> }
           </button>
-          <button class="dp-tab" [class.active]="detailTab() === 'activities'" (click)="switchTab('activities')">Activities</button>
+          <button type="button" class="dp-tab" [class.active]="detailTab() === 'activities'" (click)="switchTab('activities')">Activities</button>
         </div>
 
         <div class="dp-body">
@@ -935,7 +935,7 @@
           <!-- ── ENROLLMENT TAB ────────────────────────────────────────── -->
           @if (detailTab() === 'enrollment') {
             @if (canManage()) {
-              <button class="tab-action-btn" (click)="showEnrollForm.set(!showEnrollForm())">
+              <button type="button" class="tab-action-btn" (click)="showEnrollForm.set(!showEnrollForm())">
                 {{ showEnrollForm() ? '✕ Cancel' : '+ Enrol in programme' }}
               </button>
             }
@@ -984,7 +984,7 @@
                     <div class="ei-right">
                       <span class="status-pill {{ e.status }}">{{ e.status | titlecase }}</span>
                       @if (canManage() && e.status === 'active') {
-                        <button class="btn-ghost btn-xs" (click)="openExitModal(e)">Exit</button>
+                        <button type="button" class="btn-ghost btn-xs" (click)="openExitModal(e)">Exit</button>
                       }
                     </div>
                   </div>
@@ -996,7 +996,7 @@
           <!-- ── SERVICES TAB ──────────────────────────────────────────── -->
           @if (detailTab() === 'services') {
             @if (canManage()) {
-              <button class="tab-action-btn" (click)="showServiceForm.set(!showServiceForm())">
+              <button type="button" class="tab-action-btn" (click)="showServiceForm.set(!showServiceForm())">
                 {{ showServiceForm() ? '✕ Cancel' : '+ Record service delivery' }}
               </button>
             }
@@ -1006,7 +1006,7 @@
                 <form [formGroup]="serviceForm" (ngSubmit)="submitService()">
                   <div class="form-grid">
                     <label>Service type *
-                      <select formControlName="serviceType">
+                      <select aria-label="Service type" formControlName="serviceType">
                         <option value="">— Select —</option>
                         @for (st of serviceTypes; track st) {
                           <option [value]="st">{{ serviceTypeIcon(st) }} {{ st.replace('_',' ') | titlecase }}</option>
@@ -1023,7 +1023,7 @@
                       </select>
                     </label>
                     <label>Quantity
-                      <input type="number" formControlName="quantity" min="0" />
+                      <input aria-label="Quantity" type="number" formControlName="quantity" min="0" />
                     </label>
                     <label>Unit
                       <input formControlName="unit" placeholder="kg, USD, sessions…" />
@@ -1100,7 +1100,8 @@
 <!-- ═══ EXIT MODAL ════════════════════════════════════════════════════════════ -->
 @if (showExitModal(); as enrollment) {
   <div class="modal-backdrop" (click)="showExitModal.set(null)">
-    <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal" appModal modalLabel="Record beneficiary exit"
+         (modalClose)="showExitModal.set(null)" (click)="$event.stopPropagation()">
       <h3>Exit from programme</h3>
       <p>Exiting <strong>{{ projectLabel(enrollment.projectId) }}</strong> for <strong>{{ selected()?.name }}</strong>.</p>
       <label>Exit reason
@@ -1110,8 +1111,8 @@
         </select>
       </label>
       <div class="modal-actions">
-        <button class="btn-ghost" (click)="showExitModal.set(null)">Cancel</button>
-        <button class="btn-danger" (click)="confirmExit()">Confirm exit</button>
+        <button type="button" class="btn-ghost" (click)="showExitModal.set(null)">Cancel</button>
+        <button type="button" class="btn-danger" (click)="confirmExit()">Confirm exit</button>
       </div>
     </div>
   </div>

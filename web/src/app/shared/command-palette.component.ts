@@ -34,7 +34,7 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
               <div class="cp-empty">No results for "{{ palette.query() }}"</div>
             } @else {
               @for (cmd of palette.filteredCommands; track cmd.id; let i = $index) {
-                <button
+                <button type="button"
                   class="cp-item"
                   [class.cp-item-active]="activeIndex() === i"
                   (click)="run(cmd)"

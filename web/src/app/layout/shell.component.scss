@@ -218,14 +218,20 @@ nav a.nav-link:hover, nav a.nav-link.active {
 
 .np-actions {
   display: flex; align-items: center; gap: 0.75rem;
+  // Touch targets: padding brings both to a comfortable hit area on phones
+  // without changing how they look. `min-height` keeps them tappable even
+  // when the label is short.
   .text-btn {
     background: none; border: none; color: var(--primary);
     font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    padding: 0.5rem 0.35rem; min-height: 44px;
     &:hover { text-decoration: underline; }
   }
   .close-btn {
     background: none; border: none; color: var(--muted);
-    font-size: 1.25rem; cursor: pointer; line-height: 1; padding: 0;
+    font-size: 1.25rem; cursor: pointer; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 44px; min-height: 44px; padding: 0;
     &:hover { color: var(--text); }
   }
 }
@@ -280,7 +286,11 @@ main {
 .sidebar-overlay { display: none; }
 
 @media (max-width: 900px) {
-  .shell { display: block; height: auto; overflow: visible; }
+  // `overflow: visible` lets the off-canvas notification panel (fixed, then
+  // translated 100% to the right) extend the document's scrollable width,
+  // which produced a horizontal scrollbar on phones. Clip the x-axis while
+  // keeping vertical scrolling natural.
+  .shell { display: block; height: auto; overflow: visible; overflow-x: clip; }
 
   .mobile-topbar {
     display: flex; align-items: center; gap: 1rem;

@@ -29,6 +29,12 @@ export const PERMISSIONS = {
     OrgRole.FIELD_OFFICER,
   ],
   APPROVE_ACTIVITIES: [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER],
+  /**
+   * Each Copilot call is a metered model completion, so it is restricted to the
+   * roles that author programme content — read-only viewers get the dashboards
+   * and reports, not the generation endpoints.
+   */
+  USE_AI_COPILOT: [OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER],
   VIEW_REPORTS: [
     OrgRole.OWNER,
     OrgRole.ADMIN,

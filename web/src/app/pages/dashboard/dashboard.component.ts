@@ -17,6 +17,12 @@ import { canManageProjects } from '../../core/roles';
 export class DashboardComponent implements OnInit, AfterViewInit {
   projects        = signal<Project[]>([]);
   overview        = signal<DashboardOverview | null>(null);
+  /**
+   * True until the first overview response lands. Without this the KPI strip is
+   * simply absent on first paint and then pops in, which reads as an empty
+   * account for the first second of every session.
+   */
+  overviewLoading = signal(true);
   workflowSummary = signal<WorkflowSummary | null>(null);
   myTasks         = signal<any[]>([]);
   showForm        = signal(false);
@@ -112,9 +118,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.api.projects().subscribe((res: any) =>
       this.projects.set(Array.isArray(res) ? res : (res.data ?? []))
     );
+    this.overviewLoading.set(true);
     this.api.dashboardOverview().subscribe({
-      next:  o => this.overview.set(o),
-      error: () => this.overview.set(null),
+      next:  o => { this.overview.set(o); this.overviewLoading.set(false); },
+      error: () => { this.overview.set(null); this.overviewLoading.set(false); },
     });
     this.api.workflowSummary().subscribe({
       next:  s => this.workflowSummary.set(s),

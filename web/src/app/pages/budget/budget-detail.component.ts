@@ -1,10 +1,11 @@
 import { CommonModule, DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { BudgetAllocation, BudgetLineItem, BudgetVariance } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'details' | 'line-items' | 'variance' | 'audit';
 
@@ -16,6 +17,7 @@ type Tab = 'details' | 'line-items' | 'variance' | 'audit';
   styleUrl: './budget.scss',
 })
 export class BudgetDetailComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   budget = signal<BudgetAllocation | null>(null);
   lineItems = signal<BudgetLineItem[]>([]);
   variance = signal<BudgetVariance[]>([]);
@@ -190,8 +192,8 @@ export class BudgetDetailComponent implements OnInit {
     });
   }
 
-  deleteLineItem(id: string) {
-    if (!confirm('Delete this line item? The committed amount will be returned to the budget.')) return;
+  async deleteLineItem(id: string) {
+    if (!(await this.confirmSvc.ask({ title: `Delete this line item?`, message: `The committed amount will be returned to the budget.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteBudgetLineItem(id).subscribe({
       next: () => {
         this.loadLineItems();
@@ -206,8 +208,8 @@ export class BudgetDetailComponent implements OnInit {
     });
   }
 
-  closeBudget() {
-    if (!confirm('Close this budget allocation? This cannot be undone.')) return;
+  async closeBudget() {
+    if (!(await this.confirmSvc.ask({ title: `Close this budget allocation?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.closeBudget(this.budgetId).subscribe({
       next: () => this.loadAll(),
     });

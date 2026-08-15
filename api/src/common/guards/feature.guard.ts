@@ -42,7 +42,7 @@ export class FeatureGuard implements CanActivate {
       if (!planHasFeature(planId, feature)) {
         const featureLabels: Record<PlanFeatureFlag, string> = {
           hasApiAccess: 'REST API access',
-          hasSso: 'SSO / SAML login',
+          hasSso: 'SSO (OpenID Connect) login',
           hasWhiteLabel: 'White-labelling',
           hasMultiOrgAggregation: 'Multi-partner aggregation',
           hasDedicatedSupport: 'Dedicated support',

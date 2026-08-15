@@ -967,3 +967,9 @@
   .history-item { flex-direction: column; gap: 6px; }
   .page-header { flex-direction: column; }
 }
+/* Layout wrappers referenced by the template with no rules behind them. */
+.page-header-left { display: flex; flex-direction: column; gap: 0.15rem; }
+.tab-content      { padding-top: 1rem; }
+.steps-editor     { display: flex; flex-direction: column; gap: 0.6rem; }
+.hi-step          { font-weight: 600; }
+.hi-date          { color: var(--muted, #6b7280); font-size: 0.78rem; }

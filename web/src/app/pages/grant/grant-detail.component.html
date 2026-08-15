@@ -1,0 +1,350 @@
+<div class="grant-detail">
+  <a routerLink="/grants" class="back-link">← All grants</a>
+
+  @if (loading()) {
+    <p class="muted">Loading grant…</p>
+  } @else if (error() && !grant()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (grant(); as g) {
+    <header class="head">
+      <div>
+        <div class="badges">
+          <span class="status" [class]="'status ' + (g.status || '')">{{ g.status || '—' }}</span>
+          @if (g.fundClassification === 'restricted') { <span class="pill">Restricted</span> }
+          @if (isSubAward()) { <span class="pill sub">Sub-award</span> }
+          @if (g.isOverspent) { <span class="pill overdue">Overspent</span> }
+        </div>
+        <h1>{{ g.name }}</h1>
+        <p class="muted">
+          @if (donorName()) { Funded by {{ donorName() }} · }
+          {{ g.startDate | date:'d MMM y' }} – {{ g.endDate | date:'d MMM y' }}
+          @if (g.subRecipientName) { · Sub-recipient: {{ g.subRecipientName }} }
+        </p>
+      </div>
+    </header>
+
+    @if (g.isOverspent) {
+      <div class="banner danger">
+        <strong>Overspent by {{ g.currency }} {{ g.overspendAmount | number }}.</strong>
+        Approved expenditure exceeds the awarded amount. Record a budget revision or review the linked activities.
+      </div>
+    }
+    @if (overdueObligations().length) {
+      <div class="banner warn">
+        <strong>{{ overdueObligations().length }} donor report(s) overdue.</strong>
+        Earliest due {{ overdueObligations()[0].dueDate | date:'d MMM y' }}.
+      </div>
+    }
+    @if (error()) { <div class="banner danger">{{ error() }}</div> }
+
+    <section class="stats">
+      <div class="stat">
+        <span class="label">Awarded</span>
+        <strong>{{ g.currency }} {{ g.amount | number }}</strong>
+        @if (showsBaseCurrency()) {
+          @if (fxUnavailable()) {
+            <small class="fx-warn">No {{ g.baseCurrency }} rate available</small>
+          } @else {
+            <small class="muted">≈ {{ g.baseCurrency }} {{ g.amountInBaseCurrency | number }}</small>
+          }
+        }
+      </div>
+      <div class="stat">
+        <span class="label">Disbursed</span>
+        <strong>{{ g.currency }} {{ g.disbursedAmount | number }}</strong>
+        <small class="muted">{{ g.currency }} {{ g.undisbursedAmount | number }} outstanding</small>
+      </div>
+      <div class="stat">
+        <span class="label">Spent</span>
+        <strong>{{ g.currency }} {{ g.amountSpent | number }}</strong>
+        <small class="muted">{{ g.currency }} {{ g.remainingAmount | number }} remaining</small>
+      </div>
+      <div class="stat">
+        <span class="label">Utilisation</span>
+        <strong>{{ utilisation() }}%</strong>
+        <div class="bar"><span [style.width.%]="utilisation() > 100 ? 100 : utilisation()"
+                               [class.over]="g.isOverspent"></span></div>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button type="button" [class.on]="tab()==='overview'"      (click)="setTab('overview')">Overview</button>
+      <button type="button" [class.on]="tab()==='disbursements'" (click)="setTab('disbursements')">
+        Disbursements <span class="count">{{ (g.disbursements ?? []).length }}</span>
+      </button>
+      <button type="button" [class.on]="tab()==='reporting'"     (click)="setTab('reporting')">
+        Reporting <span class="count" [class.alert]="overdueObligations().length">{{ openObligations().length }}</span>
+      </button>
+      <button type="button" [class.on]="tab()==='budget'"        (click)="setTab('budget')">Budget</button>
+      <button type="button" [class.on]="tab()==='amendments'"    (click)="setTab('amendments')">
+        Amendments <span class="count">{{ (g.amendments ?? []).length }}</span>
+      </button>
+      @if (!isSubAward()) {
+        <button type="button" [class.on]="tab()==='subawards'" (click)="setTab('subawards')">
+          Sub-awards <span class="count">{{ awardTree()?.subAwardCount ?? 0 }}</span>
+        </button>
+      }
+    </nav>
+
+    <!-- ─── Overview ─────────────────────────────────────────────────────── -->
+    @if (tab() === 'overview') {
+      @if (g.description) {
+        <section class="block"><h2>Description</h2><p>{{ g.description }}</p></section>
+      }
+      <section class="block">
+        <h2>Award terms</h2>
+        <ul class="facts">
+          <li><span>Classification</span><b>{{ g.fundClassification || 'restricted' }}</b></li>
+          <li><span>Indirect cost rate</span>
+              <b>{{ g.indirectCostRate || 0 }}%
+                 @if (g.indirectCostAmount) { ({{ g.currency }} {{ g.indirectCostAmount | number }} recovered) }
+              </b></li>
+          <li><span>Next report due</span>
+              <b>{{ g.nextReportDue ? (g.nextReportDue | date:'d MMM y') : 'None outstanding' }}</b></li>
+          @if (g.matchFunding?.required) {
+            <li><span>Match funding</span>
+                <b>{{ g.currency }} {{ g.matchFunding?.securedAmount | number }} secured of
+                   {{ g.matchFunding?.requiredAmount | number }}
+                   @if (g.matchFundingGapAmount) { — {{ g.matchFundingGapAmount | number }} short }
+                </b></li>
+          }
+          @if (g.termsAndConditions) { <li><span>Terms</span><b>{{ g.termsAndConditions }}</b></li> }
+        </ul>
+      </section>
+    }
+
+    <!-- ─── Disbursements ────────────────────────────────────────────────── -->
+    @if (tab() === 'disbursements') {
+      <section class="block">
+        <h2>Disbursement schedule</h2>
+        <p class="muted small">Only tranches marked <b>received</b> count toward the disbursed total.</p>
+        @if (!(g.disbursements ?? []).length) {
+          <p class="muted">No tranches recorded yet.</p>
+        } @else {
+          <table class="grid">
+            <thead><tr><th>Planned</th><th>Received</th><th class="num">Amount</th><th>Status</th><th>Reference</th><th></th></tr></thead>
+            <tbody>
+              @for (d of g.disbursements ?? []; track d._id) {
+                <tr>
+                  <td>{{ d.plannedDate | date:'d MMM y' }}</td>
+                  <td>{{ d.receivedDate ? (d.receivedDate | date:'d MMM y') : '—' }}</td>
+                  <td class="num">{{ d.currency || g.currency }} {{ d.amount | number }}</td>
+                  <td><span [class]="d.status === 'received' ? 'pill done' : 'pill pending'">{{ d.status }}</span></td>
+                  <td class="muted">{{ d.reference || '—' }}</td>
+                  <td class="row-actions">
+                    @if (d.status !== 'received') {
+                      <button type="button" class="link" (click)="markReceived(d._id!)" [disabled]="saving()">Mark received</button>
+                    }
+                    <button type="button" class="link danger" (click)="removeDisbursement(d._id!)" [disabled]="saving()">Remove</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <div class="inline-form">
+          <input type="date" [(ngModel)]="newDisbursement.plannedDate" aria-label="Planned date" />
+          <input type="number" placeholder="Amount" [(ngModel)]="newDisbursement.amount" aria-label="Amount" />
+          <input type="text" placeholder="Reference" [(ngModel)]="newDisbursement.reference" aria-label="Reference" />
+          <select [(ngModel)]="newDisbursement.status" aria-label="Status">
+            <option value="scheduled">Scheduled</option>
+            <option value="received">Received</option>
+            <option value="delayed">Delayed</option>
+          </select>
+          <button type="button" class="btn" (click)="addDisbursement()" [disabled]="saving()">Add tranche</button>
+        </div>
+      </section>
+    }
+
+    <!-- ─── Reporting ────────────────────────────────────────────────────── -->
+    @if (tab() === 'reporting') {
+      <section class="block">
+        <h2>Reporting obligations</h2>
+        @if (!(g.reportingSchedule ?? []).length) {
+          <p class="muted">No obligations scheduled.</p>
+        } @else {
+          <table class="grid">
+            <thead><tr><th>Due</th><th>Type</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+              @for (o of g.reportingSchedule ?? []; track o._id) {
+                <tr>
+                  <td>{{ o.dueDate | date:'d MMM y' }}</td>
+                  <td>{{ o.type }}</td>
+                  <td><span [class]="dueClass(o)">{{ o.status }}</span></td>
+                  <td>{{ o.submittedDate ? (o.submittedDate | date:'d MMM y') : '—' }}</td>
+                  <td class="row-actions">
+                    @if (o.status === 'pending' || o.status === 'overdue') {
+                      <button type="button" class="link" (click)="markSubmitted(o._id!)" [disabled]="saving()">Mark submitted</button>
+                    }
+                    <button type="button" class="link danger" (click)="removeObligation(o._id!)" [disabled]="saving()">Remove</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <div class="inline-form">
+          <input type="date" [(ngModel)]="newObligation.dueDate" aria-label="Due date" />
+          <select [(ngModel)]="newObligation.type" aria-label="Report type">
+            <option value="narrative">Narrative</option>
+            <option value="financial">Financial</option>
+            <option value="interim">Interim</option>
+            <option value="final">Final</option>
+            <option value="audit">Audit</option>
+          </select>
+          <input type="text" placeholder="Notes" [(ngModel)]="newObligation.notes" aria-label="Notes" />
+          <button type="button" class="btn" (click)="addObligation()" [disabled]="saving()">Add obligation</button>
+        </div>
+      </section>
+    }
+
+    <!-- ─── Budget ───────────────────────────────────────────────────────── -->
+    @if (tab() === 'budget') {
+      @if (financials(); as f) {
+        <section class="block">
+          <h2>Budget position</h2>
+          <div class="stats compact">
+            <div class="stat"><span class="label">Allocated</span><strong>{{ f.budget.allocated | number }}</strong></div>
+            <div class="stat"><span class="label">Committed</span><strong>{{ f.budget.committed | number }}</strong></div>
+            <div class="stat">
+              <span class="label">Unallocated</span>
+              <strong [class.warn-text]="f.budget.overAllocated">{{ f.budget.unallocated | number }}</strong>
+            </div>
+            <div class="stat">
+              <span class="label">Burn vs elapsed</span>
+              <strong>{{ f.burnRate.spendPct }}% / {{ f.burnRate.elapsedPct }}%</strong>
+              <small [class]="'pill ' + f.burnRate.status">{{ f.burnRate.status.replace('_',' ') }}</small>
+            </div>
+          </div>
+
+          @if (f.budget.overAllocated) {
+            <div class="banner warn">Allocations exceed the awarded amount.</div>
+          }
+
+          @if (f.byCategory.length) {
+            <h3>By cost category</h3>
+            <table class="grid">
+              <thead><tr><th>Category</th><th class="num">Allocated</th><th class="num">Spent</th><th class="num">Committed</th><th class="num">Used</th></tr></thead>
+              <tbody>
+                @for (c of f.byCategory; track c.category) {
+                  <tr>
+                    <td>{{ c.category }}</td>
+                    <td class="num">{{ c.allocated | number }}</td>
+                    <td class="num">{{ c.spent | number }}</td>
+                    <td class="num">{{ c.committed | number }}</td>
+                    <td class="num">{{ c.utilisationPct }}%</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="muted">No budget allocations are linked to this grant yet.</p>
+          }
+
+          @if (f.breachedThresholds.length) {
+            <h3>Threshold alerts</h3>
+            <ul class="facts">
+              @for (t of f.breachedThresholds; track t.allocation + t.threshold) {
+                <li><span>{{ t.allocation }}</span><b>past {{ t.threshold }}%</b></li>
+              }
+            </ul>
+          }
+        </section>
+      } @else {
+        <p class="muted">Budget position unavailable.</p>
+      }
+    }
+
+    <!-- ─── Amendments ───────────────────────────────────────────────────── -->
+    @if (tab() === 'amendments') {
+      <section class="block">
+        <h2>Amendment history</h2>
+        @if (!(g.amendments ?? []).length) {
+          <p class="muted">No amendments recorded.</p>
+        } @else {
+          <table class="grid">
+            <thead><tr><th>Effective</th><th>Type</th><th>Change</th><th>Reason</th><th>Ref</th></tr></thead>
+            <tbody>
+              @for (a of g.amendments ?? []; track a._id) {
+                <tr>
+                  <td>{{ a.effectiveDate | date:'d MMM y' }}</td>
+                  <td>{{ amendmentLabel(a.type) }}</td>
+                  <td class="muted">
+                    @if (a.previousAmount !== a.newAmount) {
+                      {{ a.previousAmount | number }} → {{ a.newAmount | number }}
+                    }
+                    @if (a.previousEndDate !== a.newEndDate) {
+                      {{ a.previousEndDate | date:'d MMM y' }} → {{ a.newEndDate | date:'d MMM y' }}
+                    }
+                  </td>
+                  <td>{{ a.reason }}</td>
+                  <td class="muted">{{ a.donorReference || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <div class="inline-form wrap">
+          <input type="date" [(ngModel)]="newAmendment.effectiveDate" aria-label="Effective date" />
+          <select [(ngModel)]="newAmendment.type" aria-label="Amendment type">
+            <option value="no_cost_extension">No-cost extension</option>
+            <option value="budget_revision">Budget revision</option>
+            <option value="scope_change">Scope change</option>
+            <option value="termination">Termination</option>
+          </select>
+          <input type="date" [(ngModel)]="newAmendment.newEndDate" aria-label="Revised end date" placeholder="New end date" />
+          <input type="number" [(ngModel)]="newAmendment.newAmount" placeholder="New amount" aria-label="Revised amount" />
+          <input type="text" [(ngModel)]="newAmendment.reason" placeholder="Reason (required)" aria-label="Reason" />
+          <input type="text" [(ngModel)]="newAmendment.donorReference" placeholder="Donor ref" aria-label="Donor reference" />
+          <button type="button" class="btn" (click)="recordAmendment()" [disabled]="saving()">Record amendment</button>
+        </div>
+      </section>
+    }
+
+    <!-- ─── Sub-awards ───────────────────────────────────────────────────── -->
+    @if (tab() === 'subawards' && !isSubAward()) {
+      @if (awardTree(); as t) {
+        <section class="block">
+          <h2>Award structure</h2>
+          <div class="stats compact">
+            <div class="stat"><span class="label">Sub-awards</span><strong>{{ t.subAwardCount }}</strong></div>
+            <div class="stat"><span class="label">Committed to subs</span>
+              <strong>{{ t.baseCurrency }} {{ t.committedToSubAwards | number }}</strong></div>
+            <div class="stat"><span class="label">Retained by prime</span>
+              <strong [class.warn-text]="t.overCommitted">
+                {{ t.retainedByPrime === null ? '—' : (t.baseCurrency + ' ' + (t.retainedByPrime | number)) }}
+              </strong></div>
+          </div>
+
+          @if (t.overCommitted) {
+            <div class="banner danger">Sub-awards commit more than the prime award holds.</div>
+          }
+
+          @if (t.subAwards.length) {
+            <table class="grid">
+              <thead><tr><th>Sub-award</th><th>Sub-recipient</th><th class="num">Amount</th><th>Status</th><th>Ends</th></tr></thead>
+              <tbody>
+                @for (s of t.subAwards; track s._id) {
+                  <tr>
+                    <td><a [routerLink]="['/grants', s._id]">{{ s.name }}</a></td>
+                    <td class="muted">{{ s.subRecipientName || '—' }}</td>
+                    <td class="num">{{ s.currency }} {{ s.amount | number }}</td>
+                    <td>{{ s.status }}</td>
+                    <td>{{ s.endDate | date:'d MMM y' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="muted">No sub-awards carved out of this prime award.</p>
+          }
+        </section>
+      }
+    }
+  }
+</div>

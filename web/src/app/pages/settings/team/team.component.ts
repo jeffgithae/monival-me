@@ -1,10 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/api.service';
 import { AuthService } from '../../../core/auth.service';
 import { formatHttpError } from '../../../core/http-error';
 import { canManageTeam, OrgRole, roleLabel } from '../../../core/roles';
+import { ConfirmService } from '../../../shared/confirm.service';
 
 @Component({
   selector: 'app-team',
@@ -14,6 +15,7 @@ import { canManageTeam, OrgRole, roleLabel } from '../../../core/roles';
   styleUrl: './team.component.scss',
 })
 export class TeamComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   members = signal<
     Array<{ id: string; email: string; name: string; role: OrgRole }>
   >([]);
@@ -69,8 +71,8 @@ export class TeamComponent implements OnInit {
     });
   }
 
-  remove(memberId: string) {
-    if (!confirm('Remove this team member?')) return;
+  async remove(memberId: string) {
+    if (!(await this.confirmSvc.ask({ title: `Remove this team member?`, message: `This action cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.removeMember(memberId).subscribe({
       next: () => this.reload(),
       error: (err) => this.error.set(formatHttpError(err, 'Remove failed')),

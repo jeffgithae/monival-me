@@ -6,7 +6,6 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { OfflineQueueService, QueuedItem } from '../../core/offline-queue.service';
 import { AutosaveService } from '../../shared/autosave.service';
-import { ConfirmService } from '../../shared/confirm.service';
 import { BreadcrumbService } from '../../shared/breadcrumb.service';
 import {
   Activity,
@@ -15,6 +14,7 @@ import {
   FormResponse,
   FormTemplate,
   Indicator,
+  IndicatorAchievement,
   IndicatorResult,
   IndicatorTarget,
   OrgDocument,
@@ -28,6 +28,7 @@ import {
   canManageIndicators,
 } from '../../core/roles';
 import { LeafletMapComponent, MapPoint } from '../../shared/map/leaflet-map.component';
+import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'framework' | 'indicators' | 'activities' | 'reporting' | 'report' | 'budgets' | 'documents';
 
@@ -50,6 +51,7 @@ interface IndicatorNode extends Indicator {
   styleUrl: './project.component.scss',
 })
 export class ProjectComponent implements OnInit, OnDestroy {
+  private confirmSvc = inject(ConfirmService);
   private api      = inject(ApiService);
   private auth     = inject(AuthService);
   private route    = inject(ActivatedRoute);
@@ -70,6 +72,15 @@ export class ProjectComponent implements OnInit, OnDestroy {
   project = signal<Project | null>(null);
   indicators = signal<Indicator[]>([]);
   activities = signal<Activity[]>([]);
+  /**
+   * Server-computed achievement per indicator, keyed by indicator id.
+   *
+   * Achievement is never summed from `activities()` on this page: that signal
+   * holds one page of activities (the API defaults to 50) and includes drafts
+   * and rejected entries, so a client-side sum silently under-reports on any
+   * project past its first page and disagrees with the donor report.
+   */
+  indicatorAchievement = signal<Map<string, IndicatorAchievement>>(new Map());
   showActivityMap = signal(false);
   readonly activityMapPoints = computed<MapPoint[]>(() =>
     this.activities()
@@ -150,15 +161,9 @@ export class ProjectComponent implements OnInit, OnDestroy {
     if (indicators.length === 0) {
       return 0;
     }
-    const values = indicators.map((indicator) => {
-      if (!indicator.target) {
-        return 0;
-      }
-      const achieved = this.activities()
-        .filter((activity) => activity.indicatorId === indicator._id)
-        .reduce((sum, activity) => sum + Number(activity.quantity || 0), 0);
-      return Math.min(100, Math.round((achieved / indicator.target) * 100));
-    });
+    const values = indicators.map(
+      (indicator) => this.achievementFor(indicator)?.percentComplete ?? 0,
+    );
     return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
   });
   readonly timelineProgress = computed(() => {
@@ -177,10 +182,9 @@ export class ProjectComponent implements OnInit, OnDestroy {
   });
   readonly indicatorSummaries = computed(() =>
     this.indicators().map((indicator) => {
-      const achieved = this.activities()
-        .filter((activity) => activity.indicatorId === indicator._id)
-        .reduce((sum, activity) => sum + Number(activity.quantity || 0), 0);
-      const percent = indicator.target ? Math.min(100, Math.round((achieved / indicator.target) * 100)) : 0;
+      const achievement = this.achievementFor(indicator);
+      const achieved = achievement?.achieved ?? 0;
+      const percent = achievement?.percentComplete ?? 0;
       const trend = this.getIndicatorTrend(indicator);
       return {
         ...indicator,
@@ -188,8 +192,9 @@ export class ProjectComponent implements OnInit, OnDestroy {
         percentComplete: percent,
         status:
           percent >= 75 ? 'On track' : percent >= 40 ? 'At risk' : 'Behind',
-        remaining: indicator.target ? Math.max(0, indicator.target - achieved) : null,
-        variance: indicator.target ? Math.max(0, indicator.target - achieved) : null,
+        remaining: achievement?.remaining ?? null,
+        variance: achievement?.remaining ?? null,
+        isLocked: achievement?.isLocked ?? false,
         trend,
         lastActivityDate: this.getLastActivityDate(indicator),
         nextDueDate: this.getIndicatorNextDueDate(indicator),
@@ -219,9 +224,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   readonly qualityAlerts = computed(() => {
     const alerts: Array<{ title: string; message: string; severity: 'critical' | 'warning' | 'info' }> = [];
     this.indicators().forEach((indicator) => {
-      const achieved = this.activities()
-        .filter((activity) => activity.indicatorId === indicator._id)
-        .reduce((sum, activity) => sum + Number(activity.quantity || 0), 0);
+      const achieved = this.achievementFor(indicator)?.achieved ?? 0;
       const lastDate = this.getLastActivityDate(indicator);
       const lastDays = lastDate
         ? Math.ceil((Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -281,7 +284,17 @@ export class ProjectComponent implements OnInit, OnDestroy {
     [...this.activities()].sort((a, b) => new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime()).slice(0, 4),
   );
 
+  /** Server-computed achievement for one indicator, or undefined before it loads. */
+  achievementFor(indicator: Indicator): IndicatorAchievement | undefined {
+    return this.indicatorAchievement().get(indicator._id);
+  }
+
   getLastActivityDate(indicator: Indicator): string | undefined {
+    // The server figure covers every activity, not just the loaded page.
+    const fromServer = this.achievementFor(indicator)?.lastActivityDate;
+    if (fromServer) {
+      return fromServer;
+    }
     const activities = this.activities()
       .filter((activity) => activity.indicatorId === indicator._id)
       .sort((a, b) => new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime());
@@ -430,7 +443,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   }
 
   async discardQueuedActivity(clientId: string, label: string): Promise<void> {
-    if (!confirm(`Discard the queued activity "${label}"? It has not been saved to the server.`)) return;
+    if (!(await this.confirmSvc.ask({ title: `Discard the queued activity "${label}"?`, message: `It has not been saved to the server.`, danger: true, confirmLabel: 'Delete' }))) return;
     await this.queue.remove(clientId);
     await this.refreshQueuedActivities();
   }
@@ -470,6 +483,19 @@ export class ProjectComponent implements OnInit, OnDestroy {
     if (t === 'documents')  this.loadDocuments();
   }
 
+  /**
+   * Achievement is computed server-side over every activity, so it is refreshed
+   * whenever activity data changes rather than derived from the loaded page.
+   */
+  loadIndicatorAchievement() {
+    this.api.indicatorAchievement(this.projectId).subscribe({
+      next: (res) => this.indicatorAchievement.set(
+        new Map(res.indicators.map((entry) => [entry.indicatorId, entry])),
+      ),
+      error: () => this.indicatorAchievement.set(new Map()),
+    });
+  }
+
   loadBudgets() {
     this.api.budgetAllocations({ projectId: this.projectId }).subscribe(data => this.budgetAllocations.set(data));
   }
@@ -484,6 +510,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   reload() {
     this.api.project(this.projectId).subscribe((p) => this.project.set(p));
     this.api.indicators(this.projectId).subscribe((res: any) => this.indicators.set(Array.isArray(res) ? res : (res.data ?? [])));
+    this.loadIndicatorAchievement();
     this.api.activities(this.projectId).subscribe((res: any) => this.activities.set(Array.isArray(res) ? res : (res.data ?? [])));
     this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));

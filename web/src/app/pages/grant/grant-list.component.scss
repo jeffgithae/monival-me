@@ -632,3 +632,23 @@ $border:   rgba(15, 23, 42, 0.08);
   .form-row { grid-template-columns: 1fr; }
   .slide-panel { width: 100vw; }
 }   
+/* Shown when a currency has no exchange rate, so its awards are excluded
+   from the converted portfolio totals above rather than added at face value. */
+.fx-notice {
+  margin: -0.4rem 0 1rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.8rem;
+  b { margin-left: 0.3rem; }
+}
+
+/* Inline qualifier inside a form label, e.g. "Indirect cost rate (%)". */
+.hint {
+  margin-left: 0.25rem;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--muted, #6b7280);
+}

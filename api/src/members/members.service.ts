@@ -48,10 +48,16 @@ export class MembersService {
     };
   }
 
+  /**
+   * Returns the caller's membership, creating one only when explicitly told which
+   * role to create it at. There is deliberately no default role: an implicit
+   * OWNER default meant any login with a dangling `user.organizationId` — a
+   * removed member, for instance — silently provisioned a fresh owner record.
+   */
   async ensureMemberRecord(
     userId: Types.ObjectId,
     organizationId: Types.ObjectId,
-    role: OrgRole = OrgRole.OWNER,
+    role: OrgRole,
   ) {
     const existing = await this.memberModel.findOne({ userId, organizationId });
     if (existing) {
@@ -256,6 +262,21 @@ export class MembersService {
     });
     if (result.deletedCount === 0) {
       throw new NotFoundException('Member not found');
+    }
+
+    if (target) {
+      // Revoke the removed member's session immediately: bump tokenVersion so the
+      // outstanding access token is rejected on its next use rather than staying
+      // live for the remainder of its 8h TTL, and clear the org pointer so login
+      // cannot treat them as a member of an org they no longer belong to.
+      await this.userModel.updateOne(
+        { _id: target.userId, organizationId: new Types.ObjectId(organizationId) },
+        {
+          $inc: { tokenVersion: 1 },
+          $set: { refreshTokenHash: null, prevRefreshTokenHash: null },
+          $unset: { organizationId: '' },
+        },
+      );
     }
 
     if (target) {

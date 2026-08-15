@@ -5,6 +5,8 @@ import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Project, WorkplanItem, Indicator } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 type StatusFilter = '' | 'planned' | 'in_progress' | 'completed' | 'delayed' | 'cancelled';
 type ViewMode = 'board' | 'timeline' | 'table';
@@ -12,11 +14,12 @@ type ViewMode = 'board' | 'timeline' | 'table';
 @Component({
   selector: 'app-workplan',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, DecimalPipe],
+  imports: [ModalDirective, CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, DecimalPipe],
   templateUrl: './workplan.component.html',
   styleUrl:    './workplan.component.scss',
 })
 export class WorkplanComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api = inject(ApiService);
   auth        = inject(AuthService);
   private fb  = inject(FormBuilder);
@@ -210,8 +213,8 @@ export class WorkplanComponent implements OnInit {
     });
   }
 
-  deleteItem(item: WorkplanItem) {
-    if (!confirm(`Delete "${item.title}"?`)) return;
+  async deleteItem(item: WorkplanItem) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${item.title}"?`, message: `This action cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.deleting.set(item._id);
     this.api.removeWorkplanItem(this.selectedProjectId(), item._id).subscribe({
       next: updated => {

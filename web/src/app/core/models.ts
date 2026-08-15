@@ -372,6 +372,25 @@ export interface AnnualTarget {
 
 // ─── Indicator ────────────────────────────────────────────────────────────────
 
+/** One indicator's server-computed achievement — see ApiService.indicatorAchievement. */
+export interface IndicatorAchievement {
+  indicatorId: string;
+  achieved: number;
+  target: number | null;
+  baseline: number;
+  percentComplete: number;
+  remaining: number | null;
+  /** True when the number comes from a locked/approved reporting-period result. */
+  isLocked: boolean;
+  activityCount: number;
+  lastActivityDate: string | null;
+}
+
+export interface IndicatorAchievementResponse {
+  projectId: string;
+  indicators: IndicatorAchievement[];
+}
+
 export interface Indicator {
   _id: string;
   projectId: string;
@@ -871,67 +890,175 @@ export interface BudgetSummary {
 
 export type GrantStatus = 'prospect' | 'applied' | 'awarded' | 'active' | 'closed' | 'rejected' | 'completed' | 'pending';
 
+export type DisbursementStatus = 'scheduled' | 'received' | 'delayed' | 'cancelled';
+export type ReportObligationType = 'narrative' | 'financial' | 'interim' | 'final' | 'audit';
+export type ReportObligationStatus = 'pending' | 'submitted' | 'accepted' | 'overdue' | 'waived';
+export type AmendmentType = 'no_cost_extension' | 'budget_revision' | 'scope_change' | 'termination';
+
+export interface GrantDisbursement {
+  _id?: string;
+  plannedDate: string;
+  receivedDate?: string;
+  amount: number;
+  currency?: string;
+  status: DisbursementStatus;
+  reference?: string;
+  notes?: string;
+}
+
+export interface GrantReportingObligation {
+  _id?: string;
+  dueDate: string;
+  type: ReportObligationType;
+  status: ReportObligationStatus;
+  submittedDate?: string;
+  reportingPeriodId?: string;
+  notes?: string;
+}
+
+export interface GrantAmendment {
+  _id?: string;
+  effectiveDate: string;
+  type: AmendmentType;
+  previousAmount?: number;
+  newAmount?: number;
+  previousEndDate?: string;
+  newEndDate?: string;
+  reason: string;
+  donorReference?: string;
+  recordedAt?: string;
+}
+
+export interface GrantMatchFunding {
+  required: boolean;
+  requiredAmount: number;
+  securedAmount: number;
+  source?: string;
+  notes?: string;
+}
+
 export interface Grant {
   _id: string;
   organizationId: string;
   name: string;
-  title?: string;
-  totalAmount?: number;
-  referenceNumber?: string;
+  description?: string;
   donorId?: any;
-  projectId?: string;
-  projectName?: string;
   status?: GrantStatus;
+
+  // ─── Money ───
   currency: string;
   amount: number;
-  disbursedAmount?: number;
   amountSpent: number;
-  spentAmount?: number;
-  uncommittedAmount?: number;
+  exchangeRate?: number | null;
+  isOverspent?: boolean;
+  overspendAmount?: number;
+  indirectCostRate?: number;
+  fundClassification?: 'restricted' | 'unrestricted';
+  matchFunding?: GrantMatchFunding;
+
+  // ─── Award hierarchy ───
+  parentGrantId?: string | null;
+  subRecipientName?: string;
+  subRecipientPartnerId?: string;
+
+  // ─── Lifecycle ───
   startDate: string;
   endDate: string;
-  submissionDeadline?: string;
-  reportingFrequency?: 'monthly' | 'quarterly' | 'semiannual' | 'annual';
-  nextReportDue?: string;
-  description?: string;
-  objectives?: string;
-  conditionsPrecedent?: string[];
-  restrictedCostCategories?: string[];
-  isRestricted?: boolean;
-  attachmentUrls?: string[];
-  createdBy?: string;
+  amendments?: GrantAmendment[];
+
+  // ─── Delivery & obligations ───
+  linkedProjects?: any[];
+  disbursements?: GrantDisbursement[];
+  reportingSchedule?: GrantReportingObligation[];
+  nextReportDue?: string | null;
+  requiresMonthlyReporting?: boolean;
+  requiresFinalReport?: boolean;
+  termsAndConditions?: string;
+
   createdAt?: string;
   updatedAt?: string;
-  daysUntilExpiry?: number;
-  burnRate?: number;
-  donorName?: string;
+
+  // ─── Server-derived (present on GET /grants/:id) ───
+  disbursedAmount?: number;
+  undisbursedAmount?: number;
+  remainingAmount?: number;
+  burnRatePct?: number;
+  indirectCostAmount?: number;
+  matchFundingGapAmount?: number;
+  baseCurrency?: string;
+  amountInBaseCurrency?: number | null;
+  exchangeRateUsed?: number | null;
+  exchangeRateSource?: 'identity' | 'explicit' | 'cache' | 'unavailable';
 }
 
 export interface CreateGrantDto {
   name: string;
-  referenceNumber?: string;
   donorId?: string;
-  projectId?: string;
   status?: GrantStatus;
   currency?: string;
   amount: number;
+  exchangeRate?: number;
   startDate: string;
   endDate: string;
-  submissionDeadline?: string;
-  reportingFrequency?: string;
   description?: string;
-  objectives?: string;
-  isRestricted?: boolean;
+  parentGrantId?: string;
+  subRecipientName?: string;
+  fundClassification?: 'restricted' | 'unrestricted';
+  indirectCostRate?: number;
+  matchFunding?: Partial<GrantMatchFunding>;
+  requiresMonthlyReporting?: boolean;
+  requiresFinalReport?: boolean;
+  linkedProjects?: string[];
 }
 
 export interface GrantSummary {
+  baseCurrency: string;
   totalGrantAmount: number;
-  activeGrants: number;
   totalSpent: number;
+  totalDisbursed: number;
   remainingBudget: number;
-  expiringIn30Days?: Grant[];
-  overdueReports?: Grant[];
-  totalGrants?: number;
+  undisbursedBalance: number;
+  activeGrants: number;
+  overspentGrants: number;
+  /** Currencies with no known rate — excluded from the totals above. */
+  unconvertible: Array<{ currency: string; amount: number }>;
+}
+
+export interface GrantFinancialRollup {
+  grantId: string;
+  currency: string;
+  award: {
+    amount: number; amountSpent: number; remaining: number;
+    isOverspent: boolean; overspendAmount: number; indirectCostRate: number;
+  };
+  budget: {
+    allocationCount: number; allocated: number; spent: number;
+    committed: number; uncommitted: number; unallocated: number; overAllocated: boolean;
+  };
+  byCategory: Array<{ category: string; allocated: number; spent: number; committed: number; utilisationPct: number }>;
+  burnRate: { spendPct: number; elapsedPct: number; variancePct: number; status: 'ahead' | 'behind' | 'on_track' };
+  breachedThresholds: Array<{ allocation: string; category: string; threshold: number }>;
+}
+
+export interface GrantAwardTree {
+  prime: Grant;
+  subAwards: Grant[];
+  baseCurrency: string;
+  subAwardCount: number;
+  committedToSubAwards: number;
+  retainedByPrime: number | null;
+  overCommitted: boolean;
+  unconvertible: Array<{ currency: string; amount: number }>;
+}
+
+export interface GrantReportDue {
+  grantId: string;
+  grantName: string;
+  donor?: string;
+  nextReportDue: string;
+  daysUntilDue: number | null;
+  isOverdue: boolean;
+  obligations: GrantReportingObligation[];
 }
 
 // ─── Donors ───────────────────────────────────────────────────────────────────

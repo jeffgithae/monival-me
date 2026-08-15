@@ -50,93 +50,118 @@ export class NavService {
 
     const items: NavItem[] = [];
 
-    // ── Core ──────────────────────────────────────────────────────────────────
-    items.push({ id: 'dashboard', label: 'Dashboard', icon: '📊', route: '/dashboard' });
-
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.VIEWER)) {
-      items.push({ id: 'projects', label: 'Projects', icon: '📁', route: '/projects' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
-      items.push({ id: 'workplan', label: 'Workplans', icon: '📅', route: '/workplan' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
-      items.push({ id: 'workflows', label: 'Workflows', icon: '✅', route: '/workflows' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
-      items.push({ id: 'data-collection', label: 'Data Collection', icon: '🗂', route: '/data-collection' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
-      items.push({ id: 'data-reporting', label: 'Reports & Data', icon: '📊', route: '/data-reporting' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
-      items.push({ id: 'strategic', label: 'Strategic Overview', icon: '🎯', route: '/strategic' });
-      items.push({ id: 'insights', label: 'Insights', icon: '💡', route: '/insights' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
-      items.push({ id: 'map', label: 'Map', icon: '🗺️', route: '/map' });
-    }
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE)) {
-      if (!items.find(i => i.id === 'roi')) {
-        items.push({ id: 'roi', label: 'Cost per Impact', icon: '📐', route: '/roi' });
+    /**
+     * The client renders a divider on the first item carrying `section`.
+     * Role gates differ per item, so which item lands first in a section
+     * varies by role — this attaches the label to whichever actually does.
+     */
+    const seenSections = new Set<string>();
+    const push = (item: NavItem, section?: string) => {
+      if (section && !seenSections.has(section)) {
+        seenSections.add(section);
+        items.push({ ...item, section });
+      } else {
+        items.push(item);
       }
+    };
+
+    // ── Today ─────────────────────────────────────────────────────────────────
+    // Landing + the approvals queue: the two things a user opens the app for.
+    push({ id: 'dashboard', label: 'Dashboard', icon: '📊', route: '/dashboard' });
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'workflows', label: 'Approvals', icon: '✅', route: '/workflows' });
+    }
+
+    // ── Plan ──────────────────────────────────────────────────────────────────
+    // Designing the intervention: what we intend to do and how we measure it.
+    const planSection = 'Plan';
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.VIEWER)) {
+      push({ id: 'projects', label: 'Projects', icon: '📁', route: '/projects' }, planSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'workplan', label: 'Workplans', icon: '📅', route: '/workplan' }, planSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
+      push({ id: 'strategic', label: 'Strategic Overview', icon: '🎯', route: '/strategic' }, planSection);
+      // The planning frameworks belong beside the plan they express, not in a
+      // separate "Frameworks" bucket at the bottom of the menu.
+      push({ id: 'bsc', label: 'Balanced Scorecard', icon: '📈', route: '/bsc' }, planSection);
+      push({ id: 'okrs', label: 'OKRs', icon: '🎯', route: '/okrs' }, planSection);
+    }
+
+    // ── Collect ───────────────────────────────────────────────────────────────
+    // Everything that puts evidence into the system.
+    const collectSection = 'Collect';
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'field-collect', label: 'Field Collection', icon: '📍', route: '/field-collect' }, collectSection);
+      push({ id: 'data-collection', label: 'Forms & Imports', icon: '🗂', route: '/data-collection' }, collectSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'beneficiaries', label: 'Beneficiaries', icon: '👥', route: '/beneficiaries' }, collectSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' }, collectSection);
     }
 
     // ── Funding ───────────────────────────────────────────────────────────────
+    // Budget Tracking sits here rather than under Frameworks: burn rate and
+    // variance are grant-management concerns and roll up to the award.
     const fundingSection = 'Funding';
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE)) {
-      items.push({ id: 'beneficiaries', label: 'Beneficiaries', icon: '👥', route: '/beneficiaries', section: fundingSection });
-      items.push({ id: 'donors', label: 'Donors', icon: '🤝', route: '/donors' });
-      items.push({ id: 'grants', label: 'Grants', icon: '💵', route: '/grants' });
-    } else if (atLeast(OrgRole.FIELD_OFFICER)) {
-      items.push({ id: 'beneficiaries', label: 'Beneficiaries', icon: '👥', route: '/beneficiaries', section: fundingSection });
+      push({ id: 'donors', label: 'Donors', icon: '🤝', route: '/donors' }, fundingSection);
+      push({ id: 'grants', label: 'Grants', icon: '💵', route: '/grants' }, fundingSection);
+      push({ id: 'budget', label: 'Budget Tracking', icon: '💰', route: '/budget' }, fundingSection);
     }
 
-    // ── Reporting ─────────────────────────────────────────────────────────────
-    const reportingSection = 'Reporting';
+    // ── Analyse ───────────────────────────────────────────────────────────────
+    // Making sense of what was collected — read-only views over the data.
+    const analyseSection = 'Analyse';
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
-      items.push({ id: 'reporting', label: 'Reporting Periods', icon: '📋', route: '/reporting', section: reportingSection });
-      items.push({ id: 'ai', label: 'AI Copilot', icon: '✨', route: '/ai' });
-      items.push({ id: 'donor-reports', label: 'Donor Reports', icon: '📄', route: '/reports/donor' });
-      items.push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' });
-      items.push({ id: 'stories', label: 'Impact Stories', icon: '📖', route: '/stories' });
-      items.push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' });
-    } else if (atLeast(OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
-      if (!items.find(i => i.id === 'reporting')) {
-        items.push({ id: 'reporting', label: 'Reporting Periods', icon: '📋', route: '/reporting', section: reportingSection });
-      }
-      items.push({ id: 'feedback', label: 'Stakeholder Feedback', icon: '💬', route: '/feedback' });
-      items.push({ id: 'stories', label: 'Impact Stories', icon: '📖', route: '/stories' });
-      items.push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' });
+      push({ id: 'insights', label: 'Insights', icon: '💡', route: '/insights' }, analyseSection);
     }
-
-    // ── Frameworks ────────────────────────────────────────────────────────────
-    const frameworkSection = 'Frameworks';
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'map', label: 'Map', icon: '🗺️', route: '/map' }, analyseSection);
+    }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE)) {
-      items.push({ id: 'budget', label: 'Budget Tracking', icon: '💰', route: '/budget', section: frameworkSection });
+      push({ id: 'roi', label: 'Cost per Impact', icon: '📐', route: '/roi' }, analyseSection);
     }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
-      items.push({ id: 'bsc', label: 'Balanced Scorecard', icon: '📈', route: '/bsc' });
-      items.push({ id: 'okrs', label: 'OKRs', icon: '🎯', route: '/okrs' });
+      // Cross-cutting assistant — it reads the portfolio, it is not a report type.
+      push({ id: 'ai', label: 'AI Copilot', icon: '✨', route: '/ai' }, analyseSection);
+    }
+
+    // ── Report ────────────────────────────────────────────────────────────────
+    // Getting evidence out, in the order the reporting cycle runs.
+    const reportSection = 'Report';
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'reporting', label: 'Reporting Periods', icon: '📋', route: '/reporting' }, reportSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)) {
+      push({ id: 'donor-reports', label: 'Donor Reports', icon: '📄', route: '/reports/donor' }, reportSection);
+      // Renamed: "Reports & Data" sat beside "Donor Reports" and "Reporting
+      // Periods" and read as a third kind of report. It is import/export and
+      // scheduling tooling.
+      push({ id: 'data-reporting', label: 'Exports & Schedules', icon: '⚙️', route: '/data-reporting' }, reportSection);
+    }
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER)) {
+      push({ id: 'stories', label: 'Impact Stories', icon: '📖', route: '/stories' }, reportSection);
+      push({ id: 'documents', label: 'Documents', icon: '📂', route: '/documents' }, reportSection);
     }
 
     // ── Settings ──────────────────────────────────────────────────────────────
     const settingsSection = 'Settings';
     if (hasAuditLog && atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {
-      items.push({ id: 'audit', label: 'Audit Log', icon: '🔍', route: '/audit', section: settingsSection });
+      push({ id: 'audit', label: 'Audit Log', icon: '🔍', route: '/audit' }, settingsSection);
     }
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {
-      if (!items.find(i => i.id === 'audit')) {
-        items.push({ id: 'team', label: 'Team', icon: '👥', route: '/settings/team', section: settingsSection });
-      } else {
-        items.push({ id: 'team', label: 'Team', icon: '👥', route: '/settings/team' });
-      }
+      push({ id: 'team', label: 'Team', icon: '👥', route: '/settings/team' }, settingsSection);
     }
     if (atLeast(OrgRole.OWNER)) {
-      items.push({ id: 'billing', label: 'Billing', icon: '💳', route: '/settings/billing' });
+      push({ id: 'billing', label: 'Billing', icon: '💳', route: '/settings/billing' }, settingsSection);
     }
     if (hasEnterprise && atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {
       const badge = plan.name;
-      items.push({ id: 'enterprise', label: 'Enterprise', icon: '🏢', route: '/enterprise', badge });
+      push({ id: 'enterprise', label: 'Enterprise', icon: '🏢', route: '/enterprise', badge }, settingsSection);
     }
 
     return items;

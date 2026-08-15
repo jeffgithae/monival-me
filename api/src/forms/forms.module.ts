@@ -11,11 +11,13 @@ import { Activity, ActivitySchema } from '../activities/schemas/activity.schema'
 import { IntegrationsController } from './integrations.controller';
 import { IntegrationsService } from './integrations.service';
 import { ExternalIntegration, ExternalIntegrationSchema } from './schemas/external-integration.schema';
+import { AuditModule } from '../audit/audit.module';
 
 import { WorkflowsModule } from '../workflows/workflows.module';
 @Module({
   imports: [
     WorkflowsModule,
+    AuditModule,
     MulterModule.register({ limits: { fileSize: 10 * 1024 * 1024 } }), // 10 MB
     MongooseModule.forFeature([
       { name: FormTemplate.name, schema: FormTemplateSchema },

@@ -90,6 +90,7 @@ export const routes: Routes = [
       { path: 'workplan', component: WorkplanComponent },
       { path: 'workflows', loadComponent: () => import('./pages/workflows/workflows.component').then(m => m.WorkflowsComponent) },
       { path: 'data-collection', component: DataCollectionComponent },
+      { path: 'field-collect', loadComponent: () => import('./pages/field-collect/field-collect.component').then(m => m.FieldCollectComponent) },
       { path: 'data-reporting',  loadComponent: () => import('./pages/data-reporting/data-reporting.component').then(m => m.DataReportingComponent) },
       { path: 'profile', component: ProfileComponent },
       { path: 'enterprise', component: EnterpriseComponent },
@@ -101,5 +102,10 @@ export const routes: Routes = [
       { path: 'map', loadComponent: () => import('./pages/map/map.component').then(m => m.MapComponent) },
     ],
   },
-  { path: '**', redirectTo: '/dashboard', pathMatch: 'full' },
+  // Show a 404 rather than redirecting: silently landing a mistyped URL on the
+  // dashboard hides the fact that the link was wrong.
+  {
+    path: '**',
+    loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent),
+  },
 ];

@@ -4,12 +4,14 @@ import { Model, Types } from 'mongoose';
 import { OKR, OKRDocument } from './schemas/okr.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { CreateOKRDto, UpdateOKRDto, UpdateKeyResultDto } from './dto/okr.dto';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class OKRService {
   constructor(
     @InjectModel(OKR.name) private okrModel: Model<OKRDocument>,
     @InjectModel(Indicator.name) private indicatorModel: Model<Indicator>,
+    private readonly audit: AuditService,
   ) {}
 
   async create(organizationId: string, createDto: CreateOKRDto): Promise<OKRDocument> {
@@ -22,6 +24,14 @@ export class OKRService {
 
     const saved = await okr.save();
     await this.updateProgress(saved._id.toString());
+    await this.audit.record({
+      organizationId,
+      action: 'okr.created',
+      entityType: 'OKR',
+      entityId: saved._id.toString(),
+      after: { title: saved.title, status: saved.status },
+    });
+
     return saved.populate(['ownerUserId', 'createdBy', 'reviewedBy', 'linkedProjects']);
   }
 
@@ -140,6 +150,13 @@ export class OKRService {
     if (!deleted) {
       throw new NotFoundException('OKR not found');
     }
+    await this.audit.record({
+      organizationId,
+      action: 'okr.deleted',
+      entityType: 'OKR',
+      entityId: id,
+    });
+
     return deleted;
   }
 

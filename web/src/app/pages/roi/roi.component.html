@@ -7,13 +7,13 @@
       <p class="page-subtitle">Bridges grant spend with indicator achievement so you can see what each unit of impact actually costs.</p>
     </div>
     <div class="page-actions">
-      <select class="project-select" [ngModel]="projectId()" (ngModelChange)="setProject($event)">
+      <select class="project-select" [ngModel]="projectId()" (ngModelChange)="setProject($event)" aria-label="Filter by projects">
         <option value="">All projects</option>
         @for (p of projects(); track p._id) {
           <option [value]="p._id">{{ p.name }}</option>
         }
       </select>
-      <button class="btn-refresh" (click)="load()" [disabled]="loading()">
+      <button type="button" class="btn-refresh" (click)="load()" [disabled]="loading()">
         {{ loading() ? 'Refreshing…' : 'Refresh' }}
       </button>
     </div>
@@ -89,19 +89,19 @@
 
     <!-- Efficiency filter -->
     <div class="tabs">
-      <button class="tab" [class.active]="efficiencyFilter() === 'all'" (click)="setEfficiencyFilter('all')">
+      <button type="button" class="tab" [class.active]="efficiencyFilter() === 'all'" (click)="setEfficiencyFilter('all')">
         All <span class="tab-count">{{ r.indicators.length }}</span>
       </button>
-      <button class="tab tab-high" [class.active]="efficiencyFilter() === 'high'" (click)="setEfficiencyFilter('high')">
+      <button type="button" class="tab tab-high" [class.active]="efficiencyFilter() === 'high'" (click)="setEfficiencyFilter('high')">
         High efficiency <span class="tab-count">{{ r.efficiency.high }}</span>
       </button>
-      <button class="tab tab-medium" [class.active]="efficiencyFilter() === 'medium'" (click)="setEfficiencyFilter('medium')">
+      <button type="button" class="tab tab-medium" [class.active]="efficiencyFilter() === 'medium'" (click)="setEfficiencyFilter('medium')">
         Medium <span class="tab-count">{{ r.efficiency.medium }}</span>
       </button>
-      <button class="tab tab-low" [class.active]="efficiencyFilter() === 'low'" (click)="setEfficiencyFilter('low')">
+      <button type="button" class="tab tab-low" [class.active]="efficiencyFilter() === 'low'" (click)="setEfficiencyFilter('low')">
         Low efficiency <span class="tab-count">{{ r.efficiency.low }}</span>
       </button>
-      <button class="tab" [class.active]="efficiencyFilter() === 'no_data'" (click)="setEfficiencyFilter('no_data')">
+      <button type="button" class="tab" [class.active]="efficiencyFilter() === 'no_data'" (click)="setEfficiencyFilter('no_data')">
         No data <span class="tab-count">{{ r.efficiency.noData }}</span>
       </button>
     </div>
@@ -115,10 +115,10 @@
     } @else {
       <div class="indicator-table">
         <div class="table-head">
-          <button class="th th-code" (click)="setSort('code')">Indicator</button>
-          <button class="th th-progress" (click)="setSort('progressPct')">Progress</button>
-          <button class="th th-cost" (click)="setSort('totalCost')">Spend</button>
-          <button class="th th-unit-cost" (click)="setSort('costPerUnit')">Cost / unit</button>
+          <button type="button" class="th th-code" (click)="setSort('code')">Indicator</button>
+          <button type="button" class="th th-progress" (click)="setSort('progressPct')">Progress</button>
+          <button type="button" class="th th-cost" (click)="setSort('totalCost')">Spend</button>
+          <button type="button" class="th th-unit-cost" (click)="setSort('costPerUnit')">Cost / unit</button>
         </div>
 
         @for (ind of visibleIndicators(); track ind.indicatorId) {

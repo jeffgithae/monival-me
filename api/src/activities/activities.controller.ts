@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiKeyOrJwtAuthGuard } from '../auth/api-key-or-jwt.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { OrgRole, PERMISSIONS } from '../common/constants/roles';
@@ -33,7 +33,9 @@ class BulkReviewDto {
 
 @ApiTags('Activities')
 @Controller('activities')
-@UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
+// Authenticates a session JWT or an Enterprise API key. API keys resolve to the
+// `viewer` role, so RolesGuard confines them to the read routes below.
+@UseGuards(ApiKeyOrJwtAuthGuard, SubscriptionGuard, RolesGuard)
 export class ActivitiesController {
   constructor(private readonly svc: ActivitiesService) {}
 

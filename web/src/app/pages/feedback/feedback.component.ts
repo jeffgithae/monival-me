@@ -8,15 +8,18 @@ import {
   StakeholderFeedback, FeedbackAnalytics, FeedbackChannel, FeedbackSentiment,
   FeedbackStatus, Project, Indicator,
 } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 @Component({
   selector: 'app-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, TitleCasePipe],
+  imports: [ModalDirective, CommonModule, FormsModule, ReactiveFormsModule, DatePipe, TitleCasePipe],
   templateUrl: './feedback.component.html',
   styleUrl: './feedback.component.scss',
 })
 export class FeedbackComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   private api  = inject(ApiService);
   private auth = inject(AuthService);
   private fb   = inject(FormBuilder);
@@ -195,8 +198,8 @@ export class FeedbackComponent implements OnInit {
     });
   }
 
-  deleteFeedback(id: string, title: string) {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  async deleteFeedback(id: string, title: string) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${title}"?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteFeedback(id).subscribe({
       next: () => {
         this.selected.set(null);

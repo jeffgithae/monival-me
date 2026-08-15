@@ -587,3 +587,5 @@
   transition: border-color 0.15s;
   &:hover { border-color: var(--primary); }
 }
+.page-title-group { display: flex; flex-direction: column; gap: 0.15rem; }
+.priority-icon    { margin-right: 0.35rem; }

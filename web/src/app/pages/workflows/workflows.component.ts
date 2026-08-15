@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
@@ -7,6 +7,8 @@ import {
   WorkflowInstance, WorkflowDefinition, WorkflowSummary,
   WorkflowEntityType, WorkflowEntityTypeInfo, WorkflowStepDefinition,
 } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
+import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 type Tab = 'tasks' | 'instances' | 'definitions';
 type ModalMode = 'none' | 'create-def' | 'edit-def' | 'view-instance' | 'start-workflow' | 'act';
@@ -14,11 +16,12 @@ type ModalMode = 'none' | 'create-def' | 'edit-def' | 'view-instance' | 'start-w
 @Component({
   selector: 'app-workflows',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [ModalDirective, CommonModule, FormsModule, DatePipe],
   templateUrl: './workflows.component.html',
   styleUrl: './workflows.component.scss',
 })
 export class WorkflowsComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
   // ── State ────────────────────────────────────────────────────────────────
 
   activeTab = signal<Tab>('tasks');
@@ -279,8 +282,8 @@ export class WorkflowsComponent implements OnInit {
     });
   }
 
-  deleteDef(def: WorkflowDefinition) {
-    if (!confirm(`Delete workflow definition "${def.name}"? This cannot be undone.`)) return;
+  async deleteDef(def: WorkflowDefinition) {
+    if (!(await this.confirmSvc.ask({ title: `Delete workflow definition "${def.name}"?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteWorkflowDefinition(def._id).subscribe({
       next: () => this.loadDefinitions(),
       error: (err: any) => this.error.set(err?.error?.message ?? 'Cannot delete definition'),

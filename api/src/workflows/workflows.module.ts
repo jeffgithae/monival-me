@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 import { WorkflowsController } from './workflows.controller';
 import { WorkflowService } from './workflows.service';
@@ -12,6 +13,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    WebhooksModule,
     MongooseModule.forFeature([
       { name: WorkflowDefinition.name, schema: WorkflowDefinitionSchema },
       { name: WorkflowInstance.name,  schema: WorkflowInstanceSchema  },

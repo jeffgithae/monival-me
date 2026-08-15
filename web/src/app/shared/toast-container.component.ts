@@ -7,12 +7,16 @@ import { ToastService } from '../core/toast.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="toast-stack" aria-live="polite" aria-atomic="false">
+    <!-- role="status" on the container announces new toasts without stealing
+         focus; each error toast additionally carries role="alert" so a failure
+         interrupts rather than waiting for a pause in speech. -->
+    <div class="toast-stack" role="status" aria-live="polite" aria-atomic="false">
       @for (toast of toaster.toasts(); track toast.id) {
-        <div class="toast toast-{{ toast.type }}" role="alert">
+        <div class="toast toast-{{ toast.type }}"
+             [attr.role]="toast.type === 'error' ? 'alert' : null">
           <span class="toast-icon">{{ icons[toast.type] }}</span>
           <span class="toast-msg">{{ toast.message }}</span>
-          <button class="toast-close" (click)="toaster.dismiss(toast.id)" aria-label="Dismiss">✕</button>
+          <button type="button" class="toast-close" (click)="toaster.dismiss(toast.id)" aria-label="Dismiss">✕</button>
         </div>
       }
     </div>

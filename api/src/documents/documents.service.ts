@@ -11,6 +11,8 @@ import { Document } from './schemas/document.schema';
 import { DocumentVersion } from './schemas/document-version.schema';
 import { Project } from '../projects/schemas/project.schema';
 import { paginate, toPaginatedResult } from '../common/types/paginated-results';
+import { AuditService } from '../audit/audit.service';
+import { escapeRegex } from '../common/utils/escape-regex';
 
 @Injectable()
 export class DocumentsService {
@@ -20,6 +22,7 @@ export class DocumentsService {
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     private readonly notificationsService: NotificationsService,
     private readonly workflowService: WorkflowService,
+    private readonly audit: AuditService,
   ) {}
 
   async findDocuments(
@@ -32,7 +35,8 @@ export class DocumentsService {
     if (filters?.projectId) query['projectId'] = new Types.ObjectId(filters.projectId);
     if (filters?.category)  query['category']  = filters.category;
     if (filters?.search) {
-      const re = new RegExp(filters.search, 'i');
+      // Escaped: raw user input here is a ReDoS vector against Mongo.
+      const re = new RegExp(escapeRegex(filters.search), 'i');
       query['$or'] = [{ title: re }, { description: re }, { tags: re }];
     }
     const { page, limit, skip } = paginate(filters?.page, filters?.limit, 200);
@@ -76,7 +80,9 @@ export class DocumentsService {
       {
         type: 'document.created',
         title: 'Document created',
-        message: `New document "${dto.title}" was uploaded.`,
+        // "linked", not "uploaded": documents are references to files in the
+        // org's connected cloud drive, not blobs this service stores.
+        message: `New document "${dto.title}" was linked.`,
         entityType: 'document',
         entityId: document._id.toString(),
         link: `/documents/${document._id}`,
@@ -84,7 +90,7 @@ export class DocumentsService {
       userId,
     );
 
-    // Uploads kick off the org's default document workflow, if configured.
+    // Linking a document kicks off the org's default document workflow, if configured.
     this.workflowService.autoStartForEntity(
       organizationId, 'document', document._id.toString(), dto.title, userId,
     ).catch(() => {});
@@ -122,6 +128,13 @@ export class DocumentsService {
     if (result.deletedCount === 0) {
       throw new NotFoundException('Document not found');
     }
+    await this.audit.record({
+      organizationId,
+      action: 'document.deleted',
+      entityType: 'Document',
+      entityId: id,
+    });
+
     return { deleted: true };
   }
 

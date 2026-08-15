@@ -10,19 +10,19 @@
 
   <!-- Tab nav -->
   <nav class="copilot-tabs">
-    <button class="tab" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
+    <button type="button" class="tab" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
       ✨ Chat
     </button>
-    <button class="tab" [class.active]="activeTab() === 'actions'" (click)="setTab('actions')">
+    <button type="button" class="tab" [class.active]="activeTab() === 'actions'" (click)="setTab('actions')">
       ⚡ Suggested Actions
     </button>
-    <button class="tab" [class.active]="activeTab() === 'report'" (click)="setTab('report')">
+    <button type="button" class="tab" [class.active]="activeTab() === 'report'" (click)="setTab('report')">
       📄 Draft Report
     </button>
-    <button class="tab" [class.active]="activeTab() === 'toc'" (click)="setTab('toc')">
+    <button type="button" class="tab" [class.active]="activeTab() === 'toc'" (click)="setTab('toc')">
       🗺 Theory of Change
     </button>
-    <button class="tab" [class.active]="activeTab() === 'indicator'" (click)="setTab('indicator')">
+    <button type="button" class="tab" [class.active]="activeTab() === 'indicator'" (click)="setTab('indicator')">
       📐 Indicator Builder
     </button>
   </nav>
@@ -47,14 +47,14 @@
         <div class="prompt-suggestions">
           <span class="sidebar-heading">Suggested prompts</span>
           @for (prompt of suggestedPrompts; track prompt) {
-            <button class="prompt-chip" (click)="sendMessage(prompt)" [disabled]="loading()">
+            <button type="button" class="prompt-chip" (click)="sendMessage(prompt)" [disabled]="loading()">
               {{ prompt }}
             </button>
           }
         </div>
 
         @if (chatHistory().length > 0) {
-          <button class="btn-clear" (click)="clearChat()">Clear conversation</button>
+          <button type="button" class="btn-clear" (click)="clearChat()">Clear conversation</button>
         }
       </div>
 
@@ -86,7 +86,7 @@
         </div>
 
         <div class="chat-composer">
-          <textarea
+          <textarea aria-label="Ask about report readiness, indicator gaps, grant burn rate, or anything in your portfolio"
             rows="3"
             placeholder="Ask about report readiness, indicator gaps, grant burn rate, or anything in your portfolio…"
             [ngModel]="chatInput()"
@@ -94,7 +94,7 @@
             (keydown.enter)="onEnterKey($event)"
             [disabled]="loading()">
           </textarea>
-          <button class="btn-send" (click)="sendMessage()" [disabled]="loading() || !chatInput().trim()">
+          <button type="button" class="btn-send" (click)="sendMessage()" [disabled]="loading() || !chatInput().trim()">
             {{ loading() ? '…' : 'Send' }}
           </button>
         </div>
@@ -142,7 +142,7 @@
             }
           </select>
         </label>
-        <button class="btn-primary" (click)="loadActions()" [disabled]="loading()">
+        <button type="button" class="btn-primary" (click)="loadActions()" [disabled]="loading()">
           {{ loading() ? 'Analysing…' : 'Generate recommendations' }}
         </button>
       </div>
@@ -210,7 +210,7 @@
           <label><input type="checkbox" [ngModel]="reportFeedback()" (ngModelChange)="reportFeedback.set($event)" /> Include stakeholder feedback</label>
         </div>
 
-        <button class="btn-primary" (click)="generateReport()" [disabled]="loading() || !reportPeriodId()">
+        <button type="button" class="btn-primary" (click)="generateReport()" [disabled]="loading() || !reportPeriodId()">
           {{ loading() ? 'Drafting…' : 'Generate report draft' }}
         </button>
       </div>
@@ -231,7 +231,7 @@
           <div class="report-section">
             <div class="section-header">
               <h3>Executive Summary</h3>
-              <button class="btn-copy" (click)="copySection(dr.report.executiveSummary)" title="Copy">📋</button>
+              <button type="button" class="btn-copy" (click)="copySection(dr.report.executiveSummary)" title="Copy">📋</button>
             </div>
             <p>{{ dr.report.executiveSummary }}</p>
           </div>
@@ -239,7 +239,7 @@
           <div class="report-section">
             <div class="section-header">
               <h3>Indicator Performance</h3>
-              <button class="btn-copy" (click)="copySection(dr.report.indicatorPerformance)" title="Copy">📋</button>
+              <button type="button" class="btn-copy" (click)="copySection(dr.report.indicatorPerformance)" title="Copy">📋</button>
             </div>
             <p style="white-space: pre-line">{{ dr.report.indicatorPerformance }}</p>
           </div>
@@ -247,7 +247,7 @@
           <div class="report-section">
             <div class="section-header">
               <h3>Activities Narrative</h3>
-              <button class="btn-copy" (click)="copySection(dr.report.activitiesNarrative)" title="Copy">📋</button>
+              <button type="button" class="btn-copy" (click)="copySection(dr.report.activitiesNarrative)" title="Copy">📋</button>
             </div>
             <p style="white-space: pre-line">{{ dr.report.activitiesNarrative }}</p>
           </div>
@@ -255,7 +255,7 @@
           <div class="report-section">
             <div class="section-header">
               <h3>Challenges &amp; Lessons Learned</h3>
-              <button class="btn-copy" (click)="copySection(dr.report.challengesAndLessons)" title="Copy">📋</button>
+              <button type="button" class="btn-copy" (click)="copySection(dr.report.challengesAndLessons)" title="Copy">📋</button>
             </div>
             <p style="white-space: pre-line">{{ dr.report.challengesAndLessons }}</p>
           </div>
@@ -264,7 +264,7 @@
             <div class="report-section">
               <div class="section-header">
                 <h3>Financial Summary</h3>
-                <button class="btn-copy" (click)="copySection(dr.report.financialSummary)" title="Copy">📋</button>
+                <button type="button" class="btn-copy" (click)="copySection(dr.report.financialSummary)" title="Copy">📋</button>
               </div>
               <p style="white-space: pre-line">{{ dr.report.financialSummary }}</p>
             </div>
@@ -274,7 +274,7 @@
             <div class="report-section">
               <div class="section-header">
                 <h3>Stakeholder Voice</h3>
-                <button class="btn-copy" (click)="copySection(dr.report.stakeholderVoice)" title="Copy">📋</button>
+                <button type="button" class="btn-copy" (click)="copySection(dr.report.stakeholderVoice)" title="Copy">📋</button>
               </div>
               <p style="white-space: pre-line">{{ dr.report.stakeholderVoice }}</p>
             </div>
@@ -283,14 +283,14 @@
           <div class="report-section">
             <div class="section-header">
               <h3>Next Period Plans</h3>
-              <button class="btn-copy" (click)="copySection(dr.report.nextPeriodPlans)" title="Copy">📋</button>
+              <button type="button" class="btn-copy" (click)="copySection(dr.report.nextPeriodPlans)" title="Copy">📋</button>
             </div>
             <p style="white-space: pre-line">{{ dr.report.nextPeriodPlans }}</p>
           </div>
         </div>
 
         <div class="report-actions">
-          <button class="btn-export-pdf" (click)="exportReportPdf()">⬇ Export PDF</button>
+          <button type="button" class="btn-export-pdf" (click)="exportReportPdf()">⬇ Export PDF</button>
         </div>
         <p class="generated-note">Generated {{ dr.generatedAt | date:'medium' }} · Style: {{ dr.style }}</p>
       } @else if (!loading()) {
@@ -314,7 +314,7 @@
             }
           </select>
         </label>
-        <button class="btn-primary" (click)="generateToC()" [disabled]="loading() || !tocProjectId()">
+        <button type="button" class="btn-primary" (click)="generateToC()" [disabled]="loading() || !tocProjectId()">
           {{ loading() ? 'Generating…' : 'Generate Theory of Change' }}
         </button>
       </div>
@@ -323,12 +323,12 @@
         <div class="report-section toc-output">
           <div class="section-header">
             <h3>Theory of Change</h3>
-            <button class="btn-copy" (click)="copySection(tocResult()!.theoryOfChange)" title="Copy">📋</button>
+            <button type="button" class="btn-copy" (click)="copySection(tocResult()!.theoryOfChange)" title="Copy">📋</button>
           </div>
           <pre class="toc-text">{{ tocResult()!.theoryOfChange }}</pre>
         </div>
         <div class="report-actions">
-          <button class="btn-export-pdf" (click)="exportTocPdf()">⬇ Export PDF</button>
+          <button type="button" class="btn-export-pdf" (click)="exportTocPdf()">⬇ Export PDF</button>
         </div>
         <p class="generated-note">Generated {{ tocResult()!.generatedAt | date:'medium' }}</p>
       } @else if (!loading()) {
@@ -367,7 +367,7 @@
           </label>
         </div>
 
-        <button class="btn-primary" (click)="generateIndicatorDef()" [disabled]="loading() || !indTitle().trim()">
+        <button type="button" class="btn-primary" (click)="generateIndicatorDef()" [disabled]="loading() || !indTitle().trim()">
           {{ loading() ? 'Building definition…' : 'Generate definition' }}
         </button>
       </div>
@@ -396,7 +396,7 @@
             }
           </div>
 
-          <button class="btn-secondary" (click)="copyDefinitionJson(d)">Copy as JSON</button>
+          <button type="button" class="btn-secondary" (click)="copyDefinitionJson(d)">Copy as JSON</button>
         </div>
         <p class="generated-note">Generated {{ r.generatedAt | date:'medium' }}</p>
       } @else if (!loading()) {

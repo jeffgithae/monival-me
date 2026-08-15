@@ -67,6 +67,14 @@ export class CreateFormTemplateDto {
   @IsMongoId()
   indicatorId?: string;
 
+  /**
+   * Key of the numeric question whose answer contributes to `indicatorId`.
+   * Without it an approved response has no defined quantity to contribute.
+   */
+  @IsOptional()
+  @IsString()
+  indicatorValueKey?: string;
+
   @IsString()
   @MinLength(3)
   name!: string;

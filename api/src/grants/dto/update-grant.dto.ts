@@ -1,58 +1,17 @@
-import { IsString, IsNumber, IsOptional, IsDateString, IsMongoId, IsArray, IsBoolean, IsEnum, Min } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { IsNumber, IsOptional, Min } from 'class-validator';
+import { CreateGrantDto } from './create-grant.dto';
 
-export class UpdateGrantDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsMongoId()
-  donorId?: string;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  amount?: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
+/**
+ * Every creatable field is patchable. Note that changing `amount` or
+ * `endDate` here bypasses the amendment history — prefer
+ * `POST /grants/:id/amendments`, which records what the values were and why
+ * they changed. Direct patching is retained for corrections and for clients
+ * predating the amendment endpoint.
+ */
+export class UpdateGrantDto extends PartialType(CreateGrantDto) {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   amountSpent?: number;
-
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsMongoId({ each: true })
-  linkedProjects?: string[];
-
-  @IsOptional()
-  @IsBoolean()
-  requiresMonthlyReporting?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  requiresFinalReport?: boolean;
-
-  @IsOptional()
-  @IsString()
-  termsAndConditions?: string;
-
-  @IsOptional()
-  @IsEnum(['pending', 'active', 'completed', 'closed'])
-  status?: string;
 }

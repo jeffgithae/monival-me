@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ScheduledReport, ImportResult, Project, ReportCadence } from '../../core/models';
+import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'scheduled' | 'import' | 'export';
 
@@ -15,6 +16,7 @@ type Tab = 'scheduled' | 'import' | 'export';
   styleUrl: './data-reporting.component.scss',
 })
 export class DataReportingComponent implements OnInit {
+  private confirmSvc = inject(ConfirmService);
 
   // ── State ─────────────────────────────────────────────────────────────────
   activeTab   = signal<Tab>('scheduled');
@@ -139,8 +141,8 @@ export class DataReportingComponent implements OnInit {
     });
   }
 
-  deleteSchedule(r: ScheduledReport) {
-    if (!confirm(`Delete "${r.name}"? Recipients will stop receiving this report.`)) return;
+  async deleteSchedule(r: ScheduledReport) {
+    if (!(await this.confirmSvc.ask({ title: `Delete "${r.name}"?`, message: `Recipients will stop receiving this report.`, danger: true, confirmLabel: 'Delete' }))) return;
     this.api.deleteScheduledReport(r._id).subscribe({
       next: () => this.loadAll(),
       error: (e: any) => this.error.set(e?.error?.message ?? 'Delete failed'),

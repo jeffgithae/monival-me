@@ -10,7 +10,9 @@ import helmet from 'helmet';
 import compression from 'compression';
 import mongoSanitize from 'express-mongo-sanitize';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { MongoErrorFilter } from './common/filters/mongo-error.filter';
+import { initErrorReporting } from './common/observability/error-reporter';
 import { tenantResolver } from './common/middleware/tenant.middleware';
 
 const PLACEHOLDER_SECRETS = new Set(['', 'change-me-in-production', 'changeme', 'secret']);
@@ -31,6 +33,7 @@ function assertProductionSecrets(logger: Logger) {
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   assertProductionSecrets(logger);
+  initErrorReporting();
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
 
@@ -83,8 +86,10 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
+  // Filters are applied last-registered-first, so the catch-all is listed first
+  // and the more specific MongoErrorFilter still wins for Mongo errors.
   // Malformed ObjectIds → 400 instead of unhandled 500s
-  app.useGlobalFilters(new MongoErrorFilter());
+  app.useGlobalFilters(new AllExceptionsFilter(), new MongoErrorFilter());
 
   // ── Tenant resolver ───────────────────────────────────────────────────────
   app.use(tenantResolver as any);

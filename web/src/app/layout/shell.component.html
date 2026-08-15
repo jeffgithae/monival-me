@@ -2,7 +2,7 @@
 
   <!-- Mobile top bar -->
   <header class="mobile-topbar">
-    <button class="hamburger" (click)="toggleSidebar()" [attr.aria-label]="sidebarOpen() ? 'Close menu' : 'Open menu'">
+    <button type="button" class="hamburger" (click)="toggleSidebar()" [attr.aria-label]="sidebarOpen() ? 'Close menu' : 'Open menu'">
       <span class="bar"></span>
       <span class="bar"></span>
       <span class="bar"></span>
@@ -14,7 +14,7 @@
   </header>
 
   <!-- Sidebar overlay (mobile) -->
-  <div class="sidebar-overlay" (click)="closeSidebar()"></div>
+  <div class="sidebar-overlay" (click)="closeSidebar()" role="button" tabindex="0" (keydown.enter)="closeSidebar()" (keydown.space)="$event.preventDefault(); closeSidebar()"></div>
 
   <aside class="sidebar">
     <div class="sidebar-top">
@@ -93,7 +93,7 @@
   </aside>
 
   <!-- Notifications Panel -->
-  <div class="notif-overlay" [class.open]="notificationsOpen()" (click)="closeNotifications()"></div>
+  <div class="notif-overlay" [class.open]="notificationsOpen()" (click)="closeNotifications()" role="button" tabindex="0" (keydown.enter)="closeNotifications()" (keydown.space)="$event.preventDefault(); closeNotifications()"></div>
   <aside class="notifications-panel" [class.open]="notificationsOpen()">
     <div class="np-header">
       <h3>Notifications</h3>
@@ -112,7 +112,7 @@
         </div>
       } @else {
         @for (n of notifications(); track n._id) {
-          <div class="np-item" [class.unread]="!n.isRead" (click)="markAsRead(n._id, n.link)">
+          <div class="np-item" [class.unread]="!n.isRead" (click)="markAsRead(n._id, n.link)" role="button" tabindex="0" (keydown.enter)="markAsRead(n._id, n.link)" (keydown.space)="$event.preventDefault(); markAsRead(n._id, n.link)">
             <div class="npi-icon"></div>
             <div class="npi-content">
               <strong>{{ n.title }}</strong>
@@ -132,3 +132,7 @@
   </main>
 
 </div>
+
+<!-- Mounted once here so ConfirmService works on every page. Without this the
+     service set isOpen but nothing rendered, so ask() never resolved. -->
+<app-confirm-dialog />

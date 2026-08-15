@@ -8,6 +8,13 @@ export interface PlanDefinition {
   maxProjects: number | null;
   maxUsers: number | null;
   maxIndicatorsPerProject: number | null;
+  /**
+   * Ceiling on AI Copilot tokens (input + output) an organisation may spend per
+   * calendar month. The Copilot is a per-call cost to us, so every plan carries
+   * a cap — without one a single account on the cheapest plan can drive
+   * unbounded model spend. `null` means uncapped (negotiated contracts only).
+   */
+  maxAiTokensPerMonth: number | null;
   stripePriceId?: string;
   paystackPlanCode?: string;
   trialDays?: number;
@@ -30,6 +37,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: 2,
     maxUsers: 3,
     maxIndicatorsPerProject: 15,
+    maxAiTokensPerMonth: 50_000,
     trialDays: 14,
     features: ['Logframe & indicators', 'Activity logging', 'Donor reports', 'Up to 3 team members'],
     hasApiAccess: false,
@@ -47,6 +55,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: 5,
     maxUsers: 10,
     maxIndicatorsPerProject: 50,
+    maxAiTokensPerMonth: 500_000,
     stripePriceId: process.env.STRIPE_PRICE_STARTER,
     paystackPlanCode: process.env.PAYSTACK_PLAN_STARTER,
     features: [
@@ -70,6 +79,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: 20,
     maxUsers: 50,
     maxIndicatorsPerProject: null,
+    maxAiTokensPerMonth: 2_000_000,
     stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
     paystackPlanCode: process.env.PAYSTACK_PLAN_PROFESSIONAL,
     features: [
@@ -95,6 +105,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: null,
     maxUsers: null,
     maxIndicatorsPerProject: null,
+    maxAiTokensPerMonth: 6_000_000,
     stripePriceId: process.env.STRIPE_PRICE_ORGANIZATION,
     paystackPlanCode: process.env.PAYSTACK_PLAN_ORGANIZATION,
     features: [
@@ -120,11 +131,15 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: null,
     maxUsers: null,
     maxIndicatorsPerProject: null,
+    maxAiTokensPerMonth: 15_000_000,
     stripePriceId: process.env.STRIPE_PRICE_SCALE,
     paystackPlanCode: process.env.PAYSTACK_PLAN_SCALE,
     features: [
       'Everything in Organization',
-      'SSO / SAML 2.0 login',
+      // SAML is not shipped — its callback is deliberately disabled pending
+      // signature verification (see SsoService.handleSamlCallback). Do not
+      // re-add it here until that lands.
+      'SSO via OpenID Connect (OIDC)',
       'Multi-partner result aggregation',
       'Network-level dashboards',
       'Dedicated success manager',
@@ -144,6 +159,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxProjects: null,
     maxUsers: null,
     maxIndicatorsPerProject: null,
+    maxAiTokensPerMonth: null,
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE,
     paystackPlanCode: process.env.PAYSTACK_PLAN_ENTERPRISE,
     features: [

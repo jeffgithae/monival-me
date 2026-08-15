@@ -28,7 +28,7 @@
         </a>
       }
       @if (canCreateProjects) {
-        <button class="btn-new" (click)="toggleForm()">
+        <button type="button" class="btn-new" (click)="toggleForm()">
           {{ showForm() ? '✕ Cancel' : '+ New project' }}
         </button>
       }
@@ -522,6 +522,30 @@
 
     </div><!-- /main-grid -->
 
+  } @else if (overviewLoading()) {
+
+    <!-- Skeleton placeholders while the overview loads, so the page never
+         renders as an account with no data in it. -->
+    <div class="kpi-strip" aria-hidden="true">
+      @for (i of [1,2,3,4,5]; track i) {
+        <div class="kpi-card kpi-skeleton">
+          <div class="skel skel-icon"></div>
+          <div class="kpi-body">
+            <div class="skel skel-value"></div>
+            <div class="skel skel-label"></div>
+          </div>
+        </div>
+      }
+    </div>
+    <p class="sr-only" role="status">Loading your dashboard…</p>
+
+  } @else {
+
+    <div class="dash-error" role="status">
+      <p>We couldn't load your dashboard summary just now.</p>
+      <button type="button" class="btn-new" (click)="reload()">Try again</button>
+    </div>
+
   }
 
   <!-- ── New project form ──────────────────────────────────────────────────── -->
@@ -537,8 +561,8 @@
           <label>Donor<input [(ngModel)]="form.donor" name="donor" placeholder="Donor organisation" /></label>
         </div>
         <div class="form-row">
-          <label>Start date<input type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
-          <label>End date<input type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
+          <label>Start date<input aria-label="Start date" type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
+          <label>End date<input aria-label="End date" type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
         </div>
         <label class="full-label">Description
           <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Brief overview of objectives and scope…"></textarea>
@@ -577,7 +601,7 @@
           <div class="empty-glyph">◔</div>
           <p>No projects yet. Create your first grant-funded programme to start tracking indicators.</p>
           @if (canCreateProjects) {
-            <button class="btn-new" (click)="toggleForm()">+ New project</button>
+            <button type="button" class="btn-new" (click)="toggleForm()">+ New project</button>
           }
         </div>
       }

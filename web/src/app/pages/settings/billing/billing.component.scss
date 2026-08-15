@@ -99,3 +99,8 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* The plan the org is on, and the banner shown when billing runs in mock mode. */
+.current { border-color: #4338ca; box-shadow: 0 0 0 2px rgba(67, 56, 202, 0.12); }
+.mock    { margin-bottom: 1rem; padding: 0.6rem 0.9rem; border-radius: 0.5rem;
+           background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 0.85rem; }

@@ -14,8 +14,8 @@
   <section class="panel">
     <h2>Invite member</h2>
     <form class="invite-form" (ngSubmit)="invite()">
-      <input type="email" [(ngModel)]="inviteEmail" name="email" placeholder="colleague@ngo.org" required />
-      <select [(ngModel)]="inviteRole" name="role">
+      <input aria-label="colleague@ngo.org" type="email" [(ngModel)]="inviteEmail" name="email" placeholder="colleague@ngo.org" required />
+      <select aria-label="Role" [(ngModel)]="inviteRole" name="role">
         @for (r of roles; track r) {
           <option [value]="r">{{ roleLabel(r) }}</option>
         }
@@ -51,7 +51,7 @@
           <td>{{ m.email }}</td>
           <td>
             @if (canManage && m.role !== 'owner') {
-              <select [ngModel]="m.role" (ngModelChange)="changeRole(m.id, $event)" [name]="'role-' + m.id">
+              <select [ngModel]="m.role" (ngModelChange)="changeRole(m.id, $event)" [name]="'role-' + m.id" aria-label="Select an option">
                 @for (r of roles; track r) {
                   <option [value]="r">{{ roleLabel(r) }}</option>
                 }

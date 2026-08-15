@@ -33,6 +33,9 @@ import {
   ProjectStakeholder,
 } from './schemas/project.schema';
 import { escapeRegex } from '../common/utils/escape-regex';
+import type {
+  ProjectRiskDto, ProjectMilestoneDto, ProjectWorkplanItemDto, ProjectStakeholderDto,
+} from './dto/project-subdocs.dto';
 
 export interface ProjectListQuery {
   status?: string;
@@ -608,7 +611,7 @@ export class ProjectsService {
 
   // ─── Milestones ────────────────────────────────────────────────────────────
 
-  async addMilestone(organizationId: string, projectId: string, dto: Partial<ProjectMilestone>, actorUserId?: string) {
+  async addMilestone(organizationId: string, projectId: string, dto: Partial<ProjectMilestoneDto>, actorUserId?: string) {
     if (!dto.title || !dto.dueDate) throw new BadRequestException('title and dueDate are required');
     const milestone = { ...dto, _id: new Types.ObjectId(), dueDate: new Date(dto.dueDate as any) };
     const project = await this.projectModel
@@ -621,7 +624,7 @@ export class ProjectsService {
     return project;
   }
 
-  async updateMilestone(organizationId: string, projectId: string, milestoneId: string, dto: Partial<ProjectMilestone>, actorUserId?: string) {
+  async updateMilestone(organizationId: string, projectId: string, milestoneId: string, dto: Partial<ProjectMilestoneDto>, actorUserId?: string) {
     const update: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(dto)) {
       if (v !== undefined) update[`milestones.$.${k}`] = v;
@@ -654,7 +657,7 @@ export class ProjectsService {
 
   // ─── Risks ─────────────────────────────────────────────────────────────────
 
-  async addRisk(organizationId: string, projectId: string, dto: Partial<ProjectRisk>, actorUserId?: string) {
+  async addRisk(organizationId: string, projectId: string, dto: Partial<ProjectRiskDto>, actorUserId?: string) {
     if (!dto.title) throw new BadRequestException('title is required');
     const risk = { ...dto, _id: new Types.ObjectId() };
     const project = await this.projectModel
@@ -667,7 +670,7 @@ export class ProjectsService {
     return project;
   }
 
-  async updateRisk(organizationId: string, projectId: string, riskId: string, dto: Partial<ProjectRisk>, actorUserId?: string) {
+  async updateRisk(organizationId: string, projectId: string, riskId: string, dto: Partial<ProjectRiskDto>, actorUserId?: string) {
     const update: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(dto)) {
       if (v !== undefined) update[`risks.$.${k}`] = v;
@@ -698,7 +701,7 @@ export class ProjectsService {
 
   // ─── Workplan ──────────────────────────────────────────────────────────────
 
-  async addWorkplanItem(organizationId: string, projectId: string, dto: Partial<WorkplanItem>, actorUserId?: string) {
+  async addWorkplanItem(organizationId: string, projectId: string, dto: Partial<ProjectWorkplanItemDto>, actorUserId?: string) {
     if (!dto.title || !dto.startDate || !dto.endDate) throw new BadRequestException('title, startDate, endDate required');
     const item = { ...dto, _id: new Types.ObjectId(), startDate: new Date(dto.startDate as any), endDate: new Date(dto.endDate as any) };
     const project = await this.projectModel
@@ -711,7 +714,7 @@ export class ProjectsService {
     return project;
   }
 
-  async updateWorkplanItem(organizationId: string, projectId: string, itemId: string, dto: Partial<WorkplanItem>, actorUserId?: string) {
+  async updateWorkplanItem(organizationId: string, projectId: string, itemId: string, dto: Partial<ProjectWorkplanItemDto>, actorUserId?: string) {
     const update: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(dto)) {
       if (v !== undefined) update[`workplan.$.${k}`] = v;
@@ -739,7 +742,7 @@ export class ProjectsService {
 
   // ─── Stakeholders ──────────────────────────────────────────────────────────
 
-  async addStakeholder(organizationId: string, projectId: string, dto: Partial<ProjectStakeholder>) {
+  async addStakeholder(organizationId: string, projectId: string, dto: Partial<ProjectStakeholderDto>) {
     if (!dto.name) throw new BadRequestException('name is required');
     const stakeholder = { ...dto, _id: new Types.ObjectId(), isActive: true };
     const project = await this.projectModel
@@ -751,7 +754,7 @@ export class ProjectsService {
     return project;
   }
 
-  async updateStakeholder(organizationId: string, projectId: string, stakeholderId: string, dto: Partial<ProjectStakeholder>) {
+  async updateStakeholder(organizationId: string, projectId: string, stakeholderId: string, dto: Partial<ProjectStakeholderDto>) {
     const update: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(dto)) {
       if (v !== undefined) update[`stakeholders.$.${k}`] = v;

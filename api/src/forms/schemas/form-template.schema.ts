@@ -61,6 +61,16 @@ export class FormTemplate {
     @Prop({ type: String, enum: ['draft', 'active'], default: 'draft' })
     status!: string;
 
+    /**
+     * Key of the numeric question whose answer contributes to `indicatorId`.
+     *
+     * Without this, a response carrying an indicator link has no defined
+     * quantity, so the submission could not count toward achievement — which
+     * is why field data collected through forms never reached the logframe.
+     */
+    @Prop({ trim: true })
+    indicatorValueKey?: string;
+
     @Prop({ type: [FormSectionSchema], default: [] })
     sections!: Array<Record<string, unknown>>;
 }
