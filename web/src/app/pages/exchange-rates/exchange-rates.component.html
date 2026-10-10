@@ -1,0 +1,112 @@
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Funding</span>
+    <h1>Exchange Rates</h1>
+    <p class="subtitle">
+      How grants in other currencies are converted into your reporting currency@if (rates(); as r) { ({{ r.baseCurrency }})}.
+      A rate recorded on a grant itself always takes precedence.
+    </p>
+  </div>
+  @if (canEdit && rates()) {
+    <button type="button" class="btn-ghost" [disabled]="refreshing()" (click)="refresh()">
+      {{ refreshing() ? 'Updating…' : 'Update market rates' }}
+    </button>
+  }
+</div>
+
+@if (error(); as err) {
+  <div class="error-banner" role="alert">{{ err }}</div>
+}
+
+@if (loading()) {
+  <p class="state-line">Loading exchange rates…</p>
+} @else if (rates()) {
+  @let r = rates()!;
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Your rates</h2>
+        <p>Fixed rates for your organisation — for example one a donor requires you to account at. They replace the market rate for your organisation only.</p>
+      </div>
+      @if (canEdit) {
+        <button type="button" class="btn-primary btn-sm" (click)="addRow()">+ Add a rate</button>
+      }
+    </div>
+
+    @if (rows.length === 0) {
+      <p class="hint">No rates of your own. Every conversion uses the market rate below.</p>
+    } @else {
+      <div class="override-list">
+        @for (row of rows; let i = $index; track i) {
+          <div class="override-row">
+            <span class="one">1 {{ r.baseCurrency }} =</span>
+            <input type="number" min="0" step="any" [(ngModel)]="row.rate" [name]="'rate' + i" [disabled]="!canEdit"
+                   [attr.aria-label]="'Rate for ' + (row.currency || 'new currency')" />
+            <input class="code" maxlength="3" [(ngModel)]="row.currency" [name]="'currency' + i" [disabled]="!canEdit"
+                   placeholder="KES" [attr.aria-label]="'Currency code, row ' + (i + 1)" />
+            <span class="market">
+              @if (marketRate(row.currency) !== null) { Market: {{ marketRate(row.currency) | number: '1.2-6' }} }
+            </span>
+            @if (canEdit) {
+              <button type="button" class="link-btn danger" (click)="removeRow(i)">Remove</button>
+            }
+            @if (rowProblem(row, i); as problem) { <span class="problem">{{ problem }}</span> }
+          </div>
+        }
+      </div>
+    }
+
+    @if (canEdit && dirty) {
+      <div class="form-actions">
+        <button type="button" class="btn-primary" [disabled]="!canSave || saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save rates' }}</button>
+        <button type="button" class="btn-ghost" [disabled]="saving()" (click)="discard()">Discard changes</button>
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Market rates</h2>
+        @if (r.market; as m) {
+          <p>
+            Per 1 {{ r.baseCurrency }} · last updated {{ m.fetchedAt | date: 'd MMM y, HH:mm' }}@if (m.providerName) { from {{ m.providerName }} }.
+            Updated automatically every night.
+          </p>
+        } @else {
+          <p>No market rates have been fetched for {{ r.baseCurrency }} yet.</p>
+        }
+      </div>
+      @if (r.market) {
+        <input class="rate-search" type="search" placeholder="Find a currency…" maxlength="3" aria-label="Find a currency"
+               [ngModel]="search()" (ngModelChange)="search.set($event)" />
+      }
+    </div>
+
+    @if (!r.market) {
+      <div class="empty">
+        <h3>Market rates are not available</h3>
+        <p>Until they are, amounts in other currencies are reported as unconverted rather than guessed. You can add your own rates above.</p>
+        @if (canEdit) {
+          <button type="button" class="btn-primary btn-sm" [disabled]="refreshing()" (click)="refresh()">Try fetching them now</button>
+        }
+      </div>
+    } @else if (marketRows().length === 0) {
+      <p class="hint">No currency matches “{{ search() }}”.</p>
+    } @else {
+      <div class="rate-grid">
+        @for (row of marketRows(); track row.currency) {
+          <div class="rate" [class.overridden]="row.override !== null">
+            <span class="rate-code">{{ row.currency }}</span>
+            <span class="rate-value">{{ row.rate | number: '1.2-4' }}</span>
+            @if (row.override !== null) {
+              <span class="rate-note">You use {{ row.override | number: '1.2-4' }}</span>
+            } @else if (canEdit) {
+              <button type="button" class="link-btn" (click)="addRow(row.currency)">Set your own</button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+}

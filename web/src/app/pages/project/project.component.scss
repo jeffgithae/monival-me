@@ -1,14 +1,4 @@
 @use "sass:color";
-$indigo:      #4f46e5;
-$indigo-deep: #312e81;
-$indigo-mid:  #4338ca;
-$green:       #10b981;
-$amber:       #f59e0b;
-$red:         #ef4444;
-$surface:     #ffffff;
-$text:        #0f172a;
-$muted:       #64748b;
-$border:      rgba(15, 23, 42, 0.08);
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
@@ -21,7 +11,7 @@ $border:      rgba(15, 23, 42, 0.08);
   align-items: center;
   gap: 0.35rem;
   font-size: 0.85rem;
-  color: $indigo;
+  color: var(--primary);
   font-weight: 600;
   text-decoration: none;
   margin-bottom: 1.25rem;
@@ -45,46 +35,46 @@ $border:      rgba(15, 23, 42, 0.08);
 
 .status-badge {
   padding: 0.3rem 0.8rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
 
-  &.badge-active    { background: rgba($green, 0.12); color: color.adjust($green, $lightness: -12%); }
-  &.badge-completed { background: rgba($indigo, 0.1); color: $indigo-deep; }
-  &.badge-paused    { background: rgba(148,163,184,0.15); color: #475569; }
-  &.badge-draft     { background: rgba($amber, 0.12); color: color.adjust($amber, $lightness: -15%); }
+  &.badge-active    { background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green-strong); }
+  &.badge-completed { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary-strong); }
+  &.badge-paused    { background: color-mix(in srgb, var(--muted) 15%, transparent); color: var(--text-soft); }
+  &.badge-draft     { background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber-strong); }
 }
 
 .eval-badge {
   padding: 0.3rem 0.8rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
 
-  &.eval-not_started { background: rgba(148,163,184,0.12); color: #475569; }
-  &.eval-in_progress { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
-  &.eval-completed   { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.eval-under_review { background: rgba($indigo, 0.1); color: $indigo; }
+  &.eval-not_started { background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--text-soft); }
+  &.eval-in_progress { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
+  &.eval-completed   { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.eval-under_review { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
 }
 
 h1 {
   margin: 0 0 0.5rem;
   font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-weight: 800;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
   line-height: 1.05;
 }
 
 .hero-donor {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
-  color: $muted;
+  color: var(--muted);
 }
 
 .hero-desc {
   margin: 0;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.6;
   max-width: 60ch;
@@ -102,11 +92,11 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 0.85rem 1.1rem;
-  box-shadow: 0 2px 10px rgba(15,23,42,0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .date-item {
@@ -115,21 +105,21 @@ h1 {
   gap: 0.15rem;
   text-align: center;
 
-  .date-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: $muted; font-weight: 700; }
-  strong { font-size: 0.9rem; color: $text; font-weight: 700; }
+  .date-label { font-size: 0.68rem; color: var(--muted); font-weight: 600; }
+  strong { font-size: 0.9rem; color: var(--text); font-weight: 600; }
 }
 
-.date-sep { color: $muted; font-size: 1rem; }
+.date-sep { color: var(--muted); font-size: 1rem; }
 
 .review-chip {
-  background: rgba($amber, 0.1);
-  border: 1px solid rgba($amber, 0.2);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.55rem 0.9rem;
   font-size: 0.82rem;
-  color: color.adjust($amber, $lightness: -15%);
+  color: var(--amber-strong);
 
-  strong { font-weight: 700; }
+  strong { font-weight: 600; }
 }
 
 // ─── KPI strip ────────────────────────────────────────────────────────────────
@@ -138,54 +128,53 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1px;
-  background: $border;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
   margin-bottom: 1.25rem;
 }
 
 .kpi {
-  background: $surface;
+  background: var(--card-bg);
   padding: 1.1rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 
   &.kpi-warn {
-    background: rgba($amber, 0.06);
-    .kpi-val { color: color.adjust($amber, $lightness: -15%); }
+    background: color-mix(in srgb, var(--amber) 6%, transparent);
+    .kpi-val { color: var(--amber-strong); }
   }
 }
 
 .kpi-val {
   font-size: 1.5rem;
-  font-weight: 800;
-  color: $indigo-deep;
+  font-weight: 600;
+  color: var(--primary-strong);
   line-height: 1;
 
-  &.stale { color: $red; }
+  &.stale { color: var(--red); }
 }
 
 .kpi-lbl {
   font-size: 0.72rem;
-  color: $muted;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--muted);
+
   font-weight: 600;
 }
 
 // ─── Progress bars ────────────────────────────────────────────────────────────
 
 .progress-panel {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.25rem 1.5rem;
   display: grid;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 2px 10px rgba(15,23,42,0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .prog-row {
@@ -197,42 +186,42 @@ h1 {
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
-  color: $muted;
+  color: var(--muted);
 
-  strong { color: $text; font-weight: 700; }
+  strong { color: var(--text); font-weight: 600; }
 }
 
 .prog-track {
   height: 8px;
-  background: rgba(15,23,42,0.06);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 
 .prog-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
 
-  &.timeline-fill   { background: linear-gradient(90deg, #94a3b8, #64748b); }
-  &.indicator-fill  { background: linear-gradient(90deg, $indigo, $indigo-mid); }
+  &.timeline-fill   { background: var(--border-strong); }
+  &.indicator-fill  { background: var(--primary); }
 }
 
 // ─── Recent panel ─────────────────────────────────────────────────────────────
 
 .recent-panel {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 2px 10px rgba(15,23,42,0.04);
+  box-shadow: var(--shadow-sm);
 
   h2 {
     margin: 0 0 1rem;
     font-size: 1rem;
-    font-weight: 700;
-    color: $text;
+    font-weight: 600;
+    color: var(--text);
   }
 }
 
@@ -249,7 +238,7 @@ h1 {
   align-items: center;
   gap: 1rem;
   padding: 0.85rem 0;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
 
   &:last-child { border-bottom: none; }
 }
@@ -258,7 +247,7 @@ h1 {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: $indigo;
+  background: var(--primary);
   flex-shrink: 0;
 }
 
@@ -266,8 +255,8 @@ h1 {
   flex: 1;
   min-width: 0;
 
-  strong { display: block; font-size: 0.9rem; color: $text; font-weight: 600; }
-  span   { font-size: 0.78rem; color: $muted; }
+  strong { display: block; font-size: 0.9rem; color: var(--text); font-weight: 600; }
+  span   { font-size: 0.78rem; color: var(--muted); }
 }
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
@@ -277,9 +266,9 @@ h1 {
   gap: 0.35rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 0.4rem;
   width: fit-content;
 }
@@ -289,18 +278,18 @@ h1 {
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 1.05rem;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   border: none;
   background: transparent;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
   white-space: nowrap;
 
-  &:hover { background: rgba($indigo, 0.06); color: $text; transform: none; }
-  &.active { background: $indigo-deep; color: #fff; }
+  &:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); color: var(--text); transform: none; }
+  &.active { background: var(--primary-strong); color: var(--on-solid); }
 }
 
 .tab-badge {
@@ -310,11 +299,11 @@ h1 {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 999px;
-  background: $red;
-  color: #fff;
+  border-radius: var(--r-pill);
+  background: var(--red);
+  color: var(--on-solid);
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 // ─── Shared tab content ───────────────────────────────────────────────────────
@@ -325,17 +314,17 @@ h1 {
 }
 
 .panel {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.5rem 1.75rem;
-  box-shadow: 0 2px 12px rgba(15,23,42,0.05);
+  box-shadow: var(--shadow-sm);
 
   h3 {
     margin: 0 0 1.25rem;
     font-size: 0.95rem;
-    font-weight: 700;
-    color: $text;
+    font-weight: 600;
+    color: var(--text);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -344,11 +333,11 @@ h1 {
 
 .count-chip {
   padding: 0.18rem 0.55rem;
-  background: rgba($indigo, 0.1);
-  color: $indigo;
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-radius: var(--r-pill);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 // ─── Offline support ────────────────────────────────────────────────────────
@@ -368,28 +357,28 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.3rem 0.75rem;
   font-size: 0.74rem;
-  font-weight: 700;
-  background: rgba($green, 0.1);
-  color: $green;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green-strong);
   white-space: nowrap;
 
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: $green; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-strong); }
 
   &.offline {
-    background: rgba($amber, 0.12);
-    color: $amber;
-    .dot { background: $amber; }
+    background: color-mix(in srgb, var(--amber) 12%, transparent);
+    color: var(--amber);
+    .dot { background: var(--amber); }
   }
 }
 
 .success-banner {
-  background: rgba($green, 0.1);
-  color: color.adjust($green, $lightness: -15%);
-  border: 1px solid rgba($green, 0.25);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green-strong);
+  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.75rem 1rem;
   margin-bottom: 1.1rem;
   font-size: 0.86rem;
@@ -410,18 +399,18 @@ h1 {
 }
 
 .queue-count {
-  background: rgba($indigo, 0.1);
-  color: $indigo;
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-radius: var(--r-pill);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 0.05rem 0.5rem;
 }
 
 .queue-sub {
   margin: 0.5rem 0 0.9rem;
   font-size: 0.78rem;
-  color: $muted;
+  color: var(--muted);
 }
 
 .queue-list {
@@ -431,12 +420,12 @@ h1 {
 }
 
 .queue-item {
-  background: #fff;
-  border: 1px solid $border;
-  border-radius: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 0.6rem 0.8rem;
 
-  &.error { border-color: rgba($red, 0.3); }
+  &.error { border-color: color-mix(in srgb, var(--red) 30%, transparent); }
 }
 
 .queue-item-main {
@@ -445,10 +434,10 @@ h1 {
   justify-content: space-between;
   gap: 0.6rem;
 
-  strong { font-size: 0.86rem; color: $text; }
+  strong { font-size: 0.86rem; color: var(--text); }
 }
 
-.queue-item-date { font-size: 0.74rem; color: $muted; white-space: nowrap; }
+.queue-item-date { font-size: 0.74rem; color: var(--muted); white-space: nowrap; }
 
 .queue-item-status {
   display: flex;
@@ -459,30 +448,30 @@ h1 {
 
 .status-pill {
   font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
   padding: 0.08rem 0.55rem;
 
-  &.pending { background: rgba($amber, 0.12); color: $amber; }
-  &.syncing { background: rgba($indigo, 0.1); color: $indigo; }
-  &.error   { background: rgba($red, 0.1); color: $red; }
+  &.pending { background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); }
+  &.syncing { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+  &.error   { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
 }
 
 .btn-discard {
   border: none;
   background: none;
-  color: $muted;
+  color: var(--muted);
   cursor: pointer;
   font-size: 0.8rem;
   padding: 0.1rem 0.3rem;
 
-  &:hover { color: $red; }
+  &:hover { color: var(--red); }
 }
 
 .queue-item-error {
   margin: 0.3rem 0 0;
   font-size: 0.76rem;
-  color: $red;
+  color: var(--red);
 }
 
 .empty-panel {
@@ -492,12 +481,12 @@ h1 {
   gap: 0.75rem;
   padding: 3rem 2rem;
   text-align: center;
-  background: $surface;
-  border: 1px dashed rgba($indigo, 0.18);
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+  border-radius: var(--r-lg);
 
   span { font-size: 2.5rem; }
-  p    { margin: 0; color: $muted; font-size: 0.95rem; max-width: 32rem; }
+  p    { margin: 0; color: var(--muted); font-size: 0.95rem; max-width: 32rem; }
 }
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
@@ -520,22 +509,22 @@ h1 {
   gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: $muted;
+  color: var(--muted);
 
   input, select, textarea {
-    border: 1px solid rgba(15,23,42,0.12);
-    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-lg);
     padding: 0.75rem 1rem;
-    background: #f8faff;
+    background: var(--card-bg);
     font-size: 0.9rem;
-    color: $text;
+    color: var(--text);
     width: 100%;
     transition: border-color 0.2s, box-shadow 0.2s;
 
     &:focus {
       outline: none;
-      border-color: rgba($indigo, 0.4);
-      box-shadow: 0 0 0 4px rgba($indigo, 0.08);
+      border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+      box-shadow: var(--ring);
     }
   }
 
@@ -562,15 +551,15 @@ h1 {
 
 .alert-chip {
   padding: 0.9rem 1.1rem;
-  border-radius: 14px;
-  border: 1px solid $border;
-  background: rgba(15,23,42,0.02);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 2%, transparent);
 
-  strong { display: block; font-size: 0.88rem; color: $text; margin-bottom: 0.2rem; }
-  span   { font-size: 0.82rem; color: $muted; }
+  strong { display: block; font-size: 0.88rem; color: var(--text); margin-bottom: 0.2rem; }
+  span   { font-size: 0.82rem; color: var(--muted); }
 
-  &.alert-critical { background: rgba($red, 0.06); border-color: rgba($red, 0.18); }
-  &.alert-warning  { background: rgba($amber, 0.06); border-color: rgba($amber, 0.2); }
+  &.alert-critical { background: color-mix(in srgb, var(--red) 6%, transparent); border-color: color-mix(in srgb, var(--red) 18%, transparent); }
+  &.alert-warning  { background: color-mix(in srgb, var(--amber) 6%, transparent); border-color: color-mix(in srgb, var(--amber) 20%, transparent); }
 }
 
 .form-actions {
@@ -581,16 +570,16 @@ h1 {
 
 .btn-primary {
   padding: 0.75rem 1.35rem;
-  background: linear-gradient(135deg, $indigo, $indigo-mid);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-solid);
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
+  border-radius: var(--r-lg);
+  font-weight: 600;
   cursor: pointer;
   font-size: 0.9rem;
   transition: transform 0.18s, box-shadow 0.18s;
 
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba($indigo, 0.3); }
+  &:hover:not(:disabled) { transform: none; box-shadow: var(--shadow-sm); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
@@ -598,31 +587,31 @@ h1 {
 
 .btn-secondary {
   padding: 0.75rem 1.1rem;
-  background: rgba($indigo, 0.08);
-  color: $indigo-deep;
-  border: 1px solid rgba($indigo, 0.15);
-  border-radius: 12px;
-  font-weight: 700;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary-strong);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  border-radius: var(--r-lg);
+  font-weight: 600;
   cursor: pointer;
   font-size: 0.88rem;
   transition: background 0.18s;
 
-  &:hover:not(:disabled) { background: rgba($indigo, 0.14); transform: none; }
+  &:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 14%, transparent); transform: none; }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 .btn-ghost {
   padding: 0.75rem 1.1rem;
   background: transparent;
-  border: 1px solid rgba(15,23,42,0.14);
-  border-radius: 12px;
-  color: $muted;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  color: var(--muted);
   font-weight: 600;
   cursor: pointer;
   font-size: 0.88rem;
   transition: background 0.18s;
 
-  &:hover { background: rgba(15,23,42,0.04); transform: none; }
+  &:hover { background: color-mix(in srgb, var(--text) 4%, transparent); transform: none; }
 }
 
 // ─── Inline add-indicator form ────────────────────────────────────────────────
@@ -640,19 +629,19 @@ h1 {
   gap: 0.35rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: $muted;
+  color: var(--muted);
 
   input, select {
-    border: 1px solid rgba(15,23,42,0.12);
-    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-lg);
     padding: 0.6rem 0.75rem;
-    background: #f8faff;
+    background: var(--card-bg);
     font-size: 0.9rem;
-    color: $text;
+    color: var(--text);
     min-width: 80px;
     transition: border-color 0.2s;
 
-    &:focus { outline: none; border-color: rgba($indigo, 0.4); }
+    &:focus { outline: none; border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
   }
 
   &.grow { flex: 1; min-width: 180px; }
@@ -678,7 +667,7 @@ h1 {
   th, td {
     text-align: left;
     padding: 0.85rem 1rem;
-    border-bottom: 1px solid $border;
+    border-bottom: 1px solid var(--border);
 
     &:first-child { padding-left: 1.75rem; }
     &:last-child  { padding-right: 1.75rem; }
@@ -686,31 +675,30 @@ h1 {
 
   th {
     font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: $muted;
-    font-weight: 700;
-    background: rgba(15,23,42,0.015);
+
+    color: var(--muted);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--text) 1.5%, transparent);
   }
 
   tbody tr {
     transition: background 0.15s;
-    &:hover { background: rgba($indigo, 0.025); }
+    &:hover { background: color-mix(in srgb, var(--primary) 2.5%, transparent); }
     &:last-child td { border-bottom: none; }
   }
 }
 
 .empty-row {
   text-align: center;
-  color: $muted;
+  color: var(--muted);
   padding: 2rem !important;
   font-size: 0.9rem;
 }
 
-.muted  { color: $muted; }
+.muted  { color: var(--muted); }
 .small  { font-size: 0.8rem; }
 
-.ind-title { font-weight: 600; color: $text; }
+.ind-title { font-weight: 600; color: var(--text); }
 
 // ─── Progress cell ────────────────────────────────────────────────────────────
 
@@ -719,89 +707,89 @@ h1 {
   align-items: center;
   gap: 0.6rem;
   font-size: 0.85rem;
-  font-weight: 700;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
   min-width: 120px;
 }
 
 .mini-bar {
   flex: 1;
   height: 6px;
-  background: rgba(15,23,42,0.07);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 
 .mini-fill {
   height: 100%;
-  background: linear-gradient(90deg, $indigo, $indigo-mid);
-  border-radius: 999px;
+  background: var(--primary);
+  border-radius: var(--r-pill);
   min-width: 3px;
   transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
 
-  &.fill-on_track  { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 12%)); }
-  &.fill-at_risk   { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 12%)); }
-  &.fill-behind    { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 12%)); }
+  &.fill-on_track  { background: var(--green-strong); }
+  &.fill-at_risk   { background: var(--amber); }
+  &.fill-behind    { background: var(--red); }
 }
 
 // ─── Badges / pills ───────────────────────────────────────────────────────────
 
 .level-tag {
   padding: 0.2rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
-  background: rgba($indigo, 0.08);
-  color: $indigo-deep;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary-strong);
 
-  &.level-goal     { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.level-outcome  { background: rgba($indigo, 0.1); color: $indigo-deep; }
-  &.level-output   { background: rgba(139,92,246,0.1); color: #5b21b6; }
-  &.level-activity { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
+  &.level-goal     { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.level-outcome  { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary-strong); }
+  &.level-output   { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+  &.level-activity { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
 }
 
 .trend-pill {
   padding: 0.2rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
 
-  &.trend-up     { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.trend-down   { background: rgba($red, 0.1); color: $red; }
-  &.trend-stable { background: rgba($muted, 0.1); color: $muted; }
-  &.trend-n\/a   { background: rgba($muted, 0.08); color: $muted; }
+  &.trend-up     { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.trend-down   { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
+  &.trend-stable { background: color-mix(in srgb, var(--muted) 10%, transparent); color: var(--muted); }
+  &.trend-n\/a   { background: color-mix(in srgb, var(--muted) 8%, transparent); color: var(--muted); }
 }
 
 .tree-status {
   padding: 0.2rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
-  background: rgba($muted, 0.1);
-  color: $muted;
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+  color: var(--muted);
 
-  &.status-on_track { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.status-at_risk  { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
-  &.status-behind   { background: rgba($red, 0.1); color: $red; }
+  &.status-on_track { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.status-at_risk  { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
+  &.status-behind   { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
 }
 
 .act-pill {
   padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
-  background: rgba($indigo, 0.08);
-  color: $indigo-mid;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
 
-  &.act-approved { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -10%); }
-  &.act-submitted { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
-  &.act-rejected { background: rgba($red, 0.1); color: $red; }
-  &.act-draft    { background: rgba($muted, 0.1); color: $muted; }
-  &.act-locked   { background: rgba($indigo-deep, 0.1); color: $indigo-deep; }
+  &.act-approved { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.act-submitted { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
+  &.act-rejected { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
+  &.act-draft    { background: color-mix(in srgb, var(--muted) 10%, transparent); color: var(--muted); }
+  &.act-locked   { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary-strong); }
 }
 
 // ─── Framework tree ───────────────────────────────────────────────────────────
@@ -815,14 +803,14 @@ h1 {
 }
 
 .tree-node {
-  border: 1px solid $border;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
 
   &.child {
     border-color: transparent;
-    border-radius: 10px;
-    background: rgba(15,23,42,0.02);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--text) 2%, transparent);
   }
 }
 
@@ -841,22 +829,22 @@ h1 {
   flex: 1;
   min-width: 0;
 
-  strong { font-weight: 700; color: $text; }
-  div { font-size: 0.9rem; color: $text; }
+  strong { font-weight: 600; color: var(--text); }
+  div { font-size: 0.9rem; color: var(--text); }
 }
 
 .tree-level {
   padding: 0.2rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
-  background: rgba($indigo, 0.08);
-  color: $indigo-deep;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary-strong);
   flex-shrink: 0;
 }
 
-.tree-unit { color: $muted; font-size: 0.85rem; }
+.tree-unit { color: var(--muted); font-size: 0.85rem; }
 
 .tree-right {
   display: flex;
@@ -867,8 +855,8 @@ h1 {
 
 .tree-pct {
   font-size: 0.85rem;
-  font-weight: 700;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
   width: 40px;
   text-align: right;
 }
@@ -894,11 +882,11 @@ h1 {
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem 1.75rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba($indigo, 0.02); }
+  &:hover { background: color-mix(in srgb, var(--primary) 2%, transparent); }
 }
 
 .feed-dot {
@@ -907,12 +895,12 @@ h1 {
   border-radius: 50%;
   flex-shrink: 0;
   margin-top: 6px;
-  background: $indigo;
+  background: var(--primary);
 
-  &.dot-approved  { background: $green; }
-  &.dot-submitted { background: $amber; }
-  &.dot-rejected  { background: $red; }
-  &.dot-draft     { background: #94a3b8; }
+  &.dot-approved  { background: var(--green-strong); }
+  &.dot-submitted { background: var(--amber); }
+  &.dot-rejected  { background: var(--red); }
+  &.dot-draft     { background: var(--border-strong); }
 }
 
 .feed-body {
@@ -927,7 +915,7 @@ h1 {
   gap: 0.75rem;
   margin-bottom: 0.3rem;
 
-  strong { font-size: 0.92rem; color: $text; font-weight: 600; }
+  strong { font-size: 0.92rem; color: var(--text); font-weight: 600; }
 }
 
 .feed-meta {
@@ -935,11 +923,11 @@ h1 {
   flex-wrap: wrap;
   gap: 0.35rem 0.6rem;
   font-size: 0.8rem;
-  color: $muted;
+  color: var(--muted);
 }
 
 .evidence-link {
-  color: $indigo;
+  color: var(--primary);
   font-weight: 600;
   text-decoration: none;
 
@@ -949,7 +937,7 @@ h1 {
 .feed-notes {
   margin: 0.4rem 0 0;
   font-size: 0.82rem;
-  color: $muted;
+  color: var(--muted);
   line-height: 1.4;
 }
 
@@ -962,17 +950,17 @@ h1 {
 .btn-approve, .btn-reject {
   padding: 0.4rem 0.8rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s;
 
-  &:hover { transform: translateY(-1px); }
+  &:hover { transform: none; }
 }
 
-.btn-approve { background: rgba($green, 0.12); color: color.adjust($green, $lightness: -12%); }
-.btn-reject  { background: rgba($red, 0.1); color: $red; }
+.btn-approve { background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green-strong); }
+.btn-reject  { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
 
 // ─── Reporting tab ────────────────────────────────────────────────────────────
 
@@ -989,20 +977,20 @@ h1 {
   gap: 0.35rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: $muted;
+  color: var(--muted);
   flex: 1;
   min-width: 200px;
 
   select {
-    border: 1px solid rgba(15,23,42,0.12);
-    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-lg);
     padding: 0.75rem 1rem;
-    background: #f8faff;
+    background: var(--card-bg);
     font-size: 0.9rem;
-    color: $text;
+    color: var(--text);
     transition: border-color 0.2s;
 
-    &:focus { outline: none; border-color: rgba($indigo, 0.4); }
+    &:focus { outline: none; border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
   }
 }
 
@@ -1014,14 +1002,14 @@ h1 {
 
 .target-input {
   width: 90px;
-  border: 1px solid $border;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
   padding: 0.4rem 0.6rem;
   font-size: 0.88rem;
-  background: #f8faff;
-  color: $text;
+  background: var(--card-bg);
+  color: var(--text);
 
-  &:focus { outline: none; border-color: rgba($indigo, 0.4); }
+  &:focus { outline: none; border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
 }
 
 // ─── Donor report ─────────────────────────────────────────────────────────────
@@ -1046,15 +1034,15 @@ h1 {
     gap: 0.35rem;
     font-size: 0.82rem;
     font-weight: 600;
-    color: $muted;
+    color: var(--muted);
 
     input {
-      border: 1px solid rgba(15,23,42,0.12);
-      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-lg);
       padding: 0.65rem 0.8rem;
-      background: #f8faff;
+      background: var(--card-bg);
       font-size: 0.9rem;
-      color: $text;
+      color: var(--text);
     }
   }
 }
@@ -1065,30 +1053,29 @@ h1 {
 }
 
 .report-doc {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 2rem 2.25rem;
-  box-shadow: 0 2px 12px rgba(15,23,42,0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .report-head {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
 
   .eyebrow {
     display: block;
     font-size: 0.72rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: $muted;
-    font-weight: 700;
+
+    color: var(--muted);
+    font-weight: 600;
     margin-bottom: 0.35rem;
   }
 
-  h2 { margin: 0 0 0.35rem; font-size: 1.5rem; font-weight: 800; color: $text; }
-  p  { margin: 0; font-size: 0.9rem; color: $muted; }
+  h2 { margin: 0 0 0.35rem; font-size: 1.5rem; font-weight: 600; color: var(--text); }
+  p  { margin: 0; font-size: 0.9rem; color: var(--muted); }
 }
 
 .report-kpis {
@@ -1099,20 +1086,20 @@ h1 {
 }
 
 .rep-kpi {
-  background: rgba($indigo, 0.04);
-  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  border-radius: var(--r-lg);
   padding: 1rem 1.1rem;
   text-align: center;
 
-  span  { display: block; font-size: 1.75rem; font-weight: 800; color: $indigo-deep; }
-  small { font-size: 0.75rem; color: $muted; text-transform: uppercase; letter-spacing: 0.06em; }
+  span  { display: block; font-size: 1.75rem; font-weight: 600; color: var(--primary-strong); }
+  small { font-size: 0.75rem; color: var(--muted); }
 }
 
 .report-doc h3 {
   margin: 1.5rem 0 0.75rem;
   font-size: 0.95rem;
-  font-weight: 700;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .report-activity-list {
@@ -1128,12 +1115,12 @@ h1 {
     align-items: center;
     gap: 1rem;
     padding: 0.7rem 0;
-    border-bottom: 1px solid $border;
+    border-bottom: 1px solid var(--border);
     font-size: 0.88rem;
 
     &:last-child { border-bottom: none; }
-    strong { color: $text; font-weight: 600; }
-    span   { color: $muted; font-size: 0.82rem; }
+    strong { color: var(--text); font-weight: 600; }
+    span   { color: var(--muted); font-size: 0.82rem; }
   }
 }
 
@@ -1179,28 +1166,28 @@ h1 {
   h2 {
     margin: 0;
     font-size: 1.05rem;
-    font-weight: 700;
-    color: $indigo-deep;
+    font-weight: 600;
+    color: var(--primary-strong);
   }
 }
 
 // ─── Table wrapper (horizontal scroll on small screens) ───────────────────────
 .table-wrapper {
   overflow-x: auto;
-  border-radius: 14px;
-  border: 1px solid $border;
-  background: $surface;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
 }
 
 // Status badge variants for budget allocation status values
 .status-badge {
-  &.status-draft        { background: rgba($muted, 0.12);  color: $muted; }
-  &.status-submitted    { background: rgba($amber, 0.12);  color: color.adjust($amber, $lightness: -10%); }
-  &.status-approved     { background: rgba($green, 0.12);  color: color.adjust($green, $lightness: -12%); }
-  &.status-active       { background: rgba($green, 0.12);  color: color.adjust($green, $lightness: -12%); }
-  &.status-under_review { background: rgba($amber, 0.12);  color: color.adjust($amber, $lightness: -10%); }
-  &.status-closed        { background: rgba($indigo, 0.1); color: $indigo-deep; }
-  &.status-archived      { background: rgba($muted, 0.1);  color: $muted; }
+  &.status-draft        { background: color-mix(in srgb, var(--muted) 12%, transparent);  color: var(--muted); }
+  &.status-submitted    { background: color-mix(in srgb, var(--amber) 12%, transparent);  color: var(--amber-strong); }
+  &.status-approved     { background: color-mix(in srgb, var(--green) 12%, transparent);  color: var(--green-strong); }
+  &.status-active       { background: color-mix(in srgb, var(--green) 12%, transparent);  color: var(--green-strong); }
+  &.status-under_review { background: color-mix(in srgb, var(--amber) 12%, transparent);  color: var(--amber-strong); }
+  &.status-closed        { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary-strong); }
+  &.status-archived      { background: color-mix(in srgb, var(--muted) 10%, transparent);  color: var(--muted); }
 }
 
 // ─── Documents list (Documents tab) ────────────────────────────────────────────
@@ -1215,14 +1202,14 @@ h1 {
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   transition: box-shadow 0.15s, border-color 0.15s;
 
   &:hover {
-    border-color: rgba($indigo, 0.2);
-    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+    border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+    box-shadow: var(--shadow-sm);
   }
 }
 
@@ -1234,8 +1221,8 @@ h1 {
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  border-radius: 10px;
-  background: rgba($indigo, 0.08);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
 
 .doc-info {
@@ -1245,8 +1232,8 @@ h1 {
 
 .doc-title {
   font-size: 0.92rem;
-  font-weight: 700;
-  color: $indigo-deep;
+  font-weight: 600;
+  color: var(--primary-strong);
   margin-bottom: 0.3rem;
 }
 
@@ -1256,23 +1243,23 @@ h1 {
   gap: 0.6rem;
   flex-wrap: wrap;
   font-size: 0.78rem;
-  color: $muted;
+  color: var(--muted);
 
   .badge {
     padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    background: rgba($indigo, 0.1);
-    color: $indigo-deep;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary-strong);
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 600;
   }
 }
 
 .doc-tag {
   padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  background: rgba($indigo, 0.08);
-  color: $indigo-deep;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary-strong);
   font-size: 0.72rem;
   font-weight: 600;
 }
@@ -1280,7 +1267,7 @@ h1 {
 .doc-desc {
   margin: 0.4rem 0 0;
   font-size: 0.82rem;
-  color: $muted;
+  color: var(--muted);
   line-height: 1.4;
 }
 // ─── Beneficiary / partner picker ────────────────────────────────────────────
@@ -1293,23 +1280,23 @@ h1 {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: $muted;
+  color: var(--muted);
   margin-bottom: 0.4rem;
 
-  .hint { font-weight: 400; color: rgba($muted, 0.8); font-size: 0.76rem; }
+  .hint { font-weight: 400; color: color-mix(in srgb, var(--muted) 80%, transparent); font-size: 0.76rem; }
 }
 
 .picker-empty {
   margin: 0;
   font-size: 0.82rem;
-  color: $muted;
+  color: var(--muted);
   font-style: italic;
 }
 
 .picker-search {
   width: 100%;
-  border: 1px solid $border;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
   padding: 0.5rem 0.7rem;
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
@@ -1322,8 +1309,8 @@ h1 {
   gap: 0.2rem;
   max-height: 180px;
   overflow-y: auto;
-  border: 1px solid $border;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 0.4rem;
 }
 
@@ -1332,37 +1319,37 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--r);
   font-size: 0.84rem;
-  color: $text;
+  color: var(--text);
   cursor: pointer;
 
-  &:hover { background: rgba($indigo, 0.06); }
-  &.checked { background: rgba($indigo, 0.1); font-weight: 600; }
+  &:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+  &.checked { background: color-mix(in srgb, var(--primary) 10%, transparent); font-weight: 600; }
 
-  input[type="checkbox"], input[type="radio"] { accent-color: $indigo; }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 }
 
 .picker-count {
   display: inline-block;
   margin-top: 0.4rem;
   font-size: 0.76rem;
-  font-weight: 700;
-  color: $indigo;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .map-toggle-btn {
   margin-left: auto;
-  border: 1px solid $border;
-  background: $surface;
-  color: $indigo;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--primary);
+  border-radius: var(--r);
   padding: 0.35rem 0.75rem;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
 
-  &:hover { background: rgba($indigo, 0.06); border-color: $indigo; }
+  &:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); border-color: var(--primary); }
 }
 
 app-leaflet-map {
@@ -1375,23 +1362,82 @@ app-leaflet-map {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba($indigo, 0.04);
-  border-radius: 14px;
-  color: $muted;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  border-radius: var(--r-lg);
+  color: var(--muted);
   font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 p.error {
   margin: 0.25rem 0 0;
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  background: rgba(#e5484d, 0.08);
-  color: #b91c1c;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  color: var(--red-strong);
   font-size: 0.85rem;
 }
 
 .hero-left        { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .framework-panel  { margin-top: 1rem; }
-.ind-link         { color: #4338ca; text-decoration: none; &:hover { text-decoration: underline; } }
+.ind-link         { color: var(--primary); text-decoration: none; &:hover { text-decoration: underline; } }
 /* Controls that should not appear on a printed donor report. */
 @media print { .no-print-controls { display: none !important; } }
+
+// Links out of the project: the grants that fund it and the OKRs it delivers.
+.hero-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-top: 0.85rem;
+
+  .hero-links-label { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+  .hero-links-label:not(:first-child) { margin-left: 0.6rem; }
+
+  .hero-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--r-pill);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    &:hover { color: var(--primary); border-color: var(--primary-lt); }
+    small { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  }
+}
+
+// Rejecting an activity asks for the reason in place.
+.reject-form {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+
+  input {
+    width: 16rem;
+    max-width: 100%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.84rem;
+    border: 1px solid var(--border-strong);
+    background: var(--input-bg);
+    color: var(--text);
+  }
+}
+
+.btn-ghost-sm {
+  padding: 0.35rem 0.7rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.reject-reason { margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--red-strong); }

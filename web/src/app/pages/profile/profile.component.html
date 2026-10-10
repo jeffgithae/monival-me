@@ -39,7 +39,7 @@
       👤 Profile
     </button>
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'password'" (click)="activeTab.set('password')">
-      🔐 Password
+      🔐 Security
     </button>
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'org'"      (click)="activeTab.set('org')">
       🏢 Organisation
@@ -196,6 +196,79 @@
             {{ savingPassword() ? 'Changing…' : 'Change Password' }}
           </button>
         </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div>
+            <h2>Two-factor authentication</h2>
+            <p>Require a code from an authenticator app each time you sign in.</p>
+          </div>
+        </div>
+
+        @if (mfaErr()) {
+          <div class="alert-error">{{ mfaErr() }}</div>
+        }
+
+        @if (mfaBackupCodes().length) {
+          <div class="alert-success">
+            Two-factor authentication is on. Save these backup codes somewhere safe — each works once, and they will not be shown again.
+          </div>
+          <ul class="mfa-codes">
+            @for (c of mfaBackupCodes(); track c) { <li><code>{{ c }}</code></li> }
+          </ul>
+        }
+
+        @if (mfaEnrolment(); as e) {
+          <div class="mfa-setup">
+            <img [src]="e.qrCodeDataUrl" alt="QR code to scan with your authenticator app" width="176" height="176" />
+            <div class="mfa-steps">
+              <p>1. Scan the code with an authenticator app, or enter this key by hand:</p>
+              <code class="mfa-secret">{{ e.secret }}</code>
+              <p>2. Enter the 6-digit code the app shows.</p>
+              <div class="field">
+                <label for="mfa-enrol-code">Authentication code</label>
+                <input id="mfa-enrol-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                       [value]="mfaCode()" (input)="onMfaCode($any($event.target).value)" />
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-save" [disabled]="mfaBusy() || mfaCode().length < 6" (click)="confirmMfaEnrolment()">
+                  {{ mfaBusy() ? 'Verifying…' : 'Turn on' }}
+                </button>
+                <button type="button" class="btn-ghost" (click)="cancelMfa()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        } @else {
+        @if (mfaStatus(); as st) {
+          @if (!st.mfaEnabled) {
+            <div class="form-actions">
+              <button type="button" class="btn-save" [disabled]="mfaBusy()" (click)="startMfaEnrolment()">
+                {{ mfaBusy() ? 'Starting…' : 'Set up two-factor authentication' }}
+              </button>
+            </div>
+          } @else if (mfaDisabling()) {
+            <div class="field">
+              <label for="mfa-disable-code">Enter a current authentication code to turn it off</label>
+              <input id="mfa-disable-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                     [value]="mfaCode()" (input)="onMfaCode($any($event.target).value)" />
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-save" [disabled]="mfaBusy() || mfaCode().length < 6" (click)="disableMfa()">
+                {{ mfaBusy() ? 'Turning off…' : 'Turn off' }}
+              </button>
+              <button type="button" class="btn-ghost" (click)="cancelMfa()">Cancel</button>
+            </div>
+          } @else {
+            <p class="mfa-on">On · {{ st.backupCodesRemaining }} backup code{{ st.backupCodesRemaining === 1 ? '' : 's' }} remaining</p>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" (click)="mfaDisabling.set(true)">Turn off two-factor authentication</button>
+            </div>
+          }
+        } @else {
+          <p>Two-factor status is unavailable right now.</p>
+        }
+        }
       </div>
     }
 

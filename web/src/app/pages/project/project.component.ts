@@ -21,6 +21,8 @@ import {
   Project,
   ReportingPeriod,
   BudgetAllocation,
+  Grant,
+  OKR,
 } from '../../core/models';
 import {
   canApproveActivities,
@@ -43,10 +45,12 @@ interface IndicatorNode extends Indicator {
   lastActivityDate?: string;
 }
 
+import { PagerComponent } from '../../shared/pager/pager.component';
+
 @Component({
   selector: 'app-project',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, DatePipe, LeafletMapComponent],
+  imports: [CommonModule, RouterLink, FormsModule, DatePipe, LeafletMapComponent, PagerComponent],
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
 })
@@ -104,12 +108,24 @@ export class ProjectComponent implements OnInit, OnDestroy {
   beneficiaries = signal<Array<{ _id: string; name: string }>>([]);
   report = signal<DonorReport | null>(null);
   budgetAllocations = signal<BudgetAllocation[]>([]);
+  /** What funds this project, and which OKRs it delivers — the links out of the project. */
+  linkedGrants = signal<Grant[]>([]);
+  linkedOkrs = signal<OKR[]>([]);
   documents = signal<OrgDocument[]>([]);
   tab = signal<Tab>('framework');
   projectId = '';
 
   readonly indicatorCount = computed(() => this.indicators().length);
   readonly activityCount = computed(() => this.activities().length);
+
+  // The activity log is shown a page at a time; counts above cover all of it.
+  readonly activityPageSize = 25;
+  readonly activityPage = signal(1);
+  readonly currentActivityPage = computed(() => Math.min(this.activityPage(), Math.max(1, Math.ceil(this.activities().length / this.activityPageSize))));
+  readonly pagedActivities = computed(() => {
+    const start = (this.currentActivityPage() - 1) * this.activityPageSize;
+    return this.activities().slice(start, start + this.activityPageSize);
+  });
   readonly activityStatusCounts = computed(() => {
     return this.activities().reduce(
       (counts, activity) => {
@@ -426,6 +442,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
     }
     this.reload();
     this.refreshQueuedActivities();
+    this.loadLinks();
   }
 
   async refreshQueuedActivities(): Promise<void> {
@@ -496,6 +513,15 @@ export class ProjectComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Best-effort: the page is complete without these, so failures are silent. */
+  private loadLinks() {
+    this.api.grants({ projectId: this.projectId, limit: 20 }).subscribe({ next: (r) => this.linkedGrants.set(r.data), error: () => this.linkedGrants.set([]) });
+    this.api.okrs({ projectId: this.projectId }).subscribe({
+      next: (okrs) => this.linkedOkrs.set(okrs.filter((o) => o.status === 'active' || o.status === 'draft')),
+      error: () => this.linkedOkrs.set([]),
+    });
+  }
+
   loadBudgets() {
     this.api.budgetAllocations({ projectId: this.projectId }).subscribe(data => this.budgetAllocations.set(data));
   }
@@ -511,7 +537,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
     this.api.project(this.projectId).subscribe((p) => this.project.set(p));
     this.api.indicators(this.projectId).subscribe((res: any) => this.indicators.set(Array.isArray(res) ? res : (res.data ?? [])));
     this.loadIndicatorAchievement();
-    this.api.activities(this.projectId).subscribe((res: any) => this.activities.set(Array.isArray(res) ? res : (res.data ?? [])));
+    this.api.activities(this.projectId).subscribe((res) => this.activities.set(res));
     this.api.activityTemplates(this.projectId).subscribe((items) => this.activityTemplates.set(items));
     this.api.formTemplates(this.projectId).subscribe((items) => this.formTemplates.set(items));
     this.api.formResponses(this.projectId).subscribe((items) => this.formResponses.set(items));
@@ -534,12 +560,26 @@ export class ProjectComponent implements OnInit, OnDestroy {
     }).subscribe((r) => this.report.set(r));
   }
 
+  /** The activity types the API accepts; anything else is rejected on save. */
+  readonly activityTypes = [
+    'training', 'distribution', 'meeting', 'survey', 'assessment', 'construction',
+    'repair', 'health_service', 'awareness', 'coordination', 'monitoring', 'community_engagement',
+    'capacity_building', 'advocacy', 'research', 'data_collection', 'cash_transfer', 'other',
+  ];
+
+  activityTypeLabel(type: string): string {
+    const text = type.replace(/_/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
   addIndicator() {
+    // disaggregationText is the raw comma-separated input; the API takes the list.
+    const { disaggregationText, ...indicator } = this.indicatorForm;
     this.api
       .createIndicator({
-        ...this.indicatorForm,
+        ...indicator,
         projectId: this.projectId,
-        disaggregation: this.indicatorForm.disaggregationText
+        disaggregation: disaggregationText
           .split(',')
           .map((item) => item.trim())
           .filter(Boolean),
@@ -823,6 +863,25 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   deleteActivityTemplate(id: string) {
     this.api.deleteActivityTemplate(id).subscribe(() => this.reload());
+  }
+
+  // A rejection must say why: the person who logged the activity has to know
+  // what to fix, and the reason is part of the audit trail.
+  rejectingId = signal<string | null>(null);
+  rejectReason = '';
+
+  startReject(id: string) {
+    this.rejectReason = '';
+    this.rejectingId.set(id);
+  }
+
+  confirmReject(id: string) {
+    const reason = this.rejectReason.trim();
+    if (reason.length < 3) return;
+    this.api.reviewActivity(id, 'rejected', reason).subscribe({
+      next: () => { this.rejectingId.set(null); this.reload(); },
+      error: () => undefined, // the interceptor has already shown the message
+    });
   }
 
   reviewActivity(id: string, status: 'approved' | 'rejected') {

@@ -1,0 +1,120 @@
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Strategy</span>
+    <h1>Objectives &amp; Key Results</h1>
+    <p class="subtitle">Quarterly objectives, measured by key results that can follow your indicators.</p>
+  </div>
+  @if (canManageOrg) {
+    <button type="button" class="btn-primary" (click)="showForm.set(!showForm())">
+      {{ showForm() ? 'Cancel' : '+ New OKR' }}
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="error-banner" role="alert">{{ error() }}</div>
+}
+
+@if (showForm()) {
+  <form class="form-panel" (ngSubmit)="createOKR()">
+    <h2>New OKR</h2>
+    <div class="form-row">
+      <label class="field wide">Objective
+        <input [(ngModel)]="draft.title" name="title" required maxlength="160" placeholder="What do you want to achieve this quarter?" />
+      </label>
+      <label class="field">Quarter
+        <select [(ngModel)]="draft.quarter" name="quarter">
+          @for (q of [1, 2, 3, 4]; track q) { <option [ngValue]="q">Q{{ q }}</option> }
+        </select>
+      </label>
+      <label class="field">Year
+        <input type="number" [(ngModel)]="draft.year" name="year" min="2000" max="2100" required />
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="saving() || !draft.title.trim()">
+        {{ saving() ? 'Creating…' : 'Create OKR' }}
+      </button>
+      <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
+    </div>
+  </form>
+}
+
+@if (loading()) {
+  <p class="state-line">Loading OKRs…</p>
+} @else if (okrs().length === 0) {
+  @if (!error()) {
+    <div class="empty">
+      <h3>No OKRs yet</h3>
+      <p>Set a quarterly objective, then add the key results that prove it is being met.</p>
+      @if (canManageOrg && !showForm()) {
+        <button type="button" class="btn-primary" (click)="showForm.set(true)">+ New OKR</button>
+      }
+    </div>
+  }
+} @else {
+  <div class="period-bar">
+    <div class="tabs" role="tablist" aria-label="OKR period">
+      @if (currentCount()) {
+        <button type="button" role="tab" [attr.aria-selected]="period() === 'current'" [class.active]="period() === 'current'" (click)="period.set('current')">
+          In progress <span class="count">{{ currentCount() }}</span>
+        </button>
+      }
+      <button type="button" role="tab" [attr.aria-selected]="period() === 'all'" [class.active]="period() === 'all' || (period() === 'current' && !currentCount())" (click)="period.set('all')">
+        All <span class="count">{{ okrs().length }}</span>
+      </button>
+    </div>
+    @if (periods().length > 1) {
+      <select class="period-select" [ngModel]="period()" (ngModelChange)="period.set($event)" aria-label="Show a specific quarter">
+        <option value="current" hidden>By quarter…</option>
+        <option value="all" hidden>By quarter…</option>
+        @for (p of periods(); track p.key) {
+          <option [value]="p.key">{{ p.label }} ({{ p.count }})</option>
+        }
+      </select>
+    }
+  </div>
+
+  <div class="okr-grid">
+    @for (okr of visibleOkrs(); track okr._id) {
+      <a class="okr-card" [routerLink]="['/okrs', okr._id]">
+        <div class="okr-card-head">
+          <div>
+            <h3>{{ okr.title }}</h3>
+            <span class="period">Q{{ okr.quarter }} {{ okr.year }}</span>
+          </div>
+          <span class="status-pill" [class]="okr.status">{{ okr.status | titlecase }}</span>
+        </div>
+
+        @if (okr.description) { <p class="okr-desc">{{ okr.description }}</p> }
+
+        <div class="progress-line">
+          <div class="bar" [class]="tone(okr.keyResults.length ? okr.progressPercentage : null)"><span [style.width.%]="okr.progressPercentage"></span></div>
+          <span class="pct">{{ okr.keyResults.length ? okr.progressPercentage + '%' : '—' }}</span>
+        </div>
+
+        @if (okr.keyResults.length) {
+          <ul class="kr-list">
+            @for (kr of okr.keyResults; track kr._id ?? $index) {
+              <li>
+                <i class="kr-dot" [class]="kr.status" [attr.title]="krStatusLabel(kr.status)"></i>
+                <span class="kr-title">{{ kr.title }}</span>
+                <span class="kr-value">{{ kr.currentValue | number: '1.0-1' }} / {{ kr.targetValue | number: '1.0-1' }} {{ kr.unit }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="okr-desc">No key results yet.</p>
+        }
+
+        <div class="okr-card-foot">
+          <span>
+            {{ okr.keyResults.length }} {{ okr.keyResults.length === 1 ? 'key result' : 'key results' }}
+            @if (okr.linkedProjects?.length) { · {{ okr.linkedProjects?.length }} {{ okr.linkedProjects?.length === 1 ? 'project' : 'projects' }} }
+          </span>
+          <span class="open">Open OKR →</span>
+        </div>
+      </a>
+    }
+  </div>
+}

@@ -1,0 +1,73 @@
+@use '../strategy-shared';
+
+.subtitle { max-width: 64ch; }
+.hint { margin: 0; font-size: 0.88rem; color: var(--muted); }
+
+.override-list { display: grid; gap: 0.6rem; }
+
+.override-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+
+  .one { font-size: 0.9rem; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+
+  input {
+    width: 9rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid var(--border-strong);
+    background: var(--input-bg);
+    color: var(--text);
+  }
+
+  input.code { width: 5rem; text-transform: uppercase; font-family: var(--font-mono); }
+
+  .market { min-width: 9rem; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .problem { flex-basis: 100%; font-size: 0.8rem; color: var(--red-strong); }
+}
+
+.form-actions { margin-top: 1.1rem; }
+
+.rate-search {
+  width: 11rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.86rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--input-bg);
+  color: var(--text);
+  text-transform: uppercase;
+  &::placeholder { text-transform: none; color: var(--muted-lt); }
+}
+
+.rate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.5rem;
+}
+
+.rate {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.1rem 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+
+  &.overridden { border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); background: color-mix(in srgb, var(--primary) 4%, transparent); }
+
+  .rate-code { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; }
+  .rate-value { text-align: right; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+  .rate-note, .link-btn { grid-column: 1 / -1; font-size: 0.76rem; text-align: left; }
+  .rate-note { color: var(--primary-strong); font-weight: 600; }
+  .link-btn { opacity: 0; font-weight: 500; }
+  &:hover .link-btn, .link-btn:focus-visible { opacity: 1; }
+}
+
+@media (hover: none) {
+  .rate .link-btn { opacity: 1; }
+}

@@ -17,13 +17,12 @@
 
 .page-eyebrow {
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--primary-lt);
 }
 
-h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 600; color: var(--text-strong); }
 
 .page-subtitle {
   margin: 0.2rem 0 0;
@@ -35,11 +34,11 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .btn-new {
   border: none;
   background: var(--primary);
-  color: #fff;
-  border-radius: 10px;
+  color: var(--on-solid);
+  border-radius: var(--r-lg);
   padding: 0.65rem 1.2rem;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
@@ -50,8 +49,8 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .error-banner {
   background: var(--red-bg);
   color: var(--red);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.85rem 1.1rem;
   font-size: 0.88rem;
   margin-bottom: 1.25rem;
@@ -71,7 +70,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .kpi {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 1rem 1.1rem;
   display: flex;
   flex-direction: column;
@@ -83,13 +82,12 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 
 .kpi-label {
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--muted);
 }
 
-.kpi-value { font-size: 1.4rem; font-weight: 800; color: var(--text-strong); }
+.kpi-value { font-size: 1.4rem; font-weight: 600; color: var(--text-strong); }
 
 .theme-pills {
   display: flex;
@@ -101,10 +99,10 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .theme-pill {
   background: var(--surface-soft);
   color: var(--text-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.15rem 0.55rem;
   font-size: 0.74rem;
-  strong { font-weight: 700; color: var(--primary-lt); margin-left: 0.2rem; }
+  strong { font-weight: 600; color: var(--primary-lt); margin-left: 0.2rem; }
 }
 
 .filters-row {
@@ -118,7 +116,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.5rem 0.75rem;
   font-size: 0.82rem;
 }
@@ -133,7 +131,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
     border: 1px solid var(--border);
     background: var(--input-bg);
     color: var(--text);
-    border-radius: 10px;
+    border-radius: var(--r-lg);
     padding: 0.5rem 2rem 0.5rem 0.75rem;
     font-size: 0.82rem;
     box-sizing: border-box;
@@ -163,7 +161,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.45rem 1rem;
   font-size: 0.82rem;
   font-weight: 600;
@@ -171,7 +169,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   transition: all 0.15s;
 
   &:hover { border-color: var(--primary-lt); }
-  &.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  &.active { background: var(--primary); border-color: var(--primary); color: var(--on-solid); }
 }
 
 .loading-state {
@@ -201,7 +199,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   padding: 3.5rem 1rem;
   background: var(--empty-bg);
   border: 1px dashed var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 
   .empty-icon { font-size: 2rem; }
   h3 { margin: 0; color: var(--text-strong); font-size: 1.05rem; }
@@ -217,13 +215,13 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .feedback-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 1rem 1.2rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, transform 0.1s;
 
-  &:hover { border-color: var(--primary-lt); transform: translateY(-1px); }
+  &:hover { border-color: var(--primary-lt); transform: none; }
 }
 
 .card-top {
@@ -240,7 +238,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .card-title-group h4 {
   margin: 0 0 0.3rem;
   font-size: 0.96rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -250,14 +248,14 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   font-size: 0.7rem;
   color: var(--muted);
   background: var(--surface-soft);
-  border-radius: 6px;
+  border-radius: var(--r);
   padding: 0.1rem 0.45rem;
 }
 
 .status-badge {
   font-size: 0.68rem;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
   padding: 0.1rem 0.55rem;
 
   &.received { background: var(--surface-soft); color: var(--muted); }
@@ -287,7 +285,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   font-size: 0.72rem;
   background: var(--surface-soft);
   color: var(--text-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.1rem 0.55rem;
 }
 
@@ -304,7 +302,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
     border: 1px solid var(--border);
     background: var(--surface-strong);
     color: var(--text);
-    border-radius: 8px;
+    border-radius: var(--r);
     padding: 0.4rem 0.9rem;
     cursor: pointer;
     font-size: 0.82rem;
@@ -319,7 +317,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,7 +327,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 
 .modal-panel {
   background: var(--card-bg);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   width: 100%;
   max-width: 560px;
   max-height: 88vh;
@@ -348,14 +346,14 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   background: var(--card-bg);
   z-index: 1;
 
-  h2 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-strong); }
+  h2 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-strong); }
 }
 
 .modal-close {
   border: none;
   background: var(--surface-soft);
   color: var(--muted);
-  border-radius: 8px;
+  border-radius: var(--r);
   width: 28px; height: 28px;
   cursor: pointer;
   font-size: 0.85rem;
@@ -383,7 +381,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 0.75rem;
   font-size: 0.86rem;
   font-weight: 400;
@@ -428,7 +426,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 1.1rem;
   font-size: 0.84rem;
   font-weight: 600;
@@ -438,11 +436,11 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .btn-primary {
   border: none;
   background: var(--primary);
-  color: #fff;
-  border-radius: 10px;
+  color: var(--on-solid);
+  border-radius: var(--r-lg);
   padding: 0.55rem 1.2rem;
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 
   &:disabled { opacity: 0.5; cursor: default; }
@@ -507,9 +505,8 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 .section-label {
   display: block;
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--muted);
   margin-bottom: 0.4rem;
 }
@@ -521,7 +518,7 @@ h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-strong); 
 
 .action-entry {
   background: var(--surface-soft);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.6rem 0.8rem;
   margin-bottom: 0.5rem;
   font-size: 0.84rem;

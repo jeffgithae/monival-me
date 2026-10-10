@@ -13,14 +13,14 @@
 @if (canManage) {
   <section class="panel">
     <h2>Invite member</h2>
-    <form class="invite-form" (ngSubmit)="invite()">
-      <input aria-label="colleague@ngo.org" type="email" [(ngModel)]="inviteEmail" name="email" placeholder="colleague@ngo.org" required />
+    <form class="invite-form" #inviteForm="ngForm" (ngSubmit)="invite()">
+      <input aria-label="Email address to invite" type="email" [(ngModel)]="inviteEmail" name="email" placeholder="colleague@ngo.org" required email />
       <select aria-label="Role" [(ngModel)]="inviteRole" name="role">
         @for (r of roles; track r) {
           <option [value]="r">{{ roleLabel(r) }}</option>
         }
       </select>
-      <button type="submit" class="primary">Send invite</button>
+      <button type="submit" class="primary" [disabled]="inviteForm.invalid || inviting()">{{ inviting() ? 'Sending…' : 'Send invite' }}</button>
     </form>
     @if (lastInviteLink()) {
       <p class="invite-link">
@@ -72,6 +72,26 @@
     </tbody>
   </table>
 </section>
+
+@if (pendingInvites().length) {
+  <section class="panel">
+    <h2>Pending invites</h2>
+    <table>
+      <thead>
+        <tr><th>Email</th><th>Role</th><th>Expires</th></tr>
+      </thead>
+      <tbody>
+        @for (i of pendingInvites(); track i._id) {
+          <tr>
+            <td>{{ i.email }}</td>
+            <td>{{ roleLabel(i.role) }}</td>
+            <td>{{ i.expiresAt | date: 'mediumDate' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}
 
 <section class="panel roles-help">
   <h2>Role permissions</h2>

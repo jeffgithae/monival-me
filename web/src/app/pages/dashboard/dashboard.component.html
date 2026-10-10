@@ -1,12 +1,5 @@
 <div class="dash" [class.animated]="animated()">
 
-  <!-- Ambient background -->
-  <div class="ambient" aria-hidden="true">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-  </div>
-
   <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <header class="dash-header">
     <div class="header-left">
@@ -58,7 +51,7 @@
         </div>
       </a>
 
-      <a routerLink="/indicators" class="kpi-card stagger-3">
+      <a routerLink="/reporting" class="kpi-card stagger-3">
         <div class="kpi-icon">◎</div>
         <div class="kpi-body">
           <div class="kpi-value">{{ o.counts.indicators }}</div>
@@ -67,7 +60,7 @@
         </div>
       </a>
 
-      <a routerLink="/activities" class="kpi-card stagger-4">
+      <a routerLink="/workplan" class="kpi-card stagger-4">
         <div class="kpi-icon">◈</div>
         <div class="kpi-body">
           <div class="kpi-value">{{ o.counts.activities | number }}</div>
@@ -76,7 +69,7 @@
         </div>
       </a>
 
-      <a routerLink="/grant" class="kpi-card stagger-5" [class.kpi-warn]="o.grants.burnRate >= 90">
+      <a routerLink="/grants" class="kpi-card stagger-5" [class.kpi-warn]="o.grants.burnRate >= 90">
         <div class="kpi-icon">$</div>
         <div class="kpi-body">
           <div class="kpi-value">{{ formatCurrency(o.grants.totalAmount) }}</div>
@@ -189,7 +182,7 @@
               <span class="panel-eyebrow">Results</span>
               <h2>Indicator achievement</h2>
             </div>
-            <a routerLink="/indicators" class="panel-link">View all →</a>
+            <a routerLink="/reporting" class="panel-link">View all →</a>
           </div>
 
           <div class="ind-achievement-grid">
@@ -255,7 +248,7 @@
                 <span class="panel-eyebrow">Field</span>
                 <h2>Recent activities</h2>
               </div>
-              <a routerLink="/activities" class="panel-link">View all →</a>
+              <a routerLink="/workplan" class="panel-link">View all →</a>
             </div>
             <div class="activity-list">
               @for (a of o.recentActivities.slice(0,5); track a.id) {
@@ -332,7 +325,7 @@
                 <span class="panel-eyebrow">Finance</span>
                 <h2>Grant portfolio</h2>
               </div>
-              <a routerLink="/grant" class="panel-link">Details →</a>
+              <a routerLink="/grants" class="panel-link">Details →</a>
             </div>
 
             <div class="burn-bar-wrap">
@@ -393,7 +386,7 @@
                   <span class="rep-overdue-icon">⚠</span>
                   <div class="rep-overdue-info">
                     <span class="rep-name">{{ r.name }}</span>
-                    <span class="rep-due">Due {{ r.endDate | date:'d MMM' }}</span>
+                    <span class="rep-due">Due {{ (r.dueDate ?? r.endDate) | date:'d MMM' }}</span>
                   </div>
                 </div>
               }
@@ -491,7 +484,7 @@
                   <span class="imp-month">+{{ o.impactStories.thisMonth }} this month</span>
                 }
               </div>
-              <a routerLink="/impact-stories" class="panel-link" style="margin-left:auto;white-space:nowrap">View →</a>
+              <a routerLink="/stories" class="panel-link" style="margin-left:auto;white-space:nowrap">View →</a>
             </div>
             <div class="divider" style="margin:0.75rem 0"></div>
           }
@@ -578,11 +571,14 @@
   <!-- ── Projects grid ─────────────────────────────────────────────────────── -->
   <div class="projects-section">
     <div class="section-head">
-      <h2>All projects</h2>
-      <span class="section-count">{{ projects().length }}</span>
+      <h2>Active projects</h2>
+      <span class="section-count">{{ featuredProjects().length }} of {{ projects().length }}</span>
+      @if (projects().length > 0) {
+        <a routerLink="/projects" class="section-link">View all projects →</a>
+      }
     </div>
     <div class="projects-grid">
-      @for (p of projects(); track p._id) {
+      @for (p of featuredProjects(); track p._id) {
         <a class="project-card" [routerLink]="['/projects', p._id]">
           <div class="card-top">
             <span class="status-pill status-{{ p.status }}">{{ p.status }}</span>

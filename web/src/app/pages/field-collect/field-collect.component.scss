@@ -17,13 +17,12 @@
 
 .page-eyebrow {
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--primary-lt);
 }
 
-h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); }
+h1 { margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text-strong); }
 
 .page-subtitle {
   margin: 0.2rem 0 0;
@@ -36,10 +35,10 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.35rem 0.85rem;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 
   .dot { width: 7px; height: 7px; border-radius: 50%; }
@@ -51,8 +50,8 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 .warning-banner {
   background: var(--amber-bg);
   color: var(--amber);
-  border: 1px solid rgba(245,158,11,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.8rem 1rem;
   font-size: 0.84rem;
   margin-bottom: 1.2rem;
@@ -61,8 +60,8 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 .success-banner {
   background: var(--green-bg);
   color: var(--green);
-  border: 1px solid rgba(16,185,129,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.8rem 1rem;
   font-size: 0.86rem;
   font-weight: 600;
@@ -75,7 +74,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   gap: 0.95rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   padding: 1.4rem;
   box-shadow: var(--shadow-sm);
 }
@@ -95,7 +94,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.6rem 0.8rem;
   font-size: 0.92rem;
   font-weight: 400;
@@ -123,7 +122,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   border: 1px dashed var(--border-strong);
   background: var(--surface-soft);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 1rem;
   font-size: 0.84rem;
   font-weight: 600;
@@ -135,7 +134,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 .gps-value {
   font-size: 0.8rem;
   color: var(--muted);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .field-error {
@@ -147,11 +146,11 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 .btn-submit {
   border: none;
   background: var(--primary);
-  color: #fff;
-  border-radius: 12px;
+  color: var(--on-solid);
+  border-radius: var(--r-lg);
   padding: 0.85rem;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   margin-top: 0.4rem;
 
@@ -163,7 +162,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   margin-top: 1.5rem;
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 1.1rem 1.3rem;
 }
 
@@ -173,13 +172,13 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   justify-content: space-between;
   margin-bottom: 0.3rem;
 
-  h3 { margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-strong); }
+  h3 { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--text-strong); }
 }
 
 .queue-count {
   background: var(--badge-bg);
   color: var(--badge-color);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.72rem;
   padding: 0.05rem 0.5rem;
   margin-left: 0.4rem;
@@ -189,7 +188,7 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
   border: 1px solid var(--border);
   background: var(--card-bg);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--r);
   padding: 0.35rem 0.8rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -213,10 +212,10 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 .queue-item {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.6rem 0.8rem;
 
-  &.error { border-color: rgba(239,68,68,0.3); }
+  &.error { border-color: color-mix(in srgb, var(--red) 30%, transparent); }
 }
 
 .queue-item-main {
@@ -239,8 +238,8 @@ h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-strong); 
 
 .status-pill {
   font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
   padding: 0.08rem 0.55rem;
 
   &.pending { background: var(--amber-bg); color: var(--amber); }

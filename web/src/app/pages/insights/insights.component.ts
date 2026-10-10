@@ -6,10 +6,12 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Insight, InsightSeverity, InsightsReport, Project, BeneficiaryReachReport } from '../../core/models';
 
+import { PagerComponent } from '../../shared/pager/pager.component';
+
 @Component({
   selector: 'app-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe, DecimalPipe, RouterLink],
+  imports: [CommonModule, FormsModule, DatePipe, KeyValuePipe, DecimalPipe, RouterLink, PagerComponent],
   templateUrl: './insights.component.html',
   styleUrl: './insights.component.scss',
 })
@@ -38,6 +40,14 @@ export class InsightsComponent implements OnInit {
     if (!r) return [];
     const tab = this.activeTab();
     return tab === 'all' ? r.insights : r.insights.filter(i => i.type === tab);
+  });
+
+  readonly pageSize = 12;
+  readonly page = signal(1);
+  readonly currentPage = computed(() => Math.min(this.page(), Math.max(1, Math.ceil(this.filteredInsights().length / this.pageSize))));
+  readonly pagedInsights = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filteredInsights().slice(start, start + this.pageSize);
   });
 
   readonly tabCount = computed(() => {

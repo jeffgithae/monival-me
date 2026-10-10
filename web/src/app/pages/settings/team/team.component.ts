@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/api.service';
@@ -10,7 +11,7 @@ import { ConfirmService } from '../../../shared/confirm.service';
 @Component({
   selector: 'app-team',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DatePipe],
   templateUrl: './team.component.html',
   styleUrl: './team.component.scss',
 })
@@ -19,6 +20,7 @@ export class TeamComponent implements OnInit {
   members = signal<
     Array<{ id: string; email: string; name: string; role: OrgRole }>
   >([]);
+  pendingInvites = signal<Array<{ _id: string; email: string; role: OrgRole; expiresAt: string }>>([]);
   inviteEmail = '';
   inviteRole: OrgRole = 'me_officer';
   lastInviteLink = signal('');
@@ -47,20 +49,35 @@ export class TeamComponent implements OnInit {
 
   reload() {
     this.api.members().subscribe((m) => this.members.set(m));
+    // Only owners and admins may list invites; for everyone else the section stays hidden.
+    if (this.canManage) {
+      this.api.pendingInvites().subscribe({
+        next: (i) => this.pendingInvites.set(i),
+        error: () => this.pendingInvites.set([]),
+      });
+    }
   }
 
+  /** Guards against a double click sending two invitations. */
+  inviting = signal(false);
+
   invite() {
-    if (!this.canManage) return;
+    if (!this.canManage || this.inviting() || !this.inviteEmail.trim()) return;
     this.error.set('');
-    this.api.inviteMember(this.inviteEmail, this.inviteRole).subscribe({
+    this.inviting.set(true);
+    this.api.inviteMember(this.inviteEmail.trim(), this.inviteRole).subscribe({
       next: (res) => {
+        this.inviting.set(false);
         this.lastInviteLink.set(
           `${window.location.origin}/accept-invite?token=${res.token}`,
         );
         this.inviteEmail = '';
         this.reload();
       },
-      error: (err) => this.error.set(formatHttpError(err, 'Invite failed')),
+      error: (err) => {
+        this.inviting.set(false);
+        this.error.set(formatHttpError(err, 'Invite failed'));
+      },
     });
   }
 

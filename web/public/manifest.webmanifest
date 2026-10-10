@@ -1,10 +1,10 @@
 {
-  "name": "Monival M&E",
-  "short_name": "Monival",
+  "name": "Evidara M&E",
+  "short_name": "Evidara",
   "description": "Adaptive programmatic and financial intelligence for NGOs and development agencies — track indicators, grants, beneficiaries, and field data, online or off.",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "background_color": "#f4f4f1",
+  "theme_color": "#17604a",
   "scope": "./",
   "start_url": "./dashboard",
   "icons": [

@@ -1,14 +1,51 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (auth.isLoggedIn) {
-    return true;
+  if (!auth.isLoggedIn) {
+    return router.createUrlTree(['/login']);
   }
-  return router.createUrlTree(['/login']);
+  // Wait for the profile before rendering: pages read the user's role when
+  // they are constructed, and on a hard refresh it has not arrived yet — which
+  // silently hid every role-gated button. If the profile request fails the
+  // service drops the session, so fall back to whatever state that leaves.
+  return auth.ensureProfile().pipe(
+    map(() => true as const),
+    catchError(() => of(auth.isLoggedIn ? true : router.createUrlTree(['/login']))),
+  );
+};
+
+// Pages every signed-in user has, whatever their menu.
+const ALWAYS_ALLOWED = ['/dashboard', '/profile'];
+// Detail pages that live under another page's menu entry.
+const PARENT_ROUTE: Record<string, string> = { '/indicators': '/projects' };
+
+/**
+ * Keeps each role to the pages its menu offers. The API already refuses the
+ * data, but without this a typed or bookmarked URL rendered the page shell
+ * around a set of failed requests. The server-computed menu is the single
+ * definition of who sees what.
+ */
+export const roleGuard: CanActivateChildFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const path = state.url.split(/[?#]/)[0];
+  const under = (base: string) => path === base || path.startsWith(base + '/');
+  if (ALWAYS_ALLOWED.some(under)) return true;
+
+  return auth.ensureNavMenu().pipe(
+    map((menu) => {
+      const parent = Object.entries(PARENT_ROUTE).find(([prefix]) => under(prefix))?.[1];
+      const allowed = menu.some((item) => under(item.route) || item.route === parent);
+      return allowed ? true : router.createUrlTree(['/dashboard']);
+    }),
+    // If the menu cannot be loaded, let the page through: the API still enforces access.
+    catchError(() => of(true as const)),
+  );
 };
 
 export const guestGuard: CanActivateFn = (_route, state) => {

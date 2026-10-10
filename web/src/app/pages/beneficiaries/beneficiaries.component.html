@@ -259,14 +259,14 @@
         <span class="lc-val">{{ s.bySex['female'] || 0 | number }}</span>
         <span class="lc-lbl">Female</span>
       </button>
-      <button type="button" class="ledger-cell accent-amber">
+      <div class="ledger-cell static accent-amber">
         <span class="lc-val">{{ consentPct() }}%</span>
         <span class="lc-lbl">Consent</span>
-      </button>
-      <button type="button" class="ledger-cell">
+      </div>
+      <div class="ledger-cell static">
         <span class="lc-val">{{ s.vulnerable.totalHouseholdSize | number }}</span>
         <span class="lc-lbl">HH members</span>
-      </button>
+      </div>
     </div>
 
     <!-- Vulnerability chips -->

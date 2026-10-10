@@ -13,6 +13,8 @@ import { ModalDirective } from '../../shared/a11y/modal.directive';
 type Tab = 'tasks' | 'instances' | 'definitions';
 type ModalMode = 'none' | 'create-def' | 'edit-def' | 'view-instance' | 'start-workflow' | 'act';
 
+import { OrgRole, roleLabel as orgRoleLabel } from '../../core/roles';
+
 @Component({
   selector: 'app-workflows',
   standalone: true,
@@ -21,6 +23,10 @@ type ModalMode = 'none' | 'create-def' | 'edit-def' | 'view-instance' | 'start-w
   styleUrl: './workflows.component.scss',
 })
 export class WorkflowsComponent implements OnInit {
+  roleLabel(role: string): string {
+    return orgRoleLabel(role as OrgRole);
+  }
+
   private confirmSvc = inject(ConfirmService);
   // ── State ────────────────────────────────────────────────────────────────
 
@@ -33,7 +39,7 @@ export class WorkflowsComponent implements OnInit {
   myTasks     = signal<WorkflowInstance[]>([]);
   instances   = signal<WorkflowInstance[]>([]);
   definitions = signal<WorkflowDefinition[]>([]);
-  members     = signal<Array<{ id: string; userId: string; email: string; name: string; role: string }>>([]);
+  members     = signal<Array<{ id: string; userId: string; name: string; role: string }>>([]);
   availableEntities = signal<Array<{ id: string; name: string }>>([]);
   entitiesLoading   = signal(false);
 
@@ -164,7 +170,7 @@ export class WorkflowsComponent implements OnInit {
     this.loadDefinitions();
 
     // Load members
-    this.api.members().subscribe({
+    this.api.memberDirectory().subscribe({
       next: m => this.members.set(m),
       error: () => {},
     });
@@ -252,6 +258,13 @@ export class WorkflowsComponent implements OnInit {
     this.defForm.steps.forEach((s, idx) => (s.order = idx + 1));
   }
 
+  /** A definition needs a name and at least one named step before it can be saved. */
+  canSaveDef(): boolean {
+    return !!this.defForm.name?.trim()
+      && this.defForm.steps.length > 0
+      && this.defForm.steps.every(s => !!s.name?.trim());
+  }
+
   saveDef() {
     this.saving.set(true);
     const payload = {
@@ -265,8 +278,11 @@ export class WorkflowsComponent implements OnInit {
     };
 
     const isEdit = this.modalMode() === 'edit-def';
+    // What a definition applies to is fixed once created; the API refuses the
+    // field on update, so leave it out of the edit payload.
+    const { entityType: _entityType, ...editable } = payload;
     const obs = isEdit
-      ? this.api.updateWorkflowDefinition(this.selectedDef()!._id, payload)
+      ? this.api.updateWorkflowDefinition(this.selectedDef()!._id, editable)
       : this.api.createWorkflowDefinition(payload);
 
     obs.subscribe({
@@ -309,6 +325,15 @@ export class WorkflowsComponent implements OnInit {
     this.startForm = { definitionId: '', entityType: 'activity', entityId: '', entityTitle: '' };
     this.onEntityTypeChange();
     this.modalMode.set('start-workflow');
+  }
+
+  /** A definition only governs one entity type, so choosing it fixes the type. */
+  onDefinitionChange() {
+    const def = this.definitions().find(d => d._id === this.startForm.definitionId);
+    if (def && def.entityType !== this.startForm.entityType) {
+      this.startForm.entityType = def.entityType;
+      this.onEntityTypeChange();
+    }
   }
 
   onEntityTypeChange() {

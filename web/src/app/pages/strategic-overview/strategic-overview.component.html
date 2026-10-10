@@ -1,0 +1,152 @@
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Strategy</span>
+    <h1>Strategic Overview</h1>
+    <p class="subtitle">Vision, mission and pillars — and how scorecards and OKRs are delivering them.</p>
+  </div>
+  @if (canManageOrg && overview() && !editing()) {
+    <button type="button" class="btn-primary" (click)="startEditing()">{{ isEmpty() ? 'Set up' : 'Edit' }}</button>
+  }
+</div>
+
+@if (error(); as err) {
+  <div class="error-banner" role="alert">{{ err }}</div>
+}
+
+@if (loading()) {
+  <p class="state-line">Loading strategic overview…</p>
+} @else if (editing()) {
+  <form class="form-panel" (ngSubmit)="save()">
+    <h2>Vision and mission</h2>
+    <div class="form-row">
+      <label class="field full">Vision <small>— the change you exist to bring about</small>
+        <textarea [(ngModel)]="draft.vision" name="vision" rows="2" maxlength="600"></textarea>
+      </label>
+      <label class="field full">Mission <small>— what you do, for whom, and how</small>
+        <textarea [(ngModel)]="draft.mission" name="mission" rows="2" maxlength="600"></textarea>
+      </label>
+    </div>
+
+    <h2>Strategic pillars</h2>
+    @for (p of draft.pillars; let i = $index; track i) {
+      <fieldset class="pillar-edit">
+        <legend class="sr-only">Pillar {{ i + 1 }}</legend>
+        <div class="form-row">
+          <label class="field wide">Pillar name
+            <input [(ngModel)]="p.pillar" [name]="'pillar' + i" maxlength="120" required />
+          </label>
+          <label class="field full">Description <small>(optional)</small>
+            <textarea [(ngModel)]="p.description" [name]="'description' + i" rows="2" maxlength="600"></textarea>
+          </label>
+          <label class="field full">Key initiatives <small>(optional, one per line)</small>
+            <textarea [(ngModel)]="p.initiatives" [name]="'initiatives' + i" rows="3"></textarea>
+          </label>
+        </div>
+        <button type="button" class="link-btn danger" (click)="removePillar(i)">Remove pillar</button>
+      </fieldset>
+    } @empty {
+      <p class="hint">No pillars yet. Most organisations have three to five.</p>
+    }
+    @if (draft.pillars.length < maxPillars) {
+      <button type="button" class="btn-ghost btn-sm add-pillar" (click)="addPillar()">+ Add pillar</button>
+    }
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="saving() || !canSave()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+      <button type="button" class="btn-ghost" [disabled]="saving()" (click)="editing.set(false)">Cancel</button>
+    </div>
+  </form>
+} @else if (overview()) {
+  @let o = overview()!;
+  @if (isEmpty()) {
+    <div class="empty">
+      <h3>No strategic overview yet</h3>
+      @if (canManageOrg) {
+        <p>Write down your vision, mission and strategic pillars so the whole team works from the same page.</p>
+        <button type="button" class="btn-primary" (click)="startEditing()">Set up</button>
+      } @else {
+        <p>An owner or admin can add your organisation's vision, mission and strategic pillars here.</p>
+      }
+    </div>
+  } @else {
+    @if (o.vision || o.mission) {
+      <section class="panel statements">
+        @if (o.vision) {
+          <div>
+            <h2>Vision</h2>
+            <p>{{ o.vision }}</p>
+          </div>
+        }
+        @if (o.mission) {
+          <div>
+            <h2>Mission</h2>
+            <p>{{ o.mission }}</p>
+          </div>
+        }
+      </section>
+    }
+
+    @if (o.strategicPillars.length) {
+      <h2 class="section-title">Strategic pillars</h2>
+      <div class="pillar-grid">
+        @for (pillar of o.strategicPillars; let i = $index; track i) {
+          <article class="pillar">
+            <span class="pillar-index">{{ i + 1 }}</span>
+            <h3>{{ pillar.pillar }}</h3>
+            @if (pillar.description) { <p>{{ pillar.description }}</p> }
+            @if (pillar.initiatives.length) {
+              <ul>
+                @for (initiative of pillar.initiatives; track initiative) {
+                  <li>{{ initiative }}</li>
+                }
+              </ul>
+            }
+          </article>
+        }
+      </div>
+    }
+  }
+
+  <h2 class="section-title">Strategy in action</h2>
+  <div class="action-grid">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Balanced scorecards</h2>
+          <p>Annual objectives in force.</p>
+        </div>
+        <a routerLink="/bsc" class="link-btn">All scorecards →</a>
+      </div>
+      @for (b of activeScorecards(); track b.id) {
+        <a class="action-row" [routerLink]="['/bsc', b.id]">
+          <span class="action-name">{{ b.name }} <small>FY {{ b.fiscalYear }}</small></span>
+          <div class="bar" [class]="tone(b.score)"><span [style.width.%]="b.score ?? 0"></span></div>
+          <span class="action-value" [class]="'tone-' + tone(b.score)">{{ b.score === null ? '—' : b.score + '%' }}</span>
+        </a>
+      } @empty {
+        <p class="hint">No active scorecard. Create one, or activate a draft, to track the year's objectives.</p>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>OKRs @if (currentOkrs(); as c) { <small>· Q{{ c.quarter }} {{ c.year }}</small> }</h2>
+          <p>Quarterly objectives delivering the scorecard.</p>
+        </div>
+        <a routerLink="/okrs" class="link-btn">All OKRs →</a>
+      </div>
+      @if (currentOkrs(); as c) {
+        @for (okr of c.okrs; track okr._id) {
+          <a class="action-row" [routerLink]="['/okrs', okr._id]">
+            <span class="action-name">{{ okr.title }}</span>
+            <div class="bar" [class]="tone(okr.progressPercentage)"><span [style.width.%]="okr.progressPercentage"></span></div>
+            <span class="action-value" [class]="'tone-' + tone(okr.progressPercentage)">{{ okr.progressPercentage }}%</span>
+          </a>
+        }
+      } @else {
+        <p class="hint">No active OKRs. Set a quarterly objective to start measuring delivery.</p>
+      }
+    </section>
+  </div>
+}

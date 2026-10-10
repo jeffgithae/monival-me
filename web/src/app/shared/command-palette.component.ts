@@ -64,7 +64,7 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
   styles: [`
     .cp-backdrop {
       position: fixed; inset: 0; z-index: 10000;
-      background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+      background: var(--scrim);
       display: flex; align-items: flex-start; justify-content: center;
       padding-top: clamp(60px, 10vh, 120px);
       animation: fadeIn .15s ease;
@@ -74,11 +74,11 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
     .cp-modal {
       width: min(620px, calc(100vw - 2rem));
       background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,.3);
+      border-radius: var(--r-lg); box-shadow: var(--shadow);
       overflow: hidden;
       animation: slideDown .18s cubic-bezier(.22,1,.36,1);
     }
-    @keyframes slideDown { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideDown { from { opacity:0; transform: none; } to { opacity:1; transform:translateY(0); } }
 
     .cp-search-row {
       display: flex; align-items: center; gap: .75rem;
@@ -91,7 +91,7 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
       &::placeholder { color: var(--muted); }
     }
     .cp-esc {
-      padding: .2rem .5rem; border: 1px solid var(--border); border-radius: 5px;
+      padding: .2rem .5rem; border: 1px solid var(--border); border-radius: var(--r);
       font-size: .72rem; color: var(--muted); cursor: pointer;
       font-family: inherit; background: var(--surface-soft);
     }
@@ -102,7 +102,7 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
     .cp-item {
       width: 100%; display: flex; align-items: center; gap: .85rem;
       padding: .65rem .9rem; border: none; background: transparent;
-      border-radius: 10px; cursor: pointer; text-align: left;
+      border-radius: var(--r-lg); cursor: pointer; text-align: left;
       transition: background .1s;
       &.cp-item-active { background: var(--primary-ghost); }
     }
@@ -110,13 +110,13 @@ import { CommandPaletteService, PaletteCommand } from './command-palette.service
     .cp-item-body { flex: 1; display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
     .cp-item-label { font-size: .9rem; font-weight: 600; color: var(--text-strong); }
     .cp-item-desc { font-size: .78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .cp-item-cat { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); flex-shrink: 0; }
+    .cp-item-cat { font-size: .68rem; color: var(--muted); flex-shrink: 0; }
 
     .cp-footer {
       display: flex; gap: 1.25rem; padding: .65rem 1.25rem;
       border-top: 1px solid var(--border); background: var(--surface-soft);
       font-size: .75rem; color: var(--muted);
-      kbd { padding: .15rem .4rem; border: 1px solid var(--border); border-radius: 4px; font-size: .7rem; background: var(--card-bg); }
+      kbd { padding: .15rem .4rem; border: 1px solid var(--border); border-radius: var(--r-sm); font-size: .7rem; background: var(--card-bg); }
     }
   `],
 })

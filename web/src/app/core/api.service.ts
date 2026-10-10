@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map } from 'rxjs';
+import { EMPTY, Observable, expand, map, reduce } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   WorkplanItem,
@@ -32,6 +32,8 @@ import {
   Project,
   ReportingPeriod,
   StrategicOverview,
+  ExchangeRates,
+  OutgoingWebhook,
   AppNotification,
   AuditEvent,
   CreateDonorDto,
@@ -81,6 +83,21 @@ import {
   IndicatorAchievementResponse,
 } from './models';
 import { OrgRole } from './roles';
+
+/**
+ * Query parameters without the blanks. HttpClient serialises an `undefined`
+ * value as the literal text "undefined", so an optional filter that was not
+ * set reached the API as `?reportingPeriodId=undefined` and was rejected as
+ * an invalid id.
+ */
+function query(params?: object | null): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value === undefined || value === null || value === '') continue;
+    out[key] = value as string | number | boolean;
+  }
+  return out;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -135,6 +152,15 @@ export class ApiService {
     return this.http.get<
       Array<{ id: string; userId: string; email: string; name: string; role: OrgRole }>
     >(`${this.base}/members`);
+  }
+
+  /** Names and roles for assignee pickers; available to every role, unlike the full member list. */
+  memberDirectory() {
+    return this.http.get<Array<{ id: string; userId: string; name: string; role: OrgRole }>>(`${this.base}/members/directory`);
+  }
+
+  pendingInvites() {
+    return this.http.get<Array<{ _id: string; email: string; role: OrgRole; expiresAt: string }>>(`${this.base}/members/invites`);
   }
 
   inviteMember(email: string, role: OrgRole) {
@@ -237,10 +263,30 @@ export class ApiService {
   //   return this.http.post(`${this.base}/donors`, body);
   // }
 
-  projects(params?: Record<string, string | number | boolean>) {
-    return this.http.get<PaginatedResult<Project> | Project[]>(`${this.base}/projects`, { params: params as any }).pipe(
-      map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
+  /**
+   * Every row of a paginated list endpoint, as one flat array. Follows the
+   * API's pagination to the end so pickers and roll-ups never silently stop
+   * at the first page. Passing an explicit `page` fetches just that page.
+   */
+  private allPages<T>(url: string, params: Record<string, string | number | boolean> = {}, pageSize = 100): Observable<T[]> {
+    const single = params['page'] !== undefined;
+    const fetch = (page: number) =>
+      this.http.get<PaginatedResult<T> | T[]>(url, { params: query({ limit: pageSize, ...params, ...(single ? {} : { page }) }) });
+    return fetch(1).pipe(
+      expand((r: any, i) => (!single && !Array.isArray(r) && r.pages > i + 1 ? fetch(i + 2) : EMPTY)),
+      map((r: any) => (Array.isArray(r) ? r : (r.data ?? [])) as T[]),
+      reduce((all, chunk) => all.concat(chunk), [] as T[]),
     );
+  }
+
+  projects(params?: Record<string, string | number | boolean>) {
+    return this.allPages<Project>(`${this.base}/projects`, params);
+  }
+
+  /** One page of the project list, without the embedded workplan and risk registers. */
+  projectsPage(params: { page: number; limit: number; status?: string; sector?: string; search?: string; sort?: string }) {
+    const clean = Object.fromEntries(Object.entries({ ...params, view: 'summary' }).filter(([, v]) => v !== '' && v !== undefined));
+    return this.http.get<PaginatedResult<Project> & { statusCounts: Record<string, number> }>(`${this.base}/projects`, { params: query(clean) });
   }
 
   project(id: string) {
@@ -328,7 +374,7 @@ export class ApiService {
   // ── Impact Stories ──────────────────────────────────────────────────────────
 
   impactStories(params?: Record<string, string>) {
-    return this.http.get<any>(`${this.base}/impact-stories`, { params: params as any });
+    return this.http.get<any>(`${this.base}/impact-stories`, { params: query(params) });
   }
 
   impactStoryStats() {
@@ -356,13 +402,7 @@ export class ApiService {
   }
 
   indicators(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) {
-      params = params.set('projectId', projectId);
-    }
-    return this.http.get<PaginatedResult<Indicator> | Indicator[]>(`${this.base}/indicators`, { params }).pipe(
-      map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
-    );
+    return this.allPages<Indicator>(`${this.base}/indicators`, projectId ? { projectId } : {}, 500);
   }
 
   /**
@@ -390,12 +430,14 @@ export class ApiService {
     return this.http.delete(`${this.base}/indicators/${id}`);
   }
 
+  /**
+   * Activities, newest first. For a project this follows the pagination to
+   * the end: the project page counts, filters and approves across all of
+   * them, and stopping at the first page hid everything older.
+   */
   activities(projectId?: string) {
-    let params = new HttpParams();
-    if (projectId) {
-      params = params.set('projectId', projectId);
-    }
-    return this.http.get<Activity[]>(`${this.base}/activities`, { params });
+    // Without a project this is only ever a picker: the most recent hundred, not the whole history.
+    return this.allPages<Activity>(`${this.base}/activities`, projectId ? { projectId } : { page: 1 }, projectId ? 200 : 100);
   }
 
   createActivity(body: Record<string, unknown>) {
@@ -419,7 +461,7 @@ export class ApiService {
   }
 
   bulkReviewActivities(dto: { ids: string[]; status: 'approved' | 'rejected'; rejectionReason?: string }) {
-    return this.http.patch<{ updated: number }>(`${this.base}/activities/bulk-review`, dto);
+    return this.http.patch<{ modifiedCount: number }>(`${this.base}/activities/bulk-review`, dto);
   }
 
   offlineSyncActivities(batch: Record<string, unknown>[]) {
@@ -445,7 +487,7 @@ export class ApiService {
 
   // Beneficiaries
   beneficiaries(params?: Record<string, string | number | boolean>) {
-    return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: params as any });
+    return this.http.get<{ data: Beneficiary[]; total: number; page: number; limit: number; pages: number }>(`${this.base}/beneficiaries`, { params: query(params) });
   }
 
   beneficiary(id: string) {
@@ -494,7 +536,7 @@ export class ApiService {
   }
 
   beneficiaryActivities(beneficiaryId: string) {
-    return this.http.get<{ data: Activity[] }>(`${this.base}/activities`, { params: { beneficiaryId, limit: '50' } as any });
+    return this.http.get<{ data: Activity[] }>(`${this.base}/activities`, { params: query({ beneficiaryId, limit: '50' }) });
   }
 
   activityTemplates(projectId?: string) {
@@ -552,19 +594,25 @@ export class ApiService {
   // }
 
   // Budget Tracking API
-  budgetAllocations(query?: { status?: string; fiscalYear?: number; projectId?: string; grantId?: string; category?: string }) {
+  /** One page of budget allocations, with the total so the list can page through the rest. */
+  budgetAllocationsPage(query?: { status?: string; fiscalYear?: number; projectId?: string; grantId?: string; category?: string; page?: number; limit?: number }) {
     let params = new HttpParams();
     if (query?.status)     params = params.set('status', query.status);
     if (query?.fiscalYear) params = params.set('fiscalYear', String(query.fiscalYear));
     if (query?.projectId)  params = params.set('projectId', query.projectId);
     if (query?.grantId)    params = params.set('grantId', query.grantId);
     if (query?.category)   params = params.set('category', query.category);
-    return this.http
-      .get<{ data: BudgetAllocation[]; total: number; page: number; limit: number }>(
-        `${this.base}/budget/allocations`,
-        { params },
-      )
-      .pipe(map((response) => response.data));
+    if (query?.page)       params = params.set('page', String(query.page));
+    if (query?.limit)      params = params.set('limit', String(query.limit));
+    return this.http.get<{ data: BudgetAllocation[]; total: number; page: number; limit: number }>(
+      `${this.base}/budget/allocations`,
+      { params },
+    );
+  }
+
+  budgetAllocations(query?: { status?: string; fiscalYear?: number; projectId?: string; grantId?: string; category?: string }) {
+    // Used by pickers and per-project panels, which want the whole set the API allows in one go.
+    return this.budgetAllocationsPage({ ...query, limit: 100 }).pipe(map((response) => response.data));
   }
 
   budgetAllocation(id: string) {
@@ -620,9 +668,9 @@ export class ApiService {
     return this.http.delete(`${this.base}/budget/allocations/${id}`);
   }
 
-  /** Line items — fetched by allocation ID path param: GET /budget/line-items/:allocationId */
+  /** Line items for one allocation: GET /budget/allocations/:allocationId/line-items */
   budgetLineItems(allocationId: string) {
-    return this.http.get<BudgetLineItem[]>(`${this.base}/budget/line-items/${allocationId}`);
+    return this.http.get<BudgetLineItem[]>(`${this.base}/budget/allocations/${allocationId}/line-items`);
   }
 
   createBudgetLineItem(body: {
@@ -711,8 +759,42 @@ export class ApiService {
     );
   }
 
+  // ── Two-factor authentication ──────────────────────────────────────────────
+  mfaStatus() {
+    return this.http.get<{ mfaEnabled: boolean; backupCodesRemaining: number }>(`${this.base}/mfa/status`);
+  }
+
+  mfaEnrollStart() {
+    return this.http.post<{ qrCodeDataUrl: string; secret: string }>(`${this.base}/mfa/enroll`, {});
+  }
+
+  mfaEnrollVerify(code: string) {
+    return this.http.post<{ backupCodes: string[] }>(`${this.base}/mfa/enroll/verify`, { code });
+  }
+
+  mfaDisable(code: string) {
+    return this.http.post<{ disabled: boolean }>(`${this.base}/mfa/disable`, { code });
+  }
+
   getBSCPerformance(id: string) {
-    return this.http.get<BSCPerformanceSummary>(`${this.base}/bsc/${id}/performance`);
+    // The API reports one entry per perspective present on the scorecard; the
+    // page shows all four, so absent perspectives read as 0 rather than crash.
+    return this.http
+      .get<{ overallScore: number; perspectives: Array<{ name: string; score: number }> }>(`${this.base}/bsc/${id}/performance`)
+      .pipe(
+        map((r): BSCPerformanceSummary => {
+          const score = (name: string) => r.perspectives?.find((p) => p.name === name)?.score ?? 0;
+          return {
+            overall: r.overallScore ?? 0,
+            byPerspective: {
+              financial: score('financial'),
+              customer: score('customer'),
+              internal: score('internal'),
+              learning: score('learning'),
+            },
+          };
+        }),
+      );
   }
 
   markBSCAsReviewed(id: string) {
@@ -724,19 +806,19 @@ export class ApiService {
   }
 
   // OKR API
-  okrs() {
-    return this.http.get<OKR[]>(`${this.base}/okrs`);
+  okrs(params?: { projectId?: string }) {
+    return this.http.get<OKR[]>(`${this.base}/okrs`, { params: query(params) });
   }
 
   okr(id: string) {
     return this.http.get<OKR>(`${this.base}/okrs/${id}`);
   }
 
-  createOKR(body: Partial<OKR>) {
+  createOKR(body: Partial<Omit<OKR, 'linkedProjects'>> & { linkedProjects?: string[] }) {
     return this.http.post<OKR>(`${this.base}/okrs`, body);
   }
 
-  updateOKR(id: string, body: Partial<OKR>) {
+  updateOKR(id: string, body: Partial<Omit<OKR, 'linkedProjects'>> & { linkedProjects?: string[] }) {
     return this.http.patch<OKR>(`${this.base}/okrs/${id}`, body);
   }
 
@@ -772,9 +854,53 @@ export class ApiService {
     });
   }
 
+  // ── Exchange rates ─────────────────────────────────────────────────────────
+  exchangeRates(base?: string) {
+    return this.http.get<ExchangeRates>(`${this.base}/fx/rates`, { params: query({ base }) });
+  }
+
+  /** Replaces this organisation's own rates for the base currency; an empty map removes them. */
+  setExchangeRateOverrides(baseCurrency: string, rates: Record<string, number>) {
+    return this.http.post<ExchangeRates>(`${this.base}/fx/manual`, { baseCurrency, rates });
+  }
+
+  refreshExchangeRates(base: string) {
+    return this.http.post<{ refreshed: boolean }>(`${this.base}/fx/refresh`, {}, { params: query({ base }) });
+  }
+
+  // ── Outgoing webhooks ──────────────────────────────────────────────────────
+  webhookEvents() {
+    return this.http.get<{ events: string[] }>(`${this.base}/webhooks/events`);
+  }
+
+  webhooks() {
+    return this.http.get<OutgoingWebhook[]>(`${this.base}/webhooks`);
+  }
+
+  /** The response carries the signing secret, which is never shown again. */
+  createWebhook(body: { name: string; url: string; events: string[]; projectId?: string }) {
+    return this.http.post<OutgoingWebhook & { secret: string }>(`${this.base}/webhooks`, body);
+  }
+
+  updateWebhook(id: string, body: { name?: string; events?: string[]; isActive?: boolean }) {
+    return this.http.patch<OutgoingWebhook>(`${this.base}/webhooks/${id}`, body);
+  }
+
+  rotateWebhookSecret(id: string) {
+    return this.http.post<{ secret: string }>(`${this.base}/webhooks/${id}/rotate-secret`, {});
+  }
+
+  deleteWebhook(id: string) {
+    return this.http.delete<{ deleted: boolean }>(`${this.base}/webhooks/${id}`);
+  }
+
   // Strategic Overview API
   getStrategicOverview() {
     return this.http.get<StrategicOverview>(`${this.base}/organizations/strategic-overview`);
+  }
+
+  updateStrategicOverview(body: Pick<StrategicOverview, 'vision' | 'mission' | 'strategicPillars'>) {
+    return this.http.patch<StrategicOverview>(`${this.base}/organizations/strategic-overview`, body);
   }
 /**
  * ADD THESE METHODS TO web/src/app/core/api.service.ts
@@ -786,11 +912,11 @@ export class ApiService {
 
   grants(params?: {
     status?: string; donorId?: string; search?: string;
-    parentGrantId?: string; primeOnly?: boolean;
+    parentGrantId?: string; primeOnly?: boolean; projectId?: string;
     page?: number; limit?: number;
   }) {
     return this.http
-      .get<Grant[] | { data: Grant[]; total: number }>(`${this.base}/grants`, { params: params as any })
+      .get<Grant[] | { data: Grant[]; total: number }>(`${this.base}/grants`, { params: query(params) })
       .pipe(
         map((response) =>
           Array.isArray(response) ? { data: response, total: response.length } : response,
@@ -862,7 +988,7 @@ export class ApiService {
 // ─── Donors ───────────────────────────────────────────────────────────────────
 
   donors(params?: { status?: string; type?: string; search?: string; tag?: string; page?: number; limit?: number }) {
-    return this.http.get<import('./models').PaginatedResult<Donor>>(`${this.base}/donors`, { params: params as any });
+    return this.http.get<import('./models').PaginatedResult<Donor>>(`${this.base}/donors`, { params: query(params) });
   }
   donor(id: string) {
     return this.http.get<Donor>(`${this.base}/donors/${id}`);
@@ -925,7 +1051,7 @@ export class ApiService {
     return this.http
       .get<ReportingPeriod[] | { data: ReportingPeriod[]; total: number }>(
         `${this.base}/reporting/periods`,
-        { params: params as any },
+        { params: query(params) },
       )
       .pipe(
         map((response) =>
@@ -959,15 +1085,12 @@ export class ApiService {
   updatePeriodStatus(id: string, status: ReportingPeriodStatus, notes?: string) {
     return this.http.patch<ReportingPeriod>(`${this.base}/reporting/periods/${id}/status`, { status, notes });
   }
-  updateIndicatorResult(periodId: string, body: Partial<IndicatorResult> & { indicatorId: string }) {
-    return this.http.patch<ReportingPeriod>(`${this.base}/reporting/results`, { periodId, ...body });
-  }
   donorReport(projectId: string, params: { reportingPeriodId?: string; fromDate?: string; toDate?: string }) {
-    return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params: params as any });
+    return this.http.get<DonorReport>(`${this.base}/reports/donor/${projectId}`, { params: query(params) });
   }
   donorReportCsv(projectId: string, params: { reportingPeriodId?: string; fromDate?: string; toDate?: string }) {
     return this.http.get(`${this.base}/reports/donor/${projectId}/export`, {
-      params: params as any,
+      params: query(params),
       responseType: 'blob',
     });
   }
@@ -986,7 +1109,7 @@ export class ApiService {
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
   auditLog(params?: { entityId?: string; entity?: string; userId?: string; action?: string; page?: number; limit?: number }) {
-    return this.http.get<{ data: AuditEvent[]; total: number }>(`${this.base}/audit`, { params: params as any });
+    return this.http.get<{ data: AuditEvent[]; total: number }>(`${this.base}/audit`, { params: query(params) });
   }
   // budgetAuditLog(entityId: string) {
   //   return this.http.get<AuditEvent[]>(`${this.base}/budget/audit/${entityId}`);
@@ -997,7 +1120,7 @@ export class ApiService {
   notifications(params?: { isRead?: boolean; page?: number; limit?: number }) {
     return this.http.get<{ data: AppNotification[]; total: number; unreadCount: number }>(
       `${this.base}/notifications`,
-      { params: params as any }
+      { params: query(params) }
     );
   }
   markNotificationRead(id: string) {
@@ -1072,7 +1195,7 @@ export class ApiService {
   // ─── Documents ────────────────────────────────────────────────────────────
 
   documents(params?: { projectId?: string }) {
-    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: params as any }).pipe(
+    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: query(params) }).pipe(
       map((r: any) => Array.isArray(r) ? r : (r.data ?? [])),
     );
   }
@@ -1082,7 +1205,7 @@ export class ApiService {
    * list view can render a pager instead of silently showing only page one.
    */
   documentsPage(params?: { projectId?: string; page?: number; limit?: number }) {
-    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: params as any }).pipe(
+    return this.http.get<PaginatedResult<OrgDocument> | OrgDocument[]>(`${this.base}/documents`, { params: query(params) }).pipe(
       map((r: any): PaginatedResult<OrgDocument> => Array.isArray(r)
         ? { data: r, total: r.length, page: 1, limit: r.length || 1, pages: 1, hasMore: false }
         : r),
@@ -1097,7 +1220,7 @@ export class ApiService {
     return this.http.post<OrgDocument>(`${this.base}/documents`, dto);
   }
 
-  updateDocument(id: string, dto: Partial<CreateDocumentDto>) {
+  updateDocument(id: string, dto: Partial<Omit<CreateDocumentDto, 'projectId'>> & { projectId?: string | null }) {
     return this.http.patch<OrgDocument>(`${this.base}/documents/${id}`, dto);
   }
 

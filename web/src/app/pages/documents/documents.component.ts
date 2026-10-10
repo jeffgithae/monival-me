@@ -38,7 +38,7 @@ const PROVIDER_SETUP: Record<CloudProvider, { docsUrl: string; steps: string[] }
       'Create an OAuth 2.0 Client ID (Web application)',
       'Add authorized redirect URI: <YOUR_DOMAIN>/documents?cloud_callback=1&provider=google_drive',
       'Copy Client ID and Client Secret',
-      'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Railway environment variables',
+      'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the API environment',
     ],
   },
   dropbox: {
@@ -49,7 +49,7 @@ const PROVIDER_SETUP: Record<CloudProvider, { docsUrl: string; steps: string[] }
       'Under Permissions, enable: files.content.read, account_info.read',
       'Under Settings, add redirect URI: <YOUR_DOMAIN>/documents?cloud_callback=1&provider=dropbox',
       'Copy App key and App secret',
-      'Set DROPBOX_CLIENT_ID and DROPBOX_CLIENT_SECRET in Railway environment variables',
+      'Set DROPBOX_CLIENT_ID and DROPBOX_CLIENT_SECRET in the API environment',
     ],
   },
   sharepoint: {
@@ -140,6 +140,7 @@ export class DocumentsComponent implements OnInit {
   editForm = this.fb.group({
     title:       ['', Validators.required],
     description: [''],
+    projectId:   [''],
     category:    [''],
     tags:        [''],
     fileUrl:     [''],
@@ -165,6 +166,16 @@ export class DocumentsComponent implements OnInit {
     if (proj) docs = docs.filter(d => d.projectId === proj);
     return docs;
   });
+
+  /** Counts over the loaded page; the total comes from the server. */
+  linkedToProjectCount = computed(() => this.documents().filter(d => !!d.projectId).length);
+  missingFileCount     = computed(() => this.documents().filter(d => !d.fileUrl).length);
+
+  clearFilters() {
+    this.searchQuery.set('');
+    this.filterCategory.set('');
+    this.filterProject.set('');
+  }
 
   categoryCounts = computed(() => {
     const docs = this.documents();
@@ -240,6 +251,7 @@ export class DocumentsComponent implements OnInit {
     this.editForm.patchValue({
       title:       doc.title,
       description: doc.description ?? '',
+      projectId:   doc.projectId   ?? '',
       category:    doc.category    ?? 'Other',
       tags:        (doc.tags ?? []).join(', '),
       fileUrl:     doc.fileUrl     ?? '',
@@ -253,7 +265,9 @@ export class DocumentsComponent implements OnInit {
     const v = this.editForm.value;
     this.api.updateDocument(doc._id, {
       title:       v.title!,
-      description: v.description || undefined,
+      description: v.description ?? '',
+      // null unlinks the document from its project
+      projectId:   v.projectId   || null,
       category:    v.category    || undefined,
       tags:        v.tags ? v.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       fileUrl:     v.fileUrl     || undefined,

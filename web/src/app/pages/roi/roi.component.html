@@ -121,7 +121,7 @@
           <button type="button" class="th th-unit-cost" (click)="setSort('costPerUnit')">Cost / unit</button>
         </div>
 
-        @for (ind of visibleIndicators(); track ind.indicatorId) {
+        @for (ind of pagedIndicators(); track ind.indicatorId) {
           <div class="indicator-row" [class]="ind.efficiency">
             <div class="row-main">
               <div class="row-code">
@@ -165,6 +165,7 @@
           </div>
         }
       </div>
+      <app-pager [page]="currentPage()" [total]="visibleIndicators().length" [limit]="pageSize" label="indicators" (pageChange)="page.set($event)" />
     }
 
     <p class="generated-note">Last refreshed {{ r.generatedAt | date:'medium' }}</p>

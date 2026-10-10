@@ -47,7 +47,7 @@ const MARKER_LABELS: Record<MapEntityType, string> = {
   styles: [`
     .leaflet-map-container {
       width: 100%;
-      border-radius: 14px;
+      border-radius: var(--r-lg);
       overflow: hidden;
       z-index: 0;
     }

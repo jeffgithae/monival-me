@@ -28,7 +28,7 @@ import { BreadcrumbService } from './breadcrumb.service';
     }
     .bc-link {
       color: var(--muted); text-decoration: none; transition: color .15s;
-      &:hover { color: #4f46e5; }
+      &:hover { color: var(--primary); }
     }
     .bc-sep { color: var(--muted); opacity: .5; }
     .bc-current { color: var(--text-strong); font-weight: 600; }

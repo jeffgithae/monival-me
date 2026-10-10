@@ -139,7 +139,7 @@
           </p>
         </div>
       } @else {
-        @for (p of filteredPeriods(); track p._id) {
+        @for (p of pagedPeriods(); track p._id) {
           <div class="period-card" [class.selected]="selected()?._id === p._id" [class.overdue]="isOverdue(p)" (click)="selectPeriod(p)" role="button" tabindex="0" (keydown.enter)="selectPeriod(p)" (keydown.space)="$event.preventDefault(); selectPeriod(p)">
             <div class="period-card-top">
               <span class="status-badge" [class]="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
@@ -158,6 +158,7 @@
             </div>
           </div>
         }
+        <app-pager [page]="currentPage()" [total]="orderedPeriods().length" [limit]="pageSize" label="periods" (pageChange)="page.set($event)" />
       }
     </div>
 

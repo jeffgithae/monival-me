@@ -8,8 +8,8 @@
       <span class="bar"></span>
     </button>
     <div class="mobile-logo">
-      <app-logo size="20px" style="color: var(--primary, #4338ca); margin-right: 8px;"></app-logo>
-      <strong>Evidara M&amp;E</strong>
+      <span class="logo-mark"><app-logo size="17px"></app-logo></span>
+      <strong>Evidara</strong>
     </div>
   </header>
 
@@ -19,14 +19,13 @@
   <aside class="sidebar">
     <div class="sidebar-top">
       <div class="logo">
-        <app-logo size="28px" style="color: var(--primary, #4338ca); margin-right: 12px;"></app-logo>
-        <div>
-          <strong>Evidara M&amp;E</strong>
-          <small>{{ auth.organization()?.name ?? 'Organisation' }}</small>
+        <span class="logo-mark"><app-logo size="17px"></app-logo></span>
+        <div class="logo-text">
+          <strong>{{ auth.organization()?.name ?? 'Evidara' }}</strong>
+          <small>Evidara M&amp;E@if (auth.organization(); as org) { · {{ org.planName ?? org.planId }} }</small>
         </div>
       </div>
       @if (auth.organization(); as org) {
-        <div class="plan-pill">{{ org.planName ?? org.planId }}</div>
         @if (org.subscriptionStatus === 'trialing' && org.trialEndsAt) {
           <div class="trial-banner">
             Trial ends {{ org.trialEndsAt | date: 'mediumDate' }}
@@ -50,7 +49,7 @@
           }
           @for (item of group.items; track item.id) {
             <a [routerLink]="item.route" routerLinkActive="active" (click)="closeSidebar()" class="nav-link">
-              <span class="nav-icon">{{ item.icon }}</span>
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="navIcon(item.id)"/></svg>
               <span class="nav-label">{{ item.label }}</span>
               @if (item.badge) {
                 <span class="nav-badge">{{ item.badge }}</span>
@@ -75,20 +74,24 @@
           {{ offlineQueue.isOnline() ? (offlineQueue.pendingCount() + ' to sync') : 'Offline' }}
         </span>
       }
-      <button type="button" class="notif-btn" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" title="Notifications">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-        @if (unreadCount() > 0) {
-          <span class="badge">{{ unreadCount() > 99 ? '99+' : unreadCount() }}</span>
-        }
-      </button>
-      <button type="button" class="theme-btn" (click)="theme.toggle()" [title]="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'">
-        @if (theme.isDark) {
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        } @else {
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        }
-      </button>
-      <button type="button" class="signout-btn" (click)="auth.logout()" title="Sign out">⏻</button>
+      <div class="user-tools">
+        <button type="button" class="notif-btn" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" title="Notifications">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          @if (unreadCount() > 0) {
+            <span class="badge">{{ unreadCount() > 99 ? '99+' : unreadCount() }}</span>
+          }
+        </button>
+        <button type="button" class="theme-btn" (click)="theme.toggle()" [title]="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+          @if (theme.isDark) {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          } @else {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          }
+        </button>
+        <button type="button" class="signout-btn" (click)="auth.logout()" title="Sign out" aria-label="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M9 4H4v16h5M15 8l4 4-4 4M19 12H9"/></svg>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -101,13 +104,14 @@
         @if (unreadCount() > 0) {
           <button type="button" class="text-btn" (click)="markAllAsRead()">Mark all as read</button>
         }
-        <button type="button" class="close-btn" (click)="closeNotifications()">✕</button>
+        <button type="button" class="close-btn" (click)="closeNotifications()" aria-label="Close notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
       </div>
     </div>
     <div class="np-body">
       @if (notifications().length === 0) {
         <div class="np-empty">
-          <div class="empty-icon">📭</div>
           <p>No notifications yet</p>
         </div>
       } @else {

@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthUser, NavItem, Organization } from './models';
 
@@ -47,7 +48,7 @@ export class AuthService {
     if (token) {
       // Restore cached nav immediately to avoid flash
       this.restoreNavCache();
-      this.loadProfile().subscribe({
+      this.ensureProfile().subscribe({
         error: () => {
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -138,6 +139,20 @@ export class AuthService {
     this.clearSession();
   }
 
+  private profileLoad$?: Observable<unknown>;
+
+  /**
+   * Resolves once the signed-in user's profile is available. The route guard
+   * waits on this so pages can read `user()` (and their role-gated controls)
+   * synchronously, including after a hard refresh or deep link. Concurrent
+   * callers share a single request.
+   */
+  ensureProfile(): Observable<unknown> {
+    if (this.user()) return of(true);
+    this.profileLoad$ ??= this.loadProfile().pipe(shareReplay(1));
+    return this.profileLoad$;
+  }
+
   loadProfile() {
     return this.http.get<MeResponse>(`${environment.apiUrl}/auth/me`).pipe(
       tap(profile => {
@@ -174,6 +189,21 @@ export class AuthService {
       },
       error: () => { },
     });
+  }
+
+  /**
+   * The menu the server computed for this user's role and plan, fetching it
+   * if it has not arrived yet. The role guard waits on this, so a deep link
+   * is checked against the real menu rather than an empty one.
+   */
+  ensureNavMenu(): Observable<NavItem[]> {
+    if (this.navMenu().length) return of(this.navMenu());
+    return this.http.get<NavItem[]>(`${environment.apiUrl}/auth/menu`).pipe(
+      tap((items) => {
+        this.navMenu.set(items);
+        this.setNavCache(items);
+      }),
+    );
   }
 
   /** Call after role/plan changes to bust the nav cache */
@@ -214,6 +244,9 @@ export class AuthService {
   }
 
   private setSession(res: AuthResponse, navigate = true) {
+    // A new session must never inherit the previous user's menu.
+    localStorage.removeItem(NAV_CACHE_KEY);
+    this.navMenu.set([]);
     localStorage.setItem(TOKEN_KEY, res.accessToken);
     if (res.refreshToken) {
       localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
@@ -226,6 +259,7 @@ export class AuthService {
   }
 
   private clearSession() {
+    this.profileLoad$ = undefined;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(NAV_CACHE_KEY);

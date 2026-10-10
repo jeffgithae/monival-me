@@ -1,47 +1,37 @@
-// Chart palette — validated with the dataviz six-checks validator:
-//   light: #6366f1 (series) + #64748b (context) on #ffffff  → PASS (gray is the
-//          intentional de-emphasis context line, direct-labeled + legended)
-//   dark:  #7178f0 (series) + #8b95a6 (context) on #111827  → PASS
+// Chart palette. Everything resolves to theme tokens, so light and dark need
+// no separate block: one series colour, a muted context line, hairline grid.
 .viz-root {
-  --viz-surface: #ffffff;
-  --viz-series: #6366f1;
-  --viz-context: #64748b;
-  --viz-grid: #eceef2;
-  --viz-text: #111827;
-  --viz-text-2: #6b7280;
-}
-:host-context([data-theme='dark']) .viz-root {
-  --viz-surface: #111827;
-  --viz-series: #7178f0;
-  --viz-context: #8b95a6;
-  --viz-grid: #273042;
-  --viz-text: #f3f4f6;
-  --viz-text-2: #9ca3af;
+  --viz-surface: var(--card-bg);
+  --viz-series: var(--primary);
+  --viz-context: var(--muted-lt);
+  --viz-grid: var(--border);
+  --viz-text: var(--text);
+  --viz-text-2: var(--muted);
 }
 
 .ind-detail { padding: 1.5rem 2rem; max-width: 62rem; color: var(--viz-text); }
-.back-link { font-size: .85rem; color: #4338ca; text-decoration: none; }
+.back-link { font-size: .85rem; color: var(--primary); text-decoration: none; }
 .muted { color: var(--viz-text-2); }
-.error { color: #b91c1c; }
+.error { color: var(--red-strong); }
 
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin: .75rem 0 1.25rem; }
 .head h1 { margin: .3rem 0 .2rem; font-size: 1.45rem; }
 .head .code { color: var(--viz-series); margin-right: .4rem; }
-.level-tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
-  padding: .1rem .5rem; border-radius: 999px; background: #eef2ff; color: #4338ca; }
-.status-chip { padding: .3rem .8rem; border-radius: 999px; font-size: .8rem; font-weight: 600; white-space: nowrap; }
-.status-chip.on_track { background: #ecfdf5; color: #047857; }
-.status-chip.at_risk  { background: #fffbeb; color: #b45309; }
-.status-chip.behind   { background: #fef2f2; color: #b91c1c; }
+.level-tag { display: inline-block; font-size: .7rem;
+  padding: .1rem .5rem; border-radius: var(--r-pill); background: var(--blue-bg); color: var(--primary); }
+.status-chip { padding: .3rem .8rem; border-radius: var(--r-pill); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.status-chip.on_track { background: var(--green-bg); color: var(--green-strong); }
+.status-chip.at_risk  { background: var(--amber-bg); color: var(--amber-strong); }
+.status-chip.behind   { background: var(--red-bg); color: var(--red-strong); }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.stat { background: var(--viz-surface); border: 1px solid var(--viz-grid); border-radius: .75rem; padding: 1rem; }
-.stat .label { display: block; font-size: .72rem; color: var(--viz-text-2); text-transform: uppercase; letter-spacing: .05em; }
+.stat { background: var(--viz-surface); border: 1px solid var(--viz-grid); border-radius: var(--r-lg); padding: 1rem; }
+.stat .label { display: block; font-size: .72rem; color: var(--viz-text-2); }
 .stat strong { font-size: 1.35rem; }
-.meter { height: .4rem; background: var(--viz-grid); border-radius: 999px; margin-top: .5rem; overflow: hidden; min-width: 4rem; }
-.meter span { display: block; height: 100%; background: var(--viz-series); border-radius: 999px; }
+.meter { height: .4rem; background: var(--viz-grid); border-radius: var(--r-pill); margin-top: .5rem; overflow: hidden; min-width: 4rem; }
+.meter span { display: block; height: 100%; background: var(--viz-series); border-radius: var(--r-pill); }
 
-.panel { background: var(--viz-surface); border: 1px solid var(--viz-grid); border-radius: .75rem;
+.panel { background: var(--viz-surface); border: 1px solid var(--viz-grid); border-radius: var(--r-lg);
   padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
 .panel-head h2 { font-size: 1rem; margin: 0; }
@@ -71,8 +61,8 @@
 .tooltip {
   position: absolute; top: .25rem; transform: translateX(-50%);
   background: var(--viz-text); color: var(--viz-surface);
-  border-radius: .5rem; padding: .45rem .6rem; pointer-events: none;
-  font-size: .75rem; box-shadow: 0 4px 12px rgba(0,0,0,.18); white-space: nowrap; z-index: 5;
+  border-radius: var(--r); padding: .45rem .6rem; pointer-events: none;
+  font-size: .75rem; box-shadow: var(--shadow-sm); white-space: nowrap; z-index: 5;
 }
 .tip-title { font-weight: 600; margin-bottom: .2rem; }
 .tip-row { display: flex; align-items: center; gap: .35rem; }
@@ -88,11 +78,11 @@
 .annual-table .prog-cell { display: flex; align-items: center; gap: .5rem; }
 
 .disagg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
-.disagg-card h3 { font-size: .85rem; margin: 0 0 .5rem; color: var(--viz-text-2); text-transform: uppercase; letter-spacing: .04em; }
+.disagg-card h3 { font-size: .85rem; margin: 0 0 .5rem; color: var(--viz-text-2); }
 .hbar-row { display: grid; grid-template-columns: 6rem 1fr 3rem; align-items: center; gap: .5rem; margin-bottom: .4rem; }
 .hbar-label { font-size: .8rem; }
-.hbar-track { height: 12px; background: var(--viz-grid); border-radius: 4px; overflow: hidden; }
-.hbar-fill { display: block; height: 100%; background: var(--viz-series); border-radius: 4px; }
+.hbar-track { height: 12px; background: var(--viz-grid); border-radius: var(--r-sm); overflow: hidden; }
+.hbar-fill { display: block; height: 100%; background: var(--viz-series); border-radius: var(--r-sm); }
 .hbar-value { font-size: .8rem; font-weight: 600; text-align: right; }
 
 .dot-target { fill: var(--viz-context); stroke: var(--viz-surface); stroke-width: 2; }

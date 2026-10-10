@@ -86,7 +86,7 @@
       </div>
     } @else {
       <div class="insights-list">
-        @for (insight of filteredInsights(); track insight.title) {
+        @for (insight of pagedInsights(); track $index) {
           <div class="insight-card" [class]="insight.type">
             <div class="insight-stripe"></div>
             <div class="insight-body">
@@ -114,6 +114,7 @@
           </div>
         }
       </div>
+      <app-pager [page]="currentPage()" [total]="filteredInsights().length" [limit]="pageSize" label="insights" (pageChange)="page.set($event)" />
     }
 
     <p class="generated-note">Last refreshed {{ report()!.generatedAt | date:'medium' }}</p>

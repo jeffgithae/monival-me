@@ -6,10 +6,12 @@ import { IndicatorROI, Project, ROIReport } from '../../core/models';
 
 type SortKey = 'costPerUnit' | 'progressPct' | 'totalCost' | 'code';
 
+import { PagerComponent } from '../../shared/pager/pager.component';
+
 @Component({
   selector: 'app-roi',
   standalone: true,
-  imports: [CommonModule, FormsModule, DecimalPipe, DatePipe],
+  imports: [CommonModule, FormsModule, DecimalPipe, DatePipe, PagerComponent],
   templateUrl: './roi.component.html',
   styleUrl: './roi.component.scss',
 })
@@ -23,6 +25,15 @@ export class RoiComponent implements OnInit {
   projectId  = signal('');
   sortKey    = signal<SortKey>('costPerUnit');
   efficiencyFilter = signal<'all' | 'high' | 'medium' | 'low' | 'no_data'>('all');
+
+  // A portfolio has hundreds of indicators: show them a page at a time.
+  readonly pageSize = 25;
+  readonly page = signal(1);
+  readonly currentPage = computed(() => Math.min(this.page(), Math.max(1, Math.ceil(this.visibleIndicators().length / this.pageSize))));
+  readonly pagedIndicators = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.visibleIndicators().slice(start, start + this.pageSize);
+  });
 
   readonly visibleIndicators = computed(() => {
     const r = this.report();

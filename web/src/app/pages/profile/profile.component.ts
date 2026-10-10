@@ -34,6 +34,15 @@ export class ProfileComponent implements OnInit {
   showNew        = signal(false);
   showConfirm    = signal(false);
 
+  // Two-factor authentication
+  mfaStatus      = signal<{ mfaEnabled: boolean; backupCodesRemaining: number } | null>(null);
+  mfaEnrolment   = signal<{ qrCodeDataUrl: string; secret: string } | null>(null);
+  mfaBackupCodes = signal<string[]>([]);
+  mfaDisabling   = signal(false);
+  mfaBusy        = signal(false);
+  mfaErr         = signal('');
+  mfaCode        = signal('');
+
   user = computed(() => this.auth.user());
   org  = computed(() => this.auth.organization());
 
@@ -50,6 +59,69 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     const u = this.user();
     if (u) this.profileForm.patchValue({ name: u.name });
+    this.loadMfaStatus();
+  }
+
+  private loadMfaStatus() {
+    this.api.mfaStatus().subscribe({
+      next: s => this.mfaStatus.set(s),
+      error: () => this.mfaStatus.set(null),
+    });
+  }
+
+  private mfaFail(err: { error?: { message?: string } }, fallback: string) {
+    this.mfaErr.set(err.error?.message || fallback);
+    this.mfaBusy.set(false);
+  }
+
+  startMfaEnrolment() {
+    this.mfaBusy.set(true);
+    this.mfaErr.set('');
+    this.mfaCode.set('');
+    this.api.mfaEnrollStart().subscribe({
+      next: e => { this.mfaEnrolment.set(e); this.mfaBusy.set(false); },
+      error: err => this.mfaFail(err, 'Could not start two-factor setup'),
+    });
+  }
+
+  confirmMfaEnrolment() {
+    this.mfaBusy.set(true);
+    this.mfaErr.set('');
+    this.api.mfaEnrollVerify(this.mfaCode()).subscribe({
+      next: r => {
+        this.mfaBackupCodes.set(r.backupCodes);
+        this.mfaEnrolment.set(null);
+        this.mfaCode.set('');
+        this.mfaBusy.set(false);
+        this.loadMfaStatus();
+      },
+      error: err => this.mfaFail(err, 'That code was not accepted'),
+    });
+  }
+
+  cancelMfa() {
+    this.mfaEnrolment.set(null);
+    this.mfaDisabling.set(false);
+    this.mfaCode.set('');
+    this.mfaErr.set('');
+  }
+
+  disableMfa() {
+    this.mfaBusy.set(true);
+    this.mfaErr.set('');
+    this.api.mfaDisable(this.mfaCode()).subscribe({
+      next: () => {
+        this.mfaBackupCodes.set([]);
+        this.cancelMfa();
+        this.mfaBusy.set(false);
+        this.loadMfaStatus();
+      },
+      error: err => this.mfaFail(err, 'That code was not accepted'),
+    });
+  }
+
+  onMfaCode(value: string) {
+    this.mfaCode.set(value.replace(/\s/g, ''));
   }
 
   get initials(): string {

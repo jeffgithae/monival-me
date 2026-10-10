@@ -1,6 +1,4 @@
 <div class="dc-page">
-  <div class="ambient" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div></div>
-
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header class="dc-header">
     <div class="header-left">
@@ -704,11 +702,17 @@
 <input id="data-collection-intdraft-ccformid" [(ngModel)]="intDraft.ccFormId" placeholder="http://openrosa.org/formdesigner/..." /></div>
             }
             @case ('webhook') {
-              <div class="config-title">🔗 Webhook Configuration</div>
+              <div class="config-title">Webhook configuration</div>
               <div class="config-info-box">
-                <p>Once saved, external systems can POST JSON to your webhook endpoint:</p>
-                <code class="webhook-url">POST /api/forms/integrations/[ID]/webhook</code>
-                <p>Include your JWT Bearer token in the <code>Authorization</code> header, or configure HMAC signing.</p>
+                @if (webhookDetails(); as hook) {
+                  <p>External systems push JSON records to this endpoint:</p>
+                  <code class="webhook-url">POST {{ hook.url }}</code>
+                  <p>Each request must carry this secret in the <code>X-Webhook-Secret</code> header:</p>
+                  <code class="webhook-url">{{ hook.secret }}</code>
+                  <p>Treat the secret like a password. To replace it, delete this integration and create a new one.</p>
+                } @else {
+                  <p>Saving generates a webhook URL and a secret. External systems POST JSON to the URL and send the secret in the <code>X-Webhook-Secret</code> header — no user login is involved.</p>
+                }
               </div>
             }
             @case ('csv') {

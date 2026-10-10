@@ -1,141 +1,141 @@
-<!-- ─── Header ───────────────────────────────────────────────────────────── -->
 <div class="page-header">
   <div>
     <span class="eyebrow">Portfolio</span>
     <h1>Projects</h1>
-    <p class="subtitle">Browse programmes, filter by status, and open an M&amp;E workspace.</p>
+    <p class="subtitle">Every programme in the portfolio. Filter, sort, and open a project's M&amp;E workspace.</p>
   </div>
   @if (canCreateProjects) {
-    <button type="button" class="btn-new" (click)="toggleForm()">
-      {{ showForm() ? '✕ Cancel' : '+ New project' }}
+    <button type="button" class="btn-primary" (click)="toggleForm()">
+      {{ showForm() ? 'Cancel' : '+ New project' }}
     </button>
   }
 </div>
 
-<!-- ─── Status tab bar ───────────────────────────────────────────────────── -->
-<div class="status-tabs">
-  <button type="button"
-    class="status-tab"
-    [class.active]="statusFilter() === 'all'"
-    (click)="setStatus('all')">
-    All <span class="tab-count">{{ projectCounts().total }}</span>
-  </button>
-  <button type="button"
-    class="status-tab active-tab"
-    [class.active]="statusFilter() === 'active'"
-    (click)="setStatus('active')">
-    Active <span class="tab-count">{{ projectCounts().active }}</span>
-  </button>
-  <button type="button"
-    class="status-tab completed-tab"
-    [class.active]="statusFilter() === 'completed'"
-    (click)="setStatus('completed')">
-    Completed <span class="tab-count">{{ projectCounts().completed }}</span>
-  </button>
-  <button type="button"
-    class="status-tab paused-tab"
-    [class.active]="statusFilter() === 'paused'"
-    (click)="setStatus('paused')">
-    Paused <span class="tab-count">{{ projectCounts().paused }}</span>
-  </button>
+@if (showForm()) {
+  <form class="form-panel" (ngSubmit)="createProject()">
+    <h2>New project</h2>
+    @if (formError()) { <div class="error-banner" role="alert">{{ formError() }}</div> }
+    <div class="form-row">
+      <label class="field wide">Project name
+        <input [(ngModel)]="form.name" name="name" required maxlength="160" placeholder="e.g. WASH Programme Phase 2" />
+      </label>
+      <label class="field">Donor
+        <input [(ngModel)]="form.donor" name="donor" maxlength="120" placeholder="Funding organisation" />
+      </label>
+      <label class="field">Start date
+        <input type="date" [(ngModel)]="form.startDate" name="startDate" />
+      </label>
+      <label class="field">End date
+        <input type="date" [(ngModel)]="form.endDate" name="endDate" [min]="form.startDate" />
+      </label>
+      <label class="field full">Description <small>(optional)</small>
+        <textarea [(ngModel)]="form.description" name="description" rows="2" placeholder="Brief programme objectives and scope…"></textarea>
+      </label>
+    </div>
+    @if (form.startDate && form.endDate && form.endDate < form.startDate) {
+      <p class="note">The end date is before the start date.</p>
+    }
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="saving() || !canCreate()">
+        {{ saving() ? 'Creating…' : 'Create project' }}
+      </button>
+      <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
+    </div>
+  </form>
+}
 
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input aria-label="Search projects or donors"
-      type="search"
-      class="search-input"
-      placeholder="Search projects or donors…"
-      [ngModel]="search()"
-      (ngModelChange)="search.set($event)" />
+<div class="toolbar">
+  <div class="tabs" role="tablist" aria-label="Project status">
+    @for (tab of statusTabs; track tab.key) {
+      @if (tab.key === '' || statusCount(tab.key) > 0 || statusFilter() === tab.key) {
+        <button type="button" role="tab" [attr.aria-selected]="statusFilter() === tab.key"
+                [class.active]="statusFilter() === tab.key" (click)="setStatus(tab.key)">
+          {{ tab.label }} <span class="count">{{ tab.key === '' ? allCount : statusCount(tab.key) }}</span>
+        </button>
+      }
+    }
+  </div>
+
+  <div class="toolbar-end">
+    <select class="filter-select" [ngModel]="sectorFilter()" (ngModelChange)="setSector($event)" aria-label="Filter by sector">
+      <option value="">All sectors</option>
+      @for (s of sectors; track s[0]) { <option [value]="s[0]">{{ s[1] }}</option> }
+    </select>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" aria-label="Search projects" placeholder="Search name, code or donor…"
+             [ngModel]="search()" (ngModelChange)="onSearch($event)" />
+    </div>
   </div>
 </div>
 
-<!-- ─── Create form ──────────────────────────────────────────────────────── -->
-@if (showForm()) {
-  <div class="create-panel">
-    <div class="create-panel-head">
-      <div>
-        <h2>New project</h2>
-        <p>Create a programme and link it to a donor or grant.</p>
-      </div>
-    </div>
-    <form class="create-form" (ngSubmit)="createProject()">
-      <div class="form-row">
-        <label>Project name<input [(ngModel)]="form.name" name="name" required placeholder="e.g. WASH Programme Phase 2" /></label>
-        <label>Donor<input [(ngModel)]="form.donor" name="donor" placeholder="Funding organisation" /></label>
-      </div>
-      <div class="form-row">
-        <label>Start date<input aria-label="Start date" type="date" [(ngModel)]="form.startDate" name="startDate" /></label>
-        <label>End date<input aria-label="End date" type="date" [(ngModel)]="form.endDate" name="endDate" /></label>
-      </div>
-      <label class="full-label">Description
-        <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Brief programme objectives and scope…"></textarea>
-      </label>
-      <div class="form-actions">
-        <button type="submit" class="btn-save" [disabled]="saving()">
-          {{ saving() ? 'Creating…' : 'Create project' }}
-        </button>
-        <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
-      </div>
-    </form>
+@if (loadError()) {
+  <div class="error-banner" role="alert">
+    {{ loadError() }}
+    <button type="button" class="link-btn" (click)="loadProjects()">Retry</button>
   </div>
-}
-
-<!-- ─── Projects grid ────────────────────────────────────────────────────── -->
-@if (loading()) {
-  <div class="loading-grid">
-    @for (i of [1,2,3,4,5,6]; track i) { <div class="skeleton-card"></div> }
-  </div>
-} @else if (filteredProjects().length === 0) {
-  @if (loadError()) {
-    <div class="load-error" role="alert">
-      <span class="load-error-icon">⚠️</span>
-      <div>
-        <strong>{{ loadError() }}</strong>
-        <button type="button" class="retry-btn" (click)="loadProjects()">Retry</button>
-      </div>
-    </div>
-  } @else {
-  <div class="empty-state">
-    <span class="empty-icon">📁</span>
-    <h3>{{ projectCounts().total === 0 ? 'No projects yet' : 'No matches found' }}</h3>
-    <p>{{ projectCounts().total === 0 ? 'Create your first grant-funded programme to start tracking indicators and outcomes.' : 'Try adjusting your search or filter.' }}</p>
-    @if (canCreateProjects && projectCounts().total === 0) {
-      <button type="button" class="btn-new" (click)="toggleForm()">+ New project</button>
+} @else if (loading() && projects().length === 0) {
+  <p class="state-line">Loading projects…</p>
+} @else if (projects().length === 0) {
+  <div class="empty">
+    @if (hasFilters) {
+      <h3>No projects match</h3>
+      <p>Try a different search, status or sector.</p>
+      <button type="button" class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
+    } @else {
+      <h3>No projects yet</h3>
+      <p>Create your first programme to start tracking indicators, activities and results.</p>
+      @if (canCreateProjects && !showForm()) {
+        <button type="button" class="btn-primary" (click)="toggleForm()">+ New project</button>
+      }
     }
   </div>
-  }
 } @else {
-  <div class="projects-grid">
-    @for (project of filteredProjects(); track project._id) {
-      <a class="project-card" [routerLink]="['/projects', project._id]">
-        <div class="card-top">
-          <span class="status-dot" [class]="'dot-' + project.status"></span>
-          <span class="status-label" [class]="'label-' + project.status">{{ project.status }}</span>
-          <span class="card-arrow">→</span>
-        </div>
-
-        <h3 class="card-name">{{ project.name }}</h3>
-
-        @if (project.donor) {
-          <p class="card-donor">🤝 {{ project.donor }}</p>
+  <div class="table-card" [class.refreshing]="loading()">
+    <table class="projects-table">
+      <thead>
+        <tr>
+          <th [attr.aria-sort]="ariaSort('name')"><button type="button" (click)="sortBy('name')">Project<span class="arrow" [class.on]="sortField() === 'name'">{{ sortField() === 'name' && sortDescending() ? '↓' : '↑' }}</span></button></th>
+          <th [attr.aria-sort]="ariaSort('sector')"><button type="button" (click)="sortBy('sector')">Sector<span class="arrow" [class.on]="sortField() === 'sector'">{{ sortField() === 'sector' && sortDescending() ? '↓' : '↑' }}</span></button></th>
+          <th [attr.aria-sort]="ariaSort('donor')"><button type="button" (click)="sortBy('donor')">Donor<span class="arrow" [class.on]="sortField() === 'donor'">{{ sortField() === 'donor' && sortDescending() ? '↓' : '↑' }}</span></button></th>
+          <th [attr.aria-sort]="ariaSort('status')"><button type="button" (click)="sortBy('status')">Status<span class="arrow" [class.on]="sortField() === 'status'">{{ sortField() === 'status' && sortDescending() ? '↓' : '↑' }}</span></button></th>
+          <th [attr.aria-sort]="ariaSort('endDate')"><button type="button" (click)="sortBy('endDate')">Timeline<span class="arrow" [class.on]="sortField() === 'endDate'">{{ sortField() === 'endDate' && sortDescending() ? '↓' : '↑' }}</span></button></th>
+          <th class="num" [attr.aria-sort]="ariaSort('totalBudget')"><button type="button" (click)="sortBy('totalBudget')">Budget<span class="arrow" [class.on]="sortField() === 'totalBudget'">{{ sortField() === 'totalBudget' && !sortDescending() ? '↑' : '↓' }}</span></button></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (project of projects(); track project._id) {
+          <tr>
+            <td class="col-name">
+              <a [routerLink]="['/projects', project._id]" class="project-name">{{ project.name }}</a>
+              <span class="project-meta">
+                @if (project.projectCode) { <span class="code">{{ project.projectCode }}</span> }
+                @if (project.region) { <span>{{ project.region }}</span> }
+                @if (project.projectManagerName) { <span>{{ project.projectManagerName }}</span> }
+              </span>
+            </td>
+            <td>{{ sectorLabel(project.sector) }}</td>
+            <td class="col-donor">{{ project.donor || '—' }}</td>
+            <td><span class="status-pill" [class]="project.status">{{ project.status | titlecase }}</span></td>
+            <td class="col-timeline">
+              @if (project.startDate || project.endDate) {
+                <span class="dates">{{ project.startDate ? (project.startDate | date: 'MMM y') : 'TBA' }} – {{ project.endDate ? (project.endDate | date: 'MMM y') : 'TBA' }}</span>
+                @if (elapsedPct(project) !== null && project.status !== 'pipeline' && project.status !== 'design') {
+                  <div class="bar thin" [attr.title]="elapsedPct(project) + '% of the timeline elapsed'"><span [style.width.%]="elapsedPct(project)"></span></div>
+                }
+                @if (timeLeft(project); as left) { <span class="time-left" [class]="left.tone">{{ left.text }}</span> }
+              } @else {
+                <span class="none">Dates not set</span>
+              }
+            </td>
+            <td class="num">
+              @if (project.totalBudget) { {{ project.currency || 'USD' }} {{ project.totalBudget | number: '1.0-0' }} } @else { <span class="none">—</span> }
+            </td>
+          </tr>
         }
-
-        @if (project.description) {
-          <p class="card-desc">{{ project.description }}</p>
-        }
-
-        <div class="card-meta">
-          @if (getProjectTimeline(project) !== 'Dates not set') {
-            <span class="meta-item">📅 {{ getProjectTimeline(project) }}</span>
-          }
-          @if (getProjectDaysRemaining(project) !== null) {
-            <span class="meta-item days-left" [class.urgent]="(getProjectDaysRemaining(project) ?? 99) <= 30">
-              {{ getProjectDaysRemaining(project) }}d left
-            </span>
-          }
-        </div>
-      </a>
-    }
+      </tbody>
+    </table>
   </div>
+
+  <app-pager [page]="page()" [total]="total()" [limit]="pageSize" label="projects" (pageChange)="goToPage($event)" />
 }

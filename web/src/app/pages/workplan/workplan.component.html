@@ -13,18 +13,30 @@
   </div>
 
   <!-- ── Project selector ──────────────────────────────────────────────────── -->
-  <div class="project-selector">
-    @for (p of projects(); track p._id) {
-      <button type="button" class="proj-tab"
-        [class.active]="selectedProjectId() === p._id"
-        (click)="selectProject(p._id)">
-        {{ p.name }}
-        @if (p.workplan?.length) {
-          <span class="proj-count">{{ p.workplan!.length }}</span>
+  <!-- A few projects fit as tabs; a real portfolio needs a picker. -->
+  @if (projects().length > 6) {
+    <div class="project-picker">
+      <label for="workplan-project">Project</label>
+      <select id="workplan-project" [ngModel]="selectedProjectId()" (ngModelChange)="selectProject($event)">
+        @for (p of projects(); track p._id) {
+          <option [value]="p._id">{{ p.name }}{{ p.workplan?.length ? ' (' + p.workplan!.length + ')' : '' }}</option>
         }
-      </button>
-    }
-  </div>
+      </select>
+    </div>
+  } @else {
+    <div class="project-selector">
+      @for (p of projects(); track p._id) {
+        <button type="button" class="proj-tab"
+          [class.active]="selectedProjectId() === p._id"
+          (click)="selectProject(p._id)">
+          {{ p.name }}
+          @if (p.workplan?.length) {
+            <span class="proj-count">{{ p.workplan!.length }}</span>
+          }
+        </button>
+      }
+    </div>
+  }
 
   @if (error()) {
     <div class="alert-error">⚠️ {{ error() }}</div>

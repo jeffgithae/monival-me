@@ -3,7 +3,7 @@
 
     @if (step() === 'credentials') {
       <div class="brand">
-        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <app-logo size="44px" style="color: var(--primary); margin-bottom: 12px;"></app-logo>
         <p class="eyebrow">Secure access</p>
         <h1>Sign in to Evidara</h1>
         <p>Access your organisation's grant tracking, dashboards, and reporting tools from one premium workspace.</p>
@@ -18,7 +18,7 @@
         <input id="login-email" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
           <label style="margin-bottom: 0;">Password</label>
-          <a routerLink="/forgot-password" style="font-size: 0.85rem; font-weight: 500; color: #4338ca; text-decoration: none;">Forgot password?</a>
+          <a routerLink="/forgot-password" style="font-size: 0.85rem; font-weight: 500; color: var(--primary); text-decoration: none;">Forgot password?</a>
         </div>
         <input aria-label="Password" type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
         @if (error()) {
@@ -46,7 +46,7 @@
 
     @if (step() === 'mfa') {
       <div class="brand">
-        <app-logo size="44px" style="color: var(--primary, #4338ca); margin-bottom: 12px;"></app-logo>
+        <app-logo size="44px" style="color: var(--primary); margin-bottom: 12px;"></app-logo>
         <p class="eyebrow">Two-factor authentication</p>
         <h1>Enter your code</h1>
         <p>Open your authenticator app and enter the 6-digit code for Evidara.</p>
@@ -67,7 +67,7 @@
       <p class="foot">
         <button type="button" class="link-btn" (click)="backToCredentials()">← Use a different account</button>
       </p>
-      <p class="foot" style="font-size:0.8rem; color:#9ca3af; margin-top:0.35rem;">
+      <p class="foot" style="font-size:0.8rem; color:var(--muted-lt); margin-top:0.35rem;">
         Lost access to your authenticator? Enter a backup code above.
       </p>
     }

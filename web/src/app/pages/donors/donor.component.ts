@@ -6,6 +6,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Donor, CreateDonorDto, DonorType, Grant, DonorProfile, AddEngagementDto, AddComplianceConditionDto } from '../../core/models';
 import { PagerComponent } from '../../shared/pager/pager.component';
+import { formatHttpError, omitBlank } from '../../core/http-error';
 
 @Component({
   selector: 'app-donors',
@@ -69,8 +70,8 @@ import { PagerComponent } from '../../shared/pager/pager.component';
   <div class="create-panel">
     <div class="create-panel-head">
       <div>
-        <h2>New donor</h2>
-        <p>Add a funding partner and define reporting requirements.</p>
+        <h2>{{ editingId() ? 'Edit donor' : 'New donor' }}</h2>
+        <p>{{ editingId() ? 'Update this funding partner and its reporting requirements.' : 'Add a funding partner and define reporting requirements.' }}</p>
       </div>
     </div>
     <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
@@ -107,7 +108,7 @@ import { PagerComponent } from '../../shared/pager/pager.component';
       </label>
       <div class="form-actions">
         <button type="submit" class="btn-save" [disabled]="form.invalid || saving()">
-          {{ saving() ? 'Creating…' : 'Create donor' }}
+          {{ saving() ? 'Saving…' : (editingId() ? 'Save changes' : 'Create donor') }}
         </button>
         <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
       </div>
@@ -183,7 +184,7 @@ import { PagerComponent } from '../../shared/pager/pager.component';
           <span class="status-badge" [attr.data-status]="selected()!.status || 'active'">{{ statusLabel(selected()!.status) }}</span>
         </div>
         @if (canManage()) {
-          <button type="button" class="btn-secondary">Edit donor</button>
+          <button type="button" class="btn-secondary" (click)="startEdit(selected()!)">Edit donor</button>
         }
       </div>
 
@@ -339,6 +340,8 @@ export class DonorsComponent implements OnInit {
   loading     = signal(true);
   saving      = signal(false);
   showForm    = signal(false);
+  /** Id of the donor being edited in the form; null while creating. */
+  editingId   = signal<string | null>(null);
   error       = signal('');
   
   searchQuery = signal('');
@@ -411,6 +414,31 @@ export class DonorsComponent implements OnInit {
 
   toggleForm() {
     this.showForm.update((v) => !v);
+    this.editingId.set(null);
+    this.form.reset({ type: 'bilateral', status: 'active', requiresDisaggregation: false });
+    this.error.set('');
+  }
+
+  /** Reuse the create form, pre-filled, for the donor open in the detail view. */
+  startEdit(donor: Donor) {
+    this.form.reset({
+      name: donor.name,
+      shortName: donor.shortName ?? '',
+      type: donor.type ?? 'bilateral',
+      status: donor.status ?? 'active',
+      country: donor.country ?? '',
+      website: donor.website ?? '',
+      contactName: donor.contactName ?? '',
+      contactEmail: donor.contactEmail ?? '',
+      description: donor.description ?? '',
+      reportingCadence: donor.reportingCadence ?? '',
+      requiresDisaggregation: !!donor.requiresDisaggregation,
+    });
+    this.editingId.set(donor._id);
+    this.error.set('');
+    this.deselectDonor();
+    this.showForm.set(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   selectDonor(donor: Donor) {
@@ -449,9 +477,26 @@ export class DonorsComponent implements OnInit {
   submit() {
     if (this.form.invalid) return;
     this.saving.set(true);
-    this.api.createDonor(this.form.value as CreateDonorDto).subscribe({
-      next: () => { this.load(); this.showForm.set(false); this.form.reset({ status: 'active' }); this.saving.set(false); },
-      error: err => { this.error.set(err.error?.message || 'Failed'); this.saving.set(false); }
+    this.error.set('');
+    const editingId = this.editingId();
+    // When editing, text fields are sent even if blank so they can be cleared.
+    const request = editingId
+      ? this.api.updateDonor(editingId, Object.fromEntries(
+          Object.entries(this.form.value).map(([k, v]) => [k, v ?? '']),
+        ) as Partial<CreateDonorDto>)
+      : this.api.createDonor(omitBlank(this.form.value) as CreateDonorDto);
+    request.subscribe({
+      next: () => {
+        this.load();
+        this.showForm.set(false);
+        this.editingId.set(null);
+        this.form.reset({ type: 'bilateral', status: 'active', requiresDisaggregation: false });
+        this.saving.set(false);
+      },
+      error: err => {
+        this.error.set(formatHttpError(err, editingId ? 'Could not save the donor' : 'Could not create the donor'));
+        this.saving.set(false);
+      },
     });
   }
 

@@ -1,155 +1,175 @@
-<div class="docs-page">
-
-  <!-- Header -->
-  <div class="page-header">
-    <div>
-      <span class="eyebrow">Evidence &amp; Records</span>
-      <h1>Documents</h1>
-      <p class="subtitle">Link, organise and version-control your project evidence and reports from your connected cloud drive</p>
-    </div>
-    <div class="header-actions">
-      <button type="button" class="btn-cloud" (click)="openCloudManager()" title="Connect Google Drive, Dropbox or SharePoint">
-        ☁️ Cloud Storage
-        @if (cloudConnections().length > 0) {
-          <span class="cloud-badge">{{ cloudConnections().length }}</span>
-        }
-      </button>
-      @if (canManage()) {
-        <button type="button" class="btn-new" (click)="activePanel.set('create')">＋ Link Document</button>
+<!-- Header -->
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Evidence &amp; records</span>
+    <h1>Documents</h1>
+    <p class="subtitle">Reports, evidence and agreements linked from your cloud drive, organised by project and kept under version history.</p>
+  </div>
+  <div class="header-actions">
+    <button type="button" class="btn-cloud" (click)="openCloudManager()" title="Connect Google Drive, Dropbox or SharePoint">
+      Cloud storage
+      @if (cloudConnections().length > 0) {
+        <span class="cloud-badge">{{ cloudConnections().length }}</span>
       }
-    </div>
+    </button>
+    @if (canManage()) {
+      <button type="button" class="btn-new" (click)="activePanel.set('create')">+ Link document</button>
+    }
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert-error" role="alert">{{ error() }}</div>
+}
+
+<!-- Figures -->
+<div class="figures">
+  <div class="figure">
+    <span class="figure-value">{{ total() | number }}</span>
+    <span class="figure-label">Documents</span>
+  </div>
+  <div class="figure">
+    <span class="figure-value">{{ linkedToProjectCount() | number }}</span>
+    <span class="figure-label">Linked to a project</span>
+  </div>
+  <div class="figure">
+    <span class="figure-value" [class.warn]="missingFileCount() > 0">{{ missingFileCount() | number }}</span>
+    <span class="figure-label">Missing a file link</span>
+  </div>
+  <div class="figure">
+    <span class="figure-value">{{ cloudConnections().length }}</span>
+    <span class="figure-label">Cloud accounts connected</span>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="tab-group" role="tablist" aria-label="Document category">
+    <button type="button" role="tab" class="tab" [attr.aria-selected]="filterCategory() === ''" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
+      All <span class="badge">{{ categoryCounts()['All'] }}</span>
+    </button>
+    @for (cat of categories; track cat) {
+      @if (categoryCounts()[cat] > 0) {
+        <button type="button" role="tab" class="tab" [attr.aria-selected]="filterCategory() === cat" [class.active]="filterCategory() === cat" (click)="filterCategory.set(cat)">
+          {{ cat }} <span class="badge">{{ categoryCounts()[cat] }}</span>
+        </button>
+      }
+    }
   </div>
 
-  <!-- Error -->
-  @if (error()) {
-    <div class="alert-error">⚠️ {{ error() }}</div>
-  }
-
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="tab-group">
-      <button type="button" class="tab" [class.active]="filterCategory() === ''" (click)="filterCategory.set('')">
-        All <span class="badge">{{ categoryCounts()['All'] }}</span>
-      </button>
-      @for (cat of categories; track cat) {
-        @if (categoryCounts()[cat] > 0) {
-          <button type="button" class="tab" [class.active]="filterCategory() === cat" (click)="filterCategory.set(cat)">
-            {{ categoryIcons[cat] }} {{ cat }}
-            <span class="badge">{{ categoryCounts()[cat] }}</span>
-          </button>
-        }
-      }
-    </div>
-
+  <div class="toolbar-end">
     @if (projects().length > 0) {
-      <select class="proj-filter" [(ngModel)]="filterProject" aria-label="Filter by projects">
+      <select class="proj-filter" [(ngModel)]="filterProject" aria-label="Filter by project">
         <option value="">All projects</option>
         @for (p of projects(); track p._id) {
           <option [value]="p._id">{{ p.name }}</option>
         }
       </select>
     }
-
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
+      <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input aria-label="Search documents" type="text" placeholder="Search documents…" [(ngModel)]="searchQuery" />
       @if (searchQuery()) {
-        <button type="button" class="clear-btn" (click)="searchQuery.set('')">✕</button>
+        <button type="button" class="clear-btn" aria-label="Clear search" (click)="searchQuery.set('')">✕</button>
       }
     </div>
   </div>
+</div>
 
-  <!-- Loading -->
-  @if (loading()) {
-    <div class="loading-state"><div class="spinner"></div></div>
-  }
-
-  <!-- Empty -->
-  @else if (filteredDocs().length === 0) {
-    <div class="empty-state">
-      <div class="empty-icon">📂</div>
-      @if (documents().length === 0) {
-        <h3>No documents yet</h3>
-        <p>Link your first document from Google Drive, Dropbox or SharePoint, or paste a URL to a file you already host.</p>
-        <div class="empty-actions">
-          @if (canManage()) {
-            <button type="button" class="btn-new" (click)="activePanel.set('create')">＋ Link Document</button>
-          }
-          <button type="button" class="btn-cloud" (click)="openCloudManager()">☁️ Connect Cloud Storage</button>
-        </div>
-      } @else {
-        <h3>No documents match your filters</h3>
-        <p>Try adjusting your search or category filter.</p>
-      }
-    </div>
-  }
-
-  <!-- Document Grid -->
-  @else {
-    <div class="docs-grid">
-      @for (doc of filteredDocs(); track doc._id) {
-        <div class="doc-card">
-          <div class="card-top">
-            <span class="cat-icon">{{ categoryIcon(doc.category) }}</span>
-            <div class="doc-meta">
-              @if (doc.category) {
-                <span class="chip chip-cat">{{ doc.category }}</span>
+@if (loading()) {
+  <div class="loading-state"><div class="spinner"></div></div>
+} @else if (filteredDocs().length === 0) {
+  <div class="empty-state">
+    @if (documents().length === 0) {
+      <h3>No documents yet</h3>
+      <p>Link your first document from Google Drive, Dropbox or SharePoint, or paste a URL to a file you already host.</p>
+      <div class="empty-actions">
+        @if (canManage()) {
+          <button type="button" class="btn-new" (click)="activePanel.set('create')">+ Link document</button>
+        }
+        <button type="button" class="btn-cloud" (click)="openCloudManager()">Connect cloud storage</button>
+      </div>
+    } @else {
+      <h3>No documents match your filters</h3>
+      <p>Try a different search, category or project.</p>
+      <button type="button" class="btn-cloud" (click)="clearFilters()">Clear filters</button>
+    }
+  </div>
+} @else {
+  <div class="table-card">
+    <table class="docs-table">
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Category</th>
+          <th>Project</th>
+          <th>Added</th>
+          <th class="col-actions"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (doc of filteredDocs(); track doc._id) {
+          <tr>
+            <td class="col-doc">
+              @if (doc.fileUrl) {
+                <a class="doc-title" [href]="doc.fileUrl" target="_blank" rel="noopener">{{ doc.title }}</a>
+              } @else {
+                <span class="doc-title">{{ doc.title }}</span>
+                <span class="no-file">No file linked</span>
               }
+              @if (doc.description) { <p class="doc-desc">{{ doc.description }}</p> }
               @if (doc.tags?.length) {
                 <div class="tag-row">
                   @for (tag of (doc.tags ?? []); track tag) {
-                    @if (tag === 'google-drive' || tag === 'dropbox' || tag === 'sharepoint') {
-                      <span class="tag cloud-tag">☁️ {{ tag }}</span>
-                    } @else {
-                      <span class="tag">{{ tag }}</span>
-                    }
+                    <span class="tag" [class.cloud-tag]="tag === 'google-drive' || tag === 'dropbox' || tag === 'sharepoint'">{{ tag }}</span>
                   }
                 </div>
               }
-            </div>
-          </div>
-          <h3 class="doc-title">{{ doc.title }}</h3>
-          @if (doc.description) {
-            <p class="doc-desc">{{ doc.description }}</p>
-          }
-          @if (projectName(doc.projectId)) {
-            <div class="doc-project">📁 {{ projectName(doc.projectId) }}</div>
-          }
-          <div class="card-footer">
-            <span class="doc-date">{{ doc.createdAt | date:'d MMM y' }}</span>
-            <div class="card-actions">
-              @if (doc.fileUrl) {
-                <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">↗ Open</a>
+            </td>
+            <td><span class="chip">{{ doc.category || 'Other' }}</span></td>
+            <td>
+              @if (projectName(doc.projectId)) {
+                <a class="project-link" [routerLink]="['/projects', doc.projectId]">{{ projectName(doc.projectId) }}</a>
+              } @else {
+                <span class="none">—</span>
               }
-              <button type="button" class="btn-action" (click)="openVersions(doc)">🕐 Versions</button>
-              @if (canManage()) {
-                <button type="button" class="btn-action" (click)="openEdit(doc)">✏️ Edit</button>
-                <button type="button" class="btn-action danger" [disabled]="deleting() === doc._id" (click)="deleteDoc(doc)">
-                  {{ deleting() === doc._id ? '…' : '🗑' }}
-                </button>
-              }
-            </div>
-          </div>
-        </div>
-      }
-    </div>
+            </td>
+            <td class="col-date">{{ doc.createdAt | date:'d MMM y' }}</td>
+            <td class="col-actions">
+              <div class="row-actions">
+                @if (doc.fileUrl) {
+                  <a [href]="doc.fileUrl" target="_blank" rel="noopener" class="btn-action primary">Open</a>
+                }
+                <button type="button" class="btn-action" (click)="openVersions(doc)">Versions</button>
+                @if (canManage()) {
+                  <button type="button" class="btn-action" (click)="openEdit(doc)">Edit</button>
+                  <button type="button" class="btn-action danger" [disabled]="deleting() === doc._id" (click)="deleteDoc(doc)">
+                    {{ deleting() === doc._id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
-    <app-pager
-      [page]="page()"
-      [total]="total()"
-      [limit]="pageSize"
-      label="documents"
-      (pageChange)="goToPage($event)"
-    />
-  }
-</div>
+  <app-pager
+    [page]="page()"
+    [total]="total()"
+    [limit]="pageSize"
+    label="documents"
+    (pageChange)="goToPage($event)"
+  />
+}
 
 <!-- ── Create Document Panel ──────────────────────────────────────────────── -->
 @if (activePanel() === 'create') {
   <div class="modal-backdrop" (click)="closeAll()">
     <div appModal modalLabelledBy="documents-dialog-0-title" (modalClose)="closeAll()" class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2 id="documents-dialog-0-title">Link Document</h2>
+        <h2 id="documents-dialog-0-title">Link document</h2>
         <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
       <form [formGroup]="createForm" class="panel-body">
@@ -166,7 +186,7 @@
         <label for="documents-category">Category</label>
             <select id="documents-category" formControlName="category">
               @for (cat of categories; track cat) {
-                <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
+                <option [value]="cat">{{ cat }}</option>
               }
             </select>
           </div>
@@ -193,7 +213,7 @@
       <div class="panel-footer">
         <button type="button" class="btn-cancel" (click)="closeAll()">Cancel</button>
         <button type="button" class="btn-submit" [disabled]="createForm.invalid || saving()" (click)="create()">
-          {{ saving() ? 'Linking…' : 'Link Document' }}
+          {{ saving() ? 'Linking…' : 'Link document' }}
         </button>
       </div>
     </div>
@@ -205,7 +225,7 @@
   <div class="modal-backdrop" (click)="closeAll()">
     <div appModal modalLabelledBy="documents-dialog-1-title" (modalClose)="closeAll()" class="slide-panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2 id="documents-dialog-1-title">Edit Document</h2>
+        <h2 id="documents-dialog-1-title">Edit document</h2>
         <button type="button" class="close-btn" (click)="closeAll()">✕</button>
       </div>
       <form [formGroup]="editForm" class="panel-body">
@@ -217,13 +237,24 @@
         <label for="documents-description-2">Description</label>
           <textarea id="documents-description-2" formControlName="description"></textarea>
         </div>
-        <div class="field full">
+        <div class="form-row">
+          <div class="field">
         <label for="documents-category-2">Category</label>
-          <select id="documents-category-2" formControlName="category">
-            @for (cat of categories; track cat) {
-              <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
-            }
-          </select>
+            <select id="documents-category-2" formControlName="category">
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+        <label for="documents-projectid-2">Project</label>
+            <select id="documents-projectid-2" formControlName="projectId">
+              <option value="">— None —</option>
+              @for (p of projects(); track p._id) {
+                <option [value]="p._id">{{ p.name }}</option>
+              }
+            </select>
+          </div>
         </div>
         <div class="field full">
         <label for="documents-fileurl-2">File URL</label>
@@ -237,7 +268,7 @@
       <div class="panel-footer">
         <button type="button" class="btn-cancel" (click)="closeAll()">Cancel</button>
         <button type="button" class="btn-submit" [disabled]="editForm.invalid || saving()" (click)="saveEdit()">
-          {{ saving() ? 'Saving…' : 'Save Changes' }}
+          {{ saving() ? 'Saving…' : 'Save changes' }}
         </button>
       </div>
     </div>
@@ -313,7 +344,7 @@
     <div appModal modalLabelledBy="documents-dialog-3-title" (modalClose)="closeAll()" class="slide-panel wide" (click)="$event.stopPropagation()">
       <div class="panel-header">
         <div>
-          <h2 id="documents-dialog-3-title">☁️ Cloud Storage</h2>
+          <h2 id="documents-dialog-3-title">Cloud storage</h2>
           <p class="panel-sub">Connect your cloud accounts to browse and import files directly</p>
         </div>
         <button type="button" class="close-btn" (click)="closeAll()">✕</button>
@@ -322,7 +353,7 @@
       <div class="panel-body">
 
         @if (cloudError()) {
-          <div class="alert-error">⚠️ {{ cloudError() }}</div>
+          <div class="alert-error" role="alert">{{ cloudError() }}</div>
         }
 
         <!-- Provider cards -->
@@ -349,7 +380,7 @@
                     <span class="conn-status connected">✓ Connected</span>
                     <span class="conn-email">{{ getConnection(provider)?.accountMeta?.email }}</span>
                   } @else if (!isConfigured(provider)) {
-                    <span class="conn-status unconfigured">⚙ Setup required</span>
+                    <span class="conn-status unconfigured">Setup required</span>
                   } @else {
                     <span class="conn-status">Not connected</span>
                   }
@@ -359,7 +390,7 @@
               <div class="provider-actions">
                 @if (isConnected(provider)) {
                   <button type="button" class="btn-browse" (click)="openBrowser(getConnection(provider)!)">
-                    🗂 Browse Files
+                    Browse files
                   </button>
                   <button type="button" class="btn-disconnect"
                     (click)="disconnectProvider(getConnection(provider)!)">
@@ -367,7 +398,7 @@
                   </button>
                 } @else if (!isConfigured(provider)) {
                   <button type="button" class="btn-setup" (click)="setupProvider.set(provider)">
-                    📋 View Setup Guide
+                    View setup guide
                   </button>
                 } @else {
                   <button type="button" class="btn-connect"
@@ -391,8 +422,8 @@
           <div class="setup-guide">
             <div class="setup-guide-header">
               <div>
-                <h4>🔧 Setting up {{ providerLabel(setupProvider()!) }}</h4>
-                <p class="setup-sub">Ask your system administrator to complete these steps in Railway:</p>
+                <h4>Setting up {{ providerLabel(setupProvider()!) }}</h4>
+                <p class="setup-sub">Ask your system administrator to complete these steps:</p>
               </div>
               <button type="button" class="close-btn" (click)="setupProvider.set(null)">✕</button>
             </div>
@@ -403,7 +434,7 @@
             </ol>
             <div class="setup-footer">
               <a [href]="providerSetup[setupProvider()!].docsUrl" target="_blank" rel="noopener" class="btn-docs">
-                📖 Open Developer Console ↗
+                Open developer console ↗
               </a>
               <span class="setup-note">After adding the env vars, redeploy the API and refresh this page.</span>
             </div>
@@ -422,7 +453,7 @@
                   <span class="conn-provider">{{ providerLabel(conn.provider) }}</span>
                 </div>
                 <div class="conn-row-actions">
-                  <button type="button" class="btn-action" (click)="openBrowser(conn)">🗂 Browse</button>
+                  <button type="button" class="btn-action" (click)="openBrowser(conn)">Browse</button>
                   <button type="button" class="btn-action danger" (click)="disconnectProvider(conn)">Disconnect</button>
                 </div>
               </div>
@@ -431,7 +462,7 @@
         }
 
         <div class="cloud-note">
-          <p>🔒 Evidara  only reads files you explicitly import. We never modify or delete your cloud storage.</p>
+          <p>Evidara only reads files you explicitly import. We never modify or delete your cloud storage.</p>
         </div>
       </div>
     </div>
@@ -456,7 +487,7 @@
       <div class="browser-body">
 
         @if (cloudError()) {
-          <div class="alert-error">⚠️ {{ cloudError() }}</div>
+          <div class="alert-error" role="alert">{{ cloudError() }}</div>
         }
 
         <!-- Search + breadcrumb bar -->
@@ -499,7 +530,7 @@
           </select>
           <select class="import-select" [(ngModel)]="importCategory" aria-label="Category for imported documents">
             @for (cat of categories; track cat) {
-              <option [value]="cat">{{ categoryIcons[cat] }} {{ cat }}</option>
+              <option [value]="cat">{{ cat }}</option>
             }
           </select>
         </div>
@@ -514,8 +545,7 @@
           <div class="loading-state"><div class="spinner"></div></div>
         } @else if (cloudFiles().length === 0) {
           <div class="empty-state">
-            <div class="empty-icon">📂</div>
-            <p>{{ cloudSearch() ? 'No files matched your search.' : 'This folder is empty.' }}</p>
+                        <p>{{ cloudSearch() ? 'No files matched your search.' : 'This folder is empty.' }}</p>
           </div>
         } @else {
           <div class="file-list">

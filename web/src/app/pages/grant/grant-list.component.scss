@@ -1,17 +1,6 @@
 @use "sass:color";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-$indigo:   #4f46e5;
-$indigo-d: #3730a3;
-$green:    #10b981;
-$amber:    #f59e0b;
-$red:      #ef4444;
-$blue:     #3b82f6;
-$surface:  #ffffff;
-$bg:       #f8f7ff;
-$text:     #0f172a;
-$muted:    #64748b;
-$border:   rgba(15, 23, 42, 0.08);
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 .grants-page { padding: 2rem 2.5rem; max-width: 1400px; margin: 0 auto; }
@@ -25,41 +14,40 @@ $border:   rgba(15, 23, 42, 0.08);
 }
 
 .kpi {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   transition: transform 0.18s, box-shadow 0.18s;
 
-  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
+  &:hover { transform: none; box-shadow: var(--shadow); }
 
   .kpi-label {
     font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: $muted;
+    font-weight: 600;
+
+    color: var(--muted);
   }
 
   .kpi-value {
     font-size: 1.85rem;
-    font-weight: 800;
-    color: $text;
+    font-weight: 600;
+    color: var(--text);
     line-height: 1;
   }
 
   .kpi-sub {
     font-size: 0.78rem;
-    color: $muted;
+    color: var(--muted);
   }
 
-  &.kpi-active   { border-color: rgba($green, 0.35); background: rgba($green, 0.03); .kpi-value { color: color.adjust($green, $lightness: -10%); } }
-  &.kpi-warn     { border-color: rgba($amber, 0.35); background: rgba($amber, 0.04); .kpi-value { color: color.adjust($amber, $lightness: -12%); } }
-  &.kpi-danger   { border-color: rgba($red, 0.3);   background: rgba($red, 0.03);   .kpi-value { color: color.adjust($red, $lightness: -8%);   } }
+  &.kpi-active   { border-color: color-mix(in srgb, var(--green) 35%, transparent); background: color-mix(in srgb, var(--green) 3%, transparent); .kpi-value { color: var(--green-strong); } }
+  &.kpi-warn     { border-color: color-mix(in srgb, var(--amber) 35%, transparent); background: color-mix(in srgb, var(--amber) 4%, transparent); .kpi-value { color: var(--amber-strong); } }
+  &.kpi-danger   { border-color: color-mix(in srgb, var(--red) 30%, transparent);   background: color-mix(in srgb, var(--red) 3%, transparent);   .kpi-value { color: var(--red-strong);   } }
 }
 
 // ─── Page header ──────────────────────────────────────────────────────────────
@@ -74,11 +62,11 @@ $border:   rgba(15, 23, 42, 0.08);
   h1 {
     margin: 0 0 0.2rem;
     font-size: clamp(1.6rem, 3vw, 2.2rem);
-    font-weight: 800;
-    color: $text;
+    font-weight: 600;
+    color: var(--text);
   }
 
-  .subtitle { margin: 0; color: $muted; font-size: 0.92rem; }
+  .subtitle { margin: 0; color: var(--muted); font-size: 0.92rem; }
 }
 
 .btn-new {
@@ -86,18 +74,18 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.4rem;
-  background: linear-gradient(135deg, $indigo, $indigo-d);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-solid);
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
+  border-radius: var(--r-lg);
+  font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba($indigo, 0.3);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 
-  &:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba($indigo, 0.35); }
+  &:hover { transform: none; box-shadow: var(--shadow-sm); }
 }
 
 // ─── Toolbar (tabs + search) ──────────────────────────────────────────────────
@@ -112,29 +100,29 @@ $border:   rgba(15, 23, 42, 0.08);
 .tab-group {
   display: flex;
   gap: 0.35rem;
-  background: rgba($indigo, 0.06);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.3rem;
   flex-wrap: wrap;
 }
 
 .tab {
   padding: 0.45rem 1rem;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: none;
   background: transparent;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 
-  &:hover { background: rgba($indigo, 0.08); color: $indigo; }
+  &:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--primary); }
 
   &.active {
-    background: $surface;
-    color: $indigo;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: var(--card-bg);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
   }
 
   .badge {
@@ -144,16 +132,16 @@ $border:   rgba(15, 23, 42, 0.08);
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    border-radius: 999px;
-    background: $indigo;
-    color: #fff;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+    color: var(--on-solid);
     font-size: 0.7rem;
-    font-weight: 700;
+    font-weight: 600;
     margin-left: 0.4rem;
   }
 
-  &.tab-warn .badge  { background: $amber; }
-  &.tab-danger .badge { background: $red; }
+  &.tab-warn .badge  { background: var(--amber); }
+  &.tab-danger .badge { background: var(--red); }
 }
 
 .search-wrap {
@@ -162,17 +150,17 @@ $border:   rgba(15, 23, 42, 0.08);
 
   input {
     padding: 0.55rem 1rem 0.55rem 2.4rem;
-    border: 1px solid $border;
-    border-radius: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
     font-size: 0.88rem;
-    background: $surface;
-    color: $text;
+    background: var(--card-bg);
+    color: var(--text);
     outline: none;
     width: 240px;
     transition: border-color 0.15s, box-shadow 0.15s;
 
-    &:focus { border-color: rgba($indigo, 0.4); box-shadow: 0 0 0 3px rgba($indigo, 0.08); }
-    &::placeholder { color: $muted; }
+    &:focus { border-color: color-mix(in srgb, var(--primary) 40%, transparent); box-shadow: var(--ring); }
+    &::placeholder { color: var(--muted); }
   }
 
   .search-icon {
@@ -180,7 +168,7 @@ $border:   rgba(15, 23, 42, 0.08);
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    color: $muted;
+    color: var(--muted);
     font-size: 0.95rem;
     pointer-events: none;
   }
@@ -192,13 +180,13 @@ $border:   rgba(15, 23, 42, 0.08);
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: $muted;
+    color: var(--muted);
     cursor: pointer;
     font-size: 1rem;
     padding: 0;
     line-height: 1;
 
-    &:hover { color: $text; }
+    &:hover { color: var(--text); }
   }
 }
 
@@ -208,10 +196,10 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: rgba($red, 0.06);
-  border: 1px solid rgba($red, 0.2);
-  border-radius: 12px;
-  color: color.adjust($red, $lightness: -8%);
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
+  border-radius: var(--r-lg);
+  color: var(--red-strong);
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
@@ -224,7 +212,7 @@ $border:   rgba(15, 23, 42, 0.08);
   justify-content: center;
   padding: 5rem 2rem;
   text-align: center;
-  color: $muted;
+  color: var(--muted);
   gap: 1rem;
 
   .empty-icon { font-size: 3rem; }
@@ -235,8 +223,8 @@ $border:   rgba(15, 23, 42, 0.08);
 .spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba($indigo, 0.15);
-  border-top-color: $indigo;
+  border: 3px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -251,37 +239,37 @@ $border:   rgba(15, 23, 42, 0.08);
 }
 
 .grant-card {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   cursor: pointer;
   display: flex;
   flex-direction: column;
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.09);
-    border-color: rgba($indigo, 0.2);
+    transform: none;
+    box-shadow: var(--shadow);
+    border-color: color-mix(in srgb, var(--primary) 20%, transparent);
   }
 
-  &.expiring { border-color: rgba($amber, 0.4); }
-  &.overbudget { border-color: rgba($red, 0.35); }
+  &.expiring { border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
+  &.overbudget { border-color: color-mix(in srgb, var(--red) 35%, transparent); }
 }
 
 .card-accent {
   height: 4px;
-  background: linear-gradient(90deg, $indigo, color.adjust($indigo, $lightness: 15%));
+  background: var(--primary);
 
-  &.accent-active    { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 12%)); }
-  &.accent-awarded   { background: linear-gradient(90deg, $blue, color.adjust($blue, $lightness: 12%)); }
-  &.accent-completed { background: linear-gradient(90deg, $muted, color.adjust($muted, $lightness: 15%)); }
-  &.accent-closed    { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
-  &.accent-rejected  { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 12%)); }
-  &.accent-prospect  { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 10%)); }
-  &.accent-applied   { background: linear-gradient(90deg, $blue, color.adjust($blue, $lightness: 10%)); }
+  &.accent-active    { background: var(--green-strong); }
+  &.accent-awarded   { background: var(--blue); }
+  &.accent-completed { background: var(--muted); }
+  &.accent-closed    { background: var(--border-strong); }
+  &.accent-rejected  { background: var(--red); }
+  &.accent-prospect  { background: var(--amber); }
+  &.accent-applied   { background: var(--blue); }
 }
 
 .card-body {
@@ -301,22 +289,22 @@ $border:   rgba(15, 23, 42, 0.08);
 
 .grant-name {
   font-size: 1.0rem;
-  font-weight: 700;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
   line-height: 1.3;
   flex: 1;
 }
 
 .ref-num {
   font-size: 0.75rem;
-  color: $muted;
+  color: var(--muted);
   margin-top: 0.2rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .donor-tag {
   font-size: 0.78rem;
-  color: $indigo;
+  color: var(--primary);
   font-weight: 600;
   margin-top: 0.25rem;
 }
@@ -326,20 +314,20 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
   white-space: nowrap;
   flex-shrink: 0;
 
-  &.chip-active    { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.chip-awarded   { background: rgba($blue, 0.1); color: color.adjust($blue, $lightness: -10%); }
-  &.chip-prospect  { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
-  &.chip-applied   { background: rgba($blue, 0.08); color: color.adjust($blue, $lightness: -8%); }
-  &.chip-completed { background: rgba($muted, 0.1); color: $muted; }
-  &.chip-closed    { background: rgba($muted, 0.08); color: $muted; }
-  &.chip-rejected  { background: rgba($red, 0.08); color: color.adjust($red, $lightness: -8%); }
+  &.chip-active    { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.chip-awarded   { background: color-mix(in srgb, var(--blue) 10%, transparent); color: var(--blue-strong); }
+  &.chip-prospect  { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
+  &.chip-applied   { background: color-mix(in srgb, var(--blue) 8%, transparent); color: var(--blue-strong); }
+  &.chip-completed { background: color-mix(in srgb, var(--muted) 10%, transparent); color: var(--muted); }
+  &.chip-closed    { background: color-mix(in srgb, var(--muted) 8%, transparent); color: var(--muted); }
+  &.chip-rejected  { background: color-mix(in srgb, var(--red) 8%, transparent); color: var(--red-strong); }
 }
 
 // ─── Burn bar ─────────────────────────────────────────────────────────────────
@@ -349,27 +337,27 @@ $border:   rgba(15, 23, 42, 0.08);
   display: flex;
   justify-content: space-between;
   font-size: 0.78rem;
-  color: $muted;
+  color: var(--muted);
   font-weight: 600;
 
-  .burn-pct { font-weight: 700; color: $text; }
+  .burn-pct { font-weight: 600; color: var(--text); }
 }
 
 .burn-track {
   height: 7px;
-  background: rgba($indigo, 0.08);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 
 .burn-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.5s ease;
-  background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 10%));
+  background: var(--green-strong);
 
-  &.warn { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 8%)); }
-  &.crit { background: linear-gradient(90deg, $red, color.adjust($red, $lightness: 8%)); }
+  &.warn { background: var(--amber); }
+  &.crit { background: var(--red); }
 }
 
 .amount-row {
@@ -377,16 +365,16 @@ $border:   rgba(15, 23, 42, 0.08);
   justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
-  color: $muted;
+  color: var(--muted);
 
-  strong { color: $text; font-size: 0.85rem; }
+  strong { color: var(--text); font-size: 0.85rem; }
 }
 
 // ─── Meta row (dates) ─────────────────────────────────────────────────────────
 .meta-row {
   display: flex;
   gap: 1rem;
-  border-top: 1px solid $border;
+  border-top: 1px solid var(--border);
   padding-top: 0.9rem;
   flex-wrap: wrap;
 }
@@ -396,10 +384,10 @@ $border:   rgba(15, 23, 42, 0.08);
   flex-direction: column;
   gap: 0.2rem;
 
-  .meta-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: $muted; }
-  .meta-value { font-size: 0.85rem; font-weight: 600; color: $text; }
-  &.warn .meta-value { color: color.adjust($amber, $lightness: -15%); }
-  &.danger .meta-value { color: color.adjust($red, $lightness: -8%); }
+  .meta-label { font-size: 0.7rem; font-weight: 600; color: var(--muted); }
+  .meta-value { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  &.warn .meta-value { color: var(--amber-strong); }
+  &.danger .meta-value { color: var(--red-strong); }
 }
 
 // ─── Card actions ─────────────────────────────────────────────────────────────
@@ -407,31 +395,31 @@ $border:   rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 0.5rem;
   padding: 0.9rem 1.35rem;
-  border-top: 1px solid $border;
-  background: rgba($indigo, 0.015);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 1.5%, transparent);
 }
 
 .btn-sm {
   padding: 0.45rem 1rem;
-  border-radius: 9px;
-  border: 1px solid $border;
-  background: $surface;
-  color: $text;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 
-  &:hover { background: rgba($indigo, 0.06); border-color: rgba($indigo, 0.2); color: $indigo; }
+  &:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); border-color: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--primary); }
 
   &.primary {
-    background: $indigo;
-    color: #fff;
-    border-color: $indigo;
-    &:hover { background: $indigo-d; border-color: $indigo-d; }
+    background: var(--primary);
+    color: var(--on-solid);
+    border-color: var(--primary);
+    &:hover { background: var(--primary-strong); border-color: var(--primary-strong); }
   }
 
-  &.danger { color: $red; border-color: rgba($red, 0.25); &:hover { background: rgba($red, 0.06); border-color: rgba($red, 0.4); } }
+  &.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 25%, transparent); &:hover { background: color-mix(in srgb, var(--red) 6%, transparent); border-color: color-mix(in srgb, var(--red) 40%, transparent); } }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -443,20 +431,20 @@ $border:   rgba(15, 23, 42, 0.08);
   gap: 1rem;
   margin-top: 2rem;
 
-  .page-info { font-size: 0.88rem; font-weight: 600; color: $muted; }
+  .page-info { font-size: 0.88rem; font-weight: 600; color: var(--muted); }
 
   button {
     padding: 0.5rem 1.25rem;
-    border-radius: 10px;
-    border: 1px solid $border;
-    background: $surface;
-    color: $text;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
     font-weight: 600;
     font-size: 0.88rem;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 
-    &:hover:not(:disabled) { background: rgba($indigo, 0.06); border-color: rgba($indigo, 0.2); color: $indigo; }
+    &:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 6%, transparent); border-color: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--primary); }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 }
@@ -465,8 +453,8 @@ $border:   rgba(15, 23, 42, 0.08);
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
+
   z-index: 200;
   display: flex;
   align-items: flex-start;
@@ -476,8 +464,8 @@ $border:   rgba(15, 23, 42, 0.08);
 .slide-panel {
   width: min(520px, 100vw);
   height: 100dvh;
-  background: $surface;
-  box-shadow: -8px 0 48px rgba(0,0,0,0.14);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -494,27 +482,27 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 2rem 1.25rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: $surface;
+  background: var(--card-bg);
   z-index: 1;
 
-  h2 { margin: 0; font-size: 1.2rem; font-weight: 800; color: $text; }
+  h2 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--text); }
 
   .close-btn {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 1px solid $border;
+    border: 1px solid var(--border);
     background: transparent;
-    color: $muted;
+    color: var(--muted);
     font-size: 1.2rem;
     cursor: pointer;
     display: grid;
     place-items: center;
     transition: background 0.15s, color 0.15s;
-    &:hover { background: rgba($red, 0.06); color: $red; border-color: rgba($red, 0.2); }
+    &:hover { background: color-mix(in srgb, var(--red) 6%, transparent); color: var(--red); border-color: color-mix(in srgb, var(--red) 20%, transparent); }
   }
 }
 
@@ -541,27 +529,26 @@ $border:   rgba(15, 23, 42, 0.08);
 
   label {
     font-size: 0.78rem;
-    font-weight: 700;
-    color: $muted;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--muted);
+
   }
 
   input, select, textarea {
     padding: 0.65rem 0.9rem;
-    border: 1px solid $border;
-    border-radius: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
     font-size: 0.9rem;
-    color: $text;
-    background: $bg;
+    color: var(--text);
+    background: var(--primary-bg);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     font-family: inherit;
 
     &:focus {
-      border-color: rgba($indigo, 0.45);
-      box-shadow: 0 0 0 3px rgba($indigo, 0.08);
-      background: $surface;
+      border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+      box-shadow: var(--ring);
+      background: var(--card-bg);
     }
   }
 
@@ -573,12 +560,12 @@ $border:   rgba(15, 23, 42, 0.08);
     gap: 0.6rem;
     font-size: 0.88rem;
     font-weight: 600;
-    color: $text;
+    color: var(--text);
     cursor: pointer;
     text-transform: none;
     letter-spacing: 0;
 
-    input[type=checkbox] { width: 16px; height: 16px; accent-color: $indigo; cursor: pointer; }
+    input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
   }
 }
 
@@ -586,8 +573,8 @@ $border:   rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 0.75rem;
   padding: 1.25rem 2rem;
-  border-top: 1px solid $border;
-  background: $surface;
+  border-top: 1px solid var(--border);
+  background: var(--card-bg);
   position: sticky;
   bottom: 0;
 }
@@ -595,31 +582,31 @@ $border:   rgba(15, 23, 42, 0.08);
 .btn-submit {
   flex: 1;
   padding: 0.8rem;
-  background: linear-gradient(135deg, $indigo, $indigo-d);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-solid);
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
+  border-radius: var(--r-lg);
+  font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba($indigo, 0.28);
+  box-shadow: var(--shadow-sm);
   transition: opacity 0.15s, transform 0.15s;
 
-  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:hover:not(:disabled) { transform: none; }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 .btn-cancel {
   padding: 0.8rem 1.5rem;
-  border: 1px solid $border;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   background: transparent;
-  color: $muted;
+  color: var(--muted);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 
-  &:hover { background: $bg; }
+  &:hover { background: var(--primary-bg); }
 }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────
@@ -637,10 +624,10 @@ $border:   rgba(15, 23, 42, 0.08);
 .fx-notice {
   margin: -0.4rem 0 1rem;
   padding: 0.55rem 0.8rem;
-  border: 1px solid #fde68a;
-  border-radius: 0.5rem;
-  background: #fffbeb;
-  color: #92400e;
+  border: 1px solid var(--amber);
+  border-radius: var(--r);
+  background: var(--amber-bg);
+  color: var(--amber-strong);
   font-size: 0.8rem;
   b { margin-left: 0.3rem; }
 }
@@ -650,5 +637,5 @@ $border:   rgba(15, 23, 42, 0.08);
   margin-left: 0.25rem;
   font-weight: 400;
   font-size: 0.78rem;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
 }

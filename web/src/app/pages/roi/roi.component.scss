@@ -21,16 +21,15 @@
 
 .page-eyebrow {
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--primary-lt);
 }
 
 h1 {
   margin: 0;
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -51,7 +50,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
   font-size: 0.85rem;
 }
@@ -60,7 +59,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
@@ -73,8 +72,8 @@ h1 {
 .error-banner {
   background: var(--red-bg);
   color: var(--red);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.85rem 1.1rem;
   font-size: 0.88rem;
   margin-bottom: 1.25rem;
@@ -110,8 +109,8 @@ h1 {
 .currency-notice {
   background: var(--amber-bg);
   color: var(--amber);
-  border: 1px solid rgba(245,158,11,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.7rem 1rem;
   font-size: 0.85rem;
   margin-bottom: 1rem;
@@ -127,7 +126,7 @@ h1 {
 .portfolio-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 1.1rem 1.2rem;
   display: flex;
   flex-direction: column;
@@ -142,15 +141,14 @@ h1 {
 
 .card-label {
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--muted);
 }
 
 .card-value {
   font-size: 1.45rem;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text-strong);
 
   &.warn { color: var(--amber); }
@@ -176,7 +174,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.5rem 1rem;
   font-size: 0.84rem;
   font-weight: 600;
@@ -188,8 +186,8 @@ h1 {
   &.active {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
-    .tab-count { background: rgba(255,255,255,0.25); color: #fff; }
+    color: var(--on-solid);
+    .tab-count { background: color-mix(in srgb, var(--on-solid) 25%, transparent); color: var(--on-solid); }
   }
   &.active.tab-high   { background: var(--green); border-color: var(--green); }
   &.active.tab-medium { background: var(--amber); border-color: var(--amber); }
@@ -199,10 +197,10 @@ h1 {
 .tab-count {
   background: var(--surface-soft);
   color: var(--text-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.05rem 0.5rem;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .empty-state {
@@ -214,7 +212,7 @@ h1 {
   padding: 3.5rem 1rem;
   background: var(--empty-bg);
   border: 1px dashed var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 
   .empty-icon { font-size: 2rem; }
   h3 { margin: 0; color: var(--text-strong); font-size: 1.05rem; }
@@ -241,9 +239,8 @@ h1 {
   border: none;
   text-align: left;
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--muted);
   cursor: pointer;
   padding: 0;
@@ -258,7 +255,7 @@ h1 {
   align-items: center;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow-sm);
 
@@ -283,8 +280,8 @@ h1 {
   background: var(--badge-bg);
   color: var(--badge-color);
   font-size: 0.72rem;
-  font-weight: 700;
-  border-radius: 6px;
+  font-weight: 600;
+  border-radius: var(--r);
   padding: 0.1rem 0.45rem;
 }
 
@@ -297,7 +294,7 @@ h1 {
 .row-main h4 {
   margin: 0 0 0.25rem;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -316,14 +313,14 @@ h1 {
 
 .bar-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--border);
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--primary);
   transition: width 0.3s ease;
 }
@@ -339,7 +336,7 @@ h1 {
 }
 
 .cost-value {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
   font-size: 0.92rem;
 }
@@ -356,7 +353,7 @@ h1 {
 }
 
 .unit-cost-value {
-  font-weight: 800;
+  font-weight: 600;
   font-size: 1rem;
   color: var(--text-strong);
 
@@ -371,8 +368,8 @@ h1 {
 .efficiency-badge {
   align-self: flex-start;
   font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
   padding: 0.1rem 0.55rem;
 
   &.high     { background: var(--green-bg); color: var(--green); }

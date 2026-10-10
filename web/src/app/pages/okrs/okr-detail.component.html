@@ -1,147 +1,264 @@
-@if (okr(); as o) {
-  <header class="page-header">
-    <div>
-      <a routerLink="/okrs" class="back">← OKRs</a>
-      <h1>{{ o.title }}</h1>
-      <p class="muted">Q{{ o.quarter }} {{ o.year }}</p>
-    </div>
-    @if (isMEOfficer()) {
-      <select
-        [(ngModel)]="o.status"
-        (change)="updateOKRStatus(o.status)"
-        class="status-select"
-       aria-label="Select draft">
-        <option value="draft">Draft</option>
-        <option value="active">Active</option>
-        <option value="completed">Completed</option>
-        <option value="archived">Archived</option>
-      </select>
-    } @else {
-      <span class="pill">{{ o.status }}</span>
-    }
-  </header>
+@if (error(); as err) {
+  <div class="error-banner" role="alert">{{ err }}</div>
+}
 
-  @if (progress(); as p) {
-    <div class="okr-summary">
-      <div class="summary-card">
-        <span class="label">Overall Progress</span>
-        <span class="value" [class]="getProgressClass(p.overallProgress)">
-          {{ p.overallProgress | number: '1.0-0' }}%
-        </span>
-      </div>
-      <div class="summary-card">
-        <span class="label">Key Results</span>
-        <span class="value">{{ p.keyResults.length }}</span>
-      </div>
-      <div class="summary-card">
-        <span class="label">On Track</span>
-        <span class="value">
-          {{ (p.keyResults | slice: 0).length ? 'Yes' : 'No' }}
-        </span>
-      </div>
+@if (okr(); as o) {
+  <div class="page-header">
+    <div>
+      <a routerLink="/okrs" class="back-link">← OKRs</a>
+      <h1>{{ o.title }}</h1>
+      <p class="subtitle">
+        Q{{ o.quarter }} {{ o.year }} · {{ summary().total }} {{ summary().total === 1 ? 'key result' : 'key results' }}
+        @if (o.reviewDate) {
+          · Last reviewed {{ o.reviewDate | date: 'd MMM y' }}@if (o.reviewedBy?.name) { by {{ o.reviewedBy?.name }} }
+        }
+      </p>
+      @if (o.description) { <p class="subtitle">{{ o.description }}</p> }
     </div>
+    <div class="header-actions">
+      @if (canManage) {
+        <select class="status-select" [ngModel]="o.status" (ngModelChange)="setStatus($event)" [disabled]="busy()" aria-label="OKR status">
+          <option value="draft">Draft</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="archived">Archived</option>
+        </select>
+        <button type="button" class="btn-ghost" [disabled]="busy()" (click)="openEditOkr()">Edit</button>
+        <button type="button" class="btn-secondary" [disabled]="busy()" (click)="markReviewed()">Mark reviewed</button>
+      } @else {
+        <span class="status-pill" [class]="o.status">{{ o.status | titlecase }}</span>
+      }
+      @if (canDelete && o.status !== 'active') {
+        <button type="button" class="btn-danger" [disabled]="busy()" (click)="deleteOkr()">Delete</button>
+      }
+    </div>
+  </div>
+
+  @if (editingOkr()) {
+    <form class="form-panel" (ngSubmit)="saveOkr()">
+      <h2>Edit OKR</h2>
+      <div class="form-row">
+        <label class="field full">Objective
+          <input [(ngModel)]="okrForm.title" name="title" required maxlength="160" />
+        </label>
+        <label class="field full">Description <small>(optional)</small>
+          <textarea [(ngModel)]="okrForm.description" name="description" rows="2" maxlength="500"></textarea>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="busy() || !okrForm.title.trim()">Save changes</button>
+        <button type="button" class="btn-ghost" (click)="editingOkr.set(false)">Cancel</button>
+      </div>
+    </form>
   }
 
-  <section class="panel">
-    @if (o.description) {
-      <p class="description">{{ o.description }}</p>
-    }
+  <div class="figures">
+    <div class="figure lead">
+      <span class="figure-label">Overall progress</span>
+      <span class="figure-value" [class]="'tone-' + tone(summary().total ? o.progressPercentage : null)">
+        {{ summary().total ? o.progressPercentage + '%' : '—' }}
+      </span>
+      <div class="bar" [class]="tone(summary().total ? o.progressPercentage : null)"><span [style.width.%]="o.progressPercentage"></span></div>
+    </div>
+    <div class="figure">
+      <span class="figure-label">Key results</span>
+      <span class="figure-value">{{ summary().total }}</span>
+      <span class="figure-meta">{{ summary().completed }} completed</span>
+    </div>
+    <div class="figure">
+      <span class="figure-label">At risk</span>
+      <span class="figure-value" [class.tone-warn]="summary().atRisk > 0">{{ summary().atRisk }}</span>
+      <span class="figure-meta">{{ summary().atRisk === 0 ? 'None flagged' : 'need attention' }}</span>
+    </div>
+    <div class="figure">
+      <span class="figure-label">Average confidence</span>
+      <span class="figure-value">{{ summary().confidence === null ? '—' : summary().confidence + '%' }}</span>
+      <span class="figure-meta">across key results</span>
+    </div>
+  </div>
 
-    @if (isMEOfficer()) {
-      <h2>Add Key Result</h2>
-      <form class="form-grid" (ngSubmit)="addKeyResult()">
-        <label>Key Result Title<input aria-label="Title" [(ngModel)]="krForm.title" name="title" required /></label>
-        <label>Unit<input [(ngModel)]="krForm.unit" name="unit" placeholder="e.g., beneficiaries, %,%" required /></label>
-        <label>Target Value<input aria-label="Target" type="number" [(ngModel)]="krForm.targetValue" name="target" required /></label>
-        <label>Initial Confidence (%)<input aria-label="Confidence" type="number" [(ngModel)]="krForm.confidence" name="confidence" min="0" max="100" /></label>
-        <button type="submit" class="primary">Add Key Result</button>
+  <section class="panel connections">
+    <div class="connection">
+      <span class="links-label">Contributes to</span>
+      @for (c of contributesTo(); track c.bscId + c.objective) {
+        <span class="chip plain">
+          <a [routerLink]="['/bsc', c.bscId]">{{ c.objective }}</a>
+          <span class="chip-meta">{{ c.scorecard }}</span>
+        </span>
+      } @empty {
+        <span class="none">No scorecard objective yet — link this OKR from an objective on a <a routerLink="/bsc">balanced scorecard</a>.</span>
+      }
+    </div>
+    <div class="connection">
+      <span class="links-label">Projects</span>
+      @for (p of o.linkedProjects ?? []; track p._id) {
+        <span class="chip" [class.plain]="!canManage">
+          <a [routerLink]="['/projects', p._id]">{{ p.name }}</a>
+          @if (canManage) {
+            <button type="button" [disabled]="busy()" (click)="unlinkProject(p._id)" [attr.aria-label]="'Unlink ' + p.name">×</button>
+          }
+        </span>
+      }
+      @if (canManage && linkableProjects().length) {
+        <select #projectPick [disabled]="busy()" (change)="linkProject(projectPick)" aria-label="Link a project">
+          <option value="">+ Link a project…</option>
+          @for (p of linkableProjects(); track p._id) {
+            <option [value]="p._id">{{ p.name }}</option>
+          }
+        </select>
+      } @else if (!(o.linkedProjects?.length)) {
+        <span class="none">No projects linked.</span>
+      }
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Key results</h2>
+        <p>Measurable outcomes that show the objective is being met.</p>
+      </div>
+      @if (canManage && !showKrForm()) {
+        <button type="button" class="btn-primary btn-sm" (click)="openKrForm()">+ Add key result</button>
+      }
+    </div>
+
+    @if (showKrForm()) {
+      <form class="form-panel" (ngSubmit)="addKeyResult()">
+        <h2>New key result</h2>
+        <div class="form-row">
+          @if (indicators().length) {
+            <label class="field full">Measured by indicator <small>(optional — the current value then follows the indicator)</small>
+              <select [(ngModel)]="krForm.indicatorId" name="indicatorId" (change)="onKrIndicatorPicked()">
+                <option value="">Tracked by hand</option>
+                @for (i of indicators(); track i._id) {
+                  <option [value]="i._id">{{ indicatorLabel(i) }}</option>
+                }
+              </select>
+            </label>
+          }
+          <label class="field wide">Key result
+            <input [(ngModel)]="krForm.title" name="title" required maxlength="200" placeholder="e.g. Enrol 800 women in the ANC+ programme" />
+          </label>
+          <label class="field">Target
+            <input type="number" [(ngModel)]="krForm.targetValue" name="targetValue" min="0" step="any" required />
+          </label>
+          <label class="field">Unit
+            <input [(ngModel)]="krForm.unit" name="unit" maxlength="40" placeholder="e.g. women, %" />
+          </label>
+          <label class="field">Confidence (%)
+            <input type="number" [(ngModel)]="krForm.confidence" name="confidence" min="0" max="100" required />
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="busy() || !canSaveKr()">Add key result</button>
+          <button type="button" class="btn-ghost" (click)="showKrForm.set(false)">Cancel</button>
+        </div>
       </form>
     }
 
-    <h2>Key Results</h2>
-    @if (o.keyResults.length > 0) {
-      <div class="key-results-list">
-        @for (kr of o.keyResults; let krIdx = $index; track krIdx) {
-          <div class="kr-card">
-            <div class="kr-header">
+    @if (o.keyResults.length === 0) {
+      @if (!showKrForm()) {
+        <div class="empty">
+          <h3>No key results yet</h3>
+          <p>Add two to five measurable results. Progress on the objective is their average.</p>
+          @if (canManage) {
+            <button type="button" class="btn-primary btn-sm" (click)="openKrForm()">+ Add key result</button>
+          }
+        </div>
+      }
+    } @else {
+      <div class="item-list">
+        @for (kr of o.keyResults; let i = $index; track kr._id ?? i) {
+          <article class="item">
+            <div class="item-head">
               <h3>{{ kr.title }}</h3>
-              @if (isMEOfficer()) {
-                <select
-                  [(ngModel)]="kr.status"
-                  (change)="updateKeyResultStatus(krIdx, kr.status)"
-                  class="small-select"
-                 aria-label="Select not started">
-                  <option value="not_started">Not Started</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="at_risk">At Risk</option>
+              @if (canUpdate) {
+                <select class="status-select" [ngModel]="kr.status" (ngModelChange)="setKrStatus(i, $event)"
+                        [disabled]="busy()" [attr.aria-label]="'Status of ' + kr.title">
+                  <option value="not_started">Not started</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="at_risk">At risk</option>
                   <option value="completed">Completed</option>
                 </select>
               } @else {
-                <span class="status-badge" [class]="getStatusClass(kr.status)">{{ kr.status }}</span>
+                <span class="status-pill" [class]="kr.status">{{ statusLabel(kr.status) }}</span>
               }
             </div>
+            @if (kr.description) { <p class="item-desc">{{ kr.description }}</p> }
+            @if (kr.notes) { <p class="item-desc">{{ kr.notes }}</p> }
 
-            @if (kr.description) {
-              <p class="description">{{ kr.description }}</p>
-            }
-
-            <div class="kr-metrics">
+            <div class="metrics">
               <div class="metric">
-                <label>Target</label>
-                <span>{{ kr.targetValue }} {{ kr.unit }}</span>
+                <span class="metric-label">Target</span>
+                <span class="metric-value">{{ kr.targetValue | number: '1.0-2' }} {{ kr.unit }}</span>
               </div>
               <div class="metric">
-                <label>Current</label>
-                @if (isMEOfficer()) {
-                  <input
-                    type="number"
-                    [(ngModel)]="kr.currentValue"
-                    [attr.aria-label]="'Current value for ' + kr.title"
-                    (change)="updateKeyResultValue(krIdx, kr.currentValue)"
-                    class="value-input"
-                  />
+                <span class="metric-label">Current</span>
+                @if (kr.indicatorId) {
+                  <span class="metric-value">{{ kr.currentValue | number: '1.0-2' }} {{ kr.unit }}</span>
+                  <span class="metric-hint">From indicator</span>
+                } @else if (canUpdate) {
+                  <input type="number" min="0" step="any" [ngModel]="kr.currentValue" [ngModelOptions]="{ updateOn: 'blur' }"
+                         (ngModelChange)="setKrValue(i, $event)" [disabled]="busy()" [attr.aria-label]="'Current value for ' + kr.title" />
                 } @else {
-                  <span>{{ kr.currentValue }} {{ kr.unit }}</span>
+                  <span class="metric-value">{{ kr.currentValue | number: '1.0-2' }} {{ kr.unit }}</span>
                 }
               </div>
               <div class="metric">
-                <label>Confidence</label>
-                @if (isMEOfficer()) {
-                  <input
-                    type="number"
-                    [(ngModel)]="kr.confidence"
-                    [attr.aria-label]="'Confidence for ' + kr.title"
-                    (change)="updateKeyResultConfidence(krIdx, kr.confidence)"
-                    min="0"
-                    max="100"
-                    class="confidence-input"
-                  />
-                  <span class="unit">%</span>
+                <span class="metric-label">Confidence (%)</span>
+                @if (canUpdate) {
+                  <input type="number" min="0" max="100" [ngModel]="kr.confidence" [ngModelOptions]="{ updateOn: 'blur' }"
+                         (ngModelChange)="setKrConfidence(i, $event)" [disabled]="busy()" [attr.aria-label]="'Confidence for ' + kr.title" />
                 } @else {
-                  <span class="confidence-display" [class]="getConfidenceColor(kr.confidence)">
-                    {{ kr.confidence }}%
-                  </span>
+                  <span class="metric-value">{{ kr.confidence }}%</span>
                 }
               </div>
             </div>
 
-            <div class="kr-progress">
-              <div class="progress-bar">
-                <div class="progress" [style.width.%]="(kr.currentValue / kr.targetValue) * 100"></div>
-              </div>
-              <span class="progress-text">{{ ((kr.currentValue / kr.targetValue) * 100) | number: '1.0-0' }}%</span>
+            <div class="progress-line">
+              <div class="bar" [class]="tone(progressOf(kr))"><span [style.width.%]="progressOf(kr)"></span></div>
+              <span class="pct">{{ progressOf(kr) | number: '1.0-0' }}%</span>
             </div>
-          </div>
+
+            <div class="links">
+              <span class="links-label">Measured by</span>
+              @if (kr.indicatorId) {
+                <span class="chip" [class.plain]="!canManage">
+                  <a [routerLink]="['/indicators', kr.indicatorId]">
+                    {{ indicatorById().get(kr.indicatorId) ? indicatorLabel(indicatorById().get(kr.indicatorId)!) : 'Linked indicator' }}
+                  </a>
+                  @if (canManage) {
+                    <button type="button" [disabled]="busy()" (click)="unlinkIndicator(i)" [attr.aria-label]="'Unlink indicator from ' + kr.title">×</button>
+                  }
+                </span>
+              } @else if (canManage && indicators().length) {
+                <select #indicatorPick [disabled]="busy()" (change)="linkIndicator(i, indicatorPick)" [attr.aria-label]="'Link an indicator to ' + kr.title">
+                  <option value="">Manual entry — link an indicator…</option>
+                  @for (ind of indicators(); track ind._id) {
+                    <option [value]="ind._id">{{ indicatorLabel(ind) }}</option>
+                  }
+                </select>
+              } @else {
+                <span class="links-label">manual entry</span>
+              }
+              @if (canManage) {
+                <span class="item-actions">
+                  <button type="button" class="link-btn danger" [disabled]="busy()" (click)="removeKeyResult(i)">Remove</button>
+                </span>
+              }
+            </div>
+          </article>
         }
       </div>
-    } @else {
-      <p class="muted">No key results yet.</p>
     }
   </section>
-} @else {
-  @if (!loading()) {
-    <p class="muted">OKR not found.</p>
-  } @else {
-    <p class="muted">Loading OKR...</p>
-  }
+} @else if (loading()) {
+  <p class="state-line">Loading OKR…</p>
+} @else if (!error()) {
+  <div class="empty">
+    <h3>OKR not found</h3>
+    <p>It may have been deleted, or the link is wrong.</p>
+    <a routerLink="/okrs" class="btn-primary btn-sm">Back to OKRs</a>
+  </div>
 }

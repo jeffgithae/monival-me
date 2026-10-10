@@ -35,9 +35,9 @@ import { RouterLink } from '@angular/router';
       text-align: center;
     }
     .nf-code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-mono);
       font-size: 3rem;
-      font-weight: 700;
+      font-weight: 600;
       letter-spacing: -0.03em;
       margin: 0 0 0.5rem;
       opacity: 0.35;
@@ -48,20 +48,20 @@ import { RouterLink } from '@angular/router';
     .nf-btn {
       display: inline-block;
       padding: 0.6rem 1.1rem;
-      border: 1px solid var(--border, #d8dde5);
-      border-radius: 6px;
-      background: var(--surface, #fff);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface);
       color: inherit;
       font: inherit;
       text-decoration: none;
       cursor: pointer;
     }
-    .nf-btn:hover { background: var(--surface-2, #f2f4f7); }
-    .nf-btn:focus-visible { outline: 2px solid var(--accent, #1f5f8b); outline-offset: 2px; }
+    .nf-btn:hover { background: var(--surface-2); }
+    .nf-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .nf-btn-primary {
-      background: var(--accent, #1f5f8b);
-      border-color: var(--accent, #1f5f8b);
-      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-solid);
     }
     .nf-btn-primary:hover { filter: brightness(1.08); }
   `],

@@ -407,6 +407,14 @@ export class DataCollectionComponent implements OnInit {
   }
 
   // ── Integration CRUD ──────────────────────────────────────────────────────
+  /** Endpoint and secret of the webhook integration open in the editor. */
+  webhookDetails(): { url: string; secret: string } | null {
+    const i = this.selectedIntegration();
+    const secret = i?.config?.['secret'];
+    if (!i || i.platform !== 'webhook' || typeof secret !== 'string' || !secret) return null;
+    return { url: `${window.location.origin}/api/forms/integrations/${i._id}/webhook`, secret };
+  }
+
   openCreateIntegration() {
     this.intDraft = this.blankIntDraft();
     this.selectedIntegration.set(null);
@@ -464,7 +472,14 @@ export class DataCollectionComponent implements OnInit {
       : this.api.createIntegration(payload);
 
     obs.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.loadAll(); },
+      next: (saved) => {
+        this.saving.set(false);
+        this.closeModal();
+        this.loadAll();
+        // A new webhook's URL and secret only exist once it is saved: reopen
+        // it so they can be copied straight away.
+        if (!isEdit && saved?.platform === 'webhook') this.openEditIntegration(saved);
+      },
       error: (e: any) => { this.saving.set(false); this.error.set(e?.error?.message ?? 'Failed to save integration'); },
     });
   }

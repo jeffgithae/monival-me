@@ -51,6 +51,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     };
   });
 
+  /**
+   * The dashboard is a summary: it shows the handful of active projects
+   * ending soonest and leaves the full portfolio to the Projects page.
+   */
+  readonly featuredProjects = computed(() => {
+    const endOf = (p: { endDate?: string }) => (p.endDate ? new Date(p.endDate).getTime() : Number.MAX_SAFE_INTEGER);
+    const active = this.projects().filter(p => p.status === 'active').sort((a, b) => endOf(a) - endOf(b));
+    return (active.length ? active : this.projects()).slice(0, 6);
+  });
+
   readonly projectsDueSoon = computed(() =>
     this.projects()
       .filter(p => p.status === 'active')

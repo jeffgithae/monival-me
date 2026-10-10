@@ -7,48 +7,43 @@
   </div>
   @if (isFinance()) {
     <button type="button" class="btn-new" (click)="showForm.set(!showForm())">
-      {{ showForm() ? '✕ Cancel' : '+ New Budget' }}
+      {{ showForm() ? 'Cancel' : '+ New Budget' }}
     </button>
   }
 </div>
 
 <!-- ─── Error banner ─────────────────────────────────────────────────────── -->
 @if (error(); as err) {
-  <div class="error-banner">⚠️ {{ err }}</div>
+  <div class="error-banner">{{ err }}</div>
 }
 
 <!-- ─── Portfolio summary strip ──────────────────────────────────────────── -->
 <div class="summary-strip">
   <div class="sum-card">
-    <div class="sum-icon allocated">💰</div>
     <div class="sum-body">
       <span class="sum-value">{{ totalAllocated() | number:'1.0-0' }}</span>
       <span class="sum-label">Total allocated ({{ primaryCurrency() }})</span>
     </div>
   </div>
   <div class="sum-card">
-    <div class="sum-icon spent">📤</div>
     <div class="sum-body">
       <span class="sum-value spent-val">{{ totalSpent() | number:'1.0-0' }}</span>
       <span class="sum-label">Total spent</span>
     </div>
   </div>
   <div class="sum-card">
-    <div class="sum-icon committed">📌</div>
     <div class="sum-body">
       <span class="sum-value">{{ totalCommitted() | number:'1.0-0' }}</span>
       <span class="sum-label">Committed</span>
     </div>
   </div>
   <div class="sum-card">
-    <div class="sum-icon available">🟢</div>
     <div class="sum-body">
       <span class="sum-value avail-val">{{ totalAvailable() | number:'1.0-0' }}</span>
       <span class="sum-label">Available</span>
     </div>
   </div>
   <div class="sum-card" [class.sum-warn]="overallBurnRate() >= 75">
-    <div class="sum-icon burn">🔥</div>
     <div class="sum-body">
       <span class="sum-value">{{ overallBurnRate() | number:'1.1-1' }}%</span>
       <span class="sum-label">Overall burn rate</span>
@@ -56,7 +51,6 @@
   </div>
   @if (alertedBudgets() > 0) {
     <div class="sum-card sum-alert">
-      <div class="sum-icon alert">⚠️</div>
       <div class="sum-body">
         <span class="sum-value alert-val">{{ alertedBudgets() }}</span>
         <span class="sum-label">Budget alerts</span>
@@ -113,7 +107,7 @@
 
 <!-- ─── Filter bar + table ───────────────────────────────────────────────── -->
 <div class="section-head">
-  <h2>Budget Allocations <span class="count-chip">{{ budgets().length }}</span></h2>
+  <h2>Budget Allocations <span class="count-chip">{{ total() }}</span></h2>
   <div class="filter-bar">
     <select [(ngModel)]="filterStatus" (change)="loadBudgets()" aria-label="Filter by statuses">
       <option value="">All statuses</option>
@@ -161,10 +155,9 @@
               <tr>
                 <td>
                   <a [routerLink]="['/budget', b._id]" class="budget-link">
-                    <span class="cat-icon">{{ getCategoryIcon(b.category) }}</span>
                     <div>
                       <strong>{{ b.name }}</strong>
-                      @if (b.isRestricted) { <span class="restricted-tag">🔒 Restricted</span> }
+                      @if (b.isRestricted) { <span class="restricted-tag">Restricted</span> }
                     </div>
                   </a>
                 </td>
@@ -188,7 +181,7 @@
           } @empty {
             <tr>
               <td colspan="9" class="empty-row">
-                <span>💰</span>
+                
                 <p>No budget allocations yet. {{ isFinance() ? 'Click "+ New Budget" to create one.' : '' }}</p>
               </td>
             </tr>
@@ -197,4 +190,5 @@
       </table>
     </div>
   </div>
+  <app-pager [page]="page()" [total]="total()" [limit]="pageSize" label="budgets" (pageChange)="goToPage($event)" />
 }

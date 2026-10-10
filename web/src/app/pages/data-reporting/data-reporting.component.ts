@@ -124,8 +124,10 @@ export class DataReportingComponent implements OnInit {
       ...this.schedForm,
       recipients: this.schedForm.recipients.split(',').map((e: string) => e.trim()).filter(Boolean),
     };
+    // A schedule cannot move to another project; the API refuses the field on update.
+    const { projectId: _projectId, ...editable } = dto;
     const obs = this.editingId()
-      ? this.api.updateScheduledReport(this.editingId()!, dto)
+      ? this.api.updateScheduledReport(this.editingId()!, editable)
       : this.api.createScheduledReport(dto as any);
 
     obs.subscribe({

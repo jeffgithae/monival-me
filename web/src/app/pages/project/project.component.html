@@ -18,6 +18,22 @@
       @if (p.description) {
         <p class="hero-desc">{{ p.description }}</p>
       }
+      @if (linkedGrants().length || linkedOkrs().length) {
+        <div class="hero-links">
+          @if (linkedGrants().length) {
+            <span class="hero-links-label">Grants</span>
+            @for (g of linkedGrants(); track g._id) {
+              <a class="hero-link" [routerLink]="['/grants', g._id]">{{ g.name }} <small>{{ g.currency }} {{ g.amount | number: '1.0-0' }}</small></a>
+            }
+          }
+          @if (linkedOkrs().length) {
+            <span class="hero-links-label">OKRs</span>
+            @for (o of linkedOkrs(); track o._id) {
+              <a class="hero-link" [routerLink]="['/okrs', o._id]">{{ o.title }} <small>{{ o.progressPercentage }}%</small></a>
+            }
+          }
+        </div>
+      }
     </div>
     <div class="hero-right">
       @if (p.startDate || p.endDate) {
@@ -267,7 +283,7 @@
     @if (canManageIndicators) {
       <div class="panel">
         <h3>Add indicator</h3>
-        <form class="inline-form" (ngSubmit)="addIndicator()">
+        <form class="inline-form" #indicatorNgForm="ngForm" (ngSubmit)="addIndicator()">
           <label class="inline-lbl">Level
             <select aria-label="Level" [(ngModel)]="indicatorForm.level" name="level">
               <option value="goal">Goal</option>
@@ -291,7 +307,7 @@
           <label class="inline-lbl">Target
             <input type="number" [(ngModel)]="indicatorForm.target" name="target" placeholder="100" required />
           </label>
-          <button type="submit" class="btn-primary btn-sm">Add indicator</button>
+          <button type="submit" class="btn-primary btn-sm" [disabled]="indicatorNgForm.invalid || !indicatorForm.code.trim() || indicatorForm.title.trim().length < 2">Add indicator</button>
         </form>
       </div>
     }
@@ -385,7 +401,14 @@
             </label>
           </div>
           <div class="form-row">
-            <label>Activity type<input [(ngModel)]="activityForm.activityType" name="activityType" placeholder="Survey, Training…" /></label>
+            <label>Activity type
+              <select [(ngModel)]="activityForm.activityType" name="activityType">
+                <option value="">Not specified</option>
+                @for (t of activityTypes; track t) {
+                  <option [value]="t">{{ activityTypeLabel(t) }}</option>
+                }
+              </select>
+            </label>
             <label>Status
               <select aria-label="Status" [(ngModel)]="activityForm.status" name="status">
                 <option value="submitted">Submit for review</option>
@@ -531,7 +554,7 @@
         }
       }
       <ul class="activity-feed">
-        @for (a of activities(); track a._id) {
+        @for (a of pagedActivities(); track a._id) {
           <li class="feed-row">
             <div class="feed-dot dot-{{ a.status || 'approved' }}"></div>
             <div class="feed-body">
@@ -551,16 +574,29 @@
               @if (a.evidenceNotes) { <p class="feed-notes">{{ a.evidenceNotes }}</p> }
             </div>
             @if (canApprove && a.status === 'submitted') {
-              <div class="review-btns">
-                <button type="button" class="btn-approve" (click)="reviewActivity(a._id, 'approved')">✓ Approve</button>
-                <button type="button" class="btn-reject" (click)="reviewActivity(a._id, 'rejected')">✕ Reject</button>
-              </div>
+              @if (rejectingId() === a._id) {
+                <form class="reject-form" (ngSubmit)="confirmReject(a._id)">
+                  <input [(ngModel)]="rejectReason" name="rejectReason" maxlength="300" required
+                         placeholder="Why is this being rejected?" [attr.aria-label]="'Reason for rejecting ' + a.title" />
+                  <button type="submit" class="btn-reject" [disabled]="rejectReason.trim().length < 3">Reject</button>
+                  <button type="button" class="btn-ghost-sm" (click)="rejectingId.set(null)">Cancel</button>
+                </form>
+              } @else {
+                <div class="review-btns">
+                  <button type="button" class="btn-approve" (click)="reviewActivity(a._id, 'approved')">✓ Approve</button>
+                  <button type="button" class="btn-reject" (click)="startReject(a._id)">✕ Reject</button>
+                </div>
+              }
+            }
+            @if (a.status === 'rejected' && a.rejectionReason) {
+              <p class="reject-reason">Rejected: {{ a.rejectionReason }}</p>
             }
           </li>
         } @empty {
           <li class="empty-row">No activities logged yet.</li>
         }
       </ul>
+      <app-pager [page]="currentActivityPage()" [total]="activities().length" [limit]="activityPageSize" label="activities" (pageChange)="activityPage.set($event)" />
     </div>
   </div>
 }

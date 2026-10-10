@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth.guard';
+import { authGuard, guestGuard, roleGuard } from './core/auth.guard';
 import { ShellComponent } from './layout/shell.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { LoginComponent } from './pages/login/login.component';
@@ -13,7 +13,6 @@ import { BudgetListComponent } from './pages/budget/budget-list.component';
 import { BudgetDetailComponent } from './pages/budget/budget-detail.component';
 import { BSCListComponent } from './pages/balanced-scorecard/bsc-list.component';
 import { BSCDetailComponent } from './pages/balanced-scorecard/bsc-detail.component';
-import { OKRListComponent } from './pages/okrs/okr-list.component';
 import { OKRDetailComponent } from './pages/okrs/okr-detail.component';
 import { StrategicOverviewComponent } from './pages/strategic-overview/strategic-overview.component';
 import { OKRsComponent } from './pages/okrs/okrs.component';
@@ -65,6 +64,7 @@ export const routes: Routes = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
+    canActivateChild: [roleGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'projects', component: ProjectsListComponent },
@@ -77,6 +77,7 @@ export const routes: Routes = [
       { path: 'okrs/:id', component: OKRDetailComponent },
       { path: 'projects/:id', component: ProjectComponent },
       { path: 'indicators/:id', loadComponent: () => import('./pages/indicators/indicator-detail.component').then(m => m.IndicatorDetailComponent) },
+      { path: 'exchange-rates', loadComponent: () => import('./pages/exchange-rates/exchange-rates.component').then(m => m.ExchangeRatesComponent) },
       { path: 'settings/billing', component: BillingComponent },
       { path: 'settings/team', component: TeamComponent },
       { path: 'donors', component: DonorsComponent },

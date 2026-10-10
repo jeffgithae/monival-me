@@ -22,6 +22,16 @@
           {{ g.startDate | date:'d MMM y' }} – {{ g.endDate | date:'d MMM y' }}
           @if (g.subRecipientName) { · Sub-recipient: {{ g.subRecipientName }} }
         </p>
+        @if (g.linkedProjects?.length) {
+          <p class="funds">
+            <span class="funds-label">Funds</span>
+            @for (p of g.linkedProjects; track p._id ?? p) {
+              @if (p?._id) {
+                <a class="funds-link" [routerLink]="['/projects', p._id]">{{ p.name }}</a>
+              }
+            }
+          </p>
+        }
       </div>
     </header>
 

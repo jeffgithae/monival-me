@@ -27,7 +27,7 @@ export class WorkplanComponent implements OnInit {
   // Data
   projects    = signal<Project[]>([]);
   indicators  = signal<Indicator[]>([]);
-  members     = signal<Array<{ id: string; userId: string; email: string; name: string; role: string }>>([]);
+  members     = signal<Array<{ id: string; userId: string; name: string; role: string }>>([]);
   loading     = signal(true);
   error       = signal('');
   saving      = signal(false);
@@ -140,7 +140,7 @@ export class WorkplanComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
-    this.api.members().subscribe({
+    this.api.memberDirectory().subscribe({
       next: (res: any) => this.members.set(Array.isArray(res) ? res : []),
       error: () => {},
     });

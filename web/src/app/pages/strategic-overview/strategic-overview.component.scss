@@ -1,0 +1,109 @@
+@use '../strategy-shared';
+
+.section-title { margin: 1.75rem 0 0.9rem; font-size: 1.02rem; font-weight: 600; }
+.hint { margin: 0; font-size: 0.86rem; color: var(--muted); }
+
+.statements {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem 2.5rem;
+
+  h2 { margin: 0 0 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--primary); }
+  p { margin: 0; font-family: var(--font-display); font-size: 1.25rem; line-height: 1.4; color: var(--text); }
+}
+
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.1rem;
+}
+
+.pillar {
+  padding: 1.2rem 1.3rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+
+  .pillar-index {
+    display: inline-grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-bottom: 0.7rem;
+    border-radius: var(--r);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary-strong);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  h3 { margin: 0 0 0.35rem; font-size: 1rem; font-weight: 600; }
+  p { margin: 0; font-size: 0.87rem; color: var(--muted); line-height: 1.5; }
+
+  ul {
+    list-style: none;
+    margin: 0.85rem 0 0;
+    padding: 0.8rem 0 0;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  li {
+    position: relative;
+    padding-left: 0.95rem;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+  }
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.1rem;
+
+  .panel { margin-bottom: 0; }
+  .panel-head h2 small { font-weight: 500; color: var(--muted); }
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) 2.8rem;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+
+  &:hover .action-name { color: var(--primary); }
+
+  .action-name { font-size: 0.88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .action-name small { font-weight: 400; color: var(--muted); }
+  .action-value { text-align: right; font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+}
+
+// ─── Editing ──────────────────────────────────────────────────────────────────
+
+.form-panel h2:not(:first-child) { margin-top: 1.25rem; }
+
+.pillar-edit {
+  margin: 0 0 0.9rem;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--card-bg);
+}
+
+.add-pillar { margin-bottom: 1.25rem; }

@@ -1,132 +1,224 @@
+@if (error(); as err) {
+  <div class="error-banner" role="alert">{{ err }}</div>
+}
+
 @if (bsc(); as b) {
-  <header class="page-header">
+  <div class="page-header">
     <div>
-      <a routerLink="/bsc" class="back">← Scorecards</a>
+      <a routerLink="/bsc" class="back-link">← Scorecards</a>
       <h1>{{ b.name }}</h1>
-      <p class="muted">FY {{ b.fiscalYear }}</p>
+      <p class="subtitle">
+        FY {{ b.fiscalYear }} · {{ objectiveTotal() }} {{ objectiveTotal() === 1 ? 'objective' : 'objectives' }}
+        @if (b.lastReviewDate) {
+          · Last reviewed {{ b.lastReviewDate | date: 'd MMM y' }}@if (b.lastReviewedBy?.name) { by {{ b.lastReviewedBy?.name }} }
+        } @else {
+          · Not yet reviewed
+        }
+      </p>
+      @if (b.description) { <p class="subtitle">{{ b.description }}</p> }
     </div>
-    <span class="pill">{{ b.status }}</span>
-  </header>
-
-  @if (performance(); as perf) {
-    <div class="performance-summary">
-      <div class="performance-overall">
-        <span class="label">Overall Performance</span>
-        <span class="value" [class]="getPercentageClass(perf.overall)">{{ perf.overall | number: '1.0-0' }}%</span>
-      </div>
-      <div class="performance-perspective">
-        <span class="label">Financial</span>
-        <span class="value" [class]="getPercentageClass(perf.byPerspective.financial)">
-          {{ perf.byPerspective.financial | number: '1.0-0' }}%
-        </span>
-      </div>
-      <div class="performance-perspective">
-        <span class="label">Customer</span>
-        <span class="value" [class]="getPercentageClass(perf.byPerspective.customer)">
-          {{ perf.byPerspective.customer | number: '1.0-0' }}%
-        </span>
-      </div>
-      <div class="performance-perspective">
-        <span class="label">Internal Process</span>
-        <span class="value" [class]="getPercentageClass(perf.byPerspective.internal)">
-          {{ perf.byPerspective.internal | number: '1.0-0' }}%
-        </span>
-      </div>
-      <div class="performance-perspective">
-        <span class="label">Learning & Growth</span>
-        <span class="value" [class]="getPercentageClass(perf.byPerspective.learning)">
-          {{ perf.byPerspective.learning | number: '1.0-0' }}%
-        </span>
-      </div>
-    </div>
-  }
-
-  <div class="tabs">
-    <button type="button" [class.active]="tab() === 'financial'" (click)="setTab('financial')">
-      💰 Financial
-    </button>
-    <button type="button" [class.active]="tab() === 'customer'" (click)="setTab('customer')">
-      👥 Customer
-    </button>
-    <button type="button" [class.active]="tab() === 'internal'" (click)="setTab('internal')">
-      ⚙️ Internal Process
-    </button>
-    <button type="button" [class.active]="tab() === 'learning'" (click)="setTab('learning')">
-      🎓 Learning & Growth
-    </button>
-  </div>
-
-  <section class="panel">
-    @if (isMEOfficer()) {
-      <h2>Add Objective to {{ getPerspectiveEmoji(tab()) }} {{ tab() | titlecase }}</h2>
-      <form class="form-grid" (ngSubmit)="addObjective()">
-        <label>Objective Title<input aria-label="Title" [(ngModel)]="objectiveForm.title" name="title" required /></label>
-        <label>Weight (%)<input aria-label="Weight" type="number" [(ngModel)]="objectiveForm.weight" name="weight" min="0" max="100" /></label>
-        <label>Target Value<input aria-label="Target" type="number" [(ngModel)]="objectiveForm.target" name="target" /></label>
-        <label class="full">Description<textarea aria-label="Description" [(ngModel)]="objectiveForm.description" name="description" rows="2"></textarea></label>
-        <button type="submit" class="primary">Add Objective</button>
-      </form>
-    }
-
-    <h2>Objectives</h2>
-    @if (b.perspectives; as perspectives) {
-      @for (perspective of perspectives; let perspIdx = $index; track perspIdx) {
-        @if (perspective.perspective === tab()) {
-          @if (perspective.objectives.length > 0) {
-            <div class="objectives-list">
-              @for (objective of perspective.objectives; let objIdx = $index; track objIdx) {
-                <div class="objective-card">
-                  <div class="objective-header">
-                    <h3>{{ objective.title }}</h3>
-                    <select
-                      [(ngModel)]="objective.status"
-                      (change)="updateObjectiveStatus(perspIdx, objIdx, objective.status)"
-                      class="small-select"
-                     aria-label="Select on track">
-                      <option value="on_track">On Track</option>
-                      <option value="at_risk">At Risk</option>
-                      <option value="off_track">Off Track</option>
-                    </select>
-                  </div>
-                  @if (objective.description) {
-                    <p class="description">{{ objective.description }}</p>
-                  }
-                  <div class="objective-metrics">
-                    <div class="metric">
-                      <label>Weight</label>
-                      <span>{{ objective.weight }}%</span>
-                    </div>
-                    <div class="metric">
-                      <label>Target</label>
-                      <span>{{ objective.target }}</span>
-                    </div>
-                    <div class="metric">
-        <label for="bsc-detail-objective-current">Current Progress</label>
-                      <input id="bsc-detail-objective-current"
-                        type="number"
-                        [(ngModel)]="objective.current"
-                        (change)="updateObjectiveProgress(perspIdx, objIdx, objective.current)"
-                        class="progress-input"
-                      />
-                    </div>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress" [style.width.%]="(objective.current / objective.target) * 100"></div>
-                  </div>
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="muted">No objectives yet.</p>
-          }
+    <div class="header-actions">
+      <span class="status-pill" [class]="b.status">{{ b.status | titlecase }}</span>
+      @if (canManage) {
+        @if (b.status === 'draft') {
+          <button type="button" class="btn-primary" [disabled]="busy()" (click)="setScorecardStatus('active')">Activate</button>
+        }
+        @if (b.status === 'active') {
+          <button type="button" class="btn-secondary" [disabled]="busy()" (click)="markReviewed()">Mark reviewed</button>
+          <button type="button" class="btn-ghost" [disabled]="busy()" (click)="setScorecardStatus('archived')">Archive</button>
+        }
+        @if (b.status === 'archived') {
+          <button type="button" class="btn-secondary" [disabled]="busy()" (click)="setScorecardStatus('active')">Reactivate</button>
         }
       }
+      @if (canDelete && b.status !== 'active') {
+        <button type="button" class="btn-danger" [disabled]="busy()" (click)="deleteScorecard()">Delete</button>
+      }
+    </div>
+  </div>
+
+  <div class="figures">
+    <div class="figure lead">
+      <span class="figure-label">Overall score</span>
+      <span class="figure-value" [class]="'tone-' + tone(overall())">{{ overall() === null ? '—' : overall() + '%' }}</span>
+      <div class="bar" [class]="tone(overall())"><span [style.width.%]="overall() ?? 0"></span></div>
+      <span class="figure-meta">Average of perspectives with objectives</span>
+    </div>
+    @for (p of perspectives; track p.key) {
+      <button type="button" class="figure" [class.selected]="tab() === p.key" (click)="setTab(p.key)">
+        <span class="figure-label">{{ p.label }}</span>
+        <span class="figure-value" [class]="'tone-' + tone(perspectiveValue(p.key))">
+          {{ perspectiveValue(p.key) === null ? '—' : perspectiveValue(p.key) + '%' }}
+        </span>
+        <div class="bar thin" [class]="tone(perspectiveValue(p.key))"><span [style.width.%]="perspectiveValue(p.key) ?? 0"></span></div>
+        @if (objectivesOf(p.key).length) {
+          <span class="counts">
+            <span><i class="dot on_track"></i>{{ statusCount(p.key, 'on_track') }} on track</span>
+            <span><i class="dot at_risk"></i>{{ statusCount(p.key, 'at_risk') }} at risk</span>
+            <span><i class="dot off_track"></i>{{ statusCount(p.key, 'off_track') }} off</span>
+          </span>
+        } @else {
+          <span class="figure-meta">No objectives</span>
+        }
+      </button>
     }
-  </section>
-} @else {
-  @if (!loading()) {
-    <p class="muted">Scorecard not found.</p>
-  } @else {
-    <p class="muted">Loading scorecard...</p>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Perspectives">
+    @for (p of perspectives; track p.key) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === p.key" [class.active]="tab() === p.key" (click)="setTab(p.key)">
+        {{ p.label }} <span class="count">{{ objectivesOf(p.key).length }}</span>
+      </button>
+    }
+  </div>
+
+  @for (p of perspectives; track p.key) {
+    @if (p.key === tab()) {
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ p.label }} objectives</h2>
+            <p>{{ p.question }}</p>
+          </div>
+          @if (canManage && !showObjectiveForm()) {
+            <button type="button" class="btn-primary btn-sm" (click)="openAddObjective()">+ Add objective</button>
+          }
+        </div>
+
+        @if (showObjectiveForm()) {
+          <form class="form-panel" (ngSubmit)="saveObjective()">
+            <h2>{{ editingIndex() === null ? 'New objective' : 'Edit objective' }}</h2>
+            <div class="form-row">
+              <label class="field wide">Objective
+                <input [(ngModel)]="objectiveForm.title" name="title" required maxlength="160" placeholder="What must be true by year end?" />
+              </label>
+              <label class="field">Weight (%)
+                <input type="number" [(ngModel)]="objectiveForm.weight" name="weight" min="0" max="100" required />
+              </label>
+              <label class="field">Target
+                <input type="number" [(ngModel)]="objectiveForm.target" name="target" min="0" step="any" required />
+              </label>
+              <label class="field full">Description <small>(optional)</small>
+                <textarea [(ngModel)]="objectiveForm.description" name="description" rows="2" maxlength="500"></textarea>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" [disabled]="busy() || !canSaveObjective()">
+                {{ editingIndex() === null ? 'Add objective' : 'Save changes' }}
+              </button>
+              <button type="button" class="btn-ghost" (click)="closeObjectiveForm()">Cancel</button>
+            </div>
+          </form>
+        }
+
+        @if (current().objectives.length > 1 && weightTotal() !== 100) {
+          <p class="note">Weights in this perspective add up to {{ weightTotal() }}%, not 100%. The score still weights each objective in proportion.</p>
+        }
+
+        @if (current().objectives.length === 0) {
+          @if (!showObjectiveForm()) {
+            <div class="empty">
+              <h3>No {{ p.label | lowercase }} objectives yet</h3>
+              <p>{{ p.question }}</p>
+              @if (canManage) {
+                <button type="button" class="btn-primary btn-sm" (click)="openAddObjective()">+ Add objective</button>
+              }
+            </div>
+          }
+        } @else {
+          <div class="item-list">
+            @for (objective of current().objectives; let i = $index; track objective._id ?? i) {
+              <article class="item">
+                <div class="item-head">
+                  <h3>{{ objective.title }}</h3>
+                  @if (canUpdate) {
+                    <select class="status-select" [ngModel]="objective.status" (ngModelChange)="setObjectiveStatus(i, $event)"
+                            [disabled]="busy()" [attr.aria-label]="'Status of ' + objective.title">
+                      <option value="on_track">On track</option>
+                      <option value="at_risk">At risk</option>
+                      <option value="off_track">Off track</option>
+                    </select>
+                  } @else {
+                    <span class="status-pill" [class]="objective.status">{{ statusLabel(objective.status) }}</span>
+                  }
+                </div>
+                @if (objective.description) { <p class="item-desc">{{ objective.description }}</p> }
+
+                <div class="metrics">
+                  <div class="metric">
+                    <span class="metric-label">Weight</span>
+                    <span class="metric-value">{{ objective.weight }}%</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">Target</span>
+                    <span class="metric-value">{{ objective.target | number: '1.0-2' }}</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">Current</span>
+                    @if (objective.linkedOkrIds?.length) {
+                      <span class="metric-value">{{ objective.current | number: '1.0-2' }}</span>
+                      <span class="metric-hint">From linked OKRs</span>
+                    } @else if (canUpdate) {
+                      <input type="number" min="0" step="any" [ngModel]="objective.current" [ngModelOptions]="{ updateOn: 'blur' }"
+                             (ngModelChange)="setObjectiveCurrent(i, $event)" [disabled]="busy()"
+                             [attr.aria-label]="'Current progress for ' + objective.title" />
+                    } @else {
+                      <span class="metric-value">{{ objective.current | number: '1.0-2' }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="progress-line">
+                  <div class="bar" [class]="tone(score(objective))"><span [style.width.%]="score(objective)"></span></div>
+                  <span class="pct">{{ score(objective) | number: '1.0-0' }}%</span>
+                </div>
+
+                <div class="links">
+                  <span class="links-label">Delivered by</span>
+                  @for (okrId of objective.linkedOkrIds ?? []; track okrId) {
+                    @if (okrById().get(okrId); as okr) {
+                      <span class="chip">
+                        <a [routerLink]="['/okrs', okr._id]">{{ okr.title }}</a>
+                        <span class="chip-meta">Q{{ okr.quarter }} {{ okr.year }} · {{ okr.progressPercentage }}%</span>
+                        @if (canManage) {
+                          <button type="button" [disabled]="busy()" (click)="unlinkOkr(i, okrId)" [attr.aria-label]="'Unlink ' + okr.title">×</button>
+                        }
+                      </span>
+                    }
+                  }
+                  @if (!(objective.linkedOkrIds?.length) && !canManage) {
+                    <span class="links-label">no OKRs linked</span>
+                  }
+                  @if (canManage) {
+                    @if (linkableOkrs(objective).length) {
+                      <select #okrPick [disabled]="busy()" (change)="linkOkr(i, okrPick)" [attr.aria-label]="'Link an OKR to ' + objective.title">
+                        <option value="">+ Link an OKR…</option>
+                        @for (okr of linkableOkrs(objective); track okr._id) {
+                          <option [value]="okr._id">Q{{ okr.quarter }} {{ okr.year }} — {{ okr.title }}</option>
+                        }
+                      </select>
+                    } @else if (okrs().length === 0) {
+                      <a routerLink="/okrs" class="link-btn">Create an OKR to link</a>
+                    }
+                    <span class="item-actions">
+                      <button type="button" class="link-btn" [disabled]="busy()" (click)="openEditObjective(i)">Edit</button>
+                      <button type="button" class="link-btn danger" [disabled]="busy()" (click)="removeObjective(i)">Remove</button>
+                    </span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
   }
+} @else if (loading()) {
+  <p class="state-line">Loading scorecard…</p>
+} @else if (!error()) {
+  <div class="empty">
+    <h3>Scorecard not found</h3>
+    <p>It may have been deleted, or the link is wrong.</p>
+    <a routerLink="/bsc" class="btn-primary btn-sm">Back to scorecards</a>
+  </div>
 }

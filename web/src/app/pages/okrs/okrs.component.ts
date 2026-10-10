@@ -1,304 +1,109 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { OKR } from '../../core/models';
-import { canManageOrganization } from '../../core/roles';
+import { scoreTone } from '../../core/strategy-score';
+import { formatHttpError } from '../../core/http-error';
 
 @Component({
   selector: 'app-okrs',
   standalone: true,
-  imports: [CommonModule, RouterLink],
-  template: `
-    <header class="page-header">
-      <div>
-        <h1>Objectives & Key Results (OKRs)</h1>
-        <p>Quarterly goals and key results for organizational focus.</p>
-      </div>
-      @if (canManageOrg) {
-        <button type="button" class="primary">+ New OKR</button>
-      }
-    </header>
-
-    @if (okrs().length > 0) {
-      <section class="okrs-grid">
-        @for (okr of okrs(); track okr._id) {
-          <div class="okr-card" [class.completed]="okr.status === 'completed'">
-            <div class="okr-header">
-              <div>
-                <h3>{{ okr.title }}</h3>
-                <span class="quarter-year">Q{{ okr.quarter }} {{ okr.year }}</span>
-              </div>
-              <span class="status-pill" [class]="okr.status">{{ okr.status }}</span>
-            </div>
-
-            @if (okr.description) {
-              <p class="description">{{ okr.description }}</p>
-            }
-
-            <div class="progress-bar">
-              <div class="progress-fill" [style.width.%]="okr.progressPercentage"></div>
-            </div>
-            <span class="progress-text">{{ okr.progressPercentage }}% progress</span>
-
-            <div class="key-results">
-              <strong>Key Results:</strong>
-              <ul>
-                @for (kr of okr.keyResults; track kr.title) {
-                  <li class="key-result-item" [class]="kr.status">
-                    <div class="kr-title">{{ kr.title }}</div>
-                    <div class="kr-progress">
-                      <span class="kr-value">{{ kr.currentValue }} / {{ kr.targetValue }} {{ kr.unit }}</span>
-                      <span class="kr-confidence">{{ kr.confidence }}% confident</span>
-                    </div>
-                  </li>
-                }
-              </ul>
-            </div>
-
-            <a [routerLink]="['/okrs', okr._id]" class="link">View details →</a>
-          </div>
-        }
-      </section>
-    } @else {
-      <div class="empty panel">
-        <p>No OKRs defined yet. Create your first quarterly objectives to align team efforts.</p>
-      </div>
-    }
-  `,
-  styles: `
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 2px solid #e5e7eb;
-
-      > div {
-        h1 {
-          font-size: 2rem;
-          margin: 0;
-          color: #1f2937;
-        }
-
-        p {
-          margin: 0.5rem 0 0;
-          color: #6b7280;
-        }
-      }
-
-      button {
-        white-space: nowrap;
-      }
-    }
-
-    .okrs-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .okr-card {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: box-shadow 0.2s, border-color 0.2s;
-      display: flex;
-      flex-direction: column;
-
-      &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: #d1d5db;
-      }
-
-      &.completed {
-        opacity: 0.7;
-        background: #f9fafb;
-      }
-    }
-
-    .okr-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-
-      h3 {
-        font-size: 1.1rem;
-        margin: 0;
-        color: #1f2937;
-      }
-
-      .quarter-year {
-        display: block;
-        font-size: 0.85rem;
-        color: #9ca3af;
-        margin-top: 0.25rem;
-      }
-    }
-
-    .status-pill {
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: capitalize;
-
-      &.active {
-        background: #dbeafe;
-        color: #1e40af;
-      }
-
-      &.completed {
-        background: #dcfce7;
-        color: #166534;
-      }
-
-      &.draft {
-        background: #f3f4f6;
-        color: #4b5563;
-      }
-    }
-
-    .description {
-      font-size: 0.9rem;
-      color: #6b7280;
-      margin: 0.75rem 0;
-      line-height: 1.5;
-    }
-
-    .progress-bar {
-      height: 6px;
-      background: #e5e7eb;
-      border-radius: 3px;
-      overflow: hidden;
-      margin: 1rem 0 0.25rem 0;
-
-      .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #3b82f6, #2563eb);
-        transition: width 0.3s ease;
-      }
-    }
-
-    .progress-text {
-      font-size: 0.85rem;
-      color: #6b7280;
-      display: block;
-      margin-bottom: 1rem;
-    }
-
-    .key-results {
-      margin: 1rem 0;
-      flex-grow: 1;
-
-      > strong {
-        display: block;
-        font-size: 0.9rem;
-        color: #374151;
-        margin-bottom: 0.5rem;
-      }
-
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-    }
-
-    .key-result-item {
-      padding: 0.75rem;
-      background: #f9fafb;
-      border-left: 3px solid #d1d5db;
-      margin-bottom: 0.5rem;
-      border-radius: 2px;
-
-      &.in_progress {
-        border-left-color: #f59e0b;
-      }
-
-      &.on_track {
-        border-left-color: #10b981;
-      }
-
-      &.at_risk {
-        border-left-color: #ef4444;
-      }
-
-      &.completed {
-        border-left-color: #3b82f6;
-      }
-
-      .kr-title {
-        font-size: 0.9rem;
-        color: #1f2937;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-      }
-
-      .kr-progress {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8rem;
-        color: #6b7280;
-      }
-
-      .kr-value {
-        font-weight: 600;
-      }
-
-      .kr-confidence {
-        opacity: 0.7;
-      }
-    }
-
-    .link {
-      color: #3b82f6;
-      text-decoration: none;
-      font-size: 0.9rem;
-      margin-top: 1rem;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    .empty {
-      text-align: center;
-      padding: 3rem 1rem;
-      background: #f9fafb;
-      border-radius: 8px;
-
-      p {
-        margin: 0;
-        color: #6b7280;
-      }
-    }
-  `,
+  imports: [CommonModule, RouterLink, FormsModule],
+  templateUrl: './okrs.component.html',
+  styleUrl: './okr.scss',
 })
 export class OKRsComponent implements OnInit {
+  readonly tone = scoreTone;
+
   okrs = signal<OKR[]>([]);
+  loading = signal(true);
+  showForm = signal(false);
+  saving = signal(false);
+  error = signal('');
+  /** 'current' = OKRs still in play; otherwise a "year-quarter" key or 'all'. */
+  period = signal('current');
+
+  /** Quarters that have OKRs, newest first, for the period picker. */
+  readonly periods = computed(() => {
+    const keys = new Map<string, { key: string; label: string; count: number }>();
+    for (const o of this.okrs()) {
+      const key = `${o.year}-${o.quarter}`;
+      const entry = keys.get(key) ?? { key, label: `Q${o.quarter} ${o.year}`, count: 0 };
+      entry.count += 1;
+      keys.set(key, entry);
+    }
+    return [...keys.values()];
+  });
+
+  readonly currentCount = computed(() => this.okrs().filter((o) => o.status === 'active' || o.status === 'draft').length);
+
+  readonly visibleOkrs = computed(() => {
+    const period = this.period();
+    if (period === 'all') return this.okrs();
+    // With nothing in play, "current" would be an empty page: show everything instead.
+    if (period === 'current') return this.currentCount() ? this.okrs().filter((o) => o.status === 'active' || o.status === 'draft') : this.okrs();
+    return this.okrs().filter((o) => `${o.year}-${o.quarter}` === period);
+  });
+
+  private blankDraft = () => ({
+    title: '',
+    quarter: (Math.floor(new Date().getMonth() / 3) + 1) as 1 | 2 | 3 | 4,
+    year: new Date().getFullYear(),
+  });
+  draft = this.blankDraft();
   canManageOrg = false;
 
   constructor(
     private readonly api: ApiService,
     readonly auth: AuthService,
+    private readonly router: Router,
   ) {
-    this.canManageOrg = canManageOrganization(auth.user()?.role ?? 'viewer');
+    // Matches the API: owners, admins and M&E officers can create OKRs.
+    this.canManageOrg = ['owner', 'admin', 'me_officer'].includes(auth.user()?.role ?? 'viewer');
   }
 
   ngOnInit() {
     this.loadOKRs();
   }
 
+  createOKR() {
+    const title = this.draft.title.trim();
+    if (!title) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.api.createOKR({ title, quarter: this.draft.quarter, year: this.draft.year, status: 'draft', keyResults: [] }).subscribe({
+      // Straight into the new OKR: the next thing to do is add key results.
+      next: (created) => {
+        this.saving.set(false);
+        this.router.navigate(['/okrs', created._id]);
+      },
+      error: (err) => {
+        this.error.set(formatHttpError(err, 'Could not create the OKR'));
+        this.saving.set(false);
+      },
+    });
+  }
+
   loadOKRs() {
     this.api.okrs().subscribe({
-      next: (okrs) => this.okrs.set(okrs.sort((a, b) => (b.year * 10 + b.quarter) - (a.year * 10 + a.quarter))),
-      error: () => this.okrs.set([]),
+      next: (okrs) => {
+        this.okrs.set(okrs.sort((a, b) => (b.year * 10 + b.quarter) - (a.year * 10 + a.quarter)));
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.okrs.set([]);
+        this.error.set(formatHttpError(err, 'Could not load OKRs'));
+        this.loading.set(false);
+      },
     });
+  }
+
+  krStatusLabel(status: string): string {
+    return (
+      { not_started: 'Not started', in_progress: 'In progress', at_risk: 'At risk', completed: 'Completed' }[status] ?? status
+    );
   }
 }

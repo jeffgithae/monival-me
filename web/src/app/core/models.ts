@@ -17,6 +17,8 @@ export interface Organization {
   sector?: string;
   planId?: string;
   planName?: string;
+  /** Currency the organisation reports and totals in. */
+  baseCurrency?: string;
   subscriptionStatus?: string;
   trialEndsAt?: string;
   limits?: {
@@ -348,7 +350,7 @@ export interface DashboardOverview {
     overdue: number;
     open: number;
     submitted: number;
-    overdueList: Array<{ id: string; name: string; endDate: string }>;
+    overdueList: Array<{ id: string; name: string; endDate: string; dueDate?: string }>;
   };
   impactStories: {
     total: number;
@@ -1167,15 +1169,19 @@ export interface AddComplianceConditionDto {
 // ─── Balanced Scorecard ───────────────────────────────────────────────────────
 
 export interface BalancedScorecardObjective {
+  _id?: string;
   title: string;
   description?: string;
   weight: number;
   target: number;
   current: number;
   status: 'on_track' | 'at_risk' | 'off_track';
+  /** OKRs that deliver this objective; when present, `current` is derived from their progress. */
+  linkedOkrIds?: string[];
 }
 
 export interface BalancedScorecardPerspective {
+  _id?: string;
   perspective: 'financial' | 'customer' | 'internal' | 'learning';
   strategicTheme?: string;
   objectives: BalancedScorecardObjective[];
@@ -1185,9 +1191,11 @@ export interface BalancedScorecard {
   _id: string;
   name: string;
   fiscalYear: number;
+  description?: string;
   status: 'draft' | 'active' | 'archived';
   perspectives: BalancedScorecardPerspective[];
-  lastReviewedBy?: string;
+  createdBy?: { _id: string; name?: string; email?: string } | null;
+  lastReviewedBy?: { _id: string; name?: string; email?: string } | null;
   lastReviewDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -1206,6 +1214,9 @@ export interface BSCPerformanceSummary {
 // ─── OKR ──────────────────────────────────────────────────────────────────────
 
 export interface OKRKeyResult {
+  _id?: string;
+  /** When set, `currentValue` follows this indicator's achieved figure. */
+  indicatorId?: string | null;
   title: string;
   description?: string;
   targetValue: number;
@@ -1224,10 +1235,11 @@ export interface OKR {
   year: number;
   status: 'draft' | 'active' | 'completed' | 'archived';
   keyResults: OKRKeyResult[];
-  ownerUserId?: string;
-  linkedProjects?: string[];
+  ownerUserId?: { _id: string; name?: string; email?: string } | null;
+  /** Populated by the API with just enough to label and link each project. */
+  linkedProjects?: Array<{ _id: string; name: string; status?: string }>;
   progressPercentage: number;
-  reviewedBy?: string;
+  reviewedBy?: { _id: string; name?: string; email?: string } | null;
   reviewDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -2464,4 +2476,28 @@ export interface FeedbackAnalytics {
   byStatus: Record<string, number>;
   topThemes: Array<{ theme: string; count: number }>;
   sentimentTrend: Array<{ year: number; month: number; avgScore: number | null; count: number }>;
+}
+// ─── Exchange rates ───────────────────────────────────────────────────────────
+
+export interface ExchangeRates {
+  baseCurrency: string;
+  /** Shared market rates: units of each currency per 1 of the base. Null until first fetched. */
+  market: { rates: Record<string, number>; fetchedAt: string; source: string; providerName?: string } | null;
+  /** This organisation's own rates, which win over the market for it alone. */
+  overrides: { rates: Record<string, number>; updatedAt: string } | null;
+}
+
+// ─── Outgoing webhooks ────────────────────────────────────────────────────────
+
+export interface OutgoingWebhook {
+  _id: string;
+  name: string;
+  url: string;
+  events: string[];
+  isActive: boolean;
+  projectId?: string;
+  lastDeliveryStatus?: 'pending' | 'success' | 'failed';
+  lastDeliveredAt?: string;
+  failureCount?: number;
+  createdAt?: string;
 }

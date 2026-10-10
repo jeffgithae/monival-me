@@ -51,17 +51,17 @@ import { Component, EventEmitter, Input, Output, computed, signal } from '@angul
     }
     .pager-btn {
       padding: 0.45rem 0.9rem;
-      border: 1px solid var(--border, #d8dde5);
-      border-radius: 6px;
-      background: var(--surface, #fff);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface);
       color: inherit;
       font: inherit;
       cursor: pointer;
     }
-    .pager-btn:hover:not(:disabled) { background: var(--surface-2, #f2f4f7); }
+    .pager-btn:hover:not(:disabled) { background: var(--surface-2); }
     .pager-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .pager-btn:focus-visible { outline: 2px solid var(--accent, #1f5f8b); outline-offset: 2px; }
-    .pager-info { font-size: 0.875rem; color: var(--muted, #667085); }
+    .pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .pager-info { font-size: 0.875rem; color: var(--muted); }
     .pager-count { opacity: 0.8; }
   `],
 })

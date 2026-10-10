@@ -12,10 +12,12 @@ import { ModalDirective } from '../../shared/a11y/modal.directive';
 
 type DetailTab = 'results' | 'narrative' | 'dq' | 'history';
 
+import { PagerComponent } from '../../shared/pager/pager.component';
+
 @Component({
   selector: 'app-reporting-periods',
   standalone: true,
-  imports: [ModalDirective, CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DatePipe],
+  imports: [ModalDirective, CommonModule, RouterModule, FormsModule, ReactiveFormsModule, DatePipe, PagerComponent],
   templateUrl: './reporting-period.component.html',
   styleUrl: './reporting-period.component.scss',
 })
@@ -86,6 +88,26 @@ export class ReportingPeriodsComponent implements OnInit {
     const q = this.searchQuery().trim().toLowerCase();
     if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || (p.projectName ?? '').toLowerCase().includes(q));
     return list;
+  });
+
+  // An organisation accumulates hundreds of periods (projects × quarters), so
+  // the list is ordered by what needs attention and shown a page at a time.
+  readonly pageSize = 20;
+  readonly page = signal(1);
+  readonly orderedPeriods = computed(() => {
+    const rank = (p: ReportingPeriod) => (this.isOverdue(p) ? 0 : p.status === 'submitted' ? 1 : p.status === 'open' ? 2 : 3);
+    const time = (d?: string) => (d ? new Date(d).getTime() : 0);
+    return [...this.filteredPeriods()].sort((a, b) => {
+      const byRank = rank(a) - rank(b);
+      if (byRank !== 0) return byRank;
+      // Outstanding work: soonest due first. Finished work: most recent first.
+      return rank(a) < 3 ? time(a.dueDate ?? a.endDate) - time(b.dueDate ?? b.endDate) : time(b.endDate) - time(a.endDate);
+    });
+  });
+  readonly currentPage = computed(() => Math.min(this.page(), Math.max(1, Math.ceil(this.orderedPeriods().length / this.pageSize))));
+  readonly pagedPeriods = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.orderedPeriods().slice(start, start + this.pageSize);
   });
 
   readonly totalPeriods     = computed(() => this.periods().length);
@@ -215,7 +237,16 @@ export class ReportingPeriodsComponent implements OnInit {
     }
 
     this.api.createReportingPeriod(this.form.value as CreateReportingPeriodDto).subscribe({
-      next: p => {
+      next: created => {
+        // The create response is the bare record; the list adds the project's
+        // name. Fill it in here or the new period reads "Unknown project" and
+        // cannot be found by searching for its project.
+        const p = {
+          ...created,
+          projectName: created.projectName ?? this.projects().find(x => x._id === created.projectId)?.name,
+          totalActivities: created.totalActivities ?? 0,
+          approvedActivities: created.approvedActivities ?? 0,
+        };
         this.periods.update(arr => [p, ...arr]);
         this.form.reset({ cadence: 'quarterly' });
         this.showForm.set(false);

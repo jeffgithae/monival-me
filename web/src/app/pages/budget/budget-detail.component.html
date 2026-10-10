@@ -1,5 +1,5 @@
 @if (error(); as err) {
-  <div class="error-banner">⚠️ {{ err }}</div>
+  <div class="error-banner">{{ err }}</div>
 }
 
 @if (budget(); as b) {
@@ -13,16 +13,16 @@
           <h1>{{ b.name }}</h1>
           <p class="subtitle">
             FY {{ b.fiscalYear }} · {{ b.category | titlecase }} · {{ b.currency }}
-            @if (b.isRestricted) { <span class="restricted-tag">🔒 Donor-restricted</span> }
+            @if (b.isRestricted) { <span class="restricted-tag">Donor-restricted</span> }
           </p>
         </div>
         <div class="header-actions">
           <span class="status-pill {{ getStatusClass(b.status) }}">{{ b.status | titlecase }}</span>
           @if (canApprove) {
-            <button type="button" class="btn-primary" (click)="approveBudget()">✓ Approve</button>
+            <button type="button" class="btn-primary" (click)="approveBudget()">Approve</button>
           }
           @if (canRevise) {
-            <button type="button" class="btn-secondary" (click)="showReviseForm.set(!showReviseForm())">✏️ Revise</button>
+            <button type="button" class="btn-secondary" (click)="showReviseForm.set(!showReviseForm())">Revise</button>
           }
           @if (canClose) {
             <button type="button" class="btn-danger" (click)="closeBudget()">Close budget</button>
@@ -95,14 +95,14 @@
 
   <!-- ─── Tab bar ──────────────────────────────────────────────────────── -->
   <div class="tab-bar">
-    <button type="button" class="tab-btn" [class.active]="tab() === 'details'"    (click)="setTab('details')">📋 Details</button>
+    <button type="button" class="tab-btn" [class.active]="tab() === 'details'"    (click)="setTab('details')">Details</button>
     <button type="button" class="tab-btn" [class.active]="tab() === 'line-items'" (click)="setTab('line-items')">
-      📄 Line Items
+      Line Items
       @if (lineItems().length) { <span class="tab-count">{{ lineItems().length }}</span> }
     </button>
-    <button type="button" class="tab-btn" [class.active]="tab() === 'variance'"   (click)="setTab('variance')">📉 Variance</button>
+    <button type="button" class="tab-btn" [class.active]="tab() === 'variance'"   (click)="setTab('variance')">Variance</button>
     @if (isFinance()) {
-      <button type="button" class="tab-btn" [class.active]="tab() === 'audit'"    (click)="setTab('audit')">🔍 Audit log</button>
+      <button type="button" class="tab-btn" [class.active]="tab() === 'audit'"    (click)="setTab('audit')">Audit log</button>
     }
   </div>
 
@@ -158,11 +158,11 @@
           <div class="panel-toolbar">
             <h3>Add line item</h3>
             <button type="button" class="btn-ghost btn-sm" (click)="showLineItemForm.set(!showLineItemForm())">
-              {{ showLineItemForm() ? '✕ Cancel' : '+ Add line item' }}
+              {{ showLineItemForm() ? 'Cancel' : '+ Add line item' }}
             </button>
           </div>
           @if (lineItemError(); as err) {
-            <div class="error-banner">⚠️ {{ err }}</div>
+            <div class="error-banner">{{ err }}</div>
           }
           @if (showLineItemForm()) {
             <form class="create-form" (ngSubmit)="addLineItem()">
@@ -267,13 +267,13 @@
                     </td>
                     @if (isFinance()) {
                       <td>
-                        <button type="button" class="btn-icon-del" (click)="deleteLineItem(item._id)" title="Delete">🗑</button>
+                        <button type="button" class="btn-icon-del" (click)="deleteLineItem(item._id)" title="Delete">Delete</button>
                       </td>
                     }
                   </tr>
                 } @empty {
                   <tr><td [attr.colspan]="isFinance() ? 7 : 6" class="empty-row">
-                    <span>📄</span><p>No line items yet.</p>
+                    <p>No line items yet.</p>
                   </td></tr>
                 }
               </tbody>
@@ -303,7 +303,7 @@
           <div class="panel-toolbar">
             <h3>Calculate variance</h3>
             <button type="button" class="btn-ghost btn-sm" (click)="showVarianceCalc.set(!showVarianceCalc())">
-              {{ showVarianceCalc() ? '✕ Cancel' : '+ Calculate period' }}
+              {{ showVarianceCalc() ? 'Cancel' : '+ Calculate period' }}
             </button>
           </div>
           @if (showVarianceCalc()) {
@@ -375,7 +375,7 @@
                   </tr>
                 } @empty {
                   <tr><td colspan="8" class="empty-row">
-                    <span>📉</span>
+                    
                     <p>No variance data yet. Use "+ Calculate period" to generate it.</p>
                   </td></tr>
                 }
@@ -407,7 +407,7 @@
             </div>
           }
         } @empty {
-          <div class="empty-row"><span>🔍</span><p>No audit events found.</p></div>
+          <div class="empty-row"><p>No audit events found.</p></div>
         }
       </div>
     </div>

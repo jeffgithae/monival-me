@@ -13,6 +13,7 @@
   <!-- Tab bar -->
   <div class="tab-bar">
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'api-keys'" (click)="setTab('api-keys')">🔑 API Keys</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'webhooks'" (click)="setTab('webhooks')">Webhooks</button>
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'sso'" (click)="setTab('sso')">🔐 SSO</button>
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'branding'" (click)="setTab('branding')">🎨 White-Label</button>
     <button type="button" class="tab-btn" [class.active]="activeTab() === 'networks'" (click)="setTab('networks')">🌐 Partner Networks</button>
@@ -23,7 +24,7 @@
     <div class="tab-content">
       <div class="section-intro">
         <h2>API Keys</h2>
-        <p>Use API keys to authenticate machine-to-machine integrations with the Evidara  REST API.
+        <p>Use API keys to authenticate machine-to-machine integrations with the Evidara REST API.
            Keys are prefixed <code>mk_live_</code> and shown only once on creation.</p>
       </div>
 
@@ -110,6 +111,95 @@
         <code>Authorization: Bearer mk_live_your_key_here</code>.
         Base URL: <code>{{ 'https://api.evidara.app' }}</code>.
         Full API reference available in the developer docs.
+      </div>
+    </div>
+  }
+
+  <!-- ── Outgoing webhooks ─────────────────────────────────────────────────── -->
+  @if (activeTab() === 'webhooks') {
+    <div class="tab-content">
+      <div class="section-intro">
+        <h2>Webhooks</h2>
+        <p>Have Evidara notify your own systems when something happens — an activity is approved, a report is submitted, a grant is about to expire.
+           Each delivery is an HTTPS <code>POST</code> signed with the webhook's secret.</p>
+      </div>
+
+      @if (newWebhookSecret(); as reveal) {
+        <div class="key-reveal">
+          <div class="key-reveal-hd">
+            <div>
+              <strong>Signing secret for “{{ reveal.name }}” — copy it now</strong>
+              <p>This is the only time it is shown. Use it to verify the signature on each delivery.</p>
+            </div>
+          </div>
+          <div class="key-value-row">
+            <code class="key-value">{{ reveal.secret }}</code>
+            <button type="button" class="btn-copy" (click)="copyKey(reveal.secret)">Copy</button>
+          </div>
+          <button type="button" class="btn-ghost sm" (click)="newWebhookSecret.set(null)">Dismiss</button>
+        </div>
+      }
+
+      <div class="card">
+        <h3 class="card-title">Add a webhook</h3>
+        <div class="form-grid">
+          <div class="ff">
+            <label for="enterprise-webhook-name">Name *</label>
+            <input id="enterprise-webhook-name" [(ngModel)]="webhookDraft.name" maxlength="120" placeholder="e.g. Finance system" />
+          </div>
+          <div class="ff">
+            <label for="enterprise-webhook-url">URL * <span class="hint">(must be https://)</span></label>
+            <input id="enterprise-webhook-url" type="url" [(ngModel)]="webhookDraft.url" placeholder="https://example.org/hooks/evidara" />
+          </div>
+        </div>
+        <fieldset class="event-picker">
+          <legend>Send when *</legend>
+          @for (event of webhookEventOptions(); track event) {
+            <label class="event-option">
+              <input type="checkbox" [checked]="webhookDraft.events.includes(event)" (change)="toggleWebhookEvent(event)" />
+              {{ webhookEventLabel(event) }}
+            </label>
+          }
+        </fieldset>
+        <button type="button" class="btn-primary" [disabled]="!canCreateWebhook() || saving()" (click)="createWebhook()">
+          {{ saving() ? 'Adding…' : 'Add webhook' }}
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Webhooks <span class="count-badge">{{ webhooks().length }}</span></h3>
+        @if (loadingWebhooks()) { <div class="loading-row">Loading…</div> }
+        @else if (webhooks().length === 0) {
+          <div class="empty-row">No webhooks yet. Add one above.</div>
+        } @else {
+          <div class="keys-table">
+            @for (hook of webhooks(); track hook._id) {
+              <div class="key-row">
+                <div class="key-info">
+                  <strong>{{ hook.name }}</strong>
+                  <div class="key-meta">
+                    <code class="key-prefix">{{ hook.url }}</code>
+                    @if (!hook.isActive) { <span class="meta-chip exp">Paused</span> }
+                    @if (hook.lastDeliveryStatus === 'failed') { <span class="meta-chip exp">Last delivery failed{{ hook.failureCount ? ' (' + hook.failureCount + ' in a row)' : '' }}</span> }
+                    @if (hook.lastDeliveryStatus === 'success') { <span class="meta-chip">Delivered {{ hook.lastDeliveredAt | date:'d MMM y, HH:mm' }}</span> }
+                  </div>
+                  <div class="key-stats">{{ webhookEventSummary(hook.events) }}</div>
+                </div>
+                <div class="hook-actions">
+                  <button type="button" class="btn-ghost sm" [disabled]="busyWebhookId() === hook._id" (click)="toggleWebhookActive(hook)">{{ hook.isActive ? 'Pause' : 'Resume' }}</button>
+                  <button type="button" class="btn-ghost sm" [disabled]="busyWebhookId() === hook._id" (click)="rotateWebhookSecret(hook)">New secret</button>
+                  <button type="button" class="btn-danger-sm" [disabled]="busyWebhookId() === hook._id" (click)="deleteWebhook(hook)">Delete</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="info-box">
+        <strong>Verifying a delivery:</strong> the <code>X-Evidara-Signature</code> header reads <code>t=&lt;timestamp&gt;,v1=&lt;signature&gt;</code>.
+        The signature is the HMAC-SHA256, in hex, of <code>&lt;timestamp&gt;.&lt;request body&gt;</code> using the webhook's secret.
+        Compute it on your side and reject the request if it differs. <code>X-Evidara-Event</code> names what happened.
       </div>
     </div>
   }
@@ -340,7 +430,7 @@
           <div class="toggle-row">
             <div>
               <strong>Hide "Powered by Evidara "</strong>
-              <p>Remove the Evidara  badge from the UI and reports.</p>
+              <p>Remove the Evidara badge from the UI and reports.</p>
             </div>
             <label class="toggle">
               <input type="checkbox" [ngModel]="brandingForm().hidePoweredBy"

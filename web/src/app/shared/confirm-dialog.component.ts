@@ -44,7 +44,7 @@ import { ConfirmService } from './confirm.service';
   styles: [`
     .cd-backdrop {
       position: fixed; inset: 0; z-index: 10001;
-      background: rgba(0,0,0,.5); backdrop-filter: blur(3px);
+      background: var(--scrim);
       display: flex; align-items: center; justify-content: center;
       padding: 1.25rem;
       animation: fadeIn .15s ease;
@@ -53,8 +53,8 @@ import { ConfirmService } from './confirm.service';
 
     .cd-modal {
       width: min(460px, 100%); background: var(--card-bg);
-      border: 1px solid var(--border); border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden;
+      border: 1px solid var(--border); border-radius: var(--r-lg);
+      box-shadow: var(--shadow); overflow: hidden;
       animation: pop .18s cubic-bezier(.22,1,.36,1);
     }
     @keyframes pop { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
@@ -63,17 +63,17 @@ import { ConfirmService } from './confirm.service';
       display: flex; align-items: center; gap: .85rem;
       padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
       background: var(--surface-soft);
-      &.cd-danger { background: rgba(239,68,68,.06); border-bottom-color: rgba(239,68,68,.2); }
+      &.cd-danger { background: color-mix(in srgb, var(--red) 6%, transparent); border-bottom-color: color-mix(in srgb, var(--red) 20%, transparent); }
     }
     .cd-icon { font-size: 1.3rem; }
-    .cd-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-strong); }
+    .cd-title { margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-strong); }
 
     .cd-body { padding: 1.25rem 1.5rem; }
     .cd-message { margin: 0 0 .75rem; font-size: .9rem; color: var(--text); line-height: 1.5; }
     .cd-consequence {
       display: flex; gap: .6rem; align-items: flex-start;
-      padding: .75rem 1rem; background: rgba(239,68,68,.07);
-      border: 1px solid rgba(239,68,68,.2); border-radius: 10px;
+      padding: .75rem 1rem; background: color-mix(in srgb, var(--red) 7%, transparent);
+      border: 1px solid color-mix(in srgb, var(--red) 20%, transparent); border-radius: var(--r-lg);
       font-size: .85rem; color: var(--red); line-height: 1.45;
       .cd-consequence-icon { flex-shrink: 0; margin-top: .05rem; }
     }
@@ -84,17 +84,17 @@ import { ConfirmService } from './confirm.service';
     }
     .cd-cancel {
       padding: .6rem 1.2rem; background: var(--surface-soft);
-      border: 1px solid var(--border); border-radius: 10px;
+      border: 1px solid var(--border); border-radius: var(--r-lg);
       color: var(--muted); font-weight: 600; font-size: .875rem;
       cursor: pointer; transition: background .15s;
       &:hover { background: var(--surface-hover); color: var(--text); }
     }
     .cd-confirm {
-      padding: .6rem 1.4rem; background: #4f46e5; color: #fff;
-      border: none; border-radius: 10px; font-weight: 700;
+      padding: .6rem 1.4rem; background: var(--primary); color: var(--on-solid);
+      border: none; border-radius: var(--r-lg); font-weight: 600;
       font-size: .875rem; cursor: pointer; transition: opacity .15s;
       &:hover { opacity: .88; }
-      &.cd-confirm-danger { background: #ef4444; }
+      &.cd-confirm-danger { background: var(--red); }
     }
   `],
 })

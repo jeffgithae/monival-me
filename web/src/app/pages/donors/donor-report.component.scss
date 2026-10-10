@@ -1,17 +1,5 @@
 @use "sass:color";
 
-$indigo:   #4f46e5;
-$indigo-d: #3730a3;
-$green:    #10b981;
-$amber:    #f59e0b;
-$red:      #ef4444;
-$blue:     #3b82f6;
-$surface:  #ffffff;
-$bg:       #f8f7ff;
-$text:     #0f172a;
-$muted:    #64748b;
-$border:   rgba(15, 23, 42, 0.08);
-
 // ─── Page shell ───────────────────────────────────────────────────────────────
 .report-page {
   display: flex;
@@ -24,11 +12,11 @@ $border:   rgba(15, 23, 42, 0.08);
 
 // ─── Config panel ─────────────────────────────────────────────────────────────
 .config-panel {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 2rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .config-header {
@@ -37,15 +25,14 @@ $border:   rgba(15, 23, 42, 0.08);
   .eyebrow {
     display: block;
     font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: $indigo;
+    font-weight: 600;
+
+    color: var(--primary);
     margin-bottom: 0.35rem;
   }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.7rem; font-weight: 800; color: $text; }
-  .subtitle { margin: 0; color: $muted; font-size: 0.9rem; }
+  h1 { margin: 0 0 0.25rem; font-size: 1.7rem; font-weight: 600; color: var(--text); }
+  .subtitle { margin: 0; color: var(--muted); font-size: 0.9rem; }
 }
 
 .config-form {
@@ -67,59 +54,58 @@ $border:   rgba(15, 23, 42, 0.08);
 
   label {
     font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: $muted;
+    font-weight: 600;
+
+    color: var(--muted);
   }
 
   select, input[type=date] {
     padding: 0.7rem 0.95rem;
-    border: 1px solid $border;
-    border-radius: 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
     font-size: 0.92rem;
-    color: $text;
-    background: $bg;
+    color: var(--text);
+    background: var(--primary-bg);
     outline: none;
     font-family: inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
 
     &:focus {
-      border-color: rgba($indigo, 0.4);
-      box-shadow: 0 0 0 3px rgba($indigo, 0.07);
-      background: $surface;
+      border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+      box-shadow: var(--ring);
+      background: var(--card-bg);
     }
   }
 }
 
 .field-hint {
   font-size: 0.78rem;
-  color: $muted;
+  color: var(--muted);
   font-style: italic;
 }
 
 .toggle-group {
   display: flex;
   gap: 0.35rem;
-  background: rgba($indigo, 0.05);
-  border-radius: 11px;
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.3rem;
 }
 
 .toggle-btn {
   flex: 1;
   padding: 0.55rem 1rem;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: none;
   background: transparent;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
 
-  &:hover { background: rgba($indigo, 0.08); color: $indigo; }
-  &.active { background: $surface; color: $indigo; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  &:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--primary); }
+  &.active { background: var(--card-bg); color: var(--primary); box-shadow: var(--shadow-sm); }
 }
 
 .config-actions {
@@ -134,52 +120,52 @@ $border:   rgba(15, 23, 42, 0.08);
   align-items: center;
   gap: 0.5rem;
   padding: 0.8rem 2rem;
-  background: linear-gradient(135deg, $indigo, $indigo-d);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-solid);
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
+  border-radius: var(--r-lg);
+  font-weight: 600;
   font-size: 0.92rem;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba($indigo, 0.3);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 22px rgba($indigo, 0.35); }
+  &:hover:not(:disabled) { transform: none; box-shadow: var(--shadow-sm); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 .btn-export, .btn-print {
   padding: 0.8rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 700;
+  border-radius: var(--r-lg);
+  font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
   transition: all 0.15s;
 
-  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:hover:not(:disabled) { transform: none; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .btn-export {
-  background: rgba($green, 0.08);
-  border: 1.5px solid rgba($green, 0.3);
-  color: color.adjust($green, $lightness: -10%);
-  &:hover { background: rgba($green, 0.14); }
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--green) 30%, transparent);
+  color: var(--green-strong);
+  &:hover { background: color-mix(in srgb, var(--green) 14%, transparent); }
 }
 
 .btn-print {
-  background: rgba($indigo, 0.06);
-  border: 1.5px solid rgba($indigo, 0.2);
-  color: $indigo;
-  &:hover { background: rgba($indigo, 0.1); }
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--primary);
+  &:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
 }
 
 .btn-spinner {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, var(--on-solid) 40%, transparent);
+  border-top-color: var(--border);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -188,10 +174,10 @@ $border:   rgba(15, 23, 42, 0.08);
 
 .alert-error {
   padding: 0.85rem 1.25rem;
-  background: rgba($red, 0.06);
-  border: 1px solid rgba($red, 0.2);
-  border-radius: 12px;
-  color: color.adjust($red, $lightness: -8%);
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
+  border-radius: var(--r-lg);
+  color: var(--red-strong);
   font-size: 0.88rem;
   font-weight: 600;
 }
@@ -204,7 +190,7 @@ $border:   rgba(15, 23, 42, 0.08);
   justify-content: center;
   padding: 5rem 2rem;
   text-align: center;
-  color: $muted;
+  color: var(--muted);
   gap: 0.75rem;
 
   .empty-icon { font-size: 3rem; }
@@ -215,26 +201,26 @@ $border:   rgba(15, 23, 42, 0.08);
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba($indigo, 0.15);
-  border-top-color: $indigo;
+  border: 3px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 
 // ─── Report document ──────────────────────────────────────────────────────────
 .report-document {
-  background: $surface;
-  border: 1px solid $border;
-  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow);
 }
 
 // ─── Cover ────────────────────────────────────────────────────────────────────
 .report-cover {
-  background: linear-gradient(135deg, #1e1b4b 0%, $indigo-d 40%, $indigo 100%);
+  background: linear-gradient(135deg, var(--primary-strong) 0%, var(--primary-strong) 40%, var(--primary) 100%);
   padding: 3rem 3.5rem;
-  color: #fff;
+  color: var(--on-solid);
   position: relative;
   overflow: hidden;
 
@@ -244,7 +230,7 @@ $border:   rgba(15, 23, 42, 0.08);
     top: -80px; right: -80px;
     width: 320px; height: 320px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.05);
+    background: color-mix(in srgb, var(--on-solid) 5%, transparent);
   }
 
   &::after {
@@ -253,7 +239,7 @@ $border:   rgba(15, 23, 42, 0.08);
     bottom: -100px; left: -60px;
     width: 400px; height: 300px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.03);
+    background: color-mix(in srgb, var(--on-solid) 3%, transparent);
   }
 }
 
@@ -268,21 +254,19 @@ $border:   rgba(15, 23, 42, 0.08);
 
 .cover-org {
   font-size: 0.88rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--on-solid) 70%, transparent);
+
 }
 
 .cover-badge {
   padding: 0.3rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--on-solid) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-solid) 25%, transparent);
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+
 }
 
 .cover-title-block {
@@ -294,22 +278,22 @@ $border:   rgba(15, 23, 42, 0.08);
 .cover-title {
   margin: 0 0 0.4rem;
   font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-weight: 800;
-  color: #fff;
+  font-weight: 600;
+  color: var(--on-solid);
   line-height: 1.1;
 }
 
 .cover-sub {
   margin: 0 0 0.5rem;
   font-size: 1.1rem;
-  color: rgba(255,255,255,0.75);
+  color: color-mix(in srgb, var(--on-solid) 75%, transparent);
   font-weight: 500;
 }
 
 .cover-period {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(255,255,255,0.6);
+  color: color-mix(in srgb, var(--on-solid) 60%, transparent);
 }
 
 .cover-meta {
@@ -319,7 +303,7 @@ $border:   rgba(15, 23, 42, 0.08);
   position: relative;
   z-index: 1;
   padding-top: 2rem;
-  border-top: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid color-mix(in srgb, var(--on-solid) 12%, transparent);
 }
 
 .cover-meta-item {
@@ -330,22 +314,21 @@ $border:   rgba(15, 23, 42, 0.08);
 
 .cover-meta-label {
   font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+
+  color: color-mix(in srgb, var(--on-solid) 50%, transparent);
 }
 
 .cover-meta-value {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255,255,255,0.9);
+  color: var(--on-solid);
 }
 
 // ─── Sections ─────────────────────────────────────────────────────────────────
 .report-section {
   padding: 2.5rem 3.5rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
 
   &:last-of-type { border-bottom: none; }
 }
@@ -353,8 +336,8 @@ $border:   rgba(15, 23, 42, 0.08);
 .section-title {
   margin: 0 0 0.5rem;
   font-size: 1.1rem;
-  font-weight: 800;
-  color: $text;
+  font-weight: 600;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -364,15 +347,15 @@ $border:   rgba(15, 23, 42, 0.08);
     display: block;
     width: 4px;
     height: 1.1rem;
-    background: linear-gradient(180deg, $indigo, color.adjust($indigo, $lightness: 15%));
-    border-radius: 999px;
+    background: var(--primary);
+    border-radius: var(--r-pill);
     flex-shrink: 0;
   }
 }
 
 .section-intro {
   margin: 0 0 1.5rem;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
@@ -388,52 +371,51 @@ $border:   rgba(15, 23, 42, 0.08);
   flex-direction: column;
   gap: 0.35rem;
   padding: 1.25rem 1.5rem;
-  background: $bg;
-  border: 1px solid $border;
-  border-radius: 14px;
+  background: var(--primary-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
 
   &.highlight {
-    border-color: rgba($indigo, 0.2);
-    background: rgba($indigo, 0.03);
+    border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+    background: color-mix(in srgb, var(--primary) 3%, transparent);
   }
 
   .kpi-num {
     font-size: 2rem;
-    font-weight: 800;
-    color: $text;
+    font-weight: 600;
+    color: var(--text);
     line-height: 1;
   }
 
   .kpi-lbl {
     font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: $muted;
+    font-weight: 600;
+
+    color: var(--muted);
   }
 }
 
 .mini-bar {
   height: 5px;
-  background: rgba($indigo, 0.1);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
   margin-top: 0.4rem;
 }
 
 .mini-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.5s ease;
-  &.on-track { background: $green; }
-  &.at-risk   { background: $amber; }
-  &.behind    { background: $red; }
+  &.on-track { background: var(--green-strong); }
+  &.at-risk   { background: var(--amber); }
+  &.behind    { background: var(--red); }
 }
 
 // ─── Indicator table ──────────────────────────────────────────────────────────
 .indicator-table {
-  border: 1px solid $border;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
 }
 
@@ -445,62 +427,61 @@ $border:   rgba(15, 23, 42, 0.08);
 }
 
 .ind-table-header {
-  background: rgba($indigo, 0.04);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
   padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
 
   span {
     font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: $muted;
+    font-weight: 600;
+
+    color: var(--muted);
   }
 }
 
 .ind-row {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba($border, 0.6);
+  border-bottom: 1px solid var(--border);
   align-items: start;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba($indigo, 0.02); }
+  &:hover { background: color-mix(in srgb, var(--primary) 2%, transparent); }
 }
 
 .col-code { }
-.col-num  { text-align: right; padding-right: 1rem; font-size: 0.9rem; font-weight: 600; color: $text; }
+.col-num  { text-align: right; padding-right: 1rem; font-size: 0.9rem; font-weight: 600; color: var(--text); }
 .col-progress { display: flex; align-items: center; gap: 0.6rem; }
 .col-status { }
 
 .ind-code {
   display: inline-block;
   padding: 0.2rem 0.55rem;
-  background: rgba($indigo, 0.08);
-  color: $indigo;
-  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  border-radius: var(--r);
   font-size: 0.75rem;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-family: var(--font-mono);
 }
 
 .ind-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: $text;
+  color: var(--text);
   display: block;
   line-height: 1.4;
 }
 
 .ind-unit {
   font-size: 0.75rem;
-  color: $muted;
+  color: var(--muted);
   display: block;
   margin-top: 0.1rem;
 }
 
 .ind-narrative {
   font-size: 0.82rem;
-  color: $muted;
+  color: var(--muted);
   margin: 0.4rem 0 0;
   line-height: 1.5;
   font-style: italic;
@@ -516,18 +497,18 @@ $border:   rgba(15, 23, 42, 0.08);
 .disagg-chip {
   font-size: 0.72rem;
   padding: 0.15rem 0.5rem;
-  background: rgba($blue, 0.08);
-  color: color.adjust(#3b82f6, $lightness: -10%);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+  color: var(--blue-strong);
+  border-radius: var(--r-pill);
   font-weight: 600;
 }
 
-.achieved { color: $indigo !important; font-weight: 700 !important; }
+.achieved { color: var(--primary) !important; font-weight: 600 !important; }
 
 .progress-track {
   height: 8px;
-  background: rgba($indigo, 0.08);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
   flex: 1;
   min-width: 80px;
@@ -535,45 +516,45 @@ $border:   rgba(15, 23, 42, 0.08);
 
 .progress-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.5s ease;
-  &.on-track { background: linear-gradient(90deg, $green, color.adjust($green, $lightness: 10%)); }
-  &.at-risk   { background: linear-gradient(90deg, $amber, color.adjust($amber, $lightness: 8%)); }
-  &.behind    { background: linear-gradient(90deg, $red,   color.adjust($red, $lightness: 10%)); }
+  &.on-track { background: var(--green-strong); }
+  &.at-risk   { background: var(--amber); }
+  &.behind    { background: var(--red); }
 }
 
 .progress-pct {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   min-width: 36px;
   text-align: right;
-  &.on-track { color: color.adjust($green, $lightness: -10%); }
-  &.at-risk   { color: color.adjust($amber, $lightness: -12%); }
-  &.behind    { color: color.adjust($red,   $lightness: -8%);  }
+  &.on-track { color: var(--green-strong); }
+  &.at-risk   { color: var(--amber-strong); }
+  &.behind    { color: var(--red-strong);  }
 }
 
 .status-chip {
   display: inline-flex;
   padding: 0.25rem 0.7rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.72rem;
-  font-weight: 700;
-  &.on-track { background: rgba($green, 0.1); color: color.adjust($green, $lightness: -12%); }
-  &.at-risk   { background: rgba($amber, 0.1); color: color.adjust($amber, $lightness: -15%); }
-  &.behind    { background: rgba($red,   0.08); color: color.adjust($red, $lightness: -8%); }
+  font-weight: 600;
+  &.on-track { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green-strong); }
+  &.at-risk   { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-strong); }
+  &.behind    { background: color-mix(in srgb, var(--red) 8%, transparent); color: var(--red-strong); }
 }
 
 .empty-row {
   padding: 2rem;
   text-align: center;
-  color: $muted;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 // ─── Activity table ───────────────────────────────────────────────────────────
 .activity-table {
-  border: 1px solid $border;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   overflow: hidden;
 }
 
@@ -584,43 +565,42 @@ $border:   rgba(15, 23, 42, 0.08);
 }
 
 .act-header {
-  background: rgba($indigo, 0.04);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
   padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
 
   span {
     font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: $muted;
+    font-weight: 600;
+
+    color: var(--muted);
   }
 }
 
 .act-row {
   padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid rgba($border, 0.5);
+  border-bottom: 1px solid var(--border);
   font-size: 0.88rem;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba($indigo, 0.02); }
+  &:hover { background: color-mix(in srgb, var(--primary) 2%, transparent); }
 }
 
-.act-col-date  { color: $muted; font-size: 0.82rem; }
-.act-col-title { font-weight: 600; color: $text; padding-right: 1rem; }
-.act-col-loc   { color: $muted; font-size: 0.83rem; }
+.act-col-date  { color: var(--muted); font-size: 0.82rem; }
+.act-col-title { font-weight: 600; color: var(--text); padding-right: 1rem; }
+.act-col-loc   { color: var(--muted); font-size: 0.83rem; }
 .act-col-num   { text-align: right; font-weight: 600; padding-right: 0.5rem; }
 .act-col-ind   { }
 
 .ind-ref {
   display: inline-block;
   padding: 0.18rem 0.5rem;
-  background: rgba($indigo, 0.07);
-  color: $indigo;
-  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+  color: var(--primary);
+  border-radius: var(--r);
   font-size: 0.72rem;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-family: var(--font-mono);
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
@@ -629,10 +609,10 @@ $border:   rgba(15, 23, 42, 0.08);
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 3.5rem;
-  background: $bg;
-  border-top: 1px solid $border;
+  background: var(--primary-bg);
+  border-top: 1px solid var(--border);
   font-size: 0.8rem;
-  color: $muted;
+  color: var(--muted);
 
   .footer-left { font-weight: 600; }
 }
@@ -687,7 +667,7 @@ $border:   rgba(15, 23, 42, 0.08);
 .ind-mov {
   margin: 0.3rem 0 0;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .col-title    { font-weight: 600; }

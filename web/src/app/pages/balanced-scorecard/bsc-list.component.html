@@ -1,48 +1,94 @@
-<header class="page-header">
+<div class="page-header">
   <div>
-    <h1>📊 Balanced Scorecard</h1>
-    <p class="muted">Strategic management framework with 4 perspectives</p>
+    <span class="eyebrow">Strategy</span>
+    <h1>Balanced Scorecard</h1>
+    <p class="subtitle">Annual strategic objectives across four perspectives, delivered through quarterly OKRs.</p>
   </div>
-</header>
+  @if (canManage) {
+    <button type="button" class="btn-primary" (click)="toggleForm()">
+      {{ showForm() ? 'Cancel' : '+ New scorecard' }}
+    </button>
+  }
+</div>
 
 @if (error(); as err) {
-  <div class="alert alert-error">{{ err }}</div>
+  <div class="error-banner" role="alert">{{ err }}</div>
 }
 
-@if (isMEOfficer()) {
-  <section class="panel">
-    <h2>Create New Balanced Scorecard</h2>
-    <form class="form-grid" (ngSubmit)="createScorecard()">
-      <label>Scorecard Name<input aria-label="Name" [(ngModel)]="newBSCForm.name" name="name" required /></label>
-      <label>Fiscal Year<input aria-label="Year" type="number" [(ngModel)]="newBSCForm.fiscalYear" name="year" /></label>
-      <button type="submit" class="primary">Create Scorecard</button>
-    </form>
-  </section>
+@if (showForm()) {
+  <form class="form-panel" (ngSubmit)="createScorecard()">
+    <h2>New scorecard</h2>
+    <div class="form-row">
+      <label class="field wide">Name
+        <input [(ngModel)]="draft.name" name="name" required maxlength="120" placeholder="e.g. 2027 Strategic Scorecard" />
+      </label>
+      <label class="field">Fiscal year
+        <input type="number" [(ngModel)]="draft.fiscalYear" name="fiscalYear" min="2000" max="2100" required />
+      </label>
+      <label class="field full">Description <small>(optional)</small>
+        <textarea [(ngModel)]="draft.description" name="description" rows="2" maxlength="500"></textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="saving() || !canCreate()">
+        {{ saving() ? 'Creating…' : 'Create scorecard' }}
+      </button>
+      <button type="button" class="btn-ghost" (click)="toggleForm()">Cancel</button>
+    </div>
+  </form>
 }
 
-<section class="panel">
-  <h2>Strategic Scorecards</h2>
-  @if (loading()) {
-    <p class="muted">Loading scorecards...</p>
-  } @else {
-    <div class="card-grid">
-      @for (bsc of scorecards(); track bsc._id) {
-        <div class="card">
-          <div class="card-header">
-            <h3><a [routerLink]="['/bsc', bsc._id]">{{ bsc.name }}</a></h3>
-            <span class="pill">{{ bsc.status }}</span>
-          </div>
-          <div class="card-body">
-            <p class="muted">FY {{ bsc.fiscalYear }}</p>
-            <p class="muted">{{ getPerspectiveCount(bsc) }} objectives across 4 perspectives</p>
-          </div>
-          <div class="card-footer">
-            <a [routerLink]="['/bsc', bsc._id]" class="link">View Details →</a>
-          </div>
-        </div>
-      } @empty {
-        <p class="muted">No scorecards created yet.</p>
+@if (loading()) {
+  <p class="state-line">Loading scorecards…</p>
+} @else if (scorecards().length === 0) {
+  @if (!error()) {
+    <div class="empty">
+      <h3>No scorecards yet</h3>
+      <p>A scorecard sets the year's objectives under financial, customer, internal process and learning &amp; growth.</p>
+      @if (canManage && !showForm()) {
+        <button type="button" class="btn-primary" (click)="toggleForm()">+ New scorecard</button>
       }
     </div>
   }
-</section>
+} @else {
+  <div class="scorecard-grid">
+    @for (bsc of scorecards(); track bsc._id) {
+      <a class="scorecard" [routerLink]="['/bsc', bsc._id]">
+        <div class="scorecard-head">
+          <div>
+            <h3>{{ bsc.name }}</h3>
+            <span class="fy">FY {{ bsc.fiscalYear }}</span>
+          </div>
+          <span class="status-pill" [class]="bsc.status">{{ bsc.status | titlecase }}</span>
+        </div>
+
+        <div class="overall">
+          <div class="overall-line">
+            <span class="overall-label">Overall score</span>
+            @if (overall(bsc); as score) {
+              <span class="overall-value" [class]="'tone-' + tone(score.value)">{{ score.value }}%</span>
+            } @else {
+              <span class="overall-value tone-none">—</span>
+            }
+          </div>
+          <div class="bar" [class]="tone(overall(bsc)?.value ?? null)"><span [style.width.%]="overall(bsc)?.value ?? 0"></span></div>
+        </div>
+
+        <div class="perspective-rows">
+          @for (p of perspectives; track p.key) {
+            <div class="perspective-row">
+              <span>{{ p.label }}</span>
+              <div class="bar thin" [class]="tone(perspective(bsc, p.key))"><span [style.width.%]="perspective(bsc, p.key) ?? 0"></span></div>
+              <span class="score">{{ perspective(bsc, p.key) === null ? '—' : perspective(bsc, p.key) + '%' }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="scorecard-foot">
+          <span>{{ objectiveCount(bsc) }} {{ objectiveCount(bsc) === 1 ? 'objective' : 'objectives' }}</span>
+          <span class="open">Open scorecard →</span>
+        </div>
+      </a>
+    }
+  </div>
+}

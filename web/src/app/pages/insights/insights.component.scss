@@ -21,16 +21,15 @@
 
 .page-eyebrow {
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--primary-lt);
 }
 
 h1 {
   margin: 0;
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -51,7 +50,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
   font-size: 0.85rem;
 }
@@ -60,7 +59,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.55rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
@@ -77,8 +76,8 @@ h1 {
 .error-banner {
   background: var(--red-bg);
   color: var(--red);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  border-radius: var(--r-lg);
   padding: 0.85rem 1.1rem;
   font-size: 0.88rem;
   margin-bottom: 1.25rem;
@@ -91,7 +90,7 @@ h1 {
   flex-wrap: wrap;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 1.1rem 1.4rem;
   margin-bottom: 1.5rem;
   box-shadow: var(--shadow-sm);
@@ -103,7 +102,7 @@ h1 {
   gap: 0.1rem;
 }
 
-.reach-value { font-size: 1.6rem; font-weight: 800; color: var(--text-strong); }
+.reach-value { font-size: 1.6rem; font-weight: 600; color: var(--text-strong); }
 .reach-label { font-size: 0.74rem; color: var(--muted); }
 
 .reach-stat-secondary .reach-value { color: var(--muted); font-size: 1.2rem; }
@@ -114,13 +113,13 @@ h1 {
   gap: 0.45rem;
   margin-left: auto;
   padding: 0.4rem 0.8rem;
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   background: var(--green-bg);
 
   &.low { background: var(--amber-bg); }
 }
 
-.coverage-pct { font-weight: 700; color: var(--green); font-size: 0.95rem; }
+.coverage-pct { font-weight: 600; color: var(--green); font-size: 0.95rem; }
 .reach-coverage.low .coverage-pct { color: var(--amber); }
 .coverage-label { font-size: 0.76rem; color: var(--text-soft); max-width: 32ch; }
 
@@ -135,7 +134,7 @@ h1 {
   font-size: 0.72rem;
   background: var(--surface-soft);
   color: var(--text-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.15rem 0.6rem;
   text-transform: capitalize;
 }
@@ -176,7 +175,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.5rem 1rem;
   font-size: 0.84rem;
   font-weight: 600;
@@ -188,9 +187,9 @@ h1 {
   &.active {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
+    color: var(--on-solid);
 
-    .tab-count { background: rgba(255,255,255,0.25); color: #fff; }
+    .tab-count { background: color-mix(in srgb, var(--on-solid) 25%, transparent); color: var(--on-solid); }
   }
 
   &.active.tab-critical    { background: var(--red); border-color: var(--red); }
@@ -202,10 +201,10 @@ h1 {
 .tab-count {
   background: var(--surface-soft);
   color: var(--text-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.05rem 0.5rem;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .empty-state {
@@ -217,7 +216,7 @@ h1 {
   padding: 3.5rem 1rem;
   background: var(--empty-bg);
   border: 1px dashed var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 
   .empty-icon { font-size: 2rem; }
   h3 { margin: 0; color: var(--text-strong); font-size: 1.05rem; }
@@ -234,7 +233,7 @@ h1 {
   display: flex;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 
@@ -266,16 +265,15 @@ h1 {
 
 .insight-category {
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+
   color: var(--muted-lt);
 }
 
 .insight-body h3 {
   margin: 0 0 0.35rem;
   font-size: 1.02rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -288,16 +286,15 @@ h1 {
 
 .insight-action {
   background: var(--surface-soft);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   padding: 0.65rem 0.85rem;
   margin-bottom: 0.6rem;
 
   .action-label {
     display: block;
     font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-weight: 600;
+
     color: var(--primary-lt);
     margin-bottom: 0.2rem;
   }
@@ -318,11 +315,11 @@ h1 {
 .metric-pill {
   background: var(--badge-bg);
   color: var(--badge-color);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.2rem 0.65rem;
   font-size: 0.76rem;
 
-  strong { font-weight: 700; }
+  strong { font-weight: 600; }
 }
 
 .generated-note {
@@ -331,5 +328,5 @@ h1 {
   font-size: 0.78rem;
   margin-top: 1.75rem;
 }
-.insight-link { color: #4338ca; text-decoration: none; font-size: 0.82rem;
+.insight-link { color: var(--primary); text-decoration: none; font-size: 0.82rem;
                 &:hover { text-decoration: underline; } }

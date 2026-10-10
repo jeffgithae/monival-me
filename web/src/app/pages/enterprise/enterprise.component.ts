@@ -10,7 +10,10 @@ import {
 import { NetworkAcceptedPipe } from '../../shared/network-accepted.pipe';
 import { ConfirmService } from '../../shared/confirm.service';
 
-type Tab = 'api-keys' | 'sso' | 'branding' | 'networks';
+type Tab = 'api-keys' | 'webhooks' | 'sso' | 'branding' | 'networks';
+
+import { formatHttpError } from '../../core/http-error';
+import { OutgoingWebhook } from '../../core/models';
 
 @Component({
   selector: 'app-enterprise',
@@ -28,6 +31,92 @@ export class EnterpriseComponent implements OnInit {
   saving    = signal(false);
   error     = signal('');
   success   = signal('');
+
+  // ── Outgoing webhooks ─────────────────────────────────────────────────────
+
+  webhooks = signal<OutgoingWebhook[]>([]);
+  webhookEventOptions = signal<string[]>([]);
+  loadingWebhooks = signal(false);
+  busyWebhookId = signal('');
+  /** A signing secret is returned once, on creation or rotation. */
+  newWebhookSecret = signal<{ name: string; secret: string } | null>(null);
+  webhookDraft: { name: string; url: string; events: string[] } = { name: '', url: '', events: [] };
+
+  loadWebhooks() {
+    this.loadingWebhooks.set(true);
+    this.api.webhooks().subscribe({
+      next: (hooks) => { this.webhooks.set(hooks); this.loadingWebhooks.set(false); },
+      error: (err) => { this.error.set(formatHttpError(err, 'Failed to load webhooks')); this.loadingWebhooks.set(false); },
+    });
+    if (!this.webhookEventOptions().length) {
+      this.api.webhookEvents().subscribe({ next: (r) => this.webhookEventOptions.set(r.events), error: () => undefined });
+    }
+  }
+
+  /** "activity.approved" → "Activity approved" */
+  webhookEventLabel(event: string): string {
+    const text = event.replace(/[._]/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  webhookEventSummary(events: string[]): string {
+    return events.map((e) => this.webhookEventLabel(e)).join(' · ');
+  }
+
+  toggleWebhookEvent(event: string) {
+    const events = this.webhookDraft.events;
+    this.webhookDraft.events = events.includes(event) ? events.filter((e) => e !== event) : [...events, event];
+  }
+
+  canCreateWebhook(): boolean {
+    const { name, url, events } = this.webhookDraft;
+    return !!name.trim() && /^https:\/\/\S+$/.test(url.trim()) && events.length > 0;
+  }
+
+  createWebhook() {
+    if (!this.canCreateWebhook()) return;
+    this.saving.set(true);
+    this.error.set('');
+    const { name, url, events } = this.webhookDraft;
+    this.api.createWebhook({ name: name.trim(), url: url.trim(), events }).subscribe({
+      next: (created) => {
+        this.newWebhookSecret.set({ name: created.name, secret: created.secret });
+        this.webhookDraft = { name: '', url: '', events: [] };
+        this.saving.set(false);
+        this.loadWebhooks();
+      },
+      error: (err) => { this.error.set(formatHttpError(err, 'Failed to add the webhook')); this.saving.set(false); },
+    });
+  }
+
+  toggleWebhookActive(hook: OutgoingWebhook) {
+    this.busyWebhookId.set(hook._id);
+    this.api.updateWebhook(hook._id, { isActive: !hook.isActive }).subscribe({
+      next: (updated) => {
+        this.webhooks.update((list) => list.map((h) => (h._id === hook._id ? { ...h, isActive: updated.isActive } : h)));
+        this.busyWebhookId.set('');
+      },
+      error: (err) => { this.error.set(formatHttpError(err, 'Failed to update the webhook')); this.busyWebhookId.set(''); },
+    });
+  }
+
+  async rotateWebhookSecret(hook: OutgoingWebhook) {
+    if (!(await this.confirmSvc.ask({ title: 'Issue a new signing secret?', message: `Deliveries to "${hook.name}" will be signed with the new secret straight away, so the receiving system must be updated.` }))) return;
+    this.busyWebhookId.set(hook._id);
+    this.api.rotateWebhookSecret(hook._id).subscribe({
+      next: (res) => { this.newWebhookSecret.set({ name: hook.name, secret: res.secret }); this.busyWebhookId.set(''); },
+      error: (err) => { this.error.set(formatHttpError(err, 'Failed to issue a new secret')); this.busyWebhookId.set(''); },
+    });
+  }
+
+  async deleteWebhook(hook: OutgoingWebhook) {
+    if (!(await this.confirmSvc.ask({ title: 'Delete this webhook?', message: `"${hook.name}" will stop receiving events.`, confirmLabel: 'Delete', danger: true }))) return;
+    this.busyWebhookId.set(hook._id);
+    this.api.deleteWebhook(hook._id).subscribe({
+      next: () => { this.webhooks.update((list) => list.filter((h) => h._id !== hook._id)); this.busyWebhookId.set(''); },
+      error: (err) => { this.error.set(formatHttpError(err, 'Failed to delete the webhook')); this.busyWebhookId.set(''); },
+    });
+  }
 
   // ── API Keys ──────────────────────────────────────────────────────────────
   apiKeys        = signal<ApiKey[]>([]);
@@ -50,7 +139,7 @@ export class EnterpriseComponent implements OnInit {
   brandingForm  = signal<UpdateBrandingDto>({});
   loadingBrand  = signal(false);
   domainVerInfo = signal<{ token: string; txtRecord: string; domain: string } | null>(null);
-  colorPreview  = signal('#4f46e5');
+  colorPreview  = signal('#17604a');
 
   // ── Networks ──────────────────────────────────────────────────────────────
   networks      = signal<OrgNetwork[]>([]);
@@ -79,6 +168,7 @@ export class EnterpriseComponent implements OnInit {
 
   private loadTab(tab: Tab) {
     if (tab === 'api-keys') this.loadApiKeys();
+    else if (tab === 'webhooks') this.loadWebhooks();
     else if (tab === 'sso') this.loadSso();
     else if (tab === 'branding') this.loadBranding();
     else if (tab === 'networks') this.loadNetworks();
@@ -208,7 +298,7 @@ export class EnterpriseComponent implements OnInit {
             supportEmail: b.supportEmail,
             supportUrl: b.supportUrl,
           });
-          this.colorPreview.set(b.primaryColor ?? '#4f46e5');
+          this.colorPreview.set(b.primaryColor ?? '#17604a');
         }
         this.loadingBrand.set(false);
       },

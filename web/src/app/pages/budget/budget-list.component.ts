@@ -6,10 +6,12 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { BudgetAllocation, BudgetSummary } from '../../core/models';
 
+import { PagerComponent } from '../../shared/pager/pager.component';
+
 @Component({
   selector: 'app-budget-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, DecimalPipe, FormsModule],
+  imports: [CommonModule, RouterLink, DecimalPipe, FormsModule, PagerComponent],
   templateUrl: './budget-list.component.html',
   styleUrl: './budget.scss',
 })
@@ -76,14 +78,31 @@ export class BudgetListComponent implements OnInit {
     }).subscribe({ next: (s) => this.summary.set(s) });
   }
 
+  // Allocations are paged server-side; without the pager the table silently
+  // stopped at the first 20 and the count beside the heading was wrong.
+  readonly pageSize = 25;
+  page = signal(1);
+  total = signal(0);
+
+  /** Filters changed: start again from the first page. */
   loadBudgets() {
+    this.page.set(1);
+    this.fetchBudgets();
+  }
+
+  goToPage(page: number) {
+    this.page.set(page);
+    this.fetchBudgets();
+  }
+
+  private fetchBudgets() {
     this.loading.set(true);
-    const query: Record<string, any> = {};
+    const query: Record<string, any> = { page: this.page(), limit: this.pageSize };
     if (this.filterStatus)   query['status']     = this.filterStatus;
     if (this.filterCategory) query['category']   = this.filterCategory;
     if (this.filterFiscalYear) query['fiscalYear'] = this.filterFiscalYear;
-    this.api.budgetAllocations(query).subscribe({
-      next: (budgets) => { this.budgets.set(budgets); this.loading.set(false); },
+    this.api.budgetAllocationsPage(query).subscribe({
+      next: (res) => { this.budgets.set(res.data); this.total.set(res.total); this.loading.set(false); },
       error: () => { this.error.set('Failed to load budgets'); this.loading.set(false); },
     });
   }
@@ -138,11 +157,4 @@ export class BudgetListComponent implements OnInit {
     return 'burn-ok';
   }
 
-  getCategoryIcon(cat: string): string {
-    const icons: Record<string, string> = {
-      operational: '⚙️', project: '📁', emergency: '🚨', strategic: '🎯',
-      personnel: '👥', travel: '✈️', equipment: '🔧', indirect: '📊',
-    };
-    return icons[cat] ?? '💰';
-  }
 }

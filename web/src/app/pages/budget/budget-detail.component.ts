@@ -9,6 +9,8 @@ import { ConfirmService } from '../../shared/confirm.service';
 
 type Tab = 'details' | 'line-items' | 'variance' | 'audit';
 
+import { formatHttpError } from '../../core/http-error';
+
 @Component({
   selector: 'app-budget-detail',
   standalone: true,
@@ -159,7 +161,7 @@ export class BudgetDetailComponent implements OnInit {
         this.loadLineItems();
         this.loadAll(); // refresh totals
       },
-      error: () => this.lineItemError.set('Failed to add line item.'),
+      error: (err) => this.lineItemError.set(formatHttpError(err, 'Failed to add line item.')),
     });
   }
 
@@ -205,13 +207,15 @@ export class BudgetDetailComponent implements OnInit {
   approveBudget() {
     this.api.approveBudget(this.budgetId).subscribe({
       next: () => this.loadAll(),
+      error: (err) => this.error.set(formatHttpError(err, 'Failed to approve budget.')),
     });
   }
 
   async closeBudget() {
-    if (!(await this.confirmSvc.ask({ title: `Close this budget allocation?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
+    if (!(await this.confirmSvc.ask({ title: `Close this budget allocation?`, message: `This cannot be undone.`, danger: true, confirmLabel: 'Close budget' }))) return;
     this.api.closeBudget(this.budgetId).subscribe({
       next: () => this.loadAll(),
+      error: (err) => this.error.set(formatHttpError(err, 'Failed to close budget.')),
     });
   }
 
@@ -228,7 +232,7 @@ export class BudgetDetailComponent implements OnInit {
         this.reviseForm = { newAllocatedAmount: 0, reason: 'reallocation', notes: '' };
         this.loadAll();
       },
-      error: () => this.error.set('Failed to revise budget.'),
+      error: (err) => this.error.set(formatHttpError(err, 'Failed to revise budget.')),
     });
   }
 
@@ -240,7 +244,7 @@ export class BudgetDetailComponent implements OnInit {
         this.showVarianceCalc.set(false);
         this.loadVariance();
       },
-      error: () => this.error.set('Failed to calculate variance.'),
+      error: (err) => this.error.set(formatHttpError(err, 'Failed to calculate variance.')),
     });
   }
 
@@ -268,9 +272,9 @@ export class BudgetDetailComponent implements OnInit {
   }
 
   varianceTrendIcon(trend: string): string {
-    if (trend === 'favorable') return '📉';
-    if (trend === 'unfavorable') return '📈';
-    return '➡️';
+    if (trend === 'favorable') return '↓';
+    if (trend === 'unfavorable') return '↑';
+    return '→';
   }
 
   varianceTrendClass(trend: string): string {
@@ -310,6 +314,6 @@ export class BudgetDetailComponent implements OnInit {
 
   get canClose(): boolean {
     const b = this.budget();
-    return !!b && b.status === 'active' && this.isFinance();
+    return !!b && (b.status === 'approved' || b.status === 'active') && this.isFinance();
   }
 }
