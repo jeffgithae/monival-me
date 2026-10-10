@@ -136,7 +136,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.userModel.findOne({ email: dto.email.toLowerCase() })
-      .select('+mfaSecret +mfaBackupCodes');
+      .select('+passwordHash +mfaSecret +mfaBackupCodes');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -475,9 +475,10 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
-    const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(userId).select('+passwordHash');
     if (!user) throw new UnauthorizedException();
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    // Accounts created through Google or SSO have no password to compare against.
+    const valid = user.passwordHash ? await bcrypt.compare(currentPassword, user.passwordHash) : false;
     if (!valid) throw new UnauthorizedException('Current password is incorrect');
     if (newPassword.length < 8) {
       throw new BadRequestException('Password must be at least 8 characters');

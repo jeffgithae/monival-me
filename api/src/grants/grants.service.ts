@@ -32,6 +32,16 @@ export interface ConvertedTotal {
   unconvertible: Array<{ currency: string; amount: number }>;
 }
 
+// Embedded references carry only what the UI shows. Populating whole
+// documents sent every linked project's workplan with each grant and — for the
+// two user references — the users' password hashes.
+const GRANT_POPULATE = [
+  { path: 'donorId' },
+  { path: 'linkedProjects', select: 'name status projectCode' },
+  { path: 'createdBy', select: 'name email' },
+  { path: 'updatedBy', select: 'name email' },
+];
+
 @Injectable()
 export class GrantsService {
   constructor(
@@ -119,6 +129,7 @@ export class GrantsService {
   private async sumConverted(
     rows: Array<{ amount: number; currency?: string; exchangeRate?: number | null }>,
     baseCurrency: string,
+    organizationId?: string,
   ): Promise<ConvertedTotal> {
     let total = 0;
     const unconvertibleBy = new Map<string, number>();
@@ -127,7 +138,7 @@ export class GrantsService {
       const amount = row.amount ?? 0;
       if (!amount) continue;
       const currency = (row.currency ?? baseCurrency).toUpperCase();
-      const res = await this.fx.convert(amount, currency, baseCurrency, row.exchangeRate);
+      const res = await this.fx.convert(amount, currency, baseCurrency, row.exchangeRate, organizationId);
       if (res.source === 'unavailable') {
         unconvertibleBy.set(currency, (unconvertibleBy.get(currency) ?? 0) + amount);
       } else {
@@ -258,6 +269,8 @@ export class GrantsService {
     search?: string;
     parentGrantId?: string | null;
     primeOnly?: boolean;
+    /** Only grants that fund this project. */
+    projectId?: string;
     page?: number;
     limit?: number;
   }): Promise<{ data: GrantDocument[]; total: number; page: number; pages: number }> {
@@ -269,6 +282,10 @@ export class GrantsService {
 
     if (filters?.donorId) {
       query.donorId = new Types.ObjectId(filters.donorId);
+    }
+
+    if (filters?.projectId && Types.ObjectId.isValid(filters.projectId)) {
+      query.linkedProjects = new Types.ObjectId(filters.projectId);
     }
 
     if (filters?.primeOnly) {
@@ -289,7 +306,7 @@ export class GrantsService {
 
     const [data, total] = await Promise.all([
       this.grantModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
-        .populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy']),
+        .populate(GRANT_POPULATE),
       this.grantModel.countDocuments(query),
     ]);
 
@@ -299,7 +316,7 @@ export class GrantsService {
   async findOne(id: string, organizationId: string): Promise<GrantDocument> {
     const grant = await this.grantModel
       .findById(id)
-      .populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy'])
+      .populate(GRANT_POPULATE)
       .exec();
 
     if (!grant) {
@@ -334,7 +351,7 @@ export class GrantsService {
 
     const updated = await this.grantModel
       .findByIdAndUpdate(id, updateData, { new: true })
-      .populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy'])
+      .populate(GRANT_POPULATE)
       .exec();
 
     if (!updated) {
@@ -654,7 +671,7 @@ export class GrantsService {
     const base = await this.baseCurrencyFor(organizationId);
     const obj = grant.toObject ? grant.toObject() : (grant as any);
     const disbursed = this.disbursedTotal(obj);
-    const converted = await this.fx.convert(obj.amount ?? 0, obj.currency, base, obj.exchangeRate);
+    const converted = await this.fx.convert(obj.amount ?? 0, obj.currency, base, obj.exchangeRate, organizationId);
 
     return {
       ...obj,
@@ -692,11 +709,11 @@ export class GrantsService {
 
     const awarded = await this.sumConverted(
       grants.map(g => ({ amount: g.amount, currency: g.currency, exchangeRate: g.exchangeRate })),
-      base,
+      base, organizationId,
     );
     const spent = await this.sumConverted(
       grants.map(g => ({ amount: g.amountSpent, currency: g.currency, exchangeRate: g.exchangeRate })),
-      base,
+      base, organizationId,
     );
     const disbursed = await this.sumConverted(
       grants.map(g => ({
@@ -704,7 +721,7 @@ export class GrantsService {
         currency: g.currency,
         exchangeRate: g.exchangeRate,
       })),
-      base,
+      base, organizationId,
     );
 
     return {
@@ -729,7 +746,7 @@ export class GrantsService {
         organizationId: new Types.ObjectId(organizationId),
         linkedProjects: objProjectId,
       })
-      .populate(['donorId', 'linkedProjects', 'createdBy', 'updatedBy'])
+      .populate(GRANT_POPULATE)
       .sort({ createdAt: -1 });
   }
 
@@ -794,9 +811,9 @@ export class GrantsService {
     const base = await this.baseCurrencyFor(organizationId);
     const committed = await this.sumConverted(
       subs.map(s => ({ amount: s.amount, currency: s.currency, exchangeRate: s.exchangeRate })),
-      base,
+      base, organizationId,
     );
-    const primeInBase = await this.fx.convert(prime.amount, prime.currency, base, prime.exchangeRate);
+    const primeInBase = await this.fx.convert(prime.amount, prime.currency, base, prime.exchangeRate, organizationId);
 
     return {
       prime: await this.withDerived(prime, organizationId),
@@ -861,14 +878,25 @@ export class GrantsService {
       : 0;
     const spendPct = grant.amount > 0 ? Math.round((grant.amountSpent / grant.amount) * 100) : 0;
 
-    const breachedThresholds = allocations.flatMap((a: any) =>
-      (a.alertThresholds ?? [])
-        .filter((t: any) => {
-          const pct = a.allocatedAmount > 0 ? (a.spentAmount / a.allocatedAmount) * 100 : 0;
-          return t.percentage !== undefined && pct >= t.percentage;
-        })
-        .map((t: any) => ({ allocation: a.name, category: a.category, threshold: t.percentage })),
-    );
+    // An allocation carries one warning and one critical threshold (an
+    // object, not a list); report the highest one its spend has crossed.
+    const breachedThresholds = allocations.flatMap((a: any) => {
+      const thresholds = a.alertThresholds;
+      if (!thresholds || !(a.allocatedAmount > 0)) return [];
+      const pct = ((a.spentAmount ?? 0) / a.allocatedAmount) * 100;
+      const level =
+        thresholds.criticalPercent !== undefined && pct >= thresholds.criticalPercent ? 'critical'
+        : thresholds.warningPercent !== undefined && pct >= thresholds.warningPercent ? 'warning'
+        : null;
+      if (!level) return [];
+      return [{
+        allocation: a.name,
+        category: a.category,
+        level,
+        threshold: level === 'critical' ? thresholds.criticalPercent : thresholds.warningPercent,
+        spentPct: Math.round(pct),
+      }];
+    });
 
     return {
       grantId: id,

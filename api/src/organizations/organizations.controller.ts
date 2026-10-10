@@ -6,11 +6,17 @@ import { OrgRole } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { OrganizationsService } from './organizations.service';
+import { UpdateStrategicOverviewDto } from './dto/strategic-overview.dto';
+import { AuditService } from '../audit/audit.service';
+import { UpdateFrameworksBody } from '../common/dto/request-bodies.dto';
 
 @Controller('organizations')
 @UseGuards(JwtAuthGuard)
 export class OrganizationsController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
+  constructor(
+    private readonly organizationsService: OrganizationsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get('current')
   current(@CurrentUser() user: JwtPayload) {
@@ -27,7 +33,7 @@ export class OrganizationsController {
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   async updateFrameworks(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { frameworks: string[]; primary?: string },
+    @Body() body: UpdateFrameworksBody,
   ) {
     return this.organizationsService.updatePlanningFrameworks(user.organizationId, body.frameworks, body.primary);
   }
@@ -35,6 +41,24 @@ export class OrganizationsController {
   @Get('strategic-overview')
   getStrategicOverview(@CurrentUser() user: JwtPayload) {
     return this.organizationsService.getStrategicOverview(user.organizationId);
+  }
+
+  @Patch('strategic-overview')
+  @UseGuards(RolesGuard)
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN)
+  async updateStrategicOverview(@CurrentUser() user: JwtPayload, @Body() dto: UpdateStrategicOverviewDto) {
+    const before = await this.organizationsService.getStrategicOverview(user.organizationId);
+    const after = await this.organizationsService.updateStrategicOverview(user.organizationId, dto);
+    await this.audit.record({
+      organizationId: user.organizationId,
+      actorUserId: user.sub,
+      action: 'organization.strategic_overview_updated',
+      entityType: 'Organization',
+      entityId: user.organizationId,
+      before,
+      after,
+    });
+    return after;
   }
 
   @Patch('enterprise-settings')

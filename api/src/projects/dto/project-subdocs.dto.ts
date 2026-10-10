@@ -74,6 +74,12 @@ export class ProjectWorkplanItemDto {
 
   @IsOptional() @IsMongoId() indicatorId?: string;
   @IsOptional() @IsString() notes?: string;
+
+  @IsOptional() @IsArray() @IsMongoId({ each: true }) linkedIndicatorIds?: string[];
+  @IsOptional() @IsString() quarter?: string;
+  @IsOptional() @IsNumber() @Min(0) estimatedCost?: number;
+  @IsOptional() @IsNumber() @Min(0) actualCost?: number;
+  @IsOptional() @IsString() outputDescription?: string;
 }
 
 export class ProjectStakeholderDto {

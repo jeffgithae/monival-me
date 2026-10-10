@@ -19,6 +19,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { SsoService, UpsertSsoConfigDto } from './sso.service';
+import { OidcCallbackBody, SamlAcsBody, ToggleSsoEnforcementBody, UpsertSsoConfigBody } from '../common/dto/request-bodies.dto';
 
 // ── Admin endpoints (JWT-authenticated org admins) ────────────────────────────
 
@@ -46,7 +47,7 @@ export class SsoController {
   @UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard, RolesGuard)
   @RequireFeature('hasSso')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
-  upsertConfig(@CurrentUser() user: JwtPayload, @Body() dto: UpsertSsoConfigDto) {
+  upsertConfig(@CurrentUser() user: JwtPayload, @Body() dto: UpsertSsoConfigBody) {
     return this.ssoService.upsertConfig(user.organizationId, dto);
   }
 
@@ -60,7 +61,7 @@ export class SsoController {
   @Roles(OrgRole.OWNER)
   toggleEnforcement(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { enforce: boolean },
+    @Body() body: ToggleSsoEnforcementBody,
   ) {
     return this.ssoService.toggleEnforcement(user.organizationId, body.enforce);
   }
@@ -94,7 +95,7 @@ export class SsoController {
   @Post(':orgId/saml/acs')
   async samlAcs(
     @Param('orgId') orgId: string,
-    @Body() body: { attributes: Record<string, unknown> },
+    @Body() body: SamlAcsBody,
     @Res() res: Response,
   ) {
     const { accessToken } = await this.ssoService.handleSamlCallback(orgId, body.attributes ?? body);
@@ -113,7 +114,7 @@ export class SsoController {
   @Post(':orgId/oidc/callback')
   handleOidcCallback(
     @Param('orgId') orgId: string,
-    @Body() body: { code: string; redirectUri: string },
+    @Body() body: OidcCallbackBody,
   ) {
     return this.ssoService.handleOidcCallback(orgId, body.code, body.redirectUri);
   }

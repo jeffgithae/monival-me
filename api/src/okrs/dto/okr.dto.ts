@@ -1,7 +1,17 @@
-import { IsString, IsNumber, IsOptional, IsMongoId, IsEnum, Min, Max, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsMongoId, IsEnum, IsArray, Min, Max, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class KeyResultDto {
+  // Key results are saved by sending the whole list back, so entries that
+  // already exist arrive with the id and status the server gave them.
+  @IsOptional()
+  @IsMongoId()
+  _id?: string;
+
+  @IsOptional()
+  @IsEnum(['not_started', 'in_progress', 'at_risk', 'completed'])
+  status?: string;
+
   @IsString()
   title!: string;
 
@@ -31,10 +41,17 @@ class KeyResultDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // Links the key result to an indicator; its current value then follows the
+  // indicator's achieved figure. Null (or absent) means it is tracked by hand.
+  @IsOptional()
+  @IsMongoId()
+  indicatorId?: string | null;
 }
 
 export class CreateOKRDto {
   @IsString()
+  @IsNotEmpty({ message: 'title is required' })
   title!: string;
 
   @IsOptional()
@@ -58,6 +75,7 @@ export class CreateOKRDto {
   keyResults!: KeyResultDto[];
 
   @IsOptional()
+  @IsArray()
   @IsMongoId({ each: true })
   linkedProjects?: string[];
 
@@ -89,6 +107,7 @@ export class UpdateOKRDto {
   keyResults?: KeyResultDto[];
 
   @IsOptional()
+  @IsArray()
   @IsMongoId({ each: true })
   linkedProjects?: string[];
 }
@@ -116,4 +135,9 @@ export class UpdateKeyResultDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // Explicit null unlinks the indicator.
+  @IsOptional()
+  @IsMongoId()
+  indicatorId?: string | null;
 }

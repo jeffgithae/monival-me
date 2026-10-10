@@ -1,8 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ExchangeRate } from './schemas/exchange-rate.schema';
 
 /**
@@ -38,6 +38,10 @@ export class FxService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // Rates used to be unique per base currency alone. Overrides are now per
+    // organisation, so that index would refuse a second document for a base.
+    this.rateModel.collection.dropIndex('baseCurrency_1').catch(() => undefined);
+
     // Warm the cache without blocking boot; a cold cache degrades to
     // `unavailable` rather than throwing.
     this.refreshAll().catch((e) =>
@@ -89,9 +93,10 @@ export class FxService implements OnModuleInit {
     }
 
     await this.rateModel.updateOne(
-      { baseCurrency: base },
+      { baseCurrency: base, organizationId: null },
       {
         baseCurrency: base,
+        organizationId: null,
         rates,
         fetchedAt: new Date(),
         source: 'provider',
@@ -99,21 +104,58 @@ export class FxService implements OnModuleInit {
       },
       { upsert: true },
     );
-    this.memo.delete(base);
+    this.memo.delete(this.key(base));
     this.logger.log(`FX rates refreshed for ${base} (${Object.keys(rates).length} pairs)`);
     return true;
   }
 
-  /** Operator override — wins over provider data for that base currency. */
-  async setManualRates(baseCurrency: string, rates: Record<string, number>) {
+  /**
+   * An organisation's own rates for one base currency — for donors that
+   * mandate a fixed accounting rate. They replace that organisation's previous
+   * overrides for the base and win over market rates for it alone; an empty
+   * map removes them.
+   */
+  async setManualRates(organizationId: string, baseCurrency: string, rates: Record<string, number>) {
     const base = baseCurrency.toUpperCase();
-    await this.rateModel.updateOne(
-      { baseCurrency: base },
-      { baseCurrency: base, rates, fetchedAt: new Date(), source: 'manual' },
-      { upsert: true },
-    );
-    this.memo.delete(base);
-    return this.rateModel.findOne({ baseCurrency: base }).lean();
+    const orgId = new Types.ObjectId(organizationId);
+    const clean: Record<string, number> = {};
+    for (const [currency, rate] of Object.entries(rates ?? {})) {
+      const code = currency.trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(code)) throw new BadRequestException(`"${currency}" is not a three-letter currency code`);
+      if (code === base) throw new BadRequestException(`A rate from ${base} to itself is always 1`);
+      if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+        throw new BadRequestException(`The rate for ${code} must be a number greater than zero`);
+      }
+      clean[code] = rate;
+    }
+
+    if (Object.keys(clean).length === 0) {
+      await this.rateModel.deleteOne({ baseCurrency: base, organizationId: orgId });
+    } else {
+      await this.rateModel.updateOne(
+        { baseCurrency: base, organizationId: orgId },
+        { baseCurrency: base, organizationId: orgId, rates: clean, fetchedAt: new Date(), source: 'manual' },
+        { upsert: true },
+      );
+    }
+    this.memo.delete(this.key(base, organizationId));
+    return this.ratesFor(organizationId, base);
+  }
+
+  /** Market rates for a base currency alongside the organisation's own overrides. */
+  async ratesFor(organizationId: string, baseCurrency: string) {
+    const base = (baseCurrency || 'USD').toUpperCase();
+    const [market, overrides] = await Promise.all([
+      this.rateModel.findOne({ baseCurrency: base, organizationId: null }).lean(),
+      this.rateModel.findOne({ baseCurrency: base, organizationId: new Types.ObjectId(organizationId) }).lean(),
+    ]);
+    return {
+      baseCurrency: base,
+      market: market
+        ? { rates: market.rates, fetchedAt: market.fetchedAt, source: market.source, providerName: market.providerName }
+        : null,
+      overrides: overrides ? { rates: overrides.rates, updatedAt: overrides.fetchedAt } : null,
+    };
   }
 
   /**
@@ -123,10 +165,19 @@ export class FxService implements OnModuleInit {
    * Returns null when no rate is known, so callers can report the amount as
    * unconvertible rather than silently treating it as 1:1.
    */
-  async getRate(from: string, to: string): Promise<{ rate: number | null; fetchedAt?: Date }> {
+  async getRate(from: string, to: string, organizationId?: string): Promise<{ rate: number | null; fetchedAt?: Date }> {
     const f = (from || '').toUpperCase();
     const t = (to || '').toUpperCase();
     if (!f || !t || f === t) return { rate: 1 };
+
+    // The organisation's own rate, in either direction, outranks the market.
+    if (organizationId) {
+      const own = await this.load(f, organizationId);
+      if (own?.rates?.[t]) return { rate: own.rates[t], fetchedAt: own.fetchedAt };
+      const ownInverse = await this.load(t, organizationId);
+      const inverseRate = ownInverse?.rates?.[f];
+      if (ownInverse && inverseRate && inverseRate > 0) return { rate: 1 / inverseRate, fetchedAt: ownInverse.fetchedAt };
+    }
 
     const direct = await this.load(f);
     if (direct?.rates?.[t]) return { rate: direct.rates[t], fetchedAt: direct.fetchedAt };
@@ -150,6 +201,7 @@ export class FxService implements OnModuleInit {
     from: string,
     to: string,
     explicitRate?: number | null,
+    organizationId?: string,
   ): Promise<ConversionResult> {
     const f = (from || '').toUpperCase();
     const t = (to || '').toUpperCase();
@@ -159,18 +211,26 @@ export class FxService implements OnModuleInit {
       return { amount: amount * explicitRate, rate: explicitRate, source: 'explicit' };
     }
 
-    const { rate, fetchedAt } = await this.getRate(f, t);
+    const { rate, fetchedAt } = await this.getRate(f, t, organizationId);
     if (rate === null) return { amount: 0, rate: 0, source: 'unavailable' };
     return { amount: amount * rate, rate, source: 'cache', rateDate: fetchedAt };
   }
 
-  private async load(base: string) {
-    const memo = this.memo.get(base);
+  private key(base: string, organizationId?: string) {
+    return `${organizationId ?? 'market'}:${base}`;
+  }
+
+  /** Market rates for a base, or — given an organisation — that organisation's overrides for it. */
+  private async load(base: string, organizationId?: string) {
+    const key = this.key(base, organizationId);
+    const memo = this.memo.get(key);
     if (memo) return memo;
-    const doc = await this.rateModel.findOne({ baseCurrency: base }).lean();
+    const doc = await this.rateModel
+      .findOne({ baseCurrency: base, organizationId: organizationId ? new Types.ObjectId(organizationId) : null })
+      .lean();
     if (!doc) return null;
     const entry = { rates: doc.rates, fetchedAt: doc.fetchedAt };
-    this.memo.set(base, entry);
+    this.memo.set(key, entry);
     return entry;
   }
 }

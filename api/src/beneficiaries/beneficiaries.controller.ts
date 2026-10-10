@@ -13,6 +13,7 @@ import type { JwtPayload } from '../common/types/jwt-payload';
 import { BeneficiariesService } from './beneficiaries.service';
 import { CreateBeneficiaryDto, ProgramEnrollmentDto, ServiceRecordDto } from './dto/create-beneficiary.dto';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
+import { ExitProgramBody, MergeBeneficiariesBody } from '../common/dto/request-bodies.dto';
 
 @ApiTags('Beneficiaries')
 @Controller('beneficiaries')
@@ -100,7 +101,7 @@ export class BeneficiariesController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('projectId') projectId: string,
-    @Body() body: { exitReason?: string },
+    @Body() body: ExitProgramBody,
   ) {
     return this.svc.exitProgram(user.organizationId, id, projectId, body.exitReason);
   }
@@ -144,7 +145,7 @@ export class BeneficiariesController {
   @ApiOperation({ summary: 'Merge a duplicate record into a primary beneficiary record' })
   mergeBeneficiaries(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { primaryId: string; duplicateId: string },
+    @Body() body: MergeBeneficiariesBody,
   ) {
     return this.svc.mergeBeneficiaries(user.organizationId, body.primaryId, body.duplicateId);
   }

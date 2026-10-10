@@ -46,6 +46,7 @@ export class CreateDonorDto {
   @IsOptional() @IsString()          shortName?: string;
   @IsOptional() @IsEnum(DonorType)   type?: string;
   @IsOptional() @IsEnum(DonorStatus) status?: string;
+  @IsOptional() @IsString()          country?: string;
 
   @IsOptional()
   @ValidateNested()

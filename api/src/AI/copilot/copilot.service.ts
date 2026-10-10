@@ -141,7 +141,7 @@ export class CopilotService {
       ? Math.round((grants.totalSpent / grants.totalAmount) * 100) : 0;
 
     const indicatorSummary = indicators.map(ind => {
-      const achieved = ind.achieved ?? (ind as any).lastAchievedValue ?? 0;
+      const achieved = (ind as any).lastAchievedValue ?? ind.achieved ?? 0;
       const target   = ind.target ?? 0;
       const pct      = calculateProgressPct({
         achieved, target, baseline: (ind as any).baseline, direction: (ind as any).direction,
@@ -572,7 +572,7 @@ Output ONLY valid JSON, no markdown fences.
     ]);
 
     const indSummary = indicators.map(i => {
-      const achieved = i.achieved ?? (i as any).lastAchievedValue ?? 0;
+      const achieved = (i as any).lastAchievedValue ?? i.achieved ?? 0;
       const pct = i.target > 0 ? Math.round((achieved / i.target) * 100) : null;
       return `${i.code}: ${i.title} — ${pct !== null ? pct + '%' : 'no target'} of target`;
     }).join('\n');

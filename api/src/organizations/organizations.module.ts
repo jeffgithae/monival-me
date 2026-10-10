@@ -8,10 +8,12 @@ import { OrganizationsController } from './organizations.controller';
 import { OrganizationsService } from './organizations.service';
 import { TenantService } from './tenant.service';
 import { Organization, OrganizationSchema } from './schemas/organization.schema';
+import { AuditModule } from '../audit/audit.module';
 
 @Global()
 @Module({
   imports: [
+    AuditModule,
     MongooseModule.forFeature([
       { name: Organization.name, schema: OrganizationSchema },
       { name: Project.name, schema: ProjectSchema },

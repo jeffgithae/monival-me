@@ -16,6 +16,7 @@ import { ProjectsService } from './projects.service';
 import {
   ProjectRiskDto, ProjectMilestoneDto, ProjectWorkplanItemDto, ProjectStakeholderDto,
 } from './dto/project-subdocs.dto';
+import { ArchiveProjectBody, CloseProjectBody, DuplicateProjectBody } from '../common/dto/request-bodies.dto';
 
 @ApiTags('Projects')
 @Controller('projects')
@@ -50,9 +51,11 @@ export class ProjectsController {
     @Query('isTemplate') isTemplate?: string,
     @Query('page')       page?: string,
     @Query('limit')      limit?: string,
+    @Query('view')       view?: string,
+    @Query('sort')       sort?: string,
   ) {
     return this.svc.findAll(user.organizationId, {
-      status, sector, donorId, tag, search,
+      status, sector, donorId, tag, search, view, sort,
       isArchived: isArchived !== undefined ? isArchived === 'true' : undefined,
       isTemplate: isTemplate !== undefined ? isTemplate === 'true' : undefined,
       page:  page  ? parseInt(page,  10) : undefined,
@@ -112,7 +115,7 @@ export class ProjectsController {
   archive(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() body: { notes?: string },
+    @Body() body: ArchiveProjectBody,
   ) {
     return this.svc.archive(user.organizationId, id, body.notes ?? '', user.sub);
   }
@@ -123,7 +126,7 @@ export class ProjectsController {
   close(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: { closureDate: string; lessonsLearned?: string; evaluationSummary?: string },
+    @Body() dto: CloseProjectBody,
   ) {
     return this.svc.close(user.organizationId, id, dto, user.sub);
   }
@@ -134,7 +137,7 @@ export class ProjectsController {
   duplicate(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() body: { name: string },
+    @Body() body: DuplicateProjectBody,
   ) {
     return this.svc.duplicate(user.organizationId, id, body.name, user.sub);
   }

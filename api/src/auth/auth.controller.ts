@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { NavService } from './nav.service';
+import { ChangePasswordBody, ForgotPasswordBody, GoogleLoginBody, RefreshBody, RegisterInvitedBody, ResetPasswordBody, UpdateProfileBody, VerifyMfaBody } from '../common/dto/request-bodies.dto';
+import { BootstrapOrgDto } from '../organizations/dto/bootstrap-org.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -23,13 +25,13 @@ export class AuthController {
 
   @Post('bootstrap')
   @UseGuards(JwtAuthGuard)
-  bootstrap(@CurrentUser() user: JwtPayload, @Body() dto: { name: string; country?: string; sector?: string; planId?: string }) {
+  bootstrap(@CurrentUser() user: JwtPayload, @Body() dto: BootstrapOrgDto) {
     return this.authService.bootstrapWorkspace(user.sub, dto);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('register-invited')
-  registerInvited(@Body() dto: { name: string; password: string; token: string }) {
+  registerInvited(@Body() dto: RegisterInvitedBody) {
     return this.authService.registerInvited(dto);
   }
 
@@ -43,25 +45,25 @@ export class AuthController {
   // so this route gets a tight limit of its own.
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('mfa/verify')
-  verifyMfa(@Body() dto: { challengeToken: string; totpCode: string }) {
+  verifyMfa(@Body() dto: VerifyMfaBody) {
     return this.authService.verifyMfaLogin(dto.challengeToken, dto.totpCode);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('forgot-password')
-  forgotPassword(@Body() body: { email: string }) {
+  forgotPassword(@Body() body: ForgotPasswordBody) {
     return this.authService.forgotPassword(body.email);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('reset-password')
-  resetPassword(@Body() body: { token: string; newPassword: string }) {
+  resetPassword(@Body() body: ResetPasswordBody) {
     return this.authService.resetPassword(body.token, body.newPassword);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @Post('google')
-  googleLogin(@Body() body: { idToken: string }) {
+  googleLogin(@Body() body: GoogleLoginBody) {
     return this.authService.googleLogin(body.idToken);
   }
 
@@ -73,7 +75,7 @@ export class AuthController {
    */
   @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Post('refresh')
-  refresh(@Body() body: { refreshToken: string }) {
+  refresh(@Body() body: RefreshBody) {
     return this.authService.refreshTokens(body.refreshToken);
   }
 
@@ -111,7 +113,7 @@ export class AuthController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: { name?: string }) {
+  updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileBody) {
     return this.authService.updateProfile(user.sub, dto);
   }
 
@@ -119,7 +121,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   changePassword(
     @CurrentUser() user: JwtPayload,
-    @Body() dto: { currentPassword: string; newPassword: string },
+    @Body() dto: ChangePasswordBody,
   ) {
     return this.authService.changePassword(user.sub, dto.currentPassword, dto.newPassword);
   }

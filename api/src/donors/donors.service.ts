@@ -85,7 +85,7 @@ export class DonorsService {
     const enriched = await Promise.all(
       data.map(async (d) => {
         const own = byDonor.get(d._id.toString()) ?? [];
-        const funded = await this.sumConverted(own, (g) => g.amount, base);
+        const funded = await this.sumConverted(own, (g) => g.amount, base, organizationId);
         return {
           ...d,
           activeGrants: own.filter((g) => g.status === 'active').length,
@@ -478,9 +478,9 @@ export class DonorsService {
     ]);
 
     const base = await this.baseCurrencyFor(organizationId);
-    const totalAwarded  = await this.sumConverted(grants, g => g.amount, base);
-    const totalSpent    = await this.sumConverted(grants, g => g.amountSpent, base);
-    const totalDisbursed = await this.sumConverted(grants, g => this.disbursedTotal(g), base);
+    const totalAwarded  = await this.sumConverted(grants, g => g.amount, base, organizationId);
+    const totalSpent    = await this.sumConverted(grants, g => g.amountSpent, base, organizationId);
+    const totalDisbursed = await this.sumConverted(grants, g => this.disbursedTotal(g), base, organizationId);
     const activeGrants  = grants.filter(g => g.status === 'active').length;
 
     return {
@@ -536,9 +536,9 @@ export class DonorsService {
     // awards only, so a sub-award isn't counted alongside its parent.
     const base = await this.baseCurrencyFor(organizationId);
     const primes = grants.filter(g => !g.parentGrantId);
-    const awarded   = await this.sumConverted(primes, g => g.amount, base);
-    const spent     = await this.sumConverted(primes, g => g.amountSpent, base);
-    const disbursed = await this.sumConverted(primes, g => this.disbursedTotal(g), base);
+    const awarded   = await this.sumConverted(primes, g => g.amount, base, organizationId);
+    const spent     = await this.sumConverted(primes, g => g.amountSpent, base, organizationId);
+    const disbursed = await this.sumConverted(primes, g => this.disbursedTotal(g), base, organizationId);
 
     return {
       baseCurrency:     base,
@@ -590,9 +590,9 @@ export class DonorsService {
     // columns. Contact email comes from the primary contact instead.
     return Promise.all(donors.map(async d => {
       const dGrants   = grantsByDonor.get(d._id.toString()) ?? [];
-      const awarded   = await this.sumConverted(dGrants, g => g.amount, base);
-      const spent     = await this.sumConverted(dGrants, g => g.amountSpent, base);
-      const disbursed = await this.sumConverted(dGrants, g => this.disbursedTotal(g), base);
+      const awarded   = await this.sumConverted(dGrants, g => g.amount, base, organizationId);
+      const spent     = await this.sumConverted(dGrants, g => g.amountSpent, base, organizationId);
+      const disbursed = await this.sumConverted(dGrants, g => this.disbursedTotal(g), base, organizationId);
       const active    = dGrants.filter(g => g.status === 'active').length;
       const primary   = (d.contacts ?? []).find(c => c.isPrimary) ?? (d.contacts ?? [])[0];
 
@@ -641,6 +641,7 @@ export class DonorsService {
     grants: Array<{ amount?: number; amountSpent?: number; currency?: string; exchangeRate?: number | null; disbursements?: any[] }>,
     pick: (g: any) => number,
     baseCurrency: string,
+    organizationId?: string,
   ): Promise<{ amount: number; unconvertible: Array<{ currency: string; amount: number }> }> {
     let total = 0;
     const stuck = new Map<string, number>();
@@ -649,7 +650,7 @@ export class DonorsService {
       const value = pick(g) ?? 0;
       if (!value) continue;
       const currency = (g.currency ?? baseCurrency).toUpperCase();
-      const res = await this.fx.convert(value, currency, baseCurrency, g.exchangeRate);
+      const res = await this.fx.convert(value, currency, baseCurrency, g.exchangeRate, organizationId);
       if (res.source === 'unavailable') {
         stuck.set(currency, (stuck.get(currency) ?? 0) + value);
       } else {

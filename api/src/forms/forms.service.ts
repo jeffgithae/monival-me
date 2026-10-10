@@ -11,6 +11,7 @@ import { FormTemplate } from './schemas/form-template.schema';
 import { Activity } from '../activities/schemas/activity.schema';
 import { Indicator } from '../indicators/schemas/indicator.schema';
 import { Project } from '../projects/schemas/project.schema';
+import { validatedItem } from '../common/utils/validate-item';
 
 @Injectable()
 export class FormsService implements OnModuleInit {
@@ -350,7 +351,8 @@ export class FormsService implements OnModuleInit {
       }
 
       try {
-        const response = await this.createResponse(organizationId, item, submittedByUserId);
+        const { clientId: _clientId, syncedFromOffline: _synced, ...record } = item as unknown as Record<string, unknown>;
+        const response = await this.createResponse(organizationId, await validatedItem(CreateFormResponseDto, record), submittedByUserId);
         await this.responseModel.updateOne(
           { _id: response._id },
           { $set: { clientId: item.clientId, syncedFromOffline: true } },

@@ -112,8 +112,10 @@ export class UpdateBudgetAllocationDto extends PartialType(CreateBudgetAllocatio
 // ─── Approve Budget ───────────────────────────────────────────────────────────
 
 export class ApproveBudgetDto {
-  @ApiProperty()
-  @IsMongoId()
+  // Accepted for backward compatibility but ignored: the approver recorded is
+  // always the authenticated caller, never an id supplied by the client.
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional() @IsMongoId()
   approverUserId?: string;
 
   @ApiPropertyOptional()

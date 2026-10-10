@@ -94,6 +94,11 @@ export class MembersService {
     });
   }
 
+  async directory(organizationId: string) {
+    const members = await this.list(organizationId);
+    return members.map((m) => ({ id: m.id, userId: m.userId, name: m.name, role: m.role }));
+  }
+
   async listInvites(organizationId: string) {
     return this.inviteModel
       .find({

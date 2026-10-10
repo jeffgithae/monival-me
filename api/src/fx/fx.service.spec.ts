@@ -22,6 +22,8 @@ describe('FxService', () => {
       findOne: jest.fn().mockReturnValue(q(null)),
       find: jest.fn().mockReturnValue(q([])),
       updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+      deleteOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+      collection: { dropIndex: jest.fn().mockResolvedValue(undefined) },
     };
     fetchMock = jest.fn();
     (global as any).fetch = fetchMock;
@@ -108,7 +110,7 @@ describe('FxService', () => {
 
       expect(ok).toBe(true);
       const [filter, update] = rateModel.updateOne.mock.calls[0];
-      expect(filter).toEqual({ baseCurrency: 'USD' });
+      expect(filter).toEqual({ baseCurrency: 'USD', organizationId: null });
       expect(update.rates).toEqual({ KES: 129.4 });
       expect(update.source).toBe('provider');
     });
@@ -150,14 +152,41 @@ describe('FxService', () => {
     });
   });
 
-  describe('manual override', () => {
-    it('stores operator rates marked as manual', async () => {
-      await service.setManualRates('usd', { KES: 130 });
+  describe('organisation overrides', () => {
+    const ORG = '6a802d8b1948b75ea09fa6b8';
+    const OTHER = '6a802d8d1948b75ea09fa746';
 
-      const [, update] = rateModel.updateOne.mock.calls[0];
-      expect(update.baseCurrency).toBe('USD');
+    it('stores an organisation\'s rates against that organisation only', async () => {
+      await service.setManualRates(ORG, 'usd', { kes: 130 });
+
+      const [filter, update] = rateModel.updateOne.mock.calls[0];
+      expect(filter.baseCurrency).toBe('USD');
+      expect(filter.organizationId.toString()).toBe(ORG);
       expect(update.source).toBe('manual');
       expect(update.rates).toEqual({ KES: 130 });
+    });
+
+    it('rejects rates that are not positive numbers or not currency codes', async () => {
+      await expect(service.setManualRates(ORG, 'USD', { KES: 0 })).rejects.toThrow();
+      await expect(service.setManualRates(ORG, 'USD', { KES: 'lots' as unknown as number })).rejects.toThrow();
+      await expect(service.setManualRates(ORG, 'USD', { SHILLINGS: 130 })).rejects.toThrow();
+      expect(rateModel.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('uses the organisation\'s rate for that organisation and the market rate for everyone else', async () => {
+      rateModel.findOne.mockImplementation((filter: any) =>
+        q(
+          filter.organizationId?.toString() === ORG
+            ? { baseCurrency: 'USD', rates: { KES: 130 }, fetchedAt: new Date() }
+            : filter.organizationId
+              ? null
+              : { baseCurrency: 'USD', rates: { KES: 129.4 }, fetchedAt: new Date() },
+        ),
+      );
+
+      expect((await service.convert(100, 'USD', 'KES', null, ORG)).amount).toBeCloseTo(13_000);
+      expect((await service.convert(100, 'USD', 'KES', null, OTHER)).amount).toBeCloseTo(12_940);
+      expect((await service.convert(100, 'USD', 'KES')).amount).toBeCloseTo(12_940);
     });
   });
 });

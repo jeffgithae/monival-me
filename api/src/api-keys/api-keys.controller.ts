@@ -17,6 +17,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { ApiKeysService, CreateApiKeyDto } from './api-keys.service';
+import { CreateApiKeyBody } from '../common/dto/request-bodies.dto';
 
 @Controller('api-keys')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard, RolesGuard)
@@ -30,7 +31,7 @@ export class ApiKeysController {
    */
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateApiKeyDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateApiKeyBody) {
     return this.apiKeysService.create(user.organizationId, user.sub, dto);
   }
 

@@ -11,6 +11,7 @@ import { SubscriptionGuard } from '../common/guards/subscription.guard';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { StakeholderFeedbackService, CreateFeedbackDto, FeedbackListQuery } from './stakeholder-feedback.service';
 import { FeedbackStatus } from './schemas/stakeholder-feedback.schema';
+import { CreateFeedbackBody, FeedbackActionBody } from '../common/dto/request-bodies.dto';
 
 @ApiTags('Stakeholder Feedback')
 @Controller('stakeholder-feedback')
@@ -21,7 +22,7 @@ export class StakeholderFeedbackController {
   @Post()
   @Roles(...PERMISSIONS.MANAGE_STAKEHOLDER_FEEDBACK)
   @ApiOperation({ summary: 'Submit a new stakeholder feedback record' })
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateFeedbackDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateFeedbackBody) {
     return this.service.create(user.organizationId, user.sub, dto);
   }
 
@@ -52,7 +53,7 @@ export class StakeholderFeedbackController {
   action(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() body: { status: FeedbackStatus; action: string; notes?: string },
+    @Body() body: FeedbackActionBody,
   ) {
     return this.service.action(user.organizationId, id, user.sub, body.status, body.action, body.notes);
   }

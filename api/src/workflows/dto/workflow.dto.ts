@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsIn, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested, IsMongoId, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, ArrayMinSize, IsEnum, IsIn, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested, IsMongoId, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WORKFLOW_ENTITY_TYPES, WorkflowEntityType } from '../workflow-entity.registry';
@@ -11,6 +11,7 @@ export class WorkflowStepDto {
 
   @ApiProperty({ example: 'Supervisor Review' })
   @IsString()
+  @IsNotEmpty({ message: 'name is required' })
   name!: string;
 
   @ApiPropertyOptional()
@@ -52,6 +53,7 @@ export class WorkflowStepDto {
 export class CreateWorkflowDefinitionDto {
   @ApiProperty({ example: 'Activity Approval Workflow' })
   @IsString()
+  @IsNotEmpty({ message: 'name is required' })
   name!: string;
 
   @ApiPropertyOptional()
@@ -65,6 +67,7 @@ export class CreateWorkflowDefinitionDto {
 
   @ApiProperty({ type: [WorkflowStepDto] })
   @IsArray()
+  @ArrayMinSize(1, { message: 'a workflow needs at least one step' })
   @ValidateNested({ each: true })
   @Type(() => WorkflowStepDto)
   steps!: WorkflowStepDto[];
@@ -73,6 +76,11 @@ export class CreateWorkflowDefinitionDto {
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class UpdateWorkflowDefinitionDto {

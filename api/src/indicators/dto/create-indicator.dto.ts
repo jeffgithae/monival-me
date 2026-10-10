@@ -10,7 +10,9 @@ export class CreateIndicatorDto {
   @IsOptional() @IsMongoId()
   parentId?: string;
 
-  @IsOptional() @IsIn(['goal','outcome','output','activity'])
+  // Kept identical to the schema's enum: a level one accepted and the other
+  // refused surfaced as a generic database error after validation had passed.
+  @IsOptional() @IsIn(['goal','outcome','output','activity','process','input'])
   level?: string;
 
   @IsString() @MinLength(1)
@@ -50,7 +52,7 @@ export class CreateIndicatorDto {
   @IsOptional() @IsArray()
   disaggregationCategories?: Array<{ dimension: string; categories: string[] }>;
 
-  @IsOptional() @IsIn(['n/a','0','1','2','3'])
+  @IsOptional() @IsIn(['n/a','0','1','2','2+'])
   genderMarker?: string;
 
   @IsOptional() @IsBoolean() isGenderDisaggregated?: boolean;

@@ -48,6 +48,16 @@ export class MembersController {
     return this.membersService.list(user.organizationId);
   }
 
+  /**
+   * Names and roles only, for assignee and approver pickers. Open to every
+   * role: the full member list (with emails) stays with those who manage the team.
+   */
+  @Get('directory')
+  @UseGuards(JwtAuthGuard, SubscriptionGuard)
+  directory(@CurrentUser() user: JwtPayload) {
+    return this.membersService.directory(user.organizationId);
+  }
+
   @Get('invites')
   @UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)

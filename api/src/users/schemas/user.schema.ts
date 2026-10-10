@@ -8,7 +8,9 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
-  @Prop({ required: false })
+  // Never returned by a query unless asked for with `.select('+passwordHash')`:
+  // a user document that ends up in a response must not carry it.
+  @Prop({ required: false, select: false })
   passwordHash!: string;
 
   /** Google OAuth subject ID — set when user signs in/up via Google */

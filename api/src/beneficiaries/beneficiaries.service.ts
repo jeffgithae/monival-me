@@ -8,6 +8,7 @@ import { Beneficiary } from './schemas/beneficiary.schema';
 import { CreateBeneficiaryDto, ProgramEnrollmentDto, ServiceRecordDto } from './dto/create-beneficiary.dto';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { validatedItem } from '../common/utils/validate-item';
 export interface BeneficiaryListQuery {
   projectId?: string;
   status?: string;
@@ -567,7 +568,8 @@ export class BeneficiariesService {
       }
 
       try {
-        const beneficiary = await this.create(organizationId, item);
+        const { clientId: _clientId, syncedFromOffline: _synced, ...record } = item as unknown as Record<string, unknown>;
+        const beneficiary = await this.create(organizationId, await validatedItem(CreateBeneficiaryDto, record));
         // Persist the clientId to prevent future duplicates. Note: a
         // duplicate nationalId/phone from the partial unique indexes throws
         // before reaching here and is caught below as a per-item error, so

@@ -43,11 +43,12 @@ export class GrantsController {
     @Query('search') search?: string,
     @Query('parentGrantId') parentGrantId?: string,
     @Query('primeOnly') primeOnly?: string,
+    @Query('projectId') projectId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.grantsService.findAll(user.organizationId, {
-      status, donorId, search, parentGrantId,
+      status, donorId, search, parentGrantId, projectId,
       primeOnly: primeOnly === 'true',
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 50,

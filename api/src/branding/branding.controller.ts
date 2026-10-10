@@ -9,6 +9,7 @@ import type { JwtPayload } from '../common/types/jwt-payload';
 import { BrandingService, UpdateBrandingDto } from './branding.service';
 import { RequireFeature } from '../common/decorators/require-feature.decorator';
 import { FeatureGuard } from '../common/guards/feature.guard';
+import { UpdateBrandingBody } from '../common/dto/request-bodies.dto';
 
 @Controller('branding')
 export class BrandingController {
@@ -44,7 +45,7 @@ export class BrandingController {
   @UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard, RolesGuard)
   @RequireFeature('hasWhiteLabel')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
-  upsert(@CurrentUser() user: JwtPayload, @Body() dto: UpdateBrandingDto) {
+  upsert(@CurrentUser() user: JwtPayload, @Body() dto: UpdateBrandingBody) {
     return this.brandingService.upsertBranding(user.organizationId, dto);
   }
 

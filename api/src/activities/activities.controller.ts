@@ -3,7 +3,7 @@ import {
   Patch, Post, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsMongoId, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiKeyOrJwtAuthGuard } from '../auth/api-key-or-jwt.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -28,7 +28,13 @@ class BulkReviewDto {
   @IsIn(['approved', 'rejected'])
   status!: 'approved' | 'rejected';
 
+  // Undecorated, this field was stripped as unknown and every bulk review was
+  // refused with "property ids should not exist".
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(500) @IsMongoId({ each: true })
   ids!: string[];
+
+  @IsOptional() @IsString() @MaxLength(500)
+  rejectionReason?: string;
 }
 
 @ApiTags('Activities')
@@ -156,7 +162,7 @@ export class ActivitiesController {
   @Roles(...PERMISSIONS.APPROVE_ACTIVITIES)
   @ApiOperation({ summary: 'Bulk approve or reject multiple submitted activities' })
   bulkReview(@CurrentUser() user: JwtPayload, @Body() dto: BulkReviewDto) {
-    return this.svc.bulkReview(user.organizationId, dto.ids, user.sub, dto.status);
+    return this.svc.bulkReview(user.organizationId, dto.ids, user.sub, dto.status, dto.rejectionReason);
   }
 
   // ─── Update & delete ───────────────────────────────────────────────────────

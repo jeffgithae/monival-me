@@ -6,7 +6,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { OrgRole } from '../common/constants/roles';
 import { BudgetService } from './budget.service';
-import { CreateBudgetAllocationDto, UpdateBudgetAllocationDto, ApproveBudgetDto, ReviseBudgetDto, BudgetQueryDto, BudgetSummaryQueryDto, CalculateVarianceDto, CreateLineItemDto, UpdateLineItemDto } from './dto/budget.dto';
+import { CreateBudgetAllocationDto, UpdateBudgetAllocationDto, ApproveBudgetDto, ReviseBudgetDto, BudgetQueryDto, BudgetSummaryQueryDto, CalculateVarianceDto, VarianceQueryDto, CreateLineItemDto, UpdateLineItemDto } from './dto/budget.dto';
 import type { JwtPayload } from '../common/types/jwt-payload';
 
 @Controller('budget')
@@ -96,6 +96,12 @@ export class BudgetController {
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE, OrgRole.ME_OFFICER)
   getVariance(@Param('id') id: string, @Body() dto: CalculateVarianceDto, @CurrentUser() user: JwtPayload) {
     return this.budgetService.calculateVariance(id, dto, user as any);
+  }
+
+  @Get('variance/:id')
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE, OrgRole.ME_OFFICER)
+  listVariance(@Param('id') id: string, @Query() query: VarianceQueryDto, @CurrentUser() user: JwtPayload) {
+    return this.budgetService.getVarianceAnalysis(id, user.organizationId, query);
   }
 
   @Get('summary')

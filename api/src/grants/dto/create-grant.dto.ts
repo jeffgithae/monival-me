@@ -1,7 +1,6 @@
 import {
   IsString, IsNumber, IsOptional, IsDateString, IsMongoId, IsArray,
-  IsBoolean, IsEnum, Min, Max, Length, ValidateNested,
-} from 'class-validator';
+  IsBoolean, IsEnum, Min, Max, Length, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class MatchFundingDto {
@@ -94,6 +93,6 @@ export class CreateGrantDto {
   termsAndConditions?: string;
 
   @IsOptional()
-  @IsEnum(['pending', 'active', 'completed', 'closed'])
+  @IsIn(['prospect', 'applied', 'awarded', 'pending', 'active', 'completed', 'closed', 'rejected'])
   status?: string;
 }

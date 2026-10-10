@@ -29,7 +29,7 @@ export class Indicator {
   parentId?: Types.ObjectId;
 
   // ── Logframe position ─────────────────────────────────────────────────────
-  @Prop({ type: String, default: 'output', enum: ['goal', 'outcome', 'output', 'process', 'input'] })
+  @Prop({ type: String, default: 'output', enum: ['goal', 'outcome', 'output', 'activity', 'process', 'input'] })
   level!: string;
 
   @Prop({ required: true, trim: true, index: true })

@@ -205,7 +205,7 @@ export class BudgetService {
     );
 
     allocation.status = BudgetStatus.APPROVED;
-    allocation.approvedBy = new Types.ObjectId(dto.approverUserId);
+    allocation.approvedBy = new Types.ObjectId(String(user._id));
     allocation.approvalDate = new Date();
     allocation.approvalNotes = dto.notes;
     allocation.lastModifiedBy = new Types.ObjectId(String(user._id));
@@ -259,8 +259,11 @@ export class BudgetService {
 
   async closeAllocation(id: string, user: RequestUser): Promise<BudgetAllocationDocument> {
     const allocation = await this.getAllocation(id, String(user.organizationId));
-    if (allocation.status !== BudgetStatus.ACTIVE) {
-      throw new BadRequestException('Only active budgets can be closed');
+    // Approval is what puts a budget in force — nothing moves it on to
+    // "active" afterwards — so an approved budget has to be closable too, or
+    // it could never be closed at all.
+    if (allocation.status !== BudgetStatus.ACTIVE && allocation.status !== BudgetStatus.APPROVED) {
+      throw new BadRequestException('Only approved or active budgets can be closed');
     }
     allocation.status = BudgetStatus.CLOSED;
     allocation.closedAt = new Date();

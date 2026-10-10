@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PERMISSIONS } from '../common/constants/roles';
+import { OrgRole, PERMISSIONS } from '../common/constants/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -13,8 +13,11 @@ import { AuditService } from './audit.service';
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
+  // The log records the before and after of every change in the organisation,
+  // budgets and grants included, so it is for the people who run it — as the
+  // menu already says.
   @Get()
-  @Roles(...PERMISSIONS.VIEW_REPORTS)
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   list(
     @CurrentUser() user: JwtPayload,
     @Query('entityType') entityType?: string,

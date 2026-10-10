@@ -38,6 +38,9 @@ export class BalancedScorecard {
             target: Number,
             current: { type: Number, default: 0 },
             status: { type: String, enum: ['on_track', 'at_risk', 'off_track'], default: 'on_track' },
+            // OKRs that deliver this objective. When any are linked, `current`
+            // is derived from their progress instead of being typed in.
+            linkedOkrIds: { type: [SchemaTypes.ObjectId], ref: 'OKR', default: [] },
           },
         ],
       },
@@ -55,6 +58,7 @@ export class BalancedScorecard {
       target: number;
       current: number;
       status: string;
+      linkedOkrIds?: Types.ObjectId[];
     }>;
   }>;
 
@@ -70,6 +74,5 @@ export class BalancedScorecard {
 
 export const BalancedScorecardSchema = SchemaFactory.createForClass(BalancedScorecard);
 
-BalancedScorecardSchema.index({ organizationId: 1 });
-BalancedScorecardSchema.index({ fiscalYear: 1 });
+BalancedScorecardSchema.index({ organizationId: 1, fiscalYear: -1 });
 BalancedScorecardSchema.index({ status: 1 });

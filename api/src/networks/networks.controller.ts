@@ -18,6 +18,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { NetworksService, CreateNetworkDto, InviteMemberDto } from './networks.service';
+import { CreateNetworkBody, InviteNetworkMemberBody, RespondNetworkInviteBody } from '../common/dto/request-bodies.dto';
 
 @Controller('networks')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard, RolesGuard)
@@ -28,7 +29,7 @@ export class NetworksController {
   /** POST /networks — create a new partner network */
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateNetworkDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateNetworkBody) {
     return this.networksService.create(user.organizationId, dto);
   }
 
@@ -52,7 +53,7 @@ export class NetworksController {
   inviteMember(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: InviteMemberDto,
+    @Body() dto: InviteNetworkMemberBody,
   ) {
     return this.networksService.inviteMember(id, user.organizationId, user.sub, dto);
   }
@@ -63,7 +64,7 @@ export class NetworksController {
   respond(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() body: { accept: boolean },
+    @Body() body: RespondNetworkInviteBody,
   ) {
     return this.networksService.respondToInvite(id, user.organizationId, body.accept);
   }

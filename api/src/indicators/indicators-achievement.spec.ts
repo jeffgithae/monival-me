@@ -9,6 +9,7 @@ import { Activity } from '../activities/schemas/activity.schema';
 import { IndicatorResult } from '../reporting/schemas/indicator-result.schema';
 import { IndicatorTarget } from '../reporting/schemas/indicator-target.schema';
 import { ReportingPeriod } from '../reporting/schemas/reporting-period.schema';
+import { FormResponse } from '../forms/schemas/form-response.schema';
 import { EntitlementsService } from '../organizations/entitlements.service';
 import { AuditService } from '../audit/audit.service';
 
@@ -32,6 +33,8 @@ describe('IndicatorsService.achievementForProject', () => {
   let projectModel: any;
   let activityModel: any;
   let resultModel: any;
+  let periodModel: any;
+  let formResponseModel: any;
 
   beforeEach(async () => {
     projectModel = {
@@ -47,6 +50,8 @@ describe('IndicatorsService.achievementForProject', () => {
     };
     activityModel = { aggregate: jest.fn().mockResolvedValue([]) };
     resultModel = { find: jest.fn().mockReturnValue(q([])) };
+    periodModel = { find: jest.fn().mockReturnValue(q([])) };
+    formResponseModel = { aggregate: jest.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -56,7 +61,8 @@ describe('IndicatorsService.achievementForProject', () => {
         { provide: getModelToken(Activity.name), useValue: activityModel },
         { provide: getModelToken(IndicatorResult.name), useValue: resultModel },
         { provide: getModelToken(IndicatorTarget.name), useValue: {} },
-        { provide: getModelToken(ReportingPeriod.name), useValue: {} },
+        { provide: getModelToken(ReportingPeriod.name), useValue: periodModel },
+        { provide: getModelToken(FormResponse.name), useValue: formResponseModel },
         { provide: EntitlementsService, useValue: {} },
         { provide: AuditService, useValue: { log: jest.fn() } },
       ],
@@ -129,28 +135,83 @@ describe('IndicatorsService.achievementForProject', () => {
     ).toBe(300);
   });
 
-  it('prefers a locked reporting-period result over recomputed activity sums', async () => {
-    activityModel.aggregate.mockResolvedValue([
-      {
-        _id: IND_A,
-        approved: 400,
-        submitted: 0,
-        activityCount: 9,
-        lastActivityDate: null,
-      },
-    ]);
-    resultModel.find.mockReturnValue(
-      q([{ indicatorId: IND_A, achieved: 999 }]),
-    );
+  describe('with a finalised reporting period', () => {
+    const PERIOD_ID = new Types.ObjectId();
+    const Q1 = { _id: PERIOD_ID, startDate: new Date('2026-01-01'), endDate: new Date('2026-03-31') };
 
-    const { indicators } = await service.achievementForProject(
-      ORG_ID,
-      PROJECT_ID,
-    );
+    /** First aggregate: everything. Second: what falls inside finalised periods. */
+    const givenActivity = (all: number, insideQ1: number) => {
+      activityModel.aggregate
+        .mockResolvedValueOnce([{ _id: IND_A, approved: all, submitted: 0, activityCount: 9, lastActivityDate: null }])
+        .mockResolvedValueOnce(insideQ1 ? [{ _id: IND_A, approved: insideQ1, submitted: 0 }] : []);
+    };
+
+    beforeEach(() => {
+      periodModel.find.mockReturnValue(q([Q1]));
+    });
+
+    it('keeps the finalised figure for its period even if the activities are later recounted differently', async () => {
+      // Q1 was signed off at 999; its activities now sum to 400.
+      givenActivity(400, 400);
+      resultModel.find.mockReturnValue(q([{ indicatorId: IND_A, reportingPeriodId: PERIOD_ID, achieved: 999 }]));
+
+      const { indicators } = await service.achievementForProject(ORG_ID, PROJECT_ID);
+      const a = indicators.find((i) => i.indicatorId === IND_A.toString())!;
+
+      expect(a.achieved).toBe(999);
+      expect(a.isLocked).toBe(true);
+    });
+
+    it('adds activity logged after the finalised period on top of it', async () => {
+      // Q1 signed off at 100; 250 approved in total, so 150 since.
+      givenActivity(250, 100);
+      resultModel.find.mockReturnValue(q([{ indicatorId: IND_A, reportingPeriodId: PERIOD_ID, achieved: 100 }]));
+
+      const { indicators } = await service.achievementForProject(ORG_ID, PROJECT_ID);
+
+      // One approved quarter must not become the indicator's whole total.
+      expect(indicators.find((i) => i.indicatorId === IND_A.toString())!.achieved).toBe(250);
+    });
+
+    it('only excludes activity inside the windows of that indicator\'s own finalised results', async () => {
+      givenActivity(250, 100);
+      resultModel.find.mockReturnValue(q([{ indicatorId: IND_A, reportingPeriodId: PERIOD_ID, achieved: 100 }]));
+
+      await service.achievementForProject(ORG_ID, PROJECT_ID);
+
+      const [{ $match }] = activityModel.aggregate.mock.calls[1][0];
+      expect($match.$or).toEqual([{ indicatorId: IND_A, activityDate: { $gte: Q1.startDate, $lte: Q1.endDate } }]);
+    });
+
+    it('reports the latest reading for a snapshot indicator instead of adding readings up', async () => {
+      indicatorModel.find.mockReturnValue(q([{ _id: IND_A, code: 'OC1', target: 80, baseline: 40, cumulative: false }]));
+      resultModel.find.mockReturnValue(q([{ indicatorId: IND_A, reportingPeriodId: PERIOD_ID, achieved: 52 }]));
+      activityModel.aggregate
+        .mockResolvedValueOnce([{ _id: IND_A, approved: 52 + 61, submitted: 0, activityCount: 2, lastActivityDate: null }])
+        .mockResolvedValueOnce([{ _id: IND_A, approved: 52, submitted: 0 }])
+        // A survey after Q1 closed read 61%.
+        .mockResolvedValueOnce([{ _id: IND_A, quantity: 61, activityDate: new Date('2026-06-15') }]);
+
+      const { indicators } = await service.achievementForProject(ORG_ID, PROJECT_ID);
+
+      expect(indicators[0].achieved).toBe(61);
+    });
+  });
+
+  it('counts approved form responses alongside activities', async () => {
+    activityModel.aggregate.mockResolvedValue([
+      { _id: IND_A, approved: 400, submitted: 0, activityCount: 9, lastActivityDate: null },
+    ]);
+    // 150 more reached the indicator through a form (e.g. a Kobo sync).
+    formResponseModel.aggregate.mockResolvedValue([{ _id: IND_A, total: 150, count: 3, last: null }]);
+
+    const { indicators } = await service.achievementForProject(ORG_ID, PROJECT_ID);
     const a = indicators.find((i) => i.indicatorId === IND_A.toString())!;
 
-    expect(a.achieved).toBe(999);
-    expect(a.isLocked).toBe(true);
+    expect(a.achieved).toBe(550);
+    expect(a.activityCount).toBe(12);
+    const [{ $match }] = formResponseModel.aggregate.mock.calls[0][0];
+    expect($match.approvalStatus).toBe('approved');
   });
 
   it('measures percent complete from the baseline, not from zero', async () => {

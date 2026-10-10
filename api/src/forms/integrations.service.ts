@@ -1,9 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { randomBytes, timingSafeEqual } from 'crypto';
+import { BadRequestException, Injectable, Logger, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model, Types } from 'mongoose';
@@ -62,6 +58,39 @@ export class IntegrationsService {
     }
   }
 
+  // ── Credentials ─────────────────────────────────────────────────────────────
+
+  /**
+   * An integration's config holds third-party credentials (API tokens, an ODK
+   * password, the webhook secret). People who can only view data collection
+   * get the integration without them.
+   */
+  static withoutSecrets<T extends { config?: Record<string, unknown> }>(integration: T): T {
+    const config = { ...(integration.config ?? {}) };
+    for (const key of Object.keys(config)) {
+      if (/token|password|secret|apikey|api_key/i.test(key) && config[key]) config[key] = '••••••••';
+    }
+    return { ...integration, config };
+  }
+
+  /**
+   * Receives a push from an external system. The caller has no user session,
+   * so it proves itself with the integration's own secret; the organisation
+   * comes from the integration, never from the request.
+   */
+  async ingestWebhookBySecret(id: string, secret: string | undefined, payload: Record<string, unknown>) {
+    const invalid = new UnauthorizedException('Invalid webhook credentials');
+    if (!secret || !Types.ObjectId.isValid(id)) throw invalid;
+    const integration = await this.integrationModel.findOne({ _id: id, platform: 'webhook' }).lean();
+    const expected = (integration?.config as { secret?: string } | undefined)?.secret;
+    if (!integration || !expected) throw invalid;
+    const a = Buffer.from(secret);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) throw invalid;
+    if (!integration.isActive) throw new ForbiddenException('This webhook is switched off');
+    return this.ingestWebhook(integration.organizationId.toString(), id, payload);
+  }
+
   // ── CRUD ────────────────────────────────────────────────────────────────────
 
   findAll(organizationId: string, projectId?: string) {
@@ -93,7 +122,11 @@ export class IntegrationsService {
       description: dto.description,
       platform: dto.platform as IntegrationPlatform,
       isActive: dto.isActive ?? true,
-      config: dto.config ?? {},
+      // A webhook gets its own secret: it is what an external system presents
+      // instead of a user session.
+      config: dto.platform === 'webhook'
+        ? { ...(dto.config ?? {}), secret: randomBytes(24).toString('hex') }
+        : dto.config ?? {},
       fieldMapping: dto.fieldMapping ?? {},
       indicatorId: dto.indicatorId,
       activityId: dto.activityId,
@@ -104,6 +137,19 @@ export class IntegrationsService {
   }
 
   async update(organizationId: string, id: string, dto: UpdateIntegrationDto) {
+    if (dto.config) {
+      // The edit form sends the whole config back; keep the secrets it did not
+      // (and, for a redacted view, could not) include rather than wiping them.
+      const existing = await this.findOne(organizationId, id);
+      const previous = (existing.config ?? {}) as Record<string, unknown>;
+      const next = { ...dto.config } as Record<string, unknown>;
+      for (const [key, value] of Object.entries(previous)) {
+        const isSecret = /token|password|secret|apikey|api_key/i.test(key);
+        if (isSecret && (next[key] === undefined || next[key] === '' || next[key] === '••••••••')) next[key] = value;
+      }
+      if (existing.platform === 'webhook') next['secret'] = previous['secret'];
+      dto = { ...dto, config: next };
+    }
     const updated = await this.integrationModel
       .findOneAndUpdate(
         { _id: id, organizationId: new Types.ObjectId(organizationId) },

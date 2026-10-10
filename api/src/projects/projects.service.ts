@@ -47,7 +47,16 @@ export interface ProjectListQuery {
   isTemplate?: boolean;
   page?: number;
   limit?: number;
+  /** `summary` drops the embedded workplan, milestones, risks and long text — what a list needs. */
+  view?: string;
+  /** Field to sort by, prefixed with `-` for descending. */
+  sort?: string;
 }
+
+const SORTABLE = new Set(['name', 'status', 'sector', 'donor', 'startDate', 'endDate', 'totalBudget', 'createdAt']);
+const SUMMARY_FIELDS =
+  'name projectCode description sector status projectPhase donor donorId totalBudget currency startDate endDate ' +
+  'country region district projectManagerName targetDirectBeneficiaries tags geoPoint grantIds isArchived createdAt updatedAt';
 
 @Injectable()
 export class ProjectsService {
@@ -104,15 +113,40 @@ export class ProjectsService {
     }
 
     const page  = Math.max(1, query.page  ?? 1);
-    const limit = Math.min(100, query.limit ?? 50);
+    const limit = Math.max(1, Math.min(100, query.limit ?? 50));
     const skip  = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      this.projectModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    const descending = query.sort?.startsWith('-') ?? false;
+    const sortField = (query.sort ?? '').replace(/^-/, '');
+    // _id breaks ties so paging is stable when many rows share a sort value.
+    const sort: Record<string, 1 | -1> = SORTABLE.has(sortField)
+      ? { [sortField]: descending ? -1 : 1, _id: 1 }
+      : { createdAt: -1, _id: 1 };
+
+    // Status counts ignore the status filter itself, so the tabs on the list
+    // can show how many projects each one holds under the current search.
+    const { status: _status, ...withoutStatus } = filter;
+
+    const find = this.projectModel.find(filter).sort(sort).skip(skip).limit(limit);
+    if (query.view === 'summary') find.select(SUMMARY_FIELDS);
+
+    const [data, total, byStatus] = await Promise.all([
+      find.lean(),
       this.projectModel.countDocuments(filter),
+      this.projectModel.aggregate<{ _id: string; count: number }>([
+        { $match: withoutStatus },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
     ]);
 
-    return { data, total, page, limit, pages: Math.ceil(total / limit) };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+      statusCounts: Object.fromEntries(byStatus.map((s) => [s._id ?? 'unknown', s.count])),
+    };
   }
 
   async findOne(organizationId: string, id: string) {

@@ -104,7 +104,7 @@ export class MailerService {
     <a href="${opts.reportUrl}" class="btn">View Report →</a>
   </div>
   <div class="footer">
-    You are receiving this because you have a scheduled report configured in Evidara .
+    You are receiving this because you have a scheduled report configured in Evidara.
     <a href="${opts.reportUrl}/settings">Manage notification preferences</a>
   </div>
 </div>

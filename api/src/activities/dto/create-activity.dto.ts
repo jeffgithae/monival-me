@@ -38,7 +38,12 @@ export class CreateActivityDto {
   @IsDateString()
   activityDate!: string;
 
-  @IsOptional() @IsString()
+  // Mirrors the schema enum so a bad value gets a specific 400 here rather
+  // than a generic "Invalid data submitted" from the database layer.
+  @IsOptional() @IsIn([
+    'training', 'distribution', 'meeting', 'survey', 'assessment', 'construction', 'repair', 'health_service', 'awareness',
+    'coordination', 'monitoring', 'community_engagement', 'capacity_building', 'advocacy', 'research', 'data_collection', 'cash_transfer', 'other',
+  ])
   activityType?: string;
 
   // Location

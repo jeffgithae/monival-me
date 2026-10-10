@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
 export type ExchangeRateDocument = HydratedDocument<ExchangeRate>;
 
@@ -12,6 +12,14 @@ export type ExchangeRateDocument = HydratedDocument<ExchangeRate>;
 export class ExchangeRate {
   @Prop({ required: true, uppercase: true, trim: true })
   baseCurrency!: string;
+
+  /**
+   * Null for market rates, which every organisation shares. Set on an
+   * organisation's own overrides, which apply to that organisation alone —
+   * one tenant's accounting rate must never reprice another's portfolio.
+   */
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Organization', default: null })
+  organizationId?: Types.ObjectId | null;
 
   /** { "KES": 129.4, "EUR": 0.92, … } — units of quote per 1 base. */
   @Prop({ type: Object, required: true })
@@ -30,4 +38,4 @@ export class ExchangeRate {
 
 export const ExchangeRateSchema = SchemaFactory.createForClass(ExchangeRate);
 
-ExchangeRateSchema.index({ baseCurrency: 1 }, { unique: true });
+ExchangeRateSchema.index({ baseCurrency: 1, organizationId: 1 }, { unique: true });

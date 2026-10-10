@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -18,6 +18,7 @@ import { Activity } from './schemas/activity.schema';
 import { FormResponse } from '../forms/schemas/form-response.schema';
 import { ActivityTemplate } from './schemas/activity-template.schema';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { validatedItem } from '../common/utils/validate-item';
 
 export interface ActivityListQuery {
   projectId?: string;
@@ -374,9 +375,10 @@ export class ActivitiesService implements OnModuleInit {
     const results: any[] = [];
     const errors: Array<{ index: number; message: string }> = [];
 
+    if (!Array.isArray(dtos)) throw new BadRequestException('activities must be a list');
     for (let i = 0; i < dtos.length; i++) {
       try {
-        const activity = await this.create(organizationId, dtos[i], role, userId);
+        const activity = await this.create(organizationId, await validatedItem(CreateActivityDto, dtos[i]), role, userId);
         results.push(activity);
       } catch (err: any) {
         errors.push({ index: i, message: err.message });
@@ -404,10 +406,10 @@ export class ActivitiesService implements OnModuleInit {
     role: OrgRole,
     userId: string,
   ) {
-    if (!items?.length) return { synced: 0, skipped: 0, errors: [], results: [] };
+    if (!Array.isArray(items) || !items.length) return { synced: 0, skipped: 0, errors: [], results: [] };
 
     // Step 1: find which clientIds are already persisted
-    const clientIds = items.map(i => i.clientId).filter(Boolean);
+    const clientIds = items.map(i => i?.clientId).filter((id): id is string => typeof id === 'string' && !!id);
     const existing  = await this.activityModel
       .find({ organizationId: new Types.ObjectId(organizationId), clientId: { $in: clientIds } })
       .select('clientId')
@@ -438,9 +440,10 @@ export class ActivitiesService implements OnModuleInit {
       }
 
       try {
+        const { clientId: _clientId, syncedFromOffline: _synced, ...record } = item as unknown as Record<string, unknown>;
         const activity = await this.create(
           organizationId,
-          { ...item, syncedFromOffline: true } as any,
+          { ...(await validatedItem(CreateActivityDto, record)), syncedFromOffline: true } as any,
           role,
           userId,
         );
@@ -486,6 +489,12 @@ export class ActivitiesService implements OnModuleInit {
     // made there — a direct review would silently bypass the reviewer chain.
     if (!opts?.viaWorkflow) {
       await this.workflowService.assertNoActiveWorkflow(organizationId, 'activity', id);
+      // A rejection without a reason leaves the person who logged the activity
+      // with nothing to act on, and an audit trail with a hole in it. (A
+      // workflow rejection carries its own comment and is recorded there.)
+      if (status === 'rejected' && !rejectionReason?.trim()) {
+        throw new BadRequestException('A reason is required when rejecting an activity');
+      }
     }
 
     const activity = await this.activityModel
@@ -556,7 +565,13 @@ export class ActivitiesService implements OnModuleInit {
     ids: string[],
     reviewerId: string,
     status: 'approved' | 'rejected',
+    rejectionReason?: string,
   ) {
+    // Same rule as a single review: everyone whose activity is rejected is
+    // owed the reason.
+    if (status === 'rejected' && !rejectionReason?.trim()) {
+      throw new BadRequestException('A reason is required when rejecting activities');
+    }
     const result = await this.activityModel.updateMany(
       {
         _id:            { $in: ids.map(id => new Types.ObjectId(id)) },
@@ -567,12 +582,14 @@ export class ActivitiesService implements OnModuleInit {
         status,
         reviewedByUserId: new Types.ObjectId(reviewerId),
         reviewedAt:       new Date(),
+        ...(status === 'rejected' ? { rejectionReason: rejectionReason!.trim() } : {}),
       },
     );
 
     await this.audit.record({
       organizationId, actorUserId: reviewerId,
       action: `activity.bulk_${status}`, entityType: 'Activity',
+      reason: status === 'rejected' ? rejectionReason?.trim() : undefined,
       metadata: { ids, status, modifiedCount: result.modifiedCount },
     });
 

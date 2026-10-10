@@ -16,7 +16,7 @@ export class BalancedScorecardController {
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
   async create(@CurrentUser() user: any, @Body() createDto: CreateBalancedScorecardDto) {
-    return this.bscService.create(user.organizationId, createDto);
+    return this.bscService.create(user.organizationId, createDto, user.sub);
   }
 
   @Get()
@@ -45,7 +45,7 @@ export class BalancedScorecardController {
     @Param('id') id: string,
     @Body() updateDto: UpdateBalancedScorecardDto,
   ) {
-    return this.bscService.update(id, user.organizationId, updateDto);
+    return this.bscService.update(id, user.organizationId, updateDto, user.sub);
   }
 
   @Patch(':id/objective/:perspectiveIndex/:objectiveIndex')
@@ -74,13 +74,13 @@ export class BalancedScorecardController {
 
   @Post(':id/mark-reviewed')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
-  async markAsReviewed(@CurrentUser() user: any, @Param('id') id: string, @Body() body: { reviewerUserId: string }) {
-    return this.bscService.markAsReviewed(id, user.organizationId, body.reviewerUserId);
+  async markAsReviewed(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.bscService.markAsReviewed(id, user.organizationId, user.sub);
   }
 
   @Delete(':id')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   async delete(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.bscService.delete(id, user.organizationId);
+    return this.bscService.delete(id, user.organizationId, user.sub);
   }
 }

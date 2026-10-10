@@ -112,8 +112,58 @@ export class ReportingService implements OnModuleInit {
     if (status) {
       filter.status = status;
     }
-    const periods = await this.periodModel.find(filter).sort({ startDate: -1 }).lean();
-    return Promise.all(periods.map((p) => this.enrichPeriod(p)));
+    // One aggregation counts each period's activities, and two lookups resolve
+    // every project and user name. Enriching period by period issued five
+    // queries each — over 800 for a portfolio with 160 periods.
+    const periods = await this.periodModel.aggregate<Record<string, any>>([
+      { $match: filter },
+      { $sort: { startDate: -1 } },
+      {
+        $lookup: {
+          from: this.activityModel.collection.name,
+          let: { projectId: '$projectId', start: '$startDate', end: '$endDate' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$organizationId', orgId] },
+                    { $eq: ['$projectId', '$$projectId'] },
+                    { $gte: ['$activityDate', '$$start'] },
+                    { $lte: ['$activityDate', '$$end'] },
+                  ],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                approved: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } },
+              },
+            },
+          ],
+          as: 'activityStats',
+        },
+      },
+    ]);
+
+    const userIds = periods.flatMap((p) => [p.submittedByUserId, p.approvedByUserId]).filter((id) => !!id);
+    const [projects, users] = await Promise.all([
+      this.projectModel.find({ _id: { $in: periods.map((p) => p.projectId) }, organizationId: orgId }).select('name').lean(),
+      userIds.length ? this.userModel.find({ _id: { $in: userIds } }).select('name email').lean() : [],
+    ]);
+    const projectName = new Map(projects.map((p) => [p._id.toString(), p.name]));
+    const userById = new Map(users.map((u) => [u._id.toString(), { name: u.name, email: u.email }]));
+
+    return periods.map(({ activityStats, ...period }) => ({
+      ...period,
+      projectName: projectName.get(period.projectId?.toString()),
+      submittedBy: period.submittedByUserId ? userById.get(period.submittedByUserId.toString()) : undefined,
+      approvedBy: period.approvedByUserId ? userById.get(period.approvedByUserId.toString()) : undefined,
+      totalActivities: activityStats[0]?.total ?? 0,
+      approvedActivities: activityStats[0]?.approved ?? 0,
+    }));
   }
 
   async getPeriod(organizationId: string, id: string) {

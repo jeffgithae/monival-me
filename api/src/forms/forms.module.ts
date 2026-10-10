@@ -8,7 +8,7 @@ import { FormResponse, FormResponseSchema } from './schemas/form-response.schema
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Indicator, IndicatorSchema } from '../indicators/schemas/indicator.schema';
 import { Activity, ActivitySchema } from '../activities/schemas/activity.schema';
-import { IntegrationsController } from './integrations.controller';
+import { IntegrationsController, IntegrationWebhookController } from './integrations.controller';
 import { IntegrationsService } from './integrations.service';
 import { ExternalIntegration, ExternalIntegrationSchema } from './schemas/external-integration.schema';
 import { AuditModule } from '../audit/audit.module';
@@ -28,7 +28,7 @@ import { WorkflowsModule } from '../workflows/workflows.module';
       { name: Activity.name, schema: ActivitySchema },
     ]),
   ],
-  controllers: [FormsController, IntegrationsController],
+  controllers: [FormsController, IntegrationsController, IntegrationWebhookController],
   providers: [FormsService, IntegrationsService],
   exports: [IntegrationsService, FormsService],
 })

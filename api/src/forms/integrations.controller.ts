@@ -1,7 +1,8 @@
 import {
   Body, Controller, Delete, Get, Param, Patch, Post,
-  Query, UseGuards, UploadedFile, UseInterceptors,
+  Query, UseGuards, UploadedFile, UseInterceptors, Headers,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
@@ -35,17 +36,24 @@ export class IntegrationsController {
 
   @Get()
   @Roles(...PERMISSIONS.VIEW_DATA_COLLECTION)
-  findAll(
+  async findAll(
     @CurrentUser() user: JwtPayload,
     @Query('projectId') projectId?: string,
   ) {
-    return this.service.findAll(user.organizationId, projectId);
+    const integrations = await this.service.findAll(user.organizationId, projectId);
+    return this.mayManage(user) ? integrations : integrations.map((i) => IntegrationsService.withoutSecrets(i));
+  }
+
+  /** Only those who configure integrations see the credentials inside them. */
+  private mayManage(user: JwtPayload): boolean {
+    return (PERMISSIONS.MANAGE_DATA_COLLECTION as readonly string[]).includes(user.role);
   }
 
   @Get(':id')
   @Roles(...PERMISSIONS.VIEW_DATA_COLLECTION)
-  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.service.findOne(user.organizationId, id);
+  async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const integration = await this.service.findOne(user.organizationId, id);
+    return this.mayManage(user) ? integration : IntegrationsService.withoutSecrets(integration);
   }
 
   @Post()
@@ -81,17 +89,6 @@ export class IntegrationsController {
     @Param('id') id: string,
   ) {
     return this.service.triggerSync(user.organizationId, id, user.sub);
-  }
-
-  /** Receive incoming webhook push (no subscription/role guard — external caller) */
-  @Post(':id/webhook')
-  @UseGuards(JwtAuthGuard)
-  ingestWebhook(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-    @Body() payload: Record<string, unknown>,
-  ) {
-    return this.service.ingestWebhook(user.organizationId, id, payload);
   }
 
   /** Upload a CSV file and import rows as form responses */
@@ -136,4 +133,24 @@ function splitLine(line: string, delimiter: string): string[] {
   }
   result.push(cur);
   return result;
+}
+
+/**
+ * Where external systems push data. There is no user session here: the caller
+ * presents the integration's secret in `X-Webhook-Secret`. Kept in its own
+ * controller so none of the session guards above apply to it.
+ */
+@Controller('forms/integrations')
+export class IntegrationWebhookController {
+  constructor(private readonly service: IntegrationsService) {}
+
+  @Post(':id/webhook')
+  @Throttle({ default: { ttl: 60_000, limit: 120 } })
+  ingest(
+    @Param('id') id: string,
+    @Headers('x-webhook-secret') secret: string | undefined,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    return this.service.ingestWebhookBySecret(id, secret, payload);
+  }
 }

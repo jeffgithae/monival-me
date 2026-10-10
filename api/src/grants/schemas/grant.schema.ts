@@ -189,7 +189,7 @@ export class Grant {
 
   @Prop({
     type: String,
-    enum: ['pending', 'active', 'completed', 'closed'],
+    enum: ['prospect', 'applied', 'awarded', 'pending', 'active', 'completed', 'closed', 'rejected'],
     default: 'active',
   })
   status!: string;

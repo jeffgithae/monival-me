@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { MfaService } from './mfa.service';
+import { MfaCodeBody } from '../common/dto/request-bodies.dto';
 
 @Controller('mfa')
 @UseGuards(JwtAuthGuard)
@@ -38,7 +39,7 @@ export class MfaController {
   @Post('enroll/verify')
   enrollVerify(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { code: string },
+    @Body() body: MfaCodeBody,
   ) {
     return this.mfaService.enrollVerify(user.sub, body.code);
   }
@@ -51,7 +52,7 @@ export class MfaController {
   @Post('disable')
   disable(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { code: string },
+    @Body() body: MfaCodeBody,
   ) {
     return this.mfaService.disable(user.sub, body.code);
   }

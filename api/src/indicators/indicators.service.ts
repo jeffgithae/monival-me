@@ -13,6 +13,7 @@ import { UpdateIndicatorDto } from './dto/update-indicator.dto';
 import { Indicator } from './schemas/indicator.schema';
 import { paginate, toPaginatedResult } from '../common/types/paginated-results';
 import { escapeRegex } from '../common/utils/escape-regex';
+import { FormResponse } from '../forms/schemas/form-response.schema';
 
 export interface IndicatorListQuery {
   projectId?: string;
@@ -34,6 +35,7 @@ export class IndicatorsService {
     @InjectModel(IndicatorResult.name) private readonly resultModel: Model<IndicatorResult>,
     @InjectModel(IndicatorTarget.name) private readonly targetModel: Model<IndicatorTarget>,
     @InjectModel(ReportingPeriod.name) private readonly periodModel: Model<ReportingPeriod>,
+    @InjectModel(FormResponse.name) private readonly formResponseModel: Model<FormResponse>,
     private readonly entitlements: EntitlementsService,
     private readonly audit: AuditService,
   ) {}
@@ -81,21 +83,16 @@ export class IndicatorsService {
     return indicator;
   }
 
-  // ─── Achievement (server-computed progress for a whole project) ───────────
+  // ─── Achievement (server-computed progress) ────────────────────────────────
 
   /**
    * Per-indicator achievement for every indicator on a project.
    *
-   * This is the single source of truth for "how much has been achieved" and
-   * deliberately mirrors the donor report's semantics: unbounded (an
-   * aggregation, not a page of activities), restricted to `approved` and
-   * `submitted` activities so drafts and rejected entries never inflate a
-   * number, and preferring a locked IndicatorResult where one exists.
-   *
-   * The project page used to sum `quantity` over whatever the paginated
-   * activities endpoint returned — the first 50 records, every status included
-   * — so the same indicator reported two different numbers depending on which
-   * screen the user was on. Both screens now read from here.
+   * This is the single source of truth for "how much has been achieved":
+   * unbounded (an aggregation, not a page of activities) and restricted to
+   * `approved` and `submitted` activities so drafts and rejected entries never
+   * inflate a number. See `computeAchievement` for how finalised reporting
+   * periods and later activity combine.
    */
   async achievementForProject(organizationId: string, projectId: string) {
     const orgId = new Types.ObjectId(organizationId);
@@ -105,7 +102,6 @@ export class IndicatorsService {
     if (!project) throw new NotFoundException('Project not found');
 
     const projectObjectId = new Types.ObjectId(projectId);
-
     const indicators = await this.indicatorModel
       .find({ projectId: projectObjectId, organizationId: orgId })
       .sort({ code: 1 })
@@ -115,69 +111,14 @@ export class IndicatorsService {
       return { projectId, indicators: [] };
     }
 
-    const indicatorIds = indicators.map((i) => i._id);
-
-    // Sum quantity per indicator across ALL matching activities, and carry the
-    // most recent activity date along for the staleness checks the UI renders.
-    const sums = await this.activityModel.aggregate<{
-      _id: Types.ObjectId;
-      approved: number;
-      submitted: number;
-      lastActivityDate: Date | null;
-      activityCount: number;
-    }>([
-      {
-        $match: {
-          organizationId: orgId,
-          projectId: projectObjectId,
-          indicatorId: { $in: indicatorIds },
-          status: { $in: ['approved', 'submitted'] },
-        },
-      },
-      {
-        $group: {
-          _id: '$indicatorId',
-          approved: {
-            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, { $ifNull: ['$quantity', 0] }, 0] },
-          },
-          submitted: {
-            $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, { $ifNull: ['$quantity', 0] }, 0] },
-          },
-          lastActivityDate: { $max: '$activityDate' },
-          activityCount: { $sum: 1 },
-        },
-      },
-    ]);
-    const sumMap = new Map(sums.map((s) => [s._id.toString(), s]));
-
-    // A locked (approved) result for a closed reporting period is authoritative
-    // and outranks anything recomputed from activities.
-    const lockedResults = await this.resultModel
-      .find({
-        organizationId: orgId,
-        indicatorId: { $in: indicatorIds },
-        status: 'approved',
-      })
-      .sort({ updatedAt: -1 })
-      .lean();
-    const lockedMap = new Map<string, number>();
-    for (const r of lockedResults) {
-      const key = r.indicatorId.toString();
-      if (!lockedMap.has(key)) lockedMap.set(key, r.achieved);
-    }
+    const computed = await this.computeAchievement(orgId, indicators, { projectId: projectObjectId });
 
     return {
       projectId,
       indicators: indicators.map((indicator) => {
         const key = indicator._id.toString();
-        const agg = sumMap.get(key);
-        // Approved-only where any approved data exists — matching the donor
-        // report — otherwise fall back to submitted-but-not-yet-approved so a
-        // project mid-approval-cycle doesn't read as zero.
-        const fromActivities = (agg?.approved ?? 0) > 0
-          ? (agg?.approved ?? 0)
-          : (agg?.approved ?? 0) + (agg?.submitted ?? 0);
-        const achieved = lockedMap.get(key) ?? fromActivities;
+        const result = computed.get(key)!;
+        const achieved = result.achieved;
 
         const target = indicator.target ?? 0;
         const baseline = indicator.baseline ?? 0;
@@ -192,12 +133,189 @@ export class IndicatorsService {
           baseline: indicator.baseline ?? 0,
           percentComplete,
           remaining: indicator.target ? Math.max(0, indicator.target - achieved) : null,
-          isLocked: lockedMap.has(key),
-          activityCount: agg?.activityCount ?? 0,
-          lastActivityDate: agg?.lastActivityDate ?? null,
+          isLocked: result.hasFinalisedPeriods,
+          activityCount: result.activityCount,
+          lastActivityDate: result.lastActivityDate,
         };
       }),
     };
+  }
+
+  /**
+   * Achieved value for a set of indicators, with the same semantics as
+   * `achievementForProject`. Other modules that roll indicator progress upward
+   * — OKR key results, and through them the balanced scorecard — read from
+   * here so every screen agrees on the number. Ids that don't belong to the
+   * organisation are simply absent from the map.
+   */
+  async achievedFor(organizationId: string, indicatorIds: Array<string | Types.ObjectId>): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    const ids = indicatorIds
+      .map((id) => id?.toString())
+      .filter((id): id is string => !!id && Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    if (ids.length === 0) return result;
+
+    const orgId = new Types.ObjectId(organizationId);
+    const indicators = await this.indicatorModel
+      .find({ _id: { $in: ids }, organizationId: orgId })
+      .select('cumulative')
+      .lean();
+    if (indicators.length === 0) return result;
+
+    const computed = await this.computeAchievement(orgId, indicators);
+    for (const [key, value] of computed) result.set(key, value.achieved);
+    return result;
+  }
+
+  /**
+   * How finalised reporting periods and live activity combine.
+   *
+   * A period result that has been approved or locked is authoritative *for
+   * its own period*: later edits to that period's activities must not move a
+   * figure a donor has already been given. It is not the indicator's total —
+   * it used to be treated as one, so approving a single quarter made the
+   * project page report that quarter's figure and ignore everything logged
+   * since.
+   *
+   *  - Cumulative indicators (the default): the finalised period figures, plus
+   *    activity dated outside those periods. Outside them, approved activity
+   *    counts alone once any approved data exists; before that, submitted
+   *    activity counts so a project mid-approval-cycle does not read as zero.
+   *  - Snapshot indicators (`cumulative: false`, e.g. a rate): the most recent
+   *    reading, whether that is a finalised period or a later activity.
+   *
+   * Evidence is activities plus approved form responses — the same union the
+   * period calculation and the indicator's stored running total use. Leaving
+   * form responses out here made the project page disagree with both.
+   */
+  private async computeAchievement(
+    orgId: Types.ObjectId,
+    indicators: Array<{ _id: Types.ObjectId; cumulative?: boolean }>,
+    scope: Record<string, unknown> = {},
+  ) {
+    const ids = indicators.map((i) => i._id);
+    const evidenceMatch = { organizationId: orgId, ...scope, indicatorId: { $in: ids }, status: { $in: ['approved', 'submitted'] } };
+    const sumByStatus = {
+      approved: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, { $ifNull: ['$quantity', 0] }, 0] } },
+      submitted: { $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, { $ifNull: ['$quantity', 0] }, 0] } },
+    };
+
+    type Totals = { _id: Types.ObjectId; approved: number; submitted: number; lastActivityDate?: Date | null; activityCount?: number };
+    const [totals, finals] = await Promise.all([
+      this.activityModel.aggregate<Totals>([
+        { $match: evidenceMatch },
+        { $group: { _id: '$indicatorId', ...sumByStatus, lastActivityDate: { $max: '$activityDate' }, activityCount: { $sum: 1 } } },
+      ]),
+      this.resultModel
+        .find({ organizationId: orgId, indicatorId: { $in: ids }, status: { $in: ['approved', 'locked'] } })
+        .select('indicatorId reportingPeriodId achieved')
+        .lean(),
+    ]);
+    const totalMap = new Map(totals.map((t) => [t._id.toString(), t]));
+
+    // Approved form responses (including Kobo/ODK/CommCare syncs) are evidence too.
+    const formMatch = { organizationId: orgId, ...scope, indicatorId: { $in: ids }, approvalStatus: 'approved' };
+    const formTotals = await this.formResponseModel.aggregate<{ _id: Types.ObjectId; total: number; count: number; last: Date | null }>([
+      { $match: formMatch },
+      { $group: { _id: '$indicatorId', total: { $sum: { $ifNull: ['$indicatorValue', 0] } }, count: { $sum: 1 }, last: { $max: '$collectedAt' } } },
+    ]);
+    const formMap = new Map(formTotals.map((f) => [f._id.toString(), f]));
+
+    // The window each finalised result stands for.
+    const periodIds = [...new Set(finals.map((r) => r.reportingPeriodId?.toString()).filter((id): id is string => !!id))];
+    const periods = periodIds.length
+      ? await this.periodModel
+          .find({ _id: { $in: periodIds.map((id) => new Types.ObjectId(id)) }, organizationId: orgId })
+          .select('startDate endDate')
+          .lean()
+      : [];
+    const periodById = new Map(periods.map((p) => [p._id.toString(), p]));
+    const windows = new Map<string, Array<{ start: Date; end: Date; achieved: number }>>();
+    for (const r of finals) {
+      const period = periodById.get(r.reportingPeriodId?.toString() ?? '');
+      if (!period) continue;
+      const key = r.indicatorId.toString();
+      windows.set(key, [...(windows.get(key) ?? []), { start: period.startDate, end: period.endDate, achieved: r.achieved ?? 0 }]);
+    }
+
+    // Activity already represented by a finalised result must not be counted again.
+    const clauses = [...windows].flatMap(([key, list]) =>
+      list.map((w) => ({ indicatorId: new Types.ObjectId(key), activityDate: { $gte: w.start, $lte: w.end } })),
+    );
+    const covered = clauses.length
+      ? await this.activityModel.aggregate<Totals>([
+          { $match: { ...evidenceMatch, $or: clauses } },
+          { $group: { _id: '$indicatorId', ...sumByStatus } },
+        ])
+      : [];
+    const coveredMap = new Map(covered.map((c) => [c._id.toString(), c]));
+    const coveredForms = clauses.length && formTotals.length
+      ? await this.formResponseModel.aggregate<{ _id: Types.ObjectId; total: number }>([
+          { $match: { ...formMatch, $or: clauses.map((c) => ({ indicatorId: c.indicatorId, collectedAt: c.activityDate })) } },
+          { $group: { _id: '$indicatorId', total: { $sum: { $ifNull: ['$indicatorValue', 0] } } } },
+        ])
+      : [];
+    const coveredFormMap = new Map(coveredForms.map((c) => [c._id.toString(), c.total]));
+
+    // Snapshot indicators need the latest reading rather than a sum.
+    const snapshotIds = indicators.filter((i) => i.cumulative === false).map((i) => i._id);
+    const latest = snapshotIds.length
+      ? await this.activityModel.aggregate<{ _id: Types.ObjectId; quantity: number; activityDate: Date }>([
+          { $match: { ...evidenceMatch, indicatorId: { $in: snapshotIds } } },
+          // Approved readings outrank submitted ones; then the most recent wins.
+          { $addFields: { rank: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } } },
+          { $sort: { rank: -1, activityDate: -1, createdAt: -1 } },
+          { $group: { _id: '$indicatorId', quantity: { $first: { $ifNull: ['$quantity', 0] } }, activityDate: { $first: '$activityDate' } } },
+        ])
+      : [];
+    const latestMap = new Map(latest.map((l) => [l._id.toString(), l]));
+    const latestForms = snapshotIds.length && formTotals.length
+      ? await this.formResponseModel.aggregate<{ _id: Types.ObjectId; quantity: number; activityDate: Date }>([
+          { $match: { ...formMatch, indicatorId: { $in: snapshotIds } } },
+          { $sort: { collectedAt: -1, createdAt: -1 } },
+          { $group: { _id: '$indicatorId', quantity: { $first: { $ifNull: ['$indicatorValue', 0] } }, activityDate: { $first: '$collectedAt' } } },
+        ])
+      : [];
+    for (const form of latestForms) {
+      const key = form._id.toString();
+      const activity = latestMap.get(key);
+      if (!activity || form.activityDate > activity.activityDate) latestMap.set(key, form);
+    }
+
+    const out = new Map<string, { achieved: number; hasFinalisedPeriods: boolean; activityCount: number; lastActivityDate: Date | null }>();
+    for (const indicator of indicators) {
+      const key = indicator._id.toString();
+      const total = totalMap.get(key);
+      const finalised = windows.get(key) ?? [];
+      let achieved: number;
+
+      if (indicator.cumulative === false) {
+        const lastFinal = [...finalised].sort((a, b) => b.end.getTime() - a.end.getTime())[0];
+        const reading = latestMap.get(key);
+        achieved = reading && (!lastFinal || reading.activityDate > lastFinal.end)
+          ? reading.quantity
+          : lastFinal?.achieved ?? 0;
+      } else {
+        const finalSum = finalised.reduce((sum, w) => sum + w.achieved, 0);
+        const inside = coveredMap.get(key);
+        const formsOutside = Math.max(0, (formMap.get(key)?.total ?? 0) - (coveredFormMap.get(key) ?? 0));
+        const approvedOutside = Math.max(0, (total?.approved ?? 0) - (inside?.approved ?? 0)) + formsOutside;
+        const submittedOutside = Math.max(0, (total?.submitted ?? 0) - (inside?.submitted ?? 0));
+        const hasApprovedData = finalSum > 0 || approvedOutside > 0;
+        achieved = finalSum + (hasApprovedData ? approvedOutside : submittedOutside);
+      }
+
+      out.set(key, {
+        achieved,
+        hasFinalisedPeriods: finalised.length > 0,
+        activityCount: (total?.activityCount ?? 0) + (formMap.get(key)?.count ?? 0),
+        lastActivityDate: [total?.lastActivityDate, formMap.get(key)?.last]
+          .filter((d): d is Date => !!d)
+          .sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
+      });
+    }
+    return out;
   }
 
   // ─── Performance (current progress for one indicator) ─────────────────────

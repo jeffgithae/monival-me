@@ -25,11 +25,20 @@ export class BillingService {
   ) {
     this.paystackSecret = this.config.get<string>('PAYSTACK_SECRET_KEY') || '';
     const forceMock = this.config.get('BILLING_MOCK') === 'true';
-    this.mockMode = forceMock || !this.paystackSecret;
+    const production = this.config.get('NODE_ENV') === 'production';
+    // Mock mode activates any plan without payment. Outside production a
+    // missing key falls back to it for convenience; in production it must be
+    // asked for explicitly, so a forgotten PAYSTACK_SECRET_KEY can never turn
+    // into free upgrades.
+    this.mockMode = forceMock || (!this.paystackSecret && !production);
     if (this.mockMode) {
       this.logger.warn(
-        'Paystack is not configured or BILLING_MOCK=true. Billing endpoints will run in mock mode.',
+        production
+          ? 'BILLING_MOCK=true in production: every checkout activates the plan WITHOUT payment. Unset it before taking real customers.'
+          : 'Paystack is not configured or BILLING_MOCK=true. Billing endpoints will run in mock mode.',
       );
+    } else if (!this.paystackSecret) {
+      this.logger.error('PAYSTACK_SECRET_KEY is not set: checkout is unavailable until it is configured.');
     }
   }
 
@@ -42,7 +51,7 @@ export class BillingService {
       maxProjects: p.maxProjects,
       maxUsers: p.maxUsers,
       features: p.features,
-      paystackConfigured: !!p.paystackPlanCode && !this.mockMode,
+      paystackConfigured: !!p.paystackPlanCode && !this.mockMode && !!this.paystackSecret,
     }));
   }
 
@@ -278,7 +287,7 @@ export class BillingService {
       subscriptionStatus: org.subscriptionStatus,
       trialEndsAt: org.trialEndsAt,
       currentPeriodEnd: org.currentPeriodEnd,
-      paystackConfigured: !this.mockMode,
+      paystackConfigured: !this.mockMode && !!this.paystackSecret,
       mockMode: this.mockMode,
     };
   }

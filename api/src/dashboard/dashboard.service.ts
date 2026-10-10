@@ -106,7 +106,7 @@ export class DashboardService {
       // Reporting periods — open/overdue
       this.reportingModel
         .find({ organizationId: orgId, status: { $in: ['open', 'submitted'] } })
-        .select('name status endDate projectId')
+        .select('name status endDate dueDate projectId')
         .lean(),
 
       // Impact story count
@@ -120,34 +120,38 @@ export class DashboardService {
     ]);
 
     // ── 2. Indicator achievement across portfolio ────────────────────────────
-    // Use IndicatorResult (approved/submitted) as source of truth for progress
+    // `lastAchievedValue` is kept in step with approved activities and form
+    // responses as they are reviewed, so it is the live figure. Indicators
+    // that have never had one fall back to the sum of their period results —
+    // including locked ones, which are the most final results there are.
     const [indicators, allResults] = await Promise.all([
       this.indicatorModel
         .find({ organizationId: orgId })
-        .select('target baseline achieved projectId')
-        .lean<Array<{ _id: any; target: number; baseline: number; achieved?: number; projectId: any }>>(),
+        .select('target baseline direction achieved lastAchievedValue projectId')
+        .lean<Array<{ _id: any; target: number; baseline?: number; direction?: string; achieved?: number; lastAchievedValue?: number; projectId: any }>>(),
       this.resultModel
-        .find({ organizationId: orgId, status: { $in: ['approved', 'submitted'] } })
+        .find({ organizationId: orgId, status: { $in: ['approved', 'submitted', 'locked'] } })
         .select('indicatorId achieved')
         .lean(),
     ]);
 
-    // Sum achieved per indicator from results
     const achievedByIndicator = new Map<string, number>();
     for (const r of allResults) {
       const key = r.indicatorId.toString();
-      achievedByIndicator.set(key, (achievedByIndicator.get(key) ?? 0) + r.achieved);
+      achievedByIndicator.set(key, (achievedByIndicator.get(key) ?? 0) + (r.achieved ?? 0));
     }
 
     const indicatorAchievement = { onTarget: 0, atRisk: 0, critical: 0, noData: 0 };
     for (const ind of indicators) {
-      const achieved = achievedByIndicator.get(ind._id.toString()) ?? ind.achieved ?? 0;
-      if (!ind.target) { indicatorAchievement.noData++; continue; }
-      const pct = (achieved / ind.target) * 100;
-      if (pct >= 80)       indicatorAchievement.onTarget++;
+      const recorded = ind.lastAchievedValue ?? achievedByIndicator.get(ind._id.toString());
+      // Nothing recorded at all is "no data", which is different from a
+      // recorded value that happens to be low.
+      if (recorded === undefined || !ind.target) { indicatorAchievement.noData++; continue; }
+      const pct = calculateProgressPct({ achieved: recorded, target: ind.target, baseline: ind.baseline, direction: ind.direction });
+      if (pct === null)    indicatorAchievement.noData++;
+      else if (pct >= 80)  indicatorAchievement.onTarget++;
       else if (pct >= 50)  indicatorAchievement.atRisk++;
-      else if (pct < 50 && achieved > 0) indicatorAchievement.critical++;
-      else                 indicatorAchievement.noData++;
+      else                 indicatorAchievement.critical++;
     }
 
     // ── 3. Per-project health (exclude completed/archived) ───────────────────
@@ -216,15 +220,18 @@ export class DashboardService {
     }
 
     // ── 4. Reporting period status ───────────────────────────────────────────
-    const overdueReports  = reportingPeriods.filter(r => r.status === 'open' && new Date(r.endDate) < now);
-    const openReports     = reportingPeriods.filter(r => r.status === 'open' && new Date(r.endDate) >= now);
+    // A report is late once its due date passes — the period ending only
+    // starts the clock. Periods without a due date fall back to their end date.
+    const deadlineOf = (r: { dueDate?: Date; endDate: Date }) => new Date(r.dueDate ?? r.endDate);
+    const overdueReports  = reportingPeriods.filter(r => r.status === 'open' && deadlineOf(r) < now);
+    const openReports     = reportingPeriods.filter(r => r.status === 'open' && deadlineOf(r) >= now);
     const submittedReports = reportingPeriods.filter(r => r.status === 'submitted');
 
     // Alert for overdue reports
     for (const r of overdueReports.slice(0, 3)) {
       qualityAlerts.push({
         title: r.name,
-        message: `Reporting period overdue — was due ${new Date(r.endDate).toLocaleDateString()}.`,
+        message: `Reporting period overdue — was due ${deadlineOf(r).toLocaleDateString()}.`,
         severity: 'critical',
       });
     }
@@ -314,6 +321,7 @@ export class DashboardService {
           id:      r._id.toString(),
           name:    r.name,
           endDate: r.endDate,
+          dueDate: deadlineOf(r),
         })),
       },
 
@@ -368,8 +376,10 @@ export class DashboardService {
     }> = [];
 
     // Helper: resolve achieved value from either field
+    // `achieved` always holds a number (it defaults to 0), so it must not be
+    // consulted first: it would mask the maintained `lastAchievedValue`.
     const getAchieved = (ind: any): number =>
-      ind.achieved ?? ind.lastAchievedValue ?? 0;
+      ind.lastAchievedValue ?? ind.achieved ?? 0;
 
     // ── 1. Grant health alerts ─────────────────────────────────────────────────
     for (const grant of grants) {
@@ -602,33 +612,48 @@ export class DashboardService {
     }
 
     // ── 4. Overdue reporting periods ──────────────────────────────────────────
+    // Every project has a "Q3 2026", so a period name alone does not say
+    // which report is late: name the project alongside it.
+    const periodProjects = await this.projectModel
+      .find({ _id: { $in: periods.map((p) => p.projectId) }, organizationId: orgId })
+      .select('name')
+      .lean();
+    const projectNameById = new Map(periodProjects.map((p) => [p._id.toString(), p.name]));
     for (const period of periods) {
-      if (period.status === 'open' && new Date(period.endDate) < now) {
-        const daysOverdue = Math.ceil((now.getTime() - new Date(period.endDate).getTime()) / 86400000);
+      const projectName = projectNameById.get(period.projectId?.toString() ?? '');
+      const periodLabel = projectName ? `${projectName} — ${period.name}` : `"${period.name}"`;
+      if (period.status !== 'open') continue;
+      // Late once the due date passes; the period ending only starts the clock.
+      const deadline = new Date((period as any).dueDate ?? period.endDate);
+      const ended = new Date(period.endDate) < now;
+      if (deadline < now) {
+        const daysOverdue = Math.ceil((now.getTime() - deadline.getTime()) / 86400000);
         insights.push({
           type: 'critical',
           category: 'reporting_compliance',
-          title: `"${period.name}" is ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue`,
-          message: `This reporting period closed on ${new Date(period.endDate).toLocaleDateString()} and has not been submitted. This may breach donor reporting obligations.`,
+          title: `${periodLabel} is ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue`,
+          message: `This report was due on ${deadline.toLocaleDateString()} and has not been submitted. This may breach donor reporting obligations.`,
           action: 'Calculate results, complete the narrative, and submit this reporting period immediately.',
           metric: { daysOverdue },
           entityId: period._id.toString(), entityType: 'ReportingPeriod',
         });
+        continue;
       }
-      // Approaching deadline — 14 days
-      if (period.status === 'open' && period.endDate) {
-        const daysToClose = Math.ceil((new Date(period.endDate).getTime() - now.getTime()) / 86400000);
-        if (daysToClose > 0 && daysToClose <= 14) {
-          insights.push({
-            type: 'warning',
-            category: 'reporting_compliance',
-            title: `"${period.name}" closes in ${daysToClose} day${daysToClose === 1 ? '' : 's'}`,
-            message: `Ensure all activities are approved and results are calculated before the reporting period closes.`,
-            action: 'Review pending activities and run Calculate Results before the deadline.',
-            metric: { daysToClose },
-            entityId: period._id.toString(), entityType: 'ReportingPeriod',
-          });
-        }
+      const daysToDeadline = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
+      if (daysToDeadline <= 14) {
+        insights.push({
+          type: 'warning',
+          category: 'reporting_compliance',
+          title: ended
+            ? `${periodLabel} is due in ${daysToDeadline} day${daysToDeadline === 1 ? '' : 's'}`
+            : `${periodLabel} closes in ${daysToDeadline} day${daysToDeadline === 1 ? '' : 's'}`,
+          message: ended
+            ? 'The period has ended. Calculate results and submit the report before the due date.'
+            : 'Ensure all activities are approved and results are calculated before the reporting period closes.',
+          action: 'Review pending activities and run Calculate Results before the deadline.',
+          metric: { daysToDeadline },
+          entityId: period._id.toString(), entityType: 'ReportingPeriod',
+        });
       }
     }
 

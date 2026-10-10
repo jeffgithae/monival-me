@@ -16,7 +16,7 @@ export class OKRController {
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
   async create(@CurrentUser() user: any, @Body() createDto: CreateOKRDto) {
-    return this.okrService.create(user.organizationId, createDto);
+    return this.okrService.create(user.organizationId, createDto, user.sub);
   }
 
   @Get()
@@ -27,12 +27,14 @@ export class OKRController {
     @Query('quarter') quarter?: string,
     @Query('year') year?: string,
     @Query('ownerUserId') ownerUserId?: string,
+    @Query('projectId') projectId?: string,
   ) {
     return this.okrService.findAll(user.organizationId, {
       status,
       quarter: quarter ? parseInt(quarter, 10) : undefined,
       year: year ? parseInt(year, 10) : undefined,
       ownerUserId,
+      projectId,
     });
   }
 
@@ -69,7 +71,7 @@ export class OKRController {
     @Param('id') id: string,
     @Body() updateDto: UpdateOKRDto,
   ) {
-    return this.okrService.update(id, user.organizationId, updateDto);
+    return this.okrService.update(id, user.organizationId, updateDto, user.sub);
   }
 
   @Patch(':id/key-result/:krIndex')
@@ -85,13 +87,13 @@ export class OKRController {
 
   @Post(':id/mark-reviewed')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER)
-  async markAsReviewed(@CurrentUser() user: any, @Param('id') id: string, @Body() body: { reviewerUserId: string }) {
-    return this.okrService.markAsReviewed(id, user.organizationId, body.reviewerUserId);
+  async markAsReviewed(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.okrService.markAsReviewed(id, user.organizationId, user.sub);
   }
 
   @Delete(':id')
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
   async delete(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.okrService.delete(id, user.organizationId);
+    return this.okrService.delete(id, user.organizationId, user.sub);
   }
 }

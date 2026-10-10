@@ -5,6 +5,7 @@ if (!globalThis.crypto) {
 
 import { ForbiddenException, ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -12,6 +13,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { MongoErrorFilter } from './common/filters/mongo-error.filter';
+import { BlankOptionalPipe } from './common/pipes/blank-optional.pipe';
 import { initErrorReporting } from './common/observability/error-reporter';
 import { tenantResolver } from './common/middleware/tenant.middleware';
 
@@ -34,8 +36,19 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   assertProductionSecrets(logger);
   initErrorReporting();
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
+
+  // Behind nginx / a platform load balancer every request arrives from the
+  // proxy's address, so without this the rate limiter counts all users as one
+  // client. Trust exactly the configured number of hops (default: one in
+  // production, none locally) — trusting more would let a caller spoof
+  // X-Forwarded-For and dodge the limiter.
+  const trustProxy = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === 'production' ? '1' : '0');
+  app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
+
+  // Let Mongo connections and in-flight requests finish on SIGTERM (deploys).
+  app.enableShutdownHooks();
 
   // ── Security ──────────────────────────────────────────────────────────────
   app.use(helmet({
@@ -83,7 +96,10 @@ async function bootstrap() {
   });
 
   // ── Validation ────────────────────────────────────────────────────────────
+  // BlankOptionalPipe runs first: a blank optional date/dropdown/id from a form
+  // means "not provided" and must not reach validation as a value.
   app.useGlobalPipes(
+    new BlankOptionalPipe(),
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
   // Filters are applied last-registered-first, so the catch-all is listed first
@@ -119,8 +135,8 @@ async function bootstrap() {
   // ── Swagger (disable in production for security/perf) ────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Evidara  ME API')
-      .setDescription('API documentation for the Evidara  M&E backend')
+      .setTitle('Evidara ME API')
+      .setDescription('API documentation for the Evidara M&E backend')
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
       .build();

@@ -99,16 +99,19 @@ export class DocumentsService {
   }
 
   async updateDocument(organizationId: string, id: string, dto: UpdateDocumentDto) {
-    if (dto.projectId) {
-      await this.assertProjectExists(organizationId, dto.projectId);
+    const { projectId, ...rest } = dto as UpdateDocumentDto & { projectId?: string | null };
+    if (projectId) {
+      await this.assertProjectExists(organizationId, projectId);
     }
 
     const document = await this.documentModel
       .findOneAndUpdate(
         { _id: id, organizationId: new Types.ObjectId(organizationId) },
         {
-          ...dto,
-          projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : undefined,
+          ...rest,
+          // An explicit null unlinks the document from its project; absent
+          // leaves the link as it is.
+          ...(projectId ? { projectId: new Types.ObjectId(projectId) } : projectId === null ? { projectId: null } : {}),
         },
         { new: true },
       )

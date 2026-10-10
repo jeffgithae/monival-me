@@ -31,6 +31,11 @@ export class CreateScheduledReportDto {
   @IsOptional()
   @IsBoolean()
   includeCsv?: boolean;
+
+  // The create form lets a schedule start paused.
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class UpdateScheduledReportDto {

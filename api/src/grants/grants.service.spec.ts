@@ -536,18 +536,35 @@ describe('GrantsService', () => {
       expect(roll.burnRate.status).toBe('behind');
     });
 
-    it('surfaces breached allocation alert thresholds', async () => {
+    // Thresholds are stored as one { warningPercent, criticalPercent } object
+    // per allocation (see BudgetAlertThreshold), not as a list.
+    it('surfaces the highest alert threshold an allocation has crossed', async () => {
       given(grantDoc());
-      budgetModel.find.mockReturnValue(q([{
-        name: 'Personnel', category: 'personnel',
-        allocatedAmount: 100, spentAmount: 95, committedAmount: 0, uncommittedAmount: 5,
-        alertThresholds: [{ percentage: 90 }, { percentage: 99 }],
-      }]));
+      budgetModel.find.mockReturnValue(q([
+        {
+          name: 'Personnel', category: 'personnel',
+          allocatedAmount: 100, spentAmount: 95, committedAmount: 0, uncommittedAmount: 5,
+          alertThresholds: { warningPercent: 75, criticalPercent: 90 },
+        },
+        {
+          name: 'Travel', category: 'travel',
+          allocatedAmount: 100, spentAmount: 80, committedAmount: 0, uncommittedAmount: 20,
+          alertThresholds: { warningPercent: 75, criticalPercent: 90 },
+        },
+        {
+          name: 'Equipment', category: 'equipment',
+          allocatedAmount: 100, spentAmount: 10, committedAmount: 0, uncommittedAmount: 90,
+          alertThresholds: { warningPercent: 75, criticalPercent: 90 },
+        },
+        // No thresholds configured at all must not break the roll-up.
+        { name: 'Other', category: 'project', allocatedAmount: 100, spentAmount: 99, committedAmount: 0, uncommittedAmount: 1 },
+      ]));
 
       const roll: any = await service.getFinancialRollup(GRANT_ID, ORG_ID);
 
       expect(roll.breachedThresholds).toEqual([
-        { allocation: 'Personnel', category: 'personnel', threshold: 90 },
+        { allocation: 'Personnel', category: 'personnel', level: 'critical', threshold: 90, spentPct: 95 },
+        { allocation: 'Travel', category: 'travel', level: 'warning', threshold: 75, spentPct: 80 },
       ]);
     });
   });

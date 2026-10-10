@@ -10,6 +10,7 @@ import { ReportingPeriod, ReportingPeriodSchema } from '../reporting/schemas/rep
 import { IndicatorsController } from './indicators.controller';
 import { IndicatorsService } from './indicators.service';
 import { Indicator, IndicatorSchema } from './schemas/indicator.schema';
+import { FormResponse, FormResponseSchema } from '../forms/schemas/form-response.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Indicator, IndicatorSchema } from './schemas/indicator.schema';
       { name: IndicatorResult.name, schema: IndicatorResultSchema },
       { name: IndicatorTarget.name, schema: IndicatorTargetSchema },
       { name: ReportingPeriod.name, schema: ReportingPeriodSchema },
+      { name: FormResponse.name,    schema: FormResponseSchema    },
     ]),
   ],
   controllers: [IndicatorsController],

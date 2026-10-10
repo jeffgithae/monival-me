@@ -23,6 +23,7 @@ export class OrganizationsService {
       sector: org.sector,
       planId: org.planId,
       planName: plan.name,
+      baseCurrency: (org.baseCurrency ?? 'USD').toUpperCase(),
       subscriptionStatus: org.subscriptionStatus,
       trialEndsAt: org.trialEndsAt,
       currentPeriodEnd: org.currentPeriodEnd,
@@ -108,37 +109,50 @@ export class OrganizationsService {
     };
   }
 
+  /**
+   * An organisation's own vision, mission and pillars. Nothing is invented for
+   * an organisation that has not written one: the page shows an empty state
+   * and invites an admin to fill it in.
+   */
   async getStrategicOverview(orgId: string) {
     const org = await this.orgModel.findById(orgId).lean();
     if (!org) {
       throw new NotFoundException('Organisation not found');
     }
     return {
-      vision: org.strategicOverview?.vision ?? 'Our vision is to strengthen community health and resilience through integrated program delivery.',
-      mission: org.strategicOverview?.mission ?? 'Deliver evidence-based, community-led solutions that improve the quality of life for vulnerable populations.',
-      strategicPillars: org.strategicOverview?.strategicPillars || [
-        {
-          pillar: 'Health Systems Strengthening',
-          description: 'Build resilient health systems with skilled workforce and quality data systems.',
-          initiatives: ['Maternal health integration', 'CHW capacity building', 'HMIS strengthening'],
-        },
-        {
-          pillar: 'Community Engagement & Ownership',
-          description: 'Foster community leadership and sustained behavior change.',
-          initiatives: ['Water committee formation', 'Health committee activation', 'Beneficiary accountability'],
-        },
-        {
-          pillar: 'Data for Decision-Making',
-          description: 'Use real-time data to drive adaptive management and accountability.',
-          initiatives: ['Dashboard implementation', 'Data literacy training', 'Quality assurance protocols'],
-        },
-        {
-          pillar: 'Financial Sustainability',
-          description: 'Develop diversified funding and cost-recovery mechanisms.',
-          initiatives: ['Water tariff systems', 'Community health insurance', 'Grant diversification'],
-        },
-      ],
+      vision: org.strategicOverview?.vision ?? '',
+      mission: org.strategicOverview?.mission ?? '',
+      strategicPillars: (org.strategicOverview?.strategicPillars ?? []).map((p) => ({
+        pillar: p.pillar,
+        description: p.description ?? '',
+        initiatives: p.initiatives ?? [],
+      })),
     };
+  }
+
+  async updateStrategicOverview(
+    orgId: string,
+    dto: {
+      vision?: string;
+      mission?: string;
+      strategicPillars?: Array<{ pillar: string; description?: string; initiatives?: string[] }>;
+    },
+  ) {
+    const set: Record<string, unknown> = {};
+    if (dto.vision !== undefined) set['strategicOverview.vision'] = dto.vision.trim();
+    if (dto.mission !== undefined) set['strategicOverview.mission'] = dto.mission.trim();
+    if (dto.strategicPillars !== undefined) {
+      set['strategicOverview.strategicPillars'] = dto.strategicPillars.map((p) => ({
+        pillar: p.pillar.trim(),
+        description: (p.description ?? '').trim(),
+        initiatives: (p.initiatives ?? []).map((i) => i.trim()).filter((i) => !!i),
+      }));
+    }
+    if (Object.keys(set).length) {
+      const updated = await this.orgModel.findByIdAndUpdate(orgId, { $set: set });
+      if (!updated) throw new NotFoundException('Organisation not found');
+    }
+    return this.getStrategicOverview(orgId);
   }
 
   async updateEnterpriseSettings(

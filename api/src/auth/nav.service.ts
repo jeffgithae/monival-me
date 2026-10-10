@@ -33,7 +33,8 @@ export class NavService {
     const member = await this.memberModel
       .findOne({ userId: user._id, organizationId: user.organizationId, status: 'active' })
       .lean();
-    const role: OrgRole = (member?.role as OrgRole) ?? OrgRole.OWNER;
+    // No active membership means no known role: show the least, not the most.
+    const role: OrgRole = (member?.role as OrgRole) ?? OrgRole.VIEWER;
 
     const org = await this.orgModel.findById(user.organizationId).lean();
     const plan = getPlan(org?.planId);
@@ -68,7 +69,9 @@ export class NavService {
     // ── Today ─────────────────────────────────────────────────────────────────
     // Landing + the approvals queue: the two things a user opens the app for.
     push({ id: 'dashboard', label: 'Dashboard', icon: '📊', route: '/dashboard' });
-    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)) {
+    // Finance is an approver role (budget and grant steps route to it), so it
+    // needs the queue as much as programme staff do.
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER, OrgRole.FINANCE)) {
       push({ id: 'workflows', label: 'Approvals', icon: '✅', route: '/workflows' });
     }
 
@@ -111,6 +114,11 @@ export class NavService {
       push({ id: 'donors', label: 'Donors', icon: '🤝', route: '/donors' }, fundingSection);
       push({ id: 'grants', label: 'Grants', icon: '💵', route: '/grants' }, fundingSection);
       push({ id: 'budget', label: 'Budget Tracking', icon: '💰', route: '/budget' }, fundingSection);
+    }
+    // Rates decide how multi-currency grants add up, so they sit with the money
+    // and belong to the people who account for it.
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.FINANCE)) {
+      push({ id: 'exchange-rates', label: 'Exchange Rates', icon: '💱', route: '/exchange-rates' }, fundingSection);
     }
 
     // ── Analyse ───────────────────────────────────────────────────────────────
@@ -156,7 +164,8 @@ export class NavService {
     if (atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {
       push({ id: 'team', label: 'Team', icon: '👥', route: '/settings/team' }, settingsSection);
     }
-    if (atLeast(OrgRole.OWNER)) {
+    // Matches the billing API, which admits owners and admins.
+    if (atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {
       push({ id: 'billing', label: 'Billing', icon: '💳', route: '/settings/billing' }, settingsSection);
     }
     if (hasEnterprise && atLeast(OrgRole.OWNER, OrgRole.ADMIN)) {

@@ -12,6 +12,7 @@ import { AiUsageService } from '../ai-usage.service';
 import { CopilotService } from './copilot.service';
 import { CopilotMessageDto } from './dto/copilot-message.dto';
 import { DraftReportDto } from './dto/draft-report.dto';
+import { SuggestIndicatorBody } from '../../common/dto/request-bodies.dto';
 
 @ApiTags('AI Copilot')
 @Controller('ai/copilot')
@@ -71,7 +72,7 @@ export class CopilotController {
   @ApiOperation({ summary: 'Generate a SMART indicator definition' })
   indicatorDefinition(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { title: string; level: string; sector?: string; unit?: string },
+    @Body() body: SuggestIndicatorBody,
   ) {
     return this.svc.generateIndicatorDefinition(user.organizationId, body);
   }

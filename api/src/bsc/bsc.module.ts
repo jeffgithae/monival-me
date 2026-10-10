@@ -4,10 +4,14 @@ import { BalancedScorecard, BalancedScorecardSchema } from './schemas/balanced-s
 import { BalancedScorecardService } from './bsc.service';
 import { BalancedScorecardController } from './bsc.controller';
 import { AuditModule } from '../audit/audit.module';
+import { OKRsModule } from '../okrs/okrs.module';
 
 @Module({
   imports: [
-    AuditModule,MongooseModule.forFeature([{ name: BalancedScorecard.name, schema: BalancedScorecardSchema }])],
+    AuditModule,
+    OKRsModule,
+    MongooseModule.forFeature([{ name: BalancedScorecard.name, schema: BalancedScorecardSchema }]),
+  ],
   controllers: [BalancedScorecardController],
   providers: [BalancedScorecardService],
   exports: [BalancedScorecardService],

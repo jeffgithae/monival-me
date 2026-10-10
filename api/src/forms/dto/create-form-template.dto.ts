@@ -3,12 +3,26 @@ import {
   IsArray,
   IsIn,
   IsMongoId,
+  IsNumber,
   IsBoolean,
   IsOptional,
   IsString,
   MinLength,
   ValidateNested,
 } from 'class-validator';
+
+class FormQuestionValidationDto {
+  @IsOptional() @IsNumber() min?: number;
+  @IsOptional() @IsNumber() max?: number;
+  @IsOptional() @IsString() pattern?: string;
+  @IsOptional() @IsString() patternMessage?: string;
+}
+
+class FormQuestionConditionalDto {
+  @IsOptional() @IsString() dependsOn?: string;
+  @IsOptional() @IsIn(['equals', 'not_equals', 'in', 'not_in']) operator?: string;
+  @IsOptional() value?: unknown;
+}
 
 class FormQuestionDto {
   @IsString()
@@ -37,6 +51,16 @@ class FormQuestionDto {
   @IsOptional()
   @IsBoolean()
   repeatGroup?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FormQuestionValidationDto)
+  validation?: FormQuestionValidationDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FormQuestionConditionalDto)
+  conditional?: FormQuestionConditionalDto;
 }
 
 class FormSectionDto {

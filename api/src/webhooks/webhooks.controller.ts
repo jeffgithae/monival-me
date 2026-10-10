@@ -10,6 +10,7 @@ import { OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { WEBHOOK_EVENTS } from './schemas/webhook.schema';
 import { WebhooksService, CreateWebhookDto } from './webhooks.service';
+import { CreateWebhookBody, UpdateWebhookBody } from '../common/dto/request-bodies.dto';
 
 @Controller('webhooks')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
@@ -36,7 +37,7 @@ export class WebhooksController {
    */
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN)
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateWebhookDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateWebhookBody) {
     return this.svc.create(user.organizationId, user.sub, dto);
   }
 
@@ -46,7 +47,7 @@ export class WebhooksController {
   update(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: Partial<CreateWebhookDto> & { isActive?: boolean },
+    @Body() dto: UpdateWebhookBody,
   ) {
     return this.svc.update(user.organizationId, id, dto);
   }

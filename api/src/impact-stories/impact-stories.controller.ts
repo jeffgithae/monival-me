@@ -10,6 +10,7 @@ import { PERMISSIONS, OrgRole } from '../common/constants/roles';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { ImpactStoriesService, CreateImpactStoryDto } from './impact-stories.service';
 import type { StoryStatus } from './schemas/impact-story.schema';
+import { CreateImpactStoryBody, StoryStatusBody, UpdateImpactStoryBody } from '../common/dto/request-bodies.dto';
 
 @Controller('impact-stories')
 @UseGuards(JwtAuthGuard, SubscriptionGuard, RolesGuard)
@@ -72,7 +73,7 @@ export class ImpactStoriesController {
   /** POST /impact-stories — create draft */
   @Post()
   @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FIELD_OFFICER)
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateImpactStoryDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateImpactStoryBody) {
     return this.svc.create(user.organizationId, user.sub, dto);
   }
 
@@ -82,7 +83,7 @@ export class ImpactStoriesController {
   update(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: Partial<CreateImpactStoryDto>,
+    @Body() dto: UpdateImpactStoryBody,
   ) {
     return this.svc.update(user.organizationId, id, dto);
   }
@@ -93,9 +94,9 @@ export class ImpactStoriesController {
   updateStatus(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() body: { status: StoryStatus },
+    @Body() body: StoryStatusBody,
   ) {
-    return this.svc.updateStatus(user.organizationId, id, body.status, user.sub);
+    return this.svc.updateStatus(user.organizationId, id, body.status as StoryStatus, user.sub);
   }
 
   /** DELETE /impact-stories/:id */

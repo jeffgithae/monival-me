@@ -104,7 +104,9 @@ export class WorkflowsController {
   }
 
   @Get('summary')
-  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.VIEWER)
+  // Everyone who can see the approvals queue needs its counts — field
+  // officers were sent to the page and then refused its summary.
+  @Roles(OrgRole.OWNER, OrgRole.ADMIN, OrgRole.ME_OFFICER, OrgRole.FINANCE, OrgRole.FIELD_OFFICER, OrgRole.VIEWER)
   @ApiOperation({ summary: 'Org-level workflow health summary (pending, overdue, escalated counts)' })
   getSummary(@CurrentUser() user: JwtPayload) {
     return this.svc.getSummary(user.organizationId);
