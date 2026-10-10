@@ -73,17 +73,23 @@ cd api && npm run seed
 | Email | `demo@evidara.test` |
 | Password | `Demo1234!` |
 
-## Stripe setup (production)
+## Billing setup (production)
 
-1. Create products/prices in Stripe Dashboard  
-2. Set in `api/.env`:
-   - `STRIPE_SECRET_KEY=sk_live_...`
-   - `STRIPE_WEBHOOK_SECRET=whsec_...`
-   - `STRIPE_PRICE_STARTER=price_...`
-   - `STRIPE_PRICE_PROFESSIONAL=price_...`
-   - `STRIPE_PRICE_ORGANIZATION=price_...`
+Payments run through **Paystack**. (Older docs mentioned Stripe; the API does not read any `STRIPE_*` secret.)
+
+1. Create one subscription plan per tier in the Paystack dashboard
+2. Set in the API environment:
+   - `PAYSTACK_SECRET_KEY=sk_live_...` — also used to verify webhook signatures
+   - `PAYSTACK_PLAN_STARTER=PLN_...`
+   - `PAYSTACK_PLAN_PROFESSIONAL=PLN_...`
+   - `PAYSTACK_PLAN_ORGANIZATION=PLN_...`
+   - `PAYSTACK_PLAN_SCALE=PLN_...`
+   - `PAYSTACK_PLAN_ENTERPRISE=PLN_...`
    - `BILLING_MOCK=false`
-3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/billing/webhook`
+3. Point the Paystack webhook at `https://<your-host>/api/billing/webhook`
+
+`BILLING_MOCK=true` activates any plan **without payment** — it is for local development and demos only.
+In production, a missing `PAYSTACK_SECRET_KEY` makes checkout unavailable rather than free.
 
 ## API overview
 

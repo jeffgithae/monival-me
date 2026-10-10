@@ -44,6 +44,11 @@ const OrganizationSchema = new Schema(
     subscriptionStatus: { type: String, default: 'active' },
     trialEndsAt: Date,
     currentPeriodEnd: Date,
+    // Without these the strategy set-up further down was silently dropped by
+    // strict mode and the demo organisation ended up with none of it.
+    planningFrameworks: [String],
+    primaryFramework: String,
+    strategicOverview: Schema.Types.Mixed,
   },
   { timestamps: true },
 );
